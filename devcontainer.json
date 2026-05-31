@@ -1,0 +1,4 @@
+{
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24"
+  // remoteUser is optional; defaults to the container's user (detected via whoami)
+}
