@@ -1,12 +1,12 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { toast } from "sonner"
-import { Bell, Heart, Star, Trophy } from "lucide-react"
-
-import { cn } from "@/lib/utils"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { Button } from "@/components/ui/button"
+import { Bell, Heart, Star, Trophy } from "lucide-react";
+import type * as React from "react";
+import { toast } from "sonner";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -15,19 +15,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogClose,
@@ -37,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,39 +33,36 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 function Section({
   title,
   description,
   children,
 }: {
-  title: string
-  description?: string
-  children: React.ReactNode
+  title: string;
+  description?: string;
+  children: React.ReactNode;
 }) {
   return (
     <section className="space-y-6">
       <div className="space-y-1">
         <h2 className="text-2xl font-semibold">{title}</h2>
-        {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
-        ) : null}
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {children}
     </section>
-  )
+  );
 }
 
-function Swatch({
-  name,
-  role,
-  className,
-}: {
-  name: string
-  role: string
-  className: string
-}) {
+function Swatch({ name, role, className }: { name: string; role: string; className: string }) {
   return (
     <div className="space-y-2">
       <div className={cn("h-16 w-full rounded-lg border shadow-sm", className)} />
@@ -86,7 +71,7 @@ function Swatch({
         <div className="text-xs text-muted-foreground">{role}</div>
       </div>
     </div>
-  )
+  );
 }
 
 const swatches = [
@@ -108,7 +93,7 @@ const swatches = [
     className: "bg-destructive",
   },
   { name: "--border", role: "Bordes", className: "bg-border" },
-] as const
+] as const;
 
 export default function DesignSystemPage() {
   return (
@@ -117,12 +102,10 @@ export default function DesignSystemPage() {
       <header className="flex items-start justify-between gap-4 border-b pb-8">
         <div className="space-y-2">
           <p className="label-stadium text-xs text-brand">Design System</p>
-          <h1 className="text-4xl font-bold tracking-tight text-balance">
-            Cromos Mundial 2026
-          </h1>
+          <h1 className="text-4xl font-bold tracking-tight text-balance">Cromos Mundial 2026</h1>
           <p className="max-w-xl text-sm text-muted-foreground">
-            Base visual del aplicativo de intercambio de cromos. Usa el toggle
-            para revisar light y dark mode.
+            Base visual del aplicativo de intercambio de cromos. Usa el toggle para revisar light y
+            dark mode.
           </p>
         </div>
         <ThemeToggle />
@@ -148,29 +131,18 @@ export default function DesignSystemPage() {
         >
           <div className="space-y-4">
             <div className="space-y-1">
-              <span className="label-stadium text-xs text-muted-foreground">
-                Display · Sora
-              </span>
-              <p className="font-display text-5xl font-bold tracking-tight">
-                Aa Bb Cc 2026
-              </p>
-              <p className="font-display text-3xl font-semibold">
-                ¡Que empiece el Mundial!
-              </p>
+              <span className="label-stadium text-xs text-muted-foreground">Display · Sora</span>
+              <p className="font-display text-5xl font-bold tracking-tight">Aa Bb Cc 2026</p>
+              <p className="font-display text-3xl font-semibold">¡Que empiece el Mundial!</p>
             </div>
             <Separator />
             <div className="space-y-1">
-              <span className="label-stadium text-xs text-muted-foreground">
-                Cuerpo · Inter
-              </span>
+              <span className="label-stadium text-xs text-muted-foreground">Cuerpo · Inter</span>
               <p className="max-w-2xl text-base leading-relaxed">
-                Colecciona, intercambia y completa tu álbum del Mundial 2026.
-                Encuentra a otros coleccionistas y consigue ese cromo que te
-                falta para llenar la página.
+                Colecciona, intercambia y completa tu álbum del Mundial 2026. Encuentra a otros
+                coleccionistas y consigue ese cromo que te falta para llenar la página.
               </p>
-              <p className="font-mono text-sm text-muted-foreground">
-                mono · 0123456789
-              </p>
+              <p className="font-mono text-sm text-muted-foreground">mono · 0123456789</p>
             </div>
           </div>
         </Section>
@@ -183,9 +155,7 @@ export default function DesignSystemPage() {
           <div className="space-y-10">
             {/* Buttons */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Buttons
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Buttons</h3>
               <div className="flex flex-wrap items-center gap-3">
                 <Button>Default</Button>
                 <Button className="bg-brand text-brand-foreground hover:bg-brand/90">
@@ -210,9 +180,7 @@ export default function DesignSystemPage() {
 
             {/* Badges */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Badges
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Badges</h3>
               <div className="flex flex-wrap items-center gap-3">
                 <Badge>Default</Badge>
                 <Badge variant="secondary">Secondary</Badge>
@@ -226,9 +194,7 @@ export default function DesignSystemPage() {
 
             {/* Cromo card */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Card — ejemplo de cromo
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Card — ejemplo de cromo</h3>
               <Card className="max-w-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -241,8 +207,7 @@ export default function DesignSystemPage() {
                   </CardAction>
                 </CardHeader>
                 <CardContent className="text-sm text-muted-foreground">
-                  Cromo brillante de la colección oficial. Disponible para
-                  intercambio.
+                  Cromo brillante de la colección oficial. Disponible para intercambio.
                 </CardContent>
                 <CardFooter className="gap-3">
                   <Button className="bg-brand text-brand-foreground hover:bg-brand/90">
@@ -255,17 +220,11 @@ export default function DesignSystemPage() {
 
             {/* Form */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Inputs & controles
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Inputs & controles</h3>
               <div className="grid max-w-md gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="ds-email">Email</Label>
-                  <Input
-                    id="ds-email"
-                    type="email"
-                    placeholder="coleccionista@mundial.com"
-                  />
+                  <Input id="ds-email" type="email" placeholder="coleccionista@mundial.com" />
                 </div>
                 <div className="grid gap-2">
                   <Label htmlFor="ds-disabled">Deshabilitado</Label>
@@ -280,9 +239,7 @@ export default function DesignSystemPage() {
 
             {/* Tabs */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Tabs
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Tabs</h3>
               <Tabs defaultValue="album" className="max-w-md">
                 <TabsList>
                   <TabsTrigger value="album">Álbum</TabsTrigger>
@@ -303,27 +260,20 @@ export default function DesignSystemPage() {
 
             {/* Overlays + feedback */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Overlays & feedback
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Overlays & feedback</h3>
               <div className="flex flex-wrap items-center gap-3">
                 {/* Dialog */}
                 <Dialog>
-                  <DialogTrigger render={<Button variant="outline" />}>
-                    Abrir diálogo
-                  </DialogTrigger>
+                  <DialogTrigger render={<Button variant="outline" />}>Abrir diálogo</DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Confirmar intercambio</DialogTitle>
                       <DialogDescription>
-                        Vas a proponer cambiar tu Messi (#10) por un Mbappé
-                        (#10). ¿Continuar?
+                        Vas a proponer cambiar tu Messi (#10) por un Mbappé (#10). ¿Continuar?
                       </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                      <DialogClose render={<Button variant="ghost" />}>
-                        Cancelar
-                      </DialogClose>
+                      <DialogClose render={<Button variant="ghost" />}>Cancelar</DialogClose>
                       <DialogClose
                         render={
                           <Button className="bg-brand text-brand-foreground hover:bg-brand/90" />
@@ -345,18 +295,14 @@ export default function DesignSystemPage() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem>Ver álbum</DropdownMenuItem>
                     <DropdownMenuItem>Mis repes</DropdownMenuItem>
-                    <DropdownMenuItem variant="destructive">
-                      Eliminar cuenta
-                    </DropdownMenuItem>
+                    <DropdownMenuItem variant="destructive">Eliminar cuenta</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
 
                 {/* Tooltip */}
                 <Tooltip>
                   <TooltipTrigger
-                    render={
-                      <Button variant="outline" size="icon" aria-label="Info" />
-                    }
+                    render={<Button variant="outline" size="icon" aria-label="Info" />}
                   >
                     <Bell />
                   </TooltipTrigger>
@@ -379,9 +325,7 @@ export default function DesignSystemPage() {
 
             {/* Avatars */}
             <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                Avatars
-              </h3>
+              <h3 className="text-sm font-medium text-muted-foreground">Avatars</h3>
               <div className="flex items-center gap-3">
                 <Avatar>
                   <AvatarImage src="https://github.com/shadcn.png" alt="@user" />
@@ -396,5 +340,5 @@ export default function DesignSystemPage() {
         </Section>
       </div>
     </div>
-  )
+  );
 }
