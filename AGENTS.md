@@ -4,13 +4,25 @@ Plataforma web para intercambio de cromos del Mundial 2026. Coleccionistas gesti
 
 ## Setup
 
-Después de clonar, generar los adaptadores de herramientas AI:
+`.agent/` es la **fuente de verdad** para configuración de herramientas AI (skills, workflows, MCP servers). `scripts/setup-agent.sh` la traduce a los archivos consumidos por cada cliente:
+
+- `.claude/settings.json` (Claude Code) — commiteado, funciona out-of-the-box
+- `opencode.json` (opencode) — commiteado en la raíz del proyecto
+- `.claude/commands/`, `.claude/skills/` — symlinks a `.agent/`
+- `.opencode/commands/`, `.opencode/skills/` — symlinks a `.agent/`
+
+**No se requiere ejecutar el script tras clonar**: los archivos generados están commiteados y `lefthook pre-commit` aborta el commit si la fuente y los generados divergen. Re-ejecutar manualmente solo si editas `.agent/`:
 
 ```bash
 bash scripts/setup-agent.sh
 ```
 
-Esto crea `.claude/` localmente con symlinks a `.agent/` (fuente de verdad). Ver `.agent/` para skills, workflows y config.
+### Añadir un MCP server
+
+1. Editar `.agent/config/mcp/source.json` (entrada nueva en `servers`)
+2. Si el cliente lo necesita en formato distinto a remote, añadir un case en `to_claude_entry()` dentro del script
+3. Correr `bash scripts/setup-agent.sh`
+4. Hacer commit de los cambios en `.claude/settings.json` y `opencode.json`
 
 ## Documentación
 
@@ -48,3 +60,13 @@ Esto crea `.claude/` localmente con symlinks a `.agent/` (fuente de verdad). Ver
 - **Context7** — consultar siempre antes de usar cualquier librería externa
 - **Server Actions** para lógica de servidor; **Prisma** para DB y migraciones
 - Componentes en `src/components`; alias `@/*` apunta a `src/`
+
+## Verificaciones automatizadas
+
+| Script | Qué valida |
+|--------|------------|
+| `pnpm lint` | ESLint 9 + flat config + tipado |
+| `pnpm build` | Next build (TypeScript incluido) |
+| `pnpm contrast` | WCAG 2.1 AA sobre tokens light/dark (`scripts/contrast-check.mjs`) |
+| `pnpm check:toggle` | SSR del toggle + tokens en CSS (`scripts/check-theme-toggle.mjs`) |
+| `pnpm check:toggle:browser` | Click real con Playwright, FOUC, capturas (`scripts/check-theme-toggle-browser.mjs`) |

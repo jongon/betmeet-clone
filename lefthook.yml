@@ -5,6 +5,10 @@ pre-commit:
       glob: "*.{js,jsx,ts,tsx,json,jsonc}"
       run: pnpm biome check --write --no-errors-on-unmatched {staged_files}
       stage_fixed: true
+    agent-config:
+      glob: ".agent/**"
+      run: bash scripts/setup-agent.sh && git diff --exit-code .claude/settings.json opencode.json
+      fail_text: "Drift detectado entre .agent/ y los configs generados. Haz commit de los cambios en .claude/settings.json y opencode.json."
 
 commit-msg:
   commands:
