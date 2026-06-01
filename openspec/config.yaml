@@ -1,0 +1,49 @@
+schema: spec-driven
+
+context: |
+  Producto: Plataforma web para intercambio de cromos del Mundial 2026.
+  Los coleccionistas registran sus repetidos y faltantes, generan un QR con
+  token único; los cambiadores escanean ese QR, ven qué cromos le faltan al
+  coleccionista, y ofrecen los suyos para coordinar el cambio.
+
+  Vistas:
+    - /admin — panel privado del coleccionista (con autenticación)
+    - /cambio/[token] — vista pública para el cambiador (sin auth)
+
+  Usuarios:
+    - Coleccionista: administra su álbum, genera QR
+    - Cambiador: escanea QR, ve faltantes, ofrece cromos
+
+  Stack frontend: Next.js 16 (App Router, nunca Pages Router), React 19,
+  TypeScript, Tailwind CSS v4 (config CSS-first en src/app/globals.css, sin
+  tailwind.config.*), shadcn/ui (components.json: style base-nova, baseColor
+  neutral, icon library lucide, alias @/* -> src/*), next-themes para dark mode.
+  Package manager: pnpm. Estructura en src/ (src/app, src/components, src/lib).
+
+  Backend/infra: PostgreSQL 18, Prisma ORM, Supabase Auth (futuro), Docker
+  Compose multi-contenedor, Dev Containers (VS Code). Deploy: Vercel + Supabase.
+
+  Identidad visual (design system):
+    - Azul FIFA #1A3C5E -> token --primary
+    - Rojo de marca #E63946 -> token --accent (CTAs/estados activos)
+    - Crema #F5F5F0 -> token --background (light)
+    - Rojo de error #DC2626 -> token --destructive (separado del rojo de marca)
+    - Tipografía: Sora (display, --font-display) + Inter (cuerpo, --font-sans)
+    - Tokens semánticos en oklch; nada de colores literales en componentes.
+    - Soporte completo light/dark (next-themes, attribute="class").
+
+  Convenciones:
+    - App Router; componentes en src/components; Server Actions para lógica de
+      servidor; Prisma para ORM y migraciones.
+    - Consultar SIEMPRE Context7 para documentación actualizada antes de usar
+      cualquier librería.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

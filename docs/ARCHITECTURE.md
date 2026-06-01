@@ -113,3 +113,21 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 | `nextjs-postgres` | Datos persistentes de PostgreSQL |
 | `nextjs-pnpm-store` | Cache de paquetes pnpm |
 | `.:/var/www/html` | Código fuente (compartido) |
+
+## Estructura de src/
+
+```
+src/
+├── app/
+│   ├── globals.css             # Design system: tokens oklch, fuentes, .label-stadium
+│   ├── layout.tsx              # Root layout: fuentes, ThemeProvider, Toaster
+│   ├── page.tsx                # Página raíz
+│   └── design-system/
+│       └── page.tsx            # Galería de componentes y tokens (dev only)
+├── components/
+│   ├── theme-provider.tsx      # Wrapper next-themes
+│   ├── theme-toggle.tsx        # Toggle light / dark / system
+│   └── ui/                     # Componentes shadcn/ui instalados
+└── lib/
+    └── utils.ts                # Helper cn() (clsx + tailwind-merge)
+```
