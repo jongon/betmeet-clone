@@ -21,6 +21,12 @@ build/
 !.vscode/launch.json
 !.vscode/settings.json
 
+# AI tools (personal, tool-specific)
+.cursor/
+.kiro/
+.opencode/
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -2,6 +2,16 @@
 
 Plataforma web para intercambio de cromos del Mundial 2026. Coleccionistas gestionan su álbum y generan un QR; los cambiadores escanean el QR y ofrecen sus cromos.
 
+## Setup
+
+Después de clonar, generar los adaptadores de herramientas AI:
+
+```bash
+bash scripts/setup-agent.sh
+```
+
+Esto crea `.claude/` localmente con symlinks a `.agent/` (fuente de verdad). Ver `.agent/` para skills, workflows y config.
+
 ## Documentación
 
 | Archivo | Contenido |
