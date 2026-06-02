@@ -76,10 +76,6 @@
       }
     }
   },
-  "remoteEnv": {
-    "PNPM_HOME": "/var/www/.pnpm-store",
-    "PATH": "${containerEnv:PATH}:/var/www/.pnpm-store"
-  },
   "remoteUser": "node",
-  "postCreateCommand": "sed -i '/^ZSH_THEME/c\\ZSH_THEME=\"norm\"' ~/.zshrc && mkdir -p /var/www/.pnpm-store && pnpm install"
+  "postCreateCommand": "sed -i '/^ZSH_THEME/c\\ZSH_THEME=\"norm\"' ~/.zshrc"
 }

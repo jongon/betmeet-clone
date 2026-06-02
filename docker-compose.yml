@@ -9,7 +9,6 @@ services:
     image: nextjs/code
     volumes:
       - '.:/var/www/html'
-      - nextjs-pnpm-store:/var/www/.pnpm-store
     networks:
       - nextjs
     extra_hosts:
@@ -73,7 +72,6 @@ services:
     image: nextjs/pnpm
     volumes:
       - .:/var/www/html
-      - nextjs-pnpm-store:/var/www/.pnpm-store
     networks:
       - nextjs
 
@@ -83,6 +81,4 @@ networks:
 
 volumes:
   nextjs-postgres:
-    driver: local
-  nextjs-pnpm-store:
     driver: local
