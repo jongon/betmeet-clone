@@ -80,5 +80,5 @@
     }
   },
   "remoteUser": "node",
-  "postCreateCommand": "sed -i '/^ZSH_THEME/c\\ZSH_THEME=\"norm\"' ~/.zshrc"
+  "postCreateCommand": "sed -i '/^ZSH_THEME/c\\ZSH_THEME=\"norm\"' ~/.zshrc && npm install -g @fission-ai/openspec@latest"
 }
