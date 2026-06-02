@@ -4,25 +4,34 @@ Plataforma web para intercambio de cromos del Mundial 2026. Coleccionistas gesti
 
 ## Setup
 
-`.agent/` es la **fuente de verdad** para configuración de herramientas AI (skills, workflows, MCP servers). `scripts/setup-agent.sh` la traduce a los archivos consumidos por cada cliente:
+`.agent/` es la **fuente de verdad** para configuración MCP de herramientas AI. `scripts/setup-agent.sh` genera los archivos de configuración MCP para cada herramienta:
 
-- `.claude/settings.json` (Claude Code) — commiteado, funciona out-of-the-box
-- `opencode.json` (opencode) — commiteado en la raíz del proyecto
-- `.claude/commands/`, `.claude/skills/` — symlinks a `.agent/`
-- `.opencode/commands/`, `.opencode/skills/` — symlinks a `.agent/`
+- `.claude/settings.json` — MCP config para Claude Code
+- `.opencode/opencode.json` — MCP config para opencode
 
-**No se requiere ejecutar el script tras clonar**: los archivos generados están commiteados y `lefthook pre-commit` aborta el commit si la fuente y los generados divergen. Re-ejecutar manualmente solo si editas `.agent/`:
+Cada herramienta AI (Claude, opencode, Cursor, Kiro) genera sus propios directorios `commands/` y `skills/` automáticamente.
+
+**Ejecutar tras clonar** para generar la configuración MCP:
 
 ```bash
 bash scripts/setup-agent.sh
 ```
+
+### Configuración de opencode
+
+opencode busca su configuración en `opencode.json` en la raíz del proyecto. Para usar `.opencode/opencode.json`, configura la variable de entorno:
+
+```bash
+export OPENCODE_CONFIG=/var/www/html/.opencode/opencode.json
+```
+
+El devcontainer ya tiene esta variable configurada en `remoteEnv`.
 
 ### Añadir un MCP server
 
 1. Editar `.agent/config/mcp/source.json` (entrada nueva en `servers`)
 2. Si el cliente lo necesita en formato distinto a remote, añadir un case en `to_claude_entry()` dentro del script
 3. Correr `bash scripts/setup-agent.sh`
-4. Hacer commit de los cambios en `.claude/settings.json` y `opencode.json`
 
 ## Documentación
 

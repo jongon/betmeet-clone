@@ -3,6 +3,9 @@
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "devcontainer",
   "workspaceFolder": "/var/www/html",
+  "remoteEnv": {
+    "OPENCODE_CONFIG": "/var/www/html/.opencode/opencode.json"
+  },
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,

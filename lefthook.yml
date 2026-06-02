@@ -7,8 +7,8 @@ pre-commit:
       stage_fixed: true
     agent-config:
       glob: ".agent/**"
-      run: bash scripts/setup-agent.sh && git diff --exit-code .claude/settings.json opencode.json
-      fail_text: "Drift detectado entre .agent/ y los configs generados. Haz commit de los cambios en .claude/settings.json y opencode.json."
+      run: bash scripts/setup-agent.sh && git diff --exit-code .claude/settings.json .opencode/opencode.json
+      fail_text: "Drift detectado entre .agent/ y los configs generados. Haz commit de los cambios en .claude/settings.json y .opencode/opencode.json."
 
 commit-msg:
   commands:

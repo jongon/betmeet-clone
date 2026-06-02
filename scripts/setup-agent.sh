@@ -1,54 +1,24 @@
 #!/usr/bin/env bash
-# Generates tool-specific AI adapters from .agent/ source of truth.
+# Generates MCP configuration for AI tools from .agent/ source of truth.
 #
 # Source layout (under .agent/):
-#   config/claude/settings.json   - hand-maintained, Claude-specific config
 #   config/mcp/source.json        - canonical MCP server definitions
-#   skills/<name>                  - reusable skill definitions
-#   workflows/opsx-<name>.md       - command templates
 #
-# Generated outputs (committed to repo so they work out-of-the-box):
-#   .claude/settings.json          - real file (was symlink, now generated)
-#   opencode.json                  - real file at project root
-#   .claude/commands/opsx/<name>   - symlinks
-#   .claude/skills/<name>          - symlinks
-#   .opencode/skills/<name>        - symlinks
-#   .opencode/commands/<file>      - symlinks
+# Generated outputs:
+#   .claude/settings.json          - MCP config for Claude Code
+#   .opencode/opencode.json        - MCP config for opencode
 #
-# Re-run after editing anything under .agent/:
+# Each AI tool (Claude, opencode, Cursor, Kiro) generates its own
+# commands/ and skills/ directories. This script only creates the
+# MCP configuration files.
+#
+# Re-run after editing .agent/config/mcp/source.json:
 #   bash scripts/setup-agent.sh
-#
-# Drift between source and generated files is caught by the pre-commit hook
-# in lefthook.yml (runs this script and aborts the commit on changes).
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
-
-# --- Claude Code: commands and skills (symlinks) ---
-mkdir -p .claude/commands/opsx .claude/skills
-
-for cmd in apply archive explore propose; do
-  ln -sfn "../../../.agent/workflows/opsx-${cmd}.md" ".claude/commands/opsx/${cmd}.md"
-done
-
-for skill in openspec-apply-change openspec-archive-change openspec-explore openspec-propose; do
-  ln -sfn "../../.agent/skills/${skill}" ".claude/skills/${skill}"
-done
-
-ln -sfn "../../.agent/skills/nextjs-dev.md" ".claude/skills/nextjs-dev.md"
-
-# --- opencode: skills and commands (symlinks) ---
-mkdir -p .opencode/skills .opencode/commands
-
-for skill in openspec-apply-change openspec-archive-change openspec-explore openspec-propose; do
-  ln -sfn "../../.agent/skills/${skill}" ".opencode/skills/${skill}"
-done
-
-for cmd in apply archive explore propose; do
-  ln -sfn "../../.agent/workflows/opsx-${cmd}.md" ".opencode/commands/opsx-${cmd}.md"
-done
 
 # --- MCP source-of-truth generator ---
 MCP_SOURCE=".agent/config/mcp/source.json"
@@ -94,7 +64,8 @@ CLAUDE_SETTINGS="{
   \"mcpServers\": ${CLAUDE_MCP}
 }"
 
-# Replace the symlink with a real, generated file
+# Generate Claude Code settings.json
+mkdir -p .claude
 rm -f .claude/settings.json
 printf '%s\n' "$CLAUDE_SETTINGS" | jq . > .claude/settings.json
 
@@ -104,7 +75,8 @@ OPENCODE_CONFIG='{
   "mcp": '"$(jq '.servers' "$MCP_SOURCE")"'
 }'
 
-printf '%s\n' "$OPENCODE_CONFIG" | jq . > opencode.json
+mkdir -p .opencode
+printf '%s\n' "$OPENCODE_CONFIG" | jq . > .opencode/opencode.json
 
-echo "✓ .claude/ and opencode.json regenerated from $MCP_SOURCE"
-echo "✓ .opencode/skills/ and .opencode/commands/ symlinked from .agent/"
+echo "✓ .claude/settings.json generated from $MCP_SOURCE"
+echo "✓ .opencode/opencode.json generated from $MCP_SOURCE"
