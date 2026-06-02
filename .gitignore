@@ -27,6 +27,7 @@ build/
 .kiro/
 .claude/
 .opencode/
+.antigravity/
 
 # OS
 .DS_Store
