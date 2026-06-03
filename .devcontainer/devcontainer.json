@@ -32,7 +32,6 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
-  "mounts": ["source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"],
   "customizations": {
     "vscode": {
       "extensions": [
@@ -80,5 +79,5 @@
     }
   },
   "remoteUser": "node",
-  "postCreateCommand": "sed -i '/^ZSH_THEME/c\\ZSH_THEME=\"norm\"' ~/.zshrc && pnpm add -g @fission-ai/openspec@latest --allow-build=@fission-ai/openspec"
+  "postCreateCommand": "[ -f \"$HOME/.zshrc\" ] && sed -i 's/^ZSH_THEME=.*/ZSH_THEME=norm/' \"$HOME/.zshrc\" || true"
 }

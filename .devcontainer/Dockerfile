@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl ca-cer
 
 FROM base AS devcontainer
 USER node
+RUN pnpm add -g @fission-ai/openspec@latest --allow-build=@fission-ai/openspec \
+    --store-dir /home/node/.local/share/pnpm/store
 CMD ["sleep", "infinity"]
 
 FROM base AS app
