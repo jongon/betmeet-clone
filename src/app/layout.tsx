@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Inter, Sora } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider, themeInitScript } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,8 +34,9 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static FOUC-prevention script bundled with the app, not user input */}
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+        <Script id="theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
       </head>
       <body className={`${inter.variable} ${sora.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
