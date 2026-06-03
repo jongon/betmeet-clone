@@ -34,9 +34,12 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: static FOUC-prevention script bundled with the app, not user input
+          dangerouslySetInnerHTML={{ __html: themeInitScript }}
+        />
       </head>
       <body className={`${inter.variable} ${sora.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
