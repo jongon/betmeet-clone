@@ -45,3 +45,6 @@ coverage/
 .turbo/
 .vercel
 .tmp/
+
+# Runtime data (seed example is committed; runtime file is gitignored)
+data/sessions.json

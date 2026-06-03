@@ -1,0 +1,26 @@
+[
+	{
+		"id": "ses_01",
+		"cambiadorName": "Carlos",
+		"offeredCount": 5,
+		"requestedCount": 3,
+		"createdAt": "2026-06-02T14:30:00Z",
+		"status": "open"
+	},
+	{
+		"id": "ses_02",
+		"cambiadorName": "Marta",
+		"offeredCount": 2,
+		"requestedCount": 4,
+		"createdAt": "2026-06-01T09:15:00Z",
+		"status": "open"
+	},
+	{
+		"id": "ses_03",
+		"cambiadorName": "Luis",
+		"offeredCount": 8,
+		"requestedCount": 1,
+		"createdAt": "2026-05-30T18:00:00Z",
+		"status": "closed"
+	}
+]
