@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { GenerateQrButton } from "@/components/admin/generate-qr-button";
 import { SessionList } from "@/components/admin/session-list";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 import type { Session } from "@/lib/sessions";
@@ -40,7 +41,10 @@ export default async function AdminPage() {
               </span>
             ) : null}
           </div>
-          <SignOutButton />
+          <div className="flex items-center gap-2">
+            <GenerateQrButton />
+            <SignOutButton />
+          </div>
         </div>
         <p className="text-sm text-muted-foreground">
           Sesión iniciada como <span className="font-medium text-foreground">{user.email}</span>

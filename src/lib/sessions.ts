@@ -10,6 +10,7 @@ export const SessionSchema = z.object({
   requestedCount: z.number().int().min(0),
   createdAt: z.string().min(1),
   status: SessionStatusSchema,
+  token: z.string().min(1),
 });
 
 export const SessionsArraySchema = z.array(SessionSchema);

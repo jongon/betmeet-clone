@@ -4,6 +4,7 @@ import { CheckIcon, XIcon } from "lucide-react";
 import { useTransition } from "react";
 import { rejectSession } from "@/app/admin/actions";
 import { AcceptDialog } from "@/components/admin/accept-dialog";
+import { ViewSessionQrButton } from "@/components/admin/view-session-qr-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Session } from "@/lib/sessions";
@@ -20,6 +21,7 @@ function formatDate(iso: string): string {
 export function SessionRow({ session }: { session: Session }) {
   const [isPending, startTransition] = useTransition();
   const isOpen = session.status === "open";
+  const hasToken = session.token.length > 0;
 
   const onReject = () => {
     startTransition(() => {
@@ -62,6 +64,13 @@ export function SessionRow({ session }: { session: Session }) {
 
         {isOpen ? (
           <div className="flex items-center gap-2 self-end sm:self-auto">
+            {hasToken ? (
+              <ViewSessionQrButton
+                token={session.token}
+                cambiadorName={session.cambiadorName}
+                sessionCreatedAt={session.createdAt}
+              />
+            ) : null}
             <Button
               type="button"
               variant="ghost"
