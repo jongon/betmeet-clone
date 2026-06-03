@@ -55,7 +55,9 @@ export function SessionRow({ session }: { session: Session }) {
             Ofrece <span className="font-semibold text-foreground">{session.offeredCount}</span> ·
             Te pide <span className="font-semibold text-foreground">{session.requestedCount}</span>
           </p>
-          <p className="text-xs">{formatDate(session.createdAt)}</p>
+          <p className="text-xs" suppressHydrationWarning>
+            {formatDate(session.createdAt)}
+          </p>
         </div>
 
         {isOpen ? (
