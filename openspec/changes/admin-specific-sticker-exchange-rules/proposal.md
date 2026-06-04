@@ -24,7 +24,7 @@ El admin puede definir reglas globales y overrides por cromo, pero el override s
 
 ## Impact
 
-- Frontend admin: extension de la UI de `/admin/intercambio` para editar componentes por cromo y mostrar preview legible.
+- Frontend admin: `/admin/cromos` queda limitado al inventario de repetidos; la extension de reglas por cromo vive en `/admin/intercambio`, donde cada fila muestra los valores globales efectivos como base visual y el preview legible.
 - Capa de reglas: evolucion del `StickerOverride` y del documento de settings persistido en `data/exchange-settings.json`.
 - Resolvedor: nueva funcion que devuelve una lista ordenada de componentes para el flujo publico `/cambio/[token]`.
 - Validacion: consumo directo de `isStickerMissingForAdmin` desde `src/lib/missing.ts`.

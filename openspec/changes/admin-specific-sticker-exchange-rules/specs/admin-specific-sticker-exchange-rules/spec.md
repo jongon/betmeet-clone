@@ -52,6 +52,28 @@ El sistema SHALL exponer en la UI admin un toggle unico `Usar regla general` que
 - **WHEN** el admin confirma el toggle `Usar regla general`
 - **THEN** el sistema persiste el documento sin la entrada del cromo y mantiene `updatedAt`
 
+### Requirement: Valores globales visibles al editar overrides
+El sistema SHALL mostrar en `/admin/intercambio` los valores globales efectivos como base visible de los campos abstractos cuando un cromo no tiene override guardado. El sistema SHALL permitir editar desde esa base sin obligar al admin a inferir la regla actual desde otra seccion.
+
+#### Scenario: Cromo sin override guardado
+- **WHEN** el admin abre la edicion de un cromo sin override
+- **THEN** los campos abstractos muestran los valores de la regla global correspondiente al tipo del cromo
+
+#### Scenario: Cromo con exacto vacio
+- **WHEN** el admin abre la edicion de un cromo sin componente exacto guardado
+- **THEN** el campo del cromo exacto aparece vacio mientras el abstracto sigue mostrando la base global
+
+### Requirement: `/admin/cromos` se limita al inventario de repetidos
+El sistema SHALL mantener la pantalla `/admin/cromos` enfocada exclusivamente en el inventario de repetidos. La pagina SHALL permitir editar cantidades por cromo, pero SHALL no exponer controles ni previews de reglas de intercambio por cromo.
+
+#### Scenario: Admin abre `/admin/cromos`
+- **WHEN** el admin navega a `/admin/cromos`
+- **THEN** la interfaz muestra solo cantidades de repetidos y acciones relacionadas al inventario
+
+#### Scenario: Regla por cromo se edita en otra surface
+- **WHEN** el admin necesita cambiar una regla especial por tipo o por cromo
+- **THEN** el flujo ocurre en `/admin/intercambio` y no dentro de la grilla de repetidos
+
 ### Requirement: Resolucion de la regla como lista ordenada de componentes
 El sistema SHALL resolver la regla aplicable para un cromo como una lista ordenada de componentes. Cuando coexisten componente abstracto y exacto, el componente abstracto SHALL aparecer primero y el exacto despues. Cuando no hay override, el sistema SHALL devolver una lista vacia con `source: "global"`.
 
