@@ -1,46 +1,56 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Menu, SearchIcon, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { saveGroupRepeatedsAction } from "@/app/admin/cromos/actions";
+import { EmptyState } from "@/components/admin/empty-state";
 import { RepeatedsGrid } from "@/components/admin/repeateds-grid";
 import { StickerSelector } from "@/components/admin/sticker-selector";
 import { Button } from "@/components/ui/button";
-import { type AlbumGroup, getGroupStickers } from "@/lib/album-catalog";
-import type { ExchangeRule, ExchangeSettings } from "@/lib/exchange-settings";
+import { Input } from "@/components/ui/input";
+import { type AlbumGroup, getAllAlbumStickers, getGroupStickers } from "@/lib/album-catalog";
+import { matchesFlexibleSearch } from "@/lib/search";
 
 type PanelProps = {
   groups: AlbumGroup[];
   initialGroup: string;
   totalStickers: number;
   initialItems: Record<string, number>;
-  initialGlobalSettings: ExchangeSettings;
-  initialOverrides: Record<string, ExchangeRule>;
 };
 
-export function RepeatedsPanel({
-  groups,
-  initialGroup,
-  totalStickers,
-  initialItems,
-  initialGlobalSettings,
-  initialOverrides,
-}: PanelProps) {
+export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialItems }: PanelProps) {
   const [activeGroup, setActiveGroup] = useState(initialGroup);
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<Record<string, number>>(initialItems);
   const [savedSnapshot, setSavedSnapshot] = useState<Record<string, number>>(initialItems);
-  const [overrides, setOverrides] = useState<Record<string, ExchangeRule>>(initialOverrides);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
   const [mobileSelectorOpen, setMobileSelectorOpen] = useState(false);
 
-  const stickers = useMemo(() => getGroupStickers(activeGroup), [activeGroup]);
+  const allStickers = useMemo(() => getAllAlbumStickers(), []);
+  const matchingGroupCodes = useMemo(() => {
+    if (!search.trim()) return [] as string[];
+
+    const fromGroups = groups
+      .filter((group) => matchesFlexibleSearch(search, group.groupCode, group.displayName))
+      .map((group) => group.groupCode);
+    const fromStickers = allStickers
+      .filter((sticker) => matchesFlexibleSearch(search, sticker.code))
+      .map((sticker) => sticker.groupCode);
+
+    return [...new Set([...fromGroups, ...fromStickers])];
+  }, [allStickers, groups, search]);
+  const displayedGroup = useMemo(() => {
+    if (!search.trim()) return activeGroup;
+    if (matchingGroupCodes.includes(activeGroup)) return activeGroup;
+    return matchingGroupCodes[0] ?? activeGroup;
+  }, [activeGroup, matchingGroupCodes, search]);
+  const stickers = useMemo(() => getGroupStickers(displayedGroup), [displayedGroup]);
   const activeGroupLabel = useMemo(() => {
-    const group = groups.find((item) => item.groupCode === activeGroup);
-    return group ? `${group.groupCode} - ${group.displayName}` : activeGroup;
-  }, [activeGroup, groups]);
+    const group = groups.find((item) => item.groupCode === displayedGroup);
+    return group ? `${group.groupCode} - ${group.displayName}` : displayedGroup;
+  }, [displayedGroup, groups]);
   const currentItems = useMemo(() => {
     const next: Record<string, number> = {};
     for (const sticker of stickers) {
@@ -48,6 +58,9 @@ export function RepeatedsPanel({
     }
     return next;
   }, [items, stickers]);
+  const visibleStickers = useMemo(() => {
+    return stickers.filter((sticker) => matchesFlexibleSearch(search, sticker.code));
+  }, [search, stickers]);
 
   const dirty = useMemo(() => {
     return stickers.some(
@@ -65,7 +78,7 @@ export function RepeatedsPanel({
     setStatus("idle");
     startTransition(async () => {
       try {
-        await saveGroupRepeatedsAction(activeGroup, currentItems);
+        await saveGroupRepeatedsAction(displayedGroup, currentItems);
         setSavedSnapshot((prev) => {
           const next = { ...prev, ...currentItems };
           for (const [code, value] of Object.entries(currentItems)) {
@@ -93,18 +106,20 @@ export function RepeatedsPanel({
           Registra cuántas copias repetidas tienes por selección. Guarda el equipo completo al
           terminar.
         </p>
-        <Link
-          href="/admin"
-          className="inline-flex text-xs font-medium text-primary hover:underline"
-        >
-          Volver al home admin
-        </Link>
-        <Link
-          href="/admin/cromos/faltantes"
-          className="inline-flex text-xs font-medium text-primary hover:underline"
-        >
-          Ir a faltantes
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href="/admin"
+            className="inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Volver al home admin
+          </Link>
+          <Link
+            href="/admin/cromos/faltantes"
+            className="inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Ir a faltantes
+          </Link>
+        </div>
       </header>
 
       <div className="sm:hidden">
@@ -148,7 +163,7 @@ export function RepeatedsPanel({
               </div>
               <StickerSelector
                 groups={groups}
-                value={activeGroup}
+                value={displayedGroup}
                 onChange={(value) => {
                   setActiveGroup(value);
                   setStatus("idle");
@@ -166,7 +181,7 @@ export function RepeatedsPanel({
         <aside className="hidden sm:sticky sm:top-6 sm:block">
           <StickerSelector
             groups={groups}
-            value={activeGroup}
+            value={displayedGroup}
             onChange={(value) => {
               setActiveGroup(value);
               setStatus("idle");
@@ -177,24 +192,42 @@ export function RepeatedsPanel({
         </aside>
 
         <section>
-          <RepeatedsGrid
-            stickers={stickers}
-            quantities={currentItems}
-            onChange={onChangeQuantity}
-            globalSettings={initialGlobalSettings}
-            overrides={overrides}
-            onOverrideSaved={(code, rule) => {
-              setOverrides((prev) => {
-                if (rule) {
-                  return { ...prev, [code]: rule };
-                }
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="album-search" className="text-sm font-medium text-foreground">
+                Buscar en todo el album
+              </label>
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="album-search"
+                  type="search"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Argentina, ARG-7, badge, jugador..."
+                  className="pl-8"
+                  aria-label="Buscar en todo el album"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Busca por seleccion o por codigo de cromo, por ejemplo `ARG 7`. Si hay coincidencia
+                en otro equipo, la vista cambia automaticamente.
+              </p>
+            </div>
 
-                const next = { ...prev };
-                delete next[code];
-                return next;
-              });
-            }}
-          />
+            {visibleStickers.length > 0 ? (
+              <RepeatedsGrid
+                stickers={visibleStickers}
+                quantities={currentItems}
+                onChange={onChangeQuantity}
+              />
+            ) : (
+              <EmptyState
+                title="No hay cromos para esa busqueda"
+                description={`Prueba con otro codigo o nombre dentro de ${activeGroupLabel}.`}
+              />
+            )}
+          </div>
         </section>
       </div>
 

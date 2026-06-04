@@ -5,6 +5,7 @@ import Flag from "react-world-flags";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { AlbumGroup } from "@/lib/album-catalog";
+import { matchesFlexibleSearch } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
 type SelectorProps = {
@@ -23,10 +24,8 @@ export function StickerSelector({
   onSearchChange,
 }: SelectorProps) {
   const filtered = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return groups;
     return groups.filter((group) =>
-      `${group.displayName} ${group.groupCode}`.toLowerCase().includes(term),
+      matchesFlexibleSearch(search, group.displayName, group.groupCode),
     );
   }, [groups, search]);
 

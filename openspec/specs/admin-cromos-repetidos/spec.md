@@ -39,6 +39,21 @@ En viewport `>= 768px`, el sistema SHALL mostrar una grilla de 20 cards para el 
 - **WHEN** el admin selecciona un equipo en desktop
 - **THEN** se renderizan 20 cards con inputs y las cantidades > 0 se resaltan
 
+### Requirement: Búsqueda global de selecciones y cromos
+El sistema SHALL ofrecer una búsqueda global dentro de `/admin/cromos` que permita encontrar selecciones por nombre o código, y también cromos por su código específico. La búsqueda de cromos MUST limitarse al código del equipo y la numeración del cromo, aceptando variantes flexibles como espacios o guiones. Si la búsqueda coincide con cromos de otro grupo, la vista SHALL cambiar automáticamente al primer grupo coincidente sin perder la capacidad de guardar por equipo. Si no hay coincidencias visibles, SHALL mostrar un estado vacío que preserve el contexto.
+
+#### Scenario: Admin busca un cromo específico en todo el álbum
+- **WHEN** el admin escribe un código como `ARG-7` o `ARG 7` en la búsqueda de repetidos
+- **THEN** la vista cambia al grupo coincidente y la lista visible se filtra a los cromos coincidentes de ese grupo
+
+#### Scenario: Admin busca una selección
+- **WHEN** el admin escribe un nombre o código de selección como `Argentina` o `ARG`
+- **THEN** el selector muestra esa selección y el panel mantiene ese grupo como contexto activo
+
+#### Scenario: Búsqueda sin resultados
+- **WHEN** el admin busca un término que no existe en el álbum o no deja resultados visibles en el grupo activo
+- **THEN** la vista muestra un estado vacío con mensaje para ajustar la búsqueda sin perder el contexto actual
+
 ### Requirement: Edición de repetidos en mobile
 En viewport `< 768px`, el sistema SHALL mostrar un único cromo a la vez con controles de navegación por flechas y un indicador de progreso con formato `Cromo X de 20`.
 
