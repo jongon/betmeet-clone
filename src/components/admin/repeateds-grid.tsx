@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveStickerOverrideAction } from "@/app/admin/cromos/actions";
+import { resetStickerOverrideAction, saveStickerOverrideAction } from "@/app/admin/cromos/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ type GridProps = {
   onChange: (code: string, value: number) => void;
   globalSettings: ExchangeSettings;
   overrides: Record<string, ExchangeRule>;
-  onOverrideSaved: (stickerCode: string, rule: ExchangeRule) => void;
+  onOverrideSaved: (stickerCode: string, rule: ExchangeRule | null) => void;
 };
 
 const typeLabel: Record<StickerType, string> = {
@@ -66,6 +66,23 @@ export function RepeatedsGrid({
       try {
         await saveStickerOverrideAction(sticker.code, rule);
         onOverrideSaved(sticker.code, rule);
+        setStatusByCode((prev) => ({ ...prev, [sticker.code]: "saved" }));
+      } catch {
+        setStatusByCode((prev) => ({ ...prev, [sticker.code]: "error" }));
+      }
+    });
+  };
+
+  const resetOverride = (sticker: AlbumSticker) => {
+    startSaving(async () => {
+      try {
+        await resetStickerOverrideAction(sticker.code);
+        setDraftOverrides((prev) => {
+          const next = { ...prev };
+          delete next[sticker.code];
+          return next;
+        });
+        onOverrideSaved(sticker.code, null);
         setStatusByCode((prev) => ({ ...prev, [sticker.code]: "saved" }));
       } catch {
         setStatusByCode((prev) => ({ ...prev, [sticker.code]: "error" }));
@@ -184,8 +201,19 @@ export function RepeatedsGrid({
                   >
                     {isSaving ? "Guardando..." : `Guardar override ${sticker.code}`}
                   </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => resetOverride(sticker)}
+                    disabled={isSaving || !overrideRule}
+                  >
+                    Usar global
+                  </Button>
                   {rowStatus === "saved" ? (
-                    <span className="text-xs text-muted-foreground">Override guardado.</span>
+                    <span className="text-xs text-muted-foreground">
+                      {overrideRule ? "Override guardado." : "Volvió a usar la regla global."}
+                    </span>
                   ) : rowStatus === "error" ? (
                     <span className="text-xs text-destructive">No se pudo guardar.</span>
                   ) : null}

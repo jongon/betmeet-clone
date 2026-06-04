@@ -99,6 +99,12 @@ export function RepeatedsPanel({
         >
           Volver al home admin
         </Link>
+        <Link
+          href="/admin/cromos/faltantes"
+          className="inline-flex text-xs font-medium text-primary hover:underline"
+        >
+          Ir a faltantes
+        </Link>
       </header>
 
       <div className="sm:hidden">
@@ -178,7 +184,15 @@ export function RepeatedsPanel({
             globalSettings={initialGlobalSettings}
             overrides={overrides}
             onOverrideSaved={(code, rule) => {
-              setOverrides((prev) => ({ ...prev, [code]: rule }));
+              setOverrides((prev) => {
+                if (rule) {
+                  return { ...prev, [code]: rule };
+                }
+
+                const next = { ...prev };
+                delete next[code];
+                return next;
+              });
             }}
           />
         </section>

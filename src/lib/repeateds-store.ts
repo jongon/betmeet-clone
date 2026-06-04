@@ -7,28 +7,34 @@ import {
 } from "@/lib/repeateds";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const RUNTIME_FILE = path.join(DATA_DIR, "repeateds.json");
-const SEED_FILE = path.join(DATA_DIR, "repeateds.seed.json");
+
+function getRuntimeFilePath(): string {
+  return process.env.REPEATEDS_FILE ?? path.join(DATA_DIR, "repeateds.json");
+}
+
+function getSeedFilePath(): string {
+  return process.env.REPEATEDS_SEED_FILE ?? path.join(DATA_DIR, "repeateds.seed.json");
+}
 
 async function ensureRuntimeFile(): Promise<void> {
   await mkdir(DATA_DIR, { recursive: true });
   try {
-    await readFile(RUNTIME_FILE, "utf8");
+    await readFile(getRuntimeFilePath(), "utf8");
   } catch {
-    await copyFile(SEED_FILE, RUNTIME_FILE);
+    await copyFile(getSeedFilePath(), getRuntimeFilePath());
   }
 }
 
 async function readInventories(): Promise<RepeatedInventory[]> {
   await ensureRuntimeFile();
-  const raw = await readFile(RUNTIME_FILE, "utf8");
+  const raw = await readFile(getRuntimeFilePath(), "utf8");
   const parsed: unknown = JSON.parse(raw);
   return RepeatedInventoriesSchema.parse(parsed);
 }
 
 async function writeInventories(inventories: RepeatedInventory[]): Promise<void> {
   await ensureRuntimeFile();
-  await writeFile(RUNTIME_FILE, JSON.stringify(inventories, null, 2), "utf8");
+  await writeFile(getRuntimeFilePath(), JSON.stringify(inventories, null, 2), "utf8");
 }
 
 export async function getInventory(ownerEmail: string): Promise<RepeatedInventory> {

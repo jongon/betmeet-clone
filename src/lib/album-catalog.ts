@@ -99,6 +99,10 @@ export function getAlbumGroups(): AlbumGroup[] {
   ];
 }
 
+export function getAllAlbumStickers(): AlbumSticker[] {
+  return getAlbumGroups().flatMap((group) => getGroupStickers(group.groupCode));
+}
+
 export function getGroupStickers(groupCode: string): AlbumSticker[] {
   if (groupCode === "FWC") {
     return Array.from({ length: 20 }, (_, index) => {
@@ -145,8 +149,16 @@ export function getStickerLabel(type: StickerType, position: number): string {
     case "SPECIAL":
       return "Especial";
     default:
-      return `Jugador ${position}`;
+      return `Jugador ${getPlayerLabelNumber(position)}`;
   }
+}
+
+function getPlayerLabelNumber(position: number): number {
+  if (position < 13) {
+    return position - 1;
+  }
+
+  return position - 2;
 }
 
 export function getAlbumTotal(): number {
@@ -155,6 +167,24 @@ export function getAlbumTotal(): number {
 
 export function isValidGroupCode(groupCode: string): boolean {
   return groupCode === "FWC" || TEAM_SEED.some((team) => team.albumCode === groupCode);
+}
+
+export function isValidStickerCode(stickerCode: string): boolean {
+  const [groupCode, rawPosition] = stickerCode.split("-");
+  if (!groupCode || !rawPosition || !isValidGroupCode(groupCode)) {
+    return false;
+  }
+
+  const position = Number(rawPosition);
+  if (!Number.isInteger(position)) {
+    return false;
+  }
+
+  if (groupCode === "FWC") {
+    return position >= 0 && position < 20;
+  }
+
+  return position >= 1 && position <= 20;
 }
 
 export function getFlagCode(isoCode: string | null): string | null {

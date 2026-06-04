@@ -85,3 +85,25 @@ export async function saveStickerOverride(
 
   await writeDocuments(next);
 }
+
+export async function resetStickerOverride(ownerEmail: string, stickerCode: string): Promise<void> {
+  const docs = await readDocuments();
+  const previous = docs.find((doc) => doc.ownerEmail === ownerEmail);
+
+  if (!previous?.overrides[stickerCode]) {
+    return;
+  }
+
+  const nextOverrides = { ...previous.overrides };
+  delete nextOverrides[stickerCode];
+
+  const next = docs.filter((doc) => doc.ownerEmail !== ownerEmail);
+  next.push({
+    ownerEmail,
+    updatedAt: new Date().toISOString(),
+    global: previous.global,
+    overrides: nextOverrides,
+  });
+
+  await writeDocuments(next);
+}
