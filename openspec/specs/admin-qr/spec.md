@@ -37,7 +37,7 @@ El sistema SHALL garantizar que en cualquier momento existe a lo sumo un token s
 - **THEN** se crea un único token activo con `revokedAt = null` y los demás campos poblados
 
 ### Requirement: Mostrar QR y URL en el Dialog
-El sistema SHALL renderizar dentro del Dialog de "Generar QR" los siguientes elementos: (1) la imagen del QR en formato PNG de 256x256 px generada server-side vía `QRCode.toDataURL(url)`, (2) un input readonly con la URL completa en formato `{NEXT_PUBLIC_APP_URL}/cambio/{token}`, (3) un botón "Copiar URL" que invoca `navigator.clipboard.writeText(url)` con fallback a `document.execCommand("copy")` en contextos no seguros, (4) el timestamp de creación del token formateado con `Intl.DateTimeFormat("es", { dateStyle: "short", timeStyle: "short" })`, (5) un botón "Cerrar" que cierra el Dialog. La URL SHALL usar `process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"` como base.
+El sistema SHALL renderizar dentro del Dialog de "Generar QR" los siguientes elementos: (1) la imagen del QR en formato PNG de 256x256 px generada server-side vía `QRCode.toDataURL(url)`, (2) un input readonly con la URL completa en formato `{NEXT_PUBLIC_APP_URL}/cambio/{token}`, (3) un botón "Copiar URL" que invoca `navigator.clipboard.writeText(url)` con fallback a `document.execCommand("copy")` en contextos no seguros, (4) el timestamp de creación del token formateado con `Intl.DateTimeFormat("es", { dateStyle: "short", timeStyle: "short" })`, (5) un botón "Cerrar" que cierra el Dialog. La URL SHALL usar `process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"` como base y SHALL abrir un flujo público de resolución de sesión del cambiador que, al entrar, reanuda una sesión abierta existente o muestra formulario de nombre para crear sesión.
 
 #### Scenario: Dialog muestra QR + URL tras generación
 - **WHEN** `generateQr` retorna un token nuevo
@@ -58,6 +58,18 @@ El sistema SHALL renderizar dentro del Dialog de "Generar QR" los siguientes ele
 #### Scenario: Cerrar el Dialog
 - **WHEN** el admin hace clic en el botón "Cerrar" del Dialog
 - **THEN** el Dialog se cierra, el token creado permanece activo (no se revoca por cerrar)
+
+#### Scenario: Cambiador con sesión abierta entra por la URL del QR
+- **WHEN** un cambiador abre `/cambio/{token}` con identidad previa y una sesión abierta para ese token
+- **THEN** el flujo público lo reanuda automáticamente en su sesión abierta
+
+#### Scenario: Cambiador sin sesión previa entra por la URL del QR
+- **WHEN** un cambiador abre `/cambio/{token}` sin sesión previa para ese token
+- **THEN** el flujo público muestra formulario para ingresar nombre y crear sesión
+
+#### Scenario: Cambiador con sesión cerrada entra por la URL del QR
+- **WHEN** un cambiador abre `/cambio/{token}` con una sesión previa cerrada para ese token
+- **THEN** el flujo público muestra un error y no crea ni reabre sesión
 
 ### Requirement: Sesión abierta con token muestra botón "Ver QR"
 El sistema SHALL renderizar en cada fila de `/admin` correspondiente a una sesión con `status: "open"` y `token` no vacío, un tercer botón con icono de ojo (`Eye` de lucide-react) y `aria-label="Ver QR de {cambiadorName}"`. Al hacer clic, SHALL abrir el mismo `QrDialog` mostrando el QR original (mismo token, misma URL) usado para crear esa sesión. El botón "Ver QR" SHALL NO aparecer en filas con `status: "closed"` ni en filas sin token (sesiones legacy del seed inicial).
@@ -126,4 +138,3 @@ El sistema SHALL leer la variable de entorno `NEXT_PUBLIC_APP_URL` para construi
 #### Scenario: Variable no definida
 - **WHEN** la variable `NEXT_PUBLIC_APP_URL` no está definida
 - **THEN** los QRs generados codifican URLs que comienzan con `http://localhost:3000/cambio/` y se loguea una advertencia en consola del servidor
-
