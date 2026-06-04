@@ -50,7 +50,13 @@ function getServerSystemTheme(): ResolvedTheme {
 function subscribeStorage(callback: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   window.addEventListener("storage", callback);
-  return () => window.removeEventListener("storage", callback);
+  window.addEventListener("pageshow", callback);
+  document.addEventListener("visibilitychange", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("pageshow", callback);
+    document.removeEventListener("visibilitychange", callback);
+  };
 }
 
 function getStoredThemeSnapshot(): Theme {

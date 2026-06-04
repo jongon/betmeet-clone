@@ -26,6 +26,8 @@ export const metadata: Metadata = {
   description: "Aplicativo para coleccionar e intercambiar cromos del Mundial 2026.",
 };
 
+const themeBootScript = `(function(){try{var key="theme";var stored=localStorage.getItem(key);var theme=stored==="light"||stored==="dark"||stored==="system"?stored:"system";var resolved=theme==="system"?(window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):theme;var root=document.documentElement;root.classList.toggle("dark",resolved==="dark");root.style.colorScheme=resolved;}catch(e){}})();`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <script>{themeBootScript}</script>
+      </head>
       <body className={`${inter.variable} ${sora.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
           <TooltipProvider>

@@ -1,31 +1,43 @@
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { type Session, SessionsArraySchema } from "@/lib/sessions";
+import { countOfferedItems } from "@/lib/cambio-proposal";
+import {
+  type Session,
+  type SessionProposal,
+  SessionSchema,
+  SessionsArraySchema,
+} from "@/lib/sessions";
 
 const DATA_DIR = path.join(process.cwd(), "data");
-const RUNTIME_FILE = path.join(DATA_DIR, "sessions.json");
-const SEED_FILE = path.join(DATA_DIR, "sessions.seed.json");
+
+function getRuntimeFilePath(): string {
+  return process.env.SESSIONS_FILE ?? path.join(DATA_DIR, "sessions.json");
+}
+
+function getSeedFilePath(): string {
+  return process.env.SESSIONS_SEED_FILE ?? path.join(DATA_DIR, "sessions.seed.json");
+}
 
 async function ensureRuntimeFile(): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
+  await mkdir(path.dirname(getRuntimeFilePath()), { recursive: true });
   try {
-    await readFile(RUNTIME_FILE, "utf8");
+    await readFile(getRuntimeFilePath(), "utf8");
   } catch {
-    await copyFile(SEED_FILE, RUNTIME_FILE);
+    await copyFile(getSeedFilePath(), getRuntimeFilePath());
   }
 }
 
 async function readSessions(): Promise<Session[]> {
   await ensureRuntimeFile();
-  const raw = await readFile(RUNTIME_FILE, "utf8");
+  const raw = await readFile(getRuntimeFilePath(), "utf8");
   const parsed: unknown = JSON.parse(raw);
   return SessionsArraySchema.parse(parsed);
 }
 
 async function writeSessions(sessions: Session[]): Promise<void> {
   await ensureRuntimeFile();
-  await writeFile(RUNTIME_FILE, JSON.stringify(sessions, null, 2), "utf8");
+  await writeFile(getRuntimeFilePath(), JSON.stringify(sessions, null, 2), "utf8");
 }
 
 function findSession(sessions: Session[], id: string): Session | undefined {
@@ -38,6 +50,12 @@ function isOpen(session: Session | undefined): session is Session {
 
 export async function getAllSessions(): Promise<Session[]> {
   return readSessions();
+}
+
+export async function getSessionById(id: string): Promise<Session | null> {
+  const sessions = await readSessions();
+  const found = sessions.find((session) => session.id === id);
+  return found ? SessionSchema.parse(found) : null;
 }
 
 export async function acceptSession(id: string): Promise<void> {
@@ -99,7 +117,27 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
     createdAt: new Date().toISOString(),
     status: "open",
     token: input.token,
+    proposal: null,
   };
   await writeSessions([...sessions, created]);
   return created;
+}
+
+export async function saveSessionProposal(id: string, proposal: SessionProposal): Promise<Session> {
+  const sessions = await readSessions();
+  const target = findSession(sessions, id);
+
+  if (!target) {
+    throw new Error("Sesión no encontrada");
+  }
+
+  const nextSession = SessionSchema.parse({
+    ...target,
+    requestedCount: proposal.selectedStickerCodes.length,
+    offeredCount: countOfferedItems(proposal.blocks),
+    proposal,
+  });
+
+  await writeSessions(sessions.map((session) => (session.id === id ? nextSession : session)));
+  return nextSession;
 }

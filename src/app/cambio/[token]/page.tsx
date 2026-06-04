@@ -2,11 +2,15 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getCambiadorId } from "@/lib/cambiador-identity";
+import { getCambiadorId, getCambioSessionId } from "@/lib/cambiador-identity";
 import { buildCambioEntryState, type CambioEntryState } from "@/lib/cambio-entry";
+import { buildRequestedStickers } from "@/lib/cambio-proposal";
+import { getExchangeSettings } from "@/lib/exchange-settings-store";
+import { getMissingInventory } from "@/lib/missing-store";
 import { getToken } from "@/lib/qr-store";
-import { resolveByTokenAndCambiadorId } from "@/lib/sessions-store";
+import { getSessionById, resolveByTokenAndCambiadorId } from "@/lib/sessions-store";
 import { NameForm } from "./name-form";
+import { ProposalWizard } from "./proposal-wizard";
 
 type PageProps = {
   params: Promise<{ token: string }>;
@@ -16,9 +20,17 @@ async function resolveViewState(token: string): Promise<CambioEntryState> {
   const qrToken = await getToken(token);
   const cookieStore = await cookies();
   const cambiadorId = getCambiadorId(cookieStore);
-  const sessionResolution = cambiadorId
+  const sessionResolutionByIdentity = cambiadorId
     ? await resolveByTokenAndCambiadorId(token, cambiadorId)
     : { kind: "none" as const };
+  const sessionId = getCambioSessionId(cookieStore, token);
+  const sessionByCookie = sessionId ? await getSessionById(sessionId) : null;
+  const sessionResolution =
+    sessionResolutionByIdentity.kind !== "none"
+      ? sessionResolutionByIdentity
+      : sessionByCookie && sessionByCookie.token === token && sessionByCookie.status === "open"
+        ? { kind: "open" as const, session: sessionByCookie }
+        : { kind: "none" as const };
 
   return buildCambioEntryState({
     token,
@@ -48,6 +60,15 @@ export default async function CambioTokenPage({ params }: PageProps) {
   if (!token) notFound();
 
   const state = await resolveViewState(token);
+  const qrToken = await getToken(token);
+
+  const openSession = state.kind === "resume" ? await getSessionById(state.sessionId) : null;
+
+  const exchangeSettings = qrToken ? await getExchangeSettings(qrToken.ownerEmail) : null;
+  const missingInventory = qrToken ? await getMissingInventory(qrToken.ownerEmail) : null;
+  const requestedStickers = missingInventory
+    ? buildRequestedStickers(Object.keys(missingInventory.items))
+    : [];
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -80,20 +101,17 @@ export default async function CambioTokenPage({ params }: PageProps) {
       ) : null}
 
       {state.kind === "resume" ? (
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-display text-xl">Sesion reanudada</CardTitle>
-            <CardDescription>
-              Bienvenido de nuevo, {state.cambiadorName}. Ya tienes una sesion abierta para este QR.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">ID de sesion: {state.sessionId}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Pronto podras continuar el intercambio desde esta sesion.
-            </p>
-          </CardContent>
-        </Card>
+        openSession && exchangeSettings ? (
+          <ProposalWizard
+            token={token}
+            sessionId={openSession.id}
+            cambiadorName={state.cambiadorName}
+            requestedStickers={requestedStickers}
+            initialProposal={openSession.proposal ?? null}
+            globalSettings={exchangeSettings.global}
+            overrides={exchangeSettings.overrides}
+          />
+        ) : null
       ) : null}
 
       {state.kind === "create" ? (

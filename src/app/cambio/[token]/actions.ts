@@ -1,12 +1,25 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getOrCreateCambiadorId } from "@/lib/cambiador-identity";
+import {
+  getCambiadorId,
+  getOrCreateCambiadorId,
+  setCambioSessionId,
+} from "@/lib/cambiador-identity";
 import { buildCambioEntryState } from "@/lib/cambio-entry";
+import { normalizeProposalDraft } from "@/lib/cambio-proposal";
+import { getExchangeSettings } from "@/lib/exchange-settings-store";
+import { validateMissingStickersForProposal } from "@/lib/missing";
 import { getToken } from "@/lib/qr-store";
-import { createSession, resolveByTokenAndCambiadorId } from "@/lib/sessions-store";
+import { type Session, type SessionProposal, SessionProposalSchema } from "@/lib/sessions";
+import {
+  createSession,
+  resolveByTokenAndCambiadorId,
+  saveSessionProposal,
+} from "@/lib/sessions-store";
 
 const TokenSchema = z.string().regex(/^qr_[0-9a-f]{32}$/, "Token inválido");
 const NameSchema = z
@@ -20,6 +33,28 @@ type CreateCambioSessionState = {
   fieldError: string | null;
   value: string;
 };
+
+const SaveProposalInputSchema = z.object({
+  token: TokenSchema,
+  sessionId: z.string().min(1),
+  proposal: SessionProposalSchema,
+});
+
+async function resolveOpenSessionForAction(token: string, sessionId: string): Promise<Session> {
+  const cookieStore = await cookies();
+  const cambiadorId = getCambiadorId(cookieStore);
+
+  if (!cambiadorId) {
+    throw new Error("No se pudo validar la sesión del cambiador.");
+  }
+
+  const resolution = await resolveByTokenAndCambiadorId(token, cambiadorId);
+  if (resolution.kind !== "open" || resolution.session.id !== sessionId) {
+    throw new Error("La sesión ya no está disponible.");
+  }
+
+  return resolution.session;
+}
 
 export async function createCambioSessionAction(
   _prev: CreateCambioSessionState,
@@ -75,6 +110,7 @@ export async function createCambioSessionAction(
   }
 
   if (entryState.kind === "resume") {
+    setCambioSessionId(cookieStore, tokenParsed.data, entryState.sessionId);
     redirect(`/cambio/${tokenParsed.data}?session=${entryState.sessionId}`);
   }
 
@@ -84,5 +120,69 @@ export async function createCambioSessionAction(
     cambiadorName: nameParsed.data,
   });
 
+  setCambioSessionId(cookieStore, tokenParsed.data, created.id);
+
   redirect(`/cambio/${tokenParsed.data}?session=${created.id}`);
+}
+
+export async function saveCambioProposalDraftAction(input: unknown): Promise<SessionProposal> {
+  const parsed = SaveProposalInputSchema.parse(input);
+  await resolveOpenSessionForAction(parsed.token, parsed.sessionId);
+  const qrToken = await getToken(parsed.token);
+
+  if (!qrToken || qrToken.revokedAt !== null) {
+    throw new Error("Este QR ya no está disponible.");
+  }
+
+  const settings = await getExchangeSettings(qrToken.ownerEmail);
+  const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
+  const saved = await saveSessionProposal(parsed.sessionId, {
+    ...proposal,
+    status: "draft",
+    submittedAt: null,
+    updatedAt: new Date().toISOString(),
+  });
+
+  revalidatePath(`/cambio/${parsed.token}`);
+  if (!saved.proposal) {
+    throw new Error("No se pudo guardar el borrador.");
+  }
+
+  return saved.proposal;
+}
+
+export async function submitCambioProposalAction(input: unknown): Promise<SessionProposal> {
+  const parsed = SaveProposalInputSchema.parse(input);
+  const session = await resolveOpenSessionForAction(parsed.token, parsed.sessionId);
+  const qrToken = await getToken(parsed.token);
+
+  if (!qrToken || qrToken.revokedAt !== null) {
+    throw new Error("Este QR ya no está disponible.");
+  }
+
+  const settings = await getExchangeSettings(qrToken.ownerEmail);
+  const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
+  const validation = await validateMissingStickersForProposal(
+    qrToken.ownerEmail,
+    proposal.selectedStickerCodes,
+  );
+
+  if (validation.status !== "pending") {
+    throw new Error(validation.reason);
+  }
+
+  const saved = await saveSessionProposal(session.id, {
+    ...proposal,
+    status: "pending",
+    currentStep: 5,
+    updatedAt: new Date().toISOString(),
+    submittedAt: new Date().toISOString(),
+  });
+
+  revalidatePath(`/cambio/${parsed.token}`);
+  if (!saved.proposal) {
+    throw new Error("No se pudo enviar la propuesta.");
+  }
+
+  return saved.proposal;
 }
