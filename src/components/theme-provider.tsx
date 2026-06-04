@@ -15,16 +15,6 @@ const ThemeContext = React.createContext<{
   setTheme: (theme: Theme) => void;
 } | null>(null);
 
-/**
- * Inline script that runs BEFORE hydration to set the initial `dark` class
- * on <html> based on the persisted choice or the system preference.
- *
- * Rendered via `dangerouslySetInnerHTML` directly in the layout's <head>
- * (not inside a React component) so React 19's "scripts inside React
- * components are never executed" warning does not fire.
- */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'&&t!=='system'){t='system';localStorage.setItem('theme',t)}var s=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';var r=t==='system'?s:t;var d=document.documentElement;d.classList.toggle('dark',r==='dark');d.style.colorScheme=r}catch(e){}})();`;
-
 function getSystemTheme(): ResolvedTheme {
   if (typeof window === "undefined") return "light";
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";

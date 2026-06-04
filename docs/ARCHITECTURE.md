@@ -4,6 +4,12 @@
 
 Multi-container Docker setup para desarrollo local con Next.js.
 
+## Nota Next.js 16
+
+- Next.js 16 depreca la convención `middleware.ts`.
+- Este proyecto usa `src/proxy.ts` con export `proxy` y `config.matcher`.
+- El helper de Supabase para cookies de request/response permanece en `src/lib/supabase/middleware.ts` (nombre de helper interno), pero el punto de entrada del framework es `src/proxy.ts`.
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                    Docker Network (nextjs)               │

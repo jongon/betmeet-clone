@@ -21,8 +21,8 @@ El sistema SHALL permitir al usuario admin iniciar sesión en `/admin/login` med
 - **WHEN** el usuario envía el formulario con una contraseña de menos de 8 caracteres
 - **THEN** el sistema no invoca Supabase y devuelve un error de validación de campo
 
-### Requirement: Middleware protege rutas autenticadas
-El sistema SHALL proteger la home `/` y todas las rutas bajo `/admin/*` mediante `src/middleware.ts` con `matcher: ['/', '/admin/:path*']`. El middleware MUST crear un cliente Supabase SSR con patrón `getAll` / `setAll` (escribiendo en la respuesta para propagar el refresh de token) y llamar `supabase.auth.getUser()` en cada request. Si la llamada falla o devuelve `null`, el sistema MUST redirigir a `/admin/login?next=<pathname>` preservando la ruta original. Si devuelve un usuario válido, el sistema MUST permitir el paso normal de la request. Las rutas bajo `/public/*` y `/design-system` MUST NO incluirse en el `matcher`, por lo que el middleware no se ejecuta para ellas. La ruta `/admin/login` MUST excluirse explícitamente dentro de la función de middleware para que sea accesible sin sesión.
+### Requirement: Proxy protege rutas autenticadas
+El sistema SHALL proteger la home `/` y todas las rutas bajo `/admin/*` mediante `src/proxy.ts` con `matcher: ['/', '/admin/:path*']`. El proxy MUST crear un cliente Supabase SSR con patrón `getAll` / `setAll` (escribiendo en la respuesta para propagar el refresh de token) y llamar `supabase.auth.getUser()` en cada request. Si la llamada falla o devuelve `null`, el sistema MUST redirigir a `/admin/login?next=<pathname>` preservando la ruta original. Si devuelve un usuario válido, el sistema MUST permitir el paso normal de la request. Las rutas bajo `/public/*` y `/design-system` MUST NO incluirse en el `matcher`, por lo que el proxy no se ejecuta para ellas. La ruta `/admin/login` MUST excluirse explícitamente dentro de la función `proxy` para que sea accesible sin sesión.
 
 #### Scenario: Visitante sin sesión intenta acceder a /admin
 - **WHEN** un visitante sin cookies de sesión navega a `/admin/album` (o cualquier ruta bajo `/admin/*`)
@@ -108,8 +108,8 @@ El sistema SHALL reservar la ruta `/public/*` para contenido accesible sin auten
 - **WHEN** el admin con sesión activa navega a `/public`
 - **THEN** la página se renderiza normalmente sin pedir login
 
-#### Scenario: /public no entra en el matcher del middleware
-- **WHEN** se inspecciona `config.matcher` en `src/middleware.ts`
+#### Scenario: /public no entra en el matcher del proxy
+- **WHEN** se inspecciona `config.matcher` en `src/proxy.ts`
 - **THEN** ninguna ruta que comience por `/public/` está incluida
 
 ### Requirement: El admin puede cerrar sesión desde /admin

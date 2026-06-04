@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { type Session, SessionsArraySchema } from "@/lib/sessions";
@@ -53,4 +54,52 @@ export async function rejectSession(id: string): Promise<void> {
   if (!isOpen(target)) return;
   const next = sessions.map((s) => (s.id === id ? { ...s, status: "closed" as const } : s));
   await writeSessions(next);
+}
+
+export async function findLatestSessionByTokenAndCambiadorId(
+  token: string,
+  cambiadorId: string,
+): Promise<Session | null> {
+  const sessions = await readSessions();
+  const matches = sessions
+    .filter((session) => session.token === token && session.cambiadorId === cambiadorId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return matches[0] ?? null;
+}
+
+type CreateSessionInput = {
+  token: string;
+  cambiadorId: string;
+  cambiadorName: string;
+};
+
+export type CreadorSessionResolution =
+  | { kind: "none" }
+  | { kind: "open"; session: Session }
+  | { kind: "closed"; session: Session };
+
+export async function resolveByTokenAndCambiadorId(
+  token: string,
+  cambiadorId: string,
+): Promise<CreadorSessionResolution> {
+  const latest = await findLatestSessionByTokenAndCambiadorId(token, cambiadorId);
+  if (!latest) return { kind: "none" };
+  if (latest.status === "closed") return { kind: "closed", session: latest };
+  return { kind: "open", session: latest };
+}
+
+export async function createSession(input: CreateSessionInput): Promise<Session> {
+  const sessions = await readSessions();
+  const created: Session = {
+    id: `ses_${randomUUID()}`,
+    cambiadorName: input.cambiadorName,
+    cambiadorId: input.cambiadorId,
+    offeredCount: 0,
+    requestedCount: 0,
+    createdAt: new Date().toISOString(),
+    status: "open",
+    token: input.token,
+  };
+  await writeSessions([...sessions, created]);
+  return created;
 }

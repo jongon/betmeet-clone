@@ -4,6 +4,7 @@
 - **Framework**: Next.js 16 (App Router)
 - **Lenguaje**: TypeScript
 - **Package Manager**: pnpm
+- **Network boundary**: `src/proxy.ts` (Next.js 16; reemplaza `middleware.ts`)
 
 ## Design System
 - **Estilos**: Tailwind CSS v4 — configuración CSS-first, sin `tailwind.config.*`

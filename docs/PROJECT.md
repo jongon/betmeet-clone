@@ -30,6 +30,7 @@ Los intercambios de cromos se coordinan hoy de forma manual: por mensaje, de mem
 - `/admin/cromos` permite gestionar repetidos por selección o FWC
 - Persistencia temporal en JSON (runtime) con seeds vacíos
 - Vista pública `/cambio/[token]` aún pendiente
+- Protección de rutas privadas mediante `src/proxy.ts` (convención Next.js 16)
 
 ## Rutas actuales
 
