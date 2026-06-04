@@ -13,7 +13,7 @@ Los intercambios de cromos se coordinan hoy de forma manual: por mensaje, de mem
 - **Coleccionista**: administra su álbum, marca repetidos y faltantes, genera QR
 - **Cambiador**: escanea el QR, ve qué le falta al coleccionista, ofrece sus cromos
 
-## Flujo principal
+## Flujo principal (visión)
 
 1. Coleccionista marca sus repetidos y faltantes en `/admin`
 2. Genera un QR con token único
@@ -24,7 +24,22 @@ Los intercambios de cromos se coordinan hoy de forma manual: por mensaje, de mem
 
 ## Estado actual
 
-Scaffold inicial con design system instalado. Sin rutas de negocio aún — solo página raíz y galería de componentes en `/design-system`.
+- Admin autenticado con generación de QR y listado de sesiones
+- Botón "Generar QR" en `/admin` crea un token único y muestra el código en un dialog
+- Sesiones abiertas muestran botón "Ver QR" para reabrir el código original
+- `/admin/cromos` permite gestionar repetidos por selección o FWC
+- Persistencia temporal en JSON (runtime) con seeds vacíos
+- Vista pública `/cambio/[token]` aún pendiente
+
+## Rutas actuales
+
+| Ruta | Descripción |
+|------|-------------|
+| `/` | Página raíz |
+| `/admin` | Panel del admin con sesiones y QR |
+| `/admin/cromos` | Gestión de cromos repetidos |
+| `/admin/login` | Acceso admin |
+| `/design-system` | Galería de componentes |
 
 ## Rutas planeadas
 

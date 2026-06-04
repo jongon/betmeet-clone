@@ -28,12 +28,20 @@ El sistema SHALL proteger la home `/` y todas las rutas bajo `/admin/*` mediante
 - **WHEN** un visitante sin cookies de sesión navega a `/admin/album` (o cualquier ruta bajo `/admin/*`)
 - **THEN** el middleware lo redirige a `/admin/login?next=/admin/album`
 
+#### Scenario: Visitante sin sesión intenta acceder a /admin/cromos
+- **WHEN** un visitante sin cookies de sesión navega a `/admin/cromos`
+- **THEN** el middleware lo redirige a `/admin/login?next=/admin/cromos`
+
 #### Scenario: Visitante sin sesión intenta acceder a la home
 - **WHEN** un visitante sin cookies de sesión navega a `/`
 - **THEN** el middleware lo redirige a `/admin/login?next=/`
 
 #### Scenario: Admin autenticado accede a /admin
 - **WHEN** el admin con sesión activa navega a `/admin`
+- **THEN** la request continúa normalmente y la página protegida se renderiza
+
+#### Scenario: Admin autenticado accede a /admin/cromos
+- **WHEN** el admin con sesión activa navega a `/admin/cromos`
 - **THEN** la request continúa normalmente y la página protegida se renderiza
 
 #### Scenario: Admin autenticado accede a la home
@@ -114,4 +122,3 @@ El sistema SHALL permitir al admin autenticado terminar su sesión desde un bot�
 #### Scenario: Visitante no ve el botón
 - **WHEN** un visitante sin sesión accede a `/admin`
 - **THEN** el middleware lo redirige a `/admin/login` antes de que `/admin` se ejecute, por lo que el botón "Cerrar sesión" nunca se renderiza para ese visitante
-

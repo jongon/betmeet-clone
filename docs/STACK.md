@@ -8,6 +8,7 @@
 ## Design System
 - **Estilos**: Tailwind CSS v4 — configuración CSS-first, sin `tailwind.config.*`
 - **UI Components**: shadcn/ui (`style: base-nova`, `baseColor: neutral`, `iconLibrary: lucide`, `cssVariables: true`)
+- **Flags**: react-world-flags (banderas de selecciones)
 - **Config**: `components.json` + tokens en `src/app/globals.css`
 - **Dark mode**: next-themes (`attribute="class"`, `defaultTheme="system"`)
 
