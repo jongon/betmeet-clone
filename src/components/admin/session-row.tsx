@@ -7,6 +7,7 @@ import { AcceptDialog } from "@/components/admin/accept-dialog";
 import { ViewSessionQrButton } from "@/components/admin/view-session-qr-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Session } from "@/lib/sessions";
 
 const dateFormatter = new Intl.DateTimeFormat("es", {
@@ -71,28 +72,42 @@ export function SessionRow({ session }: { session: Session }) {
                 sessionCreatedAt={session.createdAt}
               />
             ) : null}
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={onReject}
-              disabled={isPending}
-              aria-label={`Rechazar sesión de ${session.cambiadorName}`}
-              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <XIcon />
-            </Button>
-            <AcceptDialog sessionId={session.id} cambiadorName={session.cambiadorName}>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                disabled={isPending}
-                aria-label={`Aceptar sesión de ${session.cambiadorName}`}
-                className="text-primary hover:bg-primary/10 hover:text-primary"
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onReject}
+                    disabled={isPending}
+                    aria-label={`Rechazar sesión de ${session.cambiadorName}`}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  />
+                }
               >
-                <CheckIcon />
-              </Button>
+                <XIcon />
+              </TooltipTrigger>
+              <TooltipContent>{`Rechazar sesión de ${session.cambiadorName}`}</TooltipContent>
+            </Tooltip>
+            <AcceptDialog sessionId={session.id} cambiadorName={session.cambiadorName}>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={isPending}
+                      aria-label={`Aceptar sesión de ${session.cambiadorName}`}
+                      className="text-primary hover:bg-primary/10 hover:text-primary"
+                    />
+                  }
+                >
+                  <CheckIcon />
+                </TooltipTrigger>
+                <TooltipContent>{`Aceptar sesión de ${session.cambiadorName}`}</TooltipContent>
+              </Tooltip>
             </AcceptDialog>
           </div>
         ) : null}

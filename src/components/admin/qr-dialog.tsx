@@ -58,16 +58,18 @@ export function QrDialog({
   dataUrl,
   createdAt,
   footer,
+  error,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
-  description: string;
+  description?: string;
   token: string;
   url: string;
-  dataUrl: string;
+  dataUrl: string | null;
   createdAt: string;
   footer?: ReactNode;
+  error?: string | null;
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
 
@@ -82,22 +84,35 @@ export function QrDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-3">
-          {/* biome-ignore lint/performance/noImgElement: QR is a data URL from a server action; no next/image needed */}
-          <img
-            src={dataUrl}
-            alt={`QR ${token}`}
-            width={256}
-            height={256}
-            className="rounded-lg border border-border bg-background"
-          />
-          <p className="text-xs text-muted-foreground">
-            Creado el {dateFormatter.format(new Date(createdAt))}
-          </p>
-        </div>
+        {error ? (
+          <div
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : dataUrl ? (
+          <div className="flex flex-col items-center gap-3">
+            {/* biome-ignore lint/performance/noImgElement: QR is a data URL from a server action; no next/image needed */}
+            <img
+              src={dataUrl}
+              alt={`QR ${token}`}
+              width={256}
+              height={256}
+              className="rounded-lg border border-border bg-background"
+            />
+            <p className="text-xs text-muted-foreground">
+              Creado el {dateFormatter.format(new Date(createdAt))}
+            </p>
+          </div>
+        ) : (
+          <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+            Generando QR…
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="qr-url">URL para compartir</Label>

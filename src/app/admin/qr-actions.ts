@@ -47,18 +47,35 @@ export async function revokeQr(token: string): Promise<void> {
   revalidatePath("/admin");
 }
 
+export type ViewSessionQrInput = {
+  token: string;
+  fallbackCreatedAt: string;
+};
+
+export type ViewSessionQrResult = { ok: true; qr: GeneratedQr } | { ok: false; error: string };
+
 // Re-export for the "view" path so the client doesn't import the store directly.
-export async function viewSessionQr(
-  token: string,
-  fallbackCreatedAt: string,
-): Promise<GeneratedQr> {
-  const parsed = TokenStringSchema.parse(token);
-  const url = `${getBaseUrl()}/cambio/${parsed}`;
-  const dataUrl = await toDataURL(url, { width: 256, margin: 1 });
-  return {
-    token: parsed,
-    dataUrl,
-    url,
-    createdAt: fallbackCreatedAt,
-  };
+export async function viewSessionQr(input: ViewSessionQrInput): Promise<ViewSessionQrResult> {
+  const parseResult = TokenStringSchema.safeParse(input.token);
+  if (!parseResult.success) {
+    return { ok: false, error: "Token inválido" };
+  }
+  try {
+    const url = `${getBaseUrl()}/cambio/${parseResult.data}`;
+    const dataUrl = await toDataURL(url, { width: 256, margin: 1 });
+    return {
+      ok: true,
+      qr: {
+        token: parseResult.data,
+        dataUrl,
+        url,
+        createdAt: input.fallbackCreatedAt,
+      },
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "No se pudo generar el QR",
+    };
+  }
 }
