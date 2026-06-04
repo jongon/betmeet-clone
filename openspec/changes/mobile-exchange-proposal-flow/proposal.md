@@ -1,0 +1,29 @@
+## Why
+
+La entrada por QR ya define como un cambiador crea o reanuda una sesion, pero aun no existe el flujo principal para proponer un intercambio desde el movil. Necesitamos una experiencia guiada, rapida y comprensible para usuarios primerizos en calle o plaza, donde cada cromo se negocia con sus reglas, overrides y contraofertas sin perder claridad.
+
+## What Changes
+
+- Crear un flujo mobile-first de 5 pasos para que el cambiador arme una propuesta de intercambio despues de entrar a su sesion.
+- Mostrar primero los cromos que el coleccionista quiere recibir y permitir al cambiador seleccionar solo unidades individuales que puede ofrecer.
+- Mostrar la regla aplicable por cada cromo seleccionado, priorizando override por cromo sobre regla general y etiquetando explicitamente `Regla especial` cuando corresponda.
+- Permitir que el cambiador decida por cada cromo si cumple la regla o si envia una contraoferta.
+- Modelar el cumplimiento normal de reglas de forma abstracta por tipo de cromo; permitir detalle explicito por numero exacto solo cuando el cambiador hace una contraoferta.
+- Permitir contraofertas por cromo independiente que puedan cambiar cantidad, tipo o uno o mas cromos exactos, con nota opcional solo para esas excepciones.
+- Mostrar un resumen final que priorice visualmente lo que recibe el coleccionista, etiquete `Cumple regla` o `Contraoferta`, y envie la propuesta en estado `Pendiente de aprobacion`.
+- Mostrar una vista detallada de la propuesta enviada para que el cambiador revise exactamente que mando.
+
+## Capabilities
+
+### New Capabilities
+- `cambiador-propuesta-cambio`: Wizard mobile de 5 pasos para seleccionar cromos solicitados por el coleccionista, revisar reglas por cromo, decidir entre cumplir o contraofertar, construir la propuesta y enviarla para aprobacion.
+
+### Modified Capabilities
+
+## Impact
+
+- Frontend publico en App Router: nuevas pantallas o estados dentro del flujo de `src/app/cambio/[token]` para el wizard, resumen y detalle posterior al envio.
+- Modelo de sesion publica del cambiador: la sesion deja de ser solo una entrada nominal y pasa a contener una propuesta estructurada por cromo.
+- Capa de reglas de intercambio: el flujo publico debe consumir reglas generales y overrides por cromo, mostrando prioridad y etiquetas visibles.
+- Persistencia de propuestas: se necesitara almacenar bloques independientes por cromo, elecciones de cumplimiento o contraoferta, notas opcionales de excepcion y estado `pending`.
+- Specs OpenSpec afectadas: nueva capability `cambiador-propuesta-cambio`.
