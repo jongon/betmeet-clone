@@ -26,7 +26,7 @@ build/
 .cursor/
 .kiro/
 .claude/
-# .opencode/
+.opencode/
 .antigravity/
 
 # OS

@@ -8,6 +8,8 @@ import {
   ExchangeRuleSchema,
   type ExchangeSettings,
   ExchangeSettingsSchema,
+  type StickerOverride,
+  StickerOverrideSchema,
 } from "@/lib/exchange-settings";
 import {
   resetStickerOverride,
@@ -16,6 +18,7 @@ import {
 } from "@/lib/exchange-settings-store";
 import {
   clearMissingInventoryForAdmin,
+  isStickerMissingForAdmin,
   markStickersAsCompletedForAdmin,
   toMissingRecord,
 } from "@/lib/missing";
@@ -69,6 +72,7 @@ export async function saveGlobalExchangeSettingsAction(
   const parsed = ExchangeSettingsSchema.parse(globalSettings);
   await saveGlobalExchangeSettings(user.email, parsed);
   revalidatePath("/admin/cromos");
+  revalidatePath("/admin/intercambio");
 }
 
 export async function saveStickerOverrideAction(
@@ -88,7 +92,35 @@ export async function saveStickerOverrideAction(
   }
 
   const parsed = ExchangeRuleSchema.parse(rule);
-  await saveStickerOverride(user.email, stickerCode, parsed);
+  await saveStickerOverride(user.email, stickerCode, { abstract: parsed, exact: null });
+  revalidatePath("/admin/cromos");
+}
+
+export async function saveStickerRuleAction(
+  stickerCode: string,
+  override: StickerOverride | null,
+): Promise<void> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) {
+    throw new Error("No authenticated admin");
+  }
+
+  if (!stickerCode?.includes("-")) {
+    throw new Error("Código de cromo inválido");
+  }
+
+  const parsedOverride = StickerOverrideSchema.nullable().parse(override);
+  const exactStickerCode = parsedOverride?.exact?.stickerCode;
+
+  if (exactStickerCode && !(await isStickerMissingForAdmin(user.email, exactStickerCode))) {
+    throw new Error("El cromo exacto debe estar marcado como faltante antes de guardarlo.");
+  }
+
+  await saveStickerOverride(user.email, stickerCode, parsedOverride);
+  revalidatePath("/admin/intercambio");
   revalidatePath("/admin/cromos");
 }
 
@@ -106,6 +138,7 @@ export async function resetStickerOverrideAction(stickerCode: string): Promise<v
   }
 
   await resetStickerOverride(user.email, stickerCode);
+  revalidatePath("/admin/intercambio");
   revalidatePath("/admin/cromos");
 }
 

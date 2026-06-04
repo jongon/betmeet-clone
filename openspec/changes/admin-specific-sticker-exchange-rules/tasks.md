@@ -27,9 +27,9 @@
 
 - [x] 5.1 Crear Server Action para guardar override por cromo con sus dos componentes opcionales
 - [x] 5.2 Crear Server Action para activar el toggle unico `Usar regla general` y eliminar el override si ambos componentes quedan vacios
-- [ ] 5.3 Simplificar `/admin/cromos` para dejar solo cantidades de repetidos
+- [x] 5.3 Simplificar `/admin/cromos` para dejar solo cantidades de repetidos
 - [x] 5.4 Extender la UI de `/admin/intercambio` para editar ambos componentes en la misma fila de la lista de cromos
-- [ ] 5.5 Mostrar en cada fila los valores globales efectivos como base visible al editar, sin arrancar en `0` cuando no hay override
+- [x] 5.5 Mostrar en cada fila los valores globales efectivos como base visible al editar, sin arrancar en `0` cuando no hay override
 - [x] 5.6 Mostrar el preview legible solo al editar, con etiquetas `Regla especial por tipo` y `Regla especial por cromo`
 - [x] 5.7 Garantizar la misma experiencia en mobile sin pantalla adicional
 

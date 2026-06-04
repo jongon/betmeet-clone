@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { ExchangeOverridesPanel } from "@/components/admin/exchange-overrides-panel";
 import { RepeatedsSettingsPanel } from "@/components/admin/repeateds-settings-panel";
+import { getAlbumGroups } from "@/lib/album-catalog";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -15,6 +17,7 @@ export default async function ExchangeSettingsPage() {
   }
 
   const exchangeSettings = await getExchangeSettings(user.email);
+  const groups = getAlbumGroups();
 
   return (
     <main className="mx-auto flex min-h-svh max-w-5xl flex-col gap-6 px-4 py-10">
@@ -25,17 +28,31 @@ export default async function ExchangeSettingsPage() {
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Configura reglas globales del album para los cromos sin override.
+          Configura reglas globales del album y overrides por cromo exacto o por tipo.
         </p>
-        <Link
-          href="/admin"
-          className="inline-flex text-xs font-medium text-primary hover:underline"
-        >
-          Volver al home admin
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <Link
+            href="/admin"
+            className="inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Volver al home admin
+          </Link>
+          <Link
+            href="/admin/cromos/faltantes"
+            className="inline-flex text-xs font-medium text-primary hover:underline"
+          >
+            Ir a faltantes
+          </Link>
+        </div>
       </header>
 
       <RepeatedsSettingsPanel globalSettings={exchangeSettings.global} />
+      <ExchangeOverridesPanel
+        groups={groups}
+        initialGroup={groups[0]?.groupCode ?? "FWC"}
+        globalSettings={exchangeSettings.global}
+        initialOverrides={exchangeSettings.overrides}
+      />
     </main>
   );
 }
