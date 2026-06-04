@@ -1,5 +1,4 @@
 import {
-  type AlbumGroup,
   type AlbumSticker,
   getGroupByCode,
   getStickerLabel,
@@ -267,8 +266,4 @@ export function parseExactStickerCodes(value: string): string[] {
 
 export function formatCounterofferCodes(codes: string[]): string {
   return codes.join(", ");
-}
-
-export function groupLabelLookup(groups: AlbumGroup[]): Record<string, string> {
-  return Object.fromEntries(groups.map((group) => [group.groupCode, group.displayName]));
 }

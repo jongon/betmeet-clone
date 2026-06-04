@@ -4,8 +4,6 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getGroupStickers, isValidGroupCode } from "@/lib/album-catalog";
 import {
-  type ExchangeRule,
-  ExchangeRuleSchema,
   type ExchangeSettings,
   ExchangeSettingsSchema,
   type StickerOverride,
@@ -74,28 +72,6 @@ export async function saveGlobalExchangeSettingsAction(
   revalidatePath("/admin/cromos");
   revalidatePath("/admin/intercambio");
 }
-
-export async function saveStickerOverrideAction(
-  stickerCode: string,
-  rule: ExchangeRule,
-): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
-
-  if (!stickerCode?.includes("-")) {
-    throw new Error("Código de cromo inválido");
-  }
-
-  const parsed = ExchangeRuleSchema.parse(rule);
-  await saveStickerOverride(user.email, stickerCode, { abstract: parsed, exact: null });
-  revalidatePath("/admin/cromos");
-}
-
 export async function saveStickerRuleAction(
   stickerCode: string,
   override: StickerOverride | null,

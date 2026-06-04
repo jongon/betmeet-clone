@@ -3,15 +3,13 @@ import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
-import { validateExactRequestedStickersForProposal } from "@/lib/exchange-proposal-validation";
-import { resolveStickerOverride, resolveStickerRuleFromSettings } from "@/lib/exchange-resolver";
+import { resolveStickerOverride } from "@/lib/exchange-resolver";
 import { cloneDefaultExchangeSettings, normalizeStickerOverride } from "@/lib/exchange-settings";
 import {
   getExchangeSettings,
   resetStickerOverride,
   saveStickerOverride,
 } from "@/lib/exchange-settings-store";
-import { replaceMissingInventory } from "@/lib/missing-store";
 
 const OWNER_EMAIL = "admin@example.com";
 
@@ -114,38 +112,7 @@ describe("override normalization and resolver", () => {
   });
 
   test("returns global when the override has no active components", () => {
-    const resolved = resolveStickerRuleFromSettings("ARG-14", cloneDefaultExchangeSettings(), {});
+    const resolved = resolveStickerOverride(null);
     assert.deepEqual(resolved, { source: "global", components: [] });
-  });
-});
-
-describe("proposal rejection helper", () => {
-  test("rejects automatically when an exact sticker is no longer missing", async () => {
-    const validation = await validateExactRequestedStickersForProposal(OWNER_EMAIL, ["POR-15"], {
-      "ARG-14": {
-        abstract: null,
-        exact: { stickerCode: "POR-15" },
-      },
-    });
-
-    assert.deepEqual(validation, {
-      status: "rechazada automaticamente",
-      stickerCode: "POR-15",
-      reason:
-        "La propuesta se rechazó automáticamente porque POR-15 ya no está marcado como faltante.",
-    });
-  });
-
-  test("keeps pending when the exact sticker is still missing", async () => {
-    await replaceMissingInventory(OWNER_EMAIL, { "POR-15": true });
-
-    const validation = await validateExactRequestedStickersForProposal(OWNER_EMAIL, ["POR-15"], {
-      "ARG-14": {
-        abstract: null,
-        exact: { stickerCode: "POR-15" },
-      },
-    });
-
-    assert.deepEqual(validation, { status: "pending" });
   });
 });

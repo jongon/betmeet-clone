@@ -15,12 +15,12 @@ export default function PublicHome() {
         <CardHeader>
           <CardTitle className="font-display text-base">Próximamente</CardTitle>
           <CardDescription>
-            Este espacio está reservado. El contenido (por ejemplo, `/public/cambio/[token]`) se
-            cubrirá en futuros changes.
+            Este espacio está reservado. El contenido (por ejemplo, `/cambio/[token]`) se cubrirá en
+            futuros changes.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Esta página se renderiza sin autenticación — el middleware la omite por construcción al no
+          Esta página se renderiza sin autenticación — el proxy la omite por construcción al no
           estar incluida en su matcher.
         </CardContent>
       </Card>

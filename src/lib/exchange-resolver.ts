@@ -1,6 +1,5 @@
 import {
   type ExchangeRule,
-  type ExchangeSettings,
   normalizeStickerOverride,
   type StickerOverride,
 } from "@/lib/exchange-settings";
@@ -52,12 +51,4 @@ export function resolveStickerOverride(
   }
 
   return { source: "override", components };
-}
-
-export function resolveStickerRuleFromSettings(
-  stickerCode: string,
-  _globalSettings: ExchangeSettings,
-  overrides: Record<string, StickerOverride>,
-): ResolvedOverride {
-  return resolveStickerOverride(overrides[stickerCode]);
 }

@@ -2,20 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { AlbumSticker, StickerType } from "@/lib/album-catalog";
+import { type AlbumSticker, STICKER_TYPE_LABEL } from "@/lib/album-catalog";
 import { cn } from "@/lib/utils";
 
 type GridProps = {
   stickers: AlbumSticker[];
   quantities: Record<string, number>;
   onChange: (code: string, value: number) => void;
-};
-
-const typeLabel: Record<StickerType, string> = {
-  BADGE: "Badge",
-  TEAM_PHOTO: "Equipo",
-  PLAYER: "Jugador",
-  SPECIAL: "Especial",
 };
 
 export function RepeatedsGrid({ stickers, quantities, onChange }: GridProps) {
@@ -41,7 +34,7 @@ export function RepeatedsGrid({ stickers, quantities, onChange }: GridProps) {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-foreground">{sticker.code}</span>
                       <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                        {typeLabel[sticker.type]}
+                        {STICKER_TYPE_LABEL[sticker.type]}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{sticker.label}</p>

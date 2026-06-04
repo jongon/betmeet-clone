@@ -9,6 +9,13 @@ export type TeamSeed = {
 
 export type StickerType = "PLAYER" | "BADGE" | "TEAM_PHOTO" | "SPECIAL";
 
+export const STICKER_TYPE_LABEL: Record<StickerType, string> = {
+  BADGE: "Badge",
+  TEAM_PHOTO: "Equipo",
+  PLAYER: "Jugador",
+  SPECIAL: "Especial",
+};
+
 export type AlbumGroup = {
   groupCode: string;
   displayName: string;
@@ -186,12 +193,6 @@ export function isValidStickerCode(stickerCode: string): boolean {
 
   return position >= 1 && position <= 20;
 }
-
-export function getFlagCode(isoCode: string | null): string | null {
-  if (!isoCode) return null;
-  return isoCode;
-}
-
 export function getGroupByCode(groupCode: string): AlbumGroup | null {
   if (groupCode === "FWC") return FWC_GROUP;
   const team = TEAM_SEED.find((item) => item.albumCode === groupCode);

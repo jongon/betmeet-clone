@@ -1,8 +1,30 @@
 import { z } from "zod";
+import { STICKER_TYPE_LABEL, type StickerType } from "@/lib/album-catalog";
 import { MissingStickerCodeSchema } from "@/lib/missing-schema";
 
 export const OfferTypeSchema = z.enum(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL", "ANY"]);
 export type OfferType = z.infer<typeof OfferTypeSchema>;
+
+export const OFFER_TYPE_ORDER: readonly OfferType[] = [
+  "BADGE",
+  "TEAM_PHOTO",
+  "SPECIAL",
+  "PLAYER",
+  "ANY",
+];
+
+export const OFFER_TYPE_LABEL: Record<OfferType, string> = {
+  PLAYER: "Jugador",
+  BADGE: "Badge",
+  TEAM_PHOTO: "Foto equipo",
+  SPECIAL: "Especial",
+  ANY: "Cualquiera",
+};
+
+export const ALL_TYPE_LABEL: Record<StickerType | OfferType, string> = {
+  ...STICKER_TYPE_LABEL,
+  ...OFFER_TYPE_LABEL,
+};
 
 export const ExchangeRuleSchema = z.object({
   PLAYER: z.number().int().min(0),

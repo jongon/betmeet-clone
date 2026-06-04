@@ -8,26 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { StickerType } from "@/lib/album-catalog";
 import type { ExchangeSettings, OfferType } from "@/lib/exchange-settings";
-
-const offerOrder: OfferType[] = ["BADGE", "TEAM_PHOTO", "SPECIAL", "PLAYER", "ANY"];
-
-const typeLabels: Record<StickerType | OfferType, string> = {
-  PLAYER: "Jugador",
-  BADGE: "Badge",
-  TEAM_PHOTO: "Foto equipo",
-  SPECIAL: "Especial",
-  ANY: "Cualquiera",
-};
+import { ALL_TYPE_LABEL, OFFER_TYPE_ORDER } from "@/lib/exchange-settings";
+import { normalizeNumber } from "@/lib/utils";
 
 type PanelProps = {
   globalSettings: ExchangeSettings;
   onGlobalSaved?: (globalSettings: ExchangeSettings) => void;
 };
-
-function normalizeNumber(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.trunc(value));
-}
 
 function cloneGlobalSettings(globalSettings: ExchangeSettings): ExchangeSettings {
   return {
@@ -102,13 +89,13 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
             {(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL"] as StickerType[]).map((kind) => (
               <div key={kind} className="rounded-lg border border-border bg-background p-3">
                 <p className="mb-2 text-xs font-semibold text-muted-foreground">
-                  Tipo de cromo: {typeLabels[kind]}
+                  Tipo de cromo: {ALL_TYPE_LABEL[kind]}
                 </p>
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                  {offerOrder.map((offerType) => (
+                  {OFFER_TYPE_ORDER.map((offerType) => (
                     <div key={`${kind}-${offerType}`} className="space-y-1">
                       <Label className="text-xs text-muted-foreground">
-                        {typeLabels[offerType]}
+                        {ALL_TYPE_LABEL[offerType]}
                       </Label>
                       <Input
                         type="number"

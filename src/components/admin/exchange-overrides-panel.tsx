@@ -1,8 +1,8 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
 import { useMemo, useState, useTransition } from "react";
 import { resetStickerOverrideAction, saveStickerRuleAction } from "@/app/admin/cromos/actions";
+import { MobileTeamSelector } from "@/components/admin/mobile-team-selector";
 import { StickerSelector } from "@/components/admin/sticker-selector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,16 +16,8 @@ import type {
   OfferType,
   StickerOverride,
 } from "@/lib/exchange-settings";
-
-const offerOrder: OfferType[] = ["BADGE", "TEAM_PHOTO", "SPECIAL", "PLAYER", "ANY"];
-
-const typeLabels: Record<StickerType | OfferType, string> = {
-  PLAYER: "Jugador",
-  BADGE: "Badge",
-  TEAM_PHOTO: "Foto equipo",
-  SPECIAL: "Especial",
-  ANY: "Cualquiera",
-};
+import { ALL_TYPE_LABEL, OFFER_TYPE_ORDER } from "@/lib/exchange-settings";
+import { normalizeNumber } from "@/lib/utils";
 
 type PanelProps = {
   groups: AlbumGroup[];
@@ -42,11 +34,6 @@ function buildEmptyRule(): ExchangeRule {
 
 function cloneRule(rule: ExchangeRule | null | undefined): ExchangeRule {
   return rule ? { ...rule } : buildEmptyRule();
-}
-
-function normalizeNumber(value: number): number {
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, Math.trunc(value));
 }
 
 export function ExchangeOverridesPanel({
@@ -175,59 +162,16 @@ export function ExchangeOverridesPanel({
 
   return (
     <section className="grid gap-6 sm:grid-cols-[280px_minmax(0,1fr)] sm:items-start">
-      <div className="sm:hidden">
-        <div className="flex items-center justify-between rounded-lg border border-border bg-background p-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            aria-label="Abrir menu de equipos"
-            onClick={() => setMobileSelectorOpen(true)}
-          >
-            <Menu />
-          </Button>
-          <p className="truncate px-2 text-xs text-muted-foreground">
-            Equipo activo: {activeGroupLabel}
-          </p>
-        </div>
-        {mobileSelectorOpen ? (
-          <>
-            <button
-              type="button"
-              aria-label="Cerrar selector de equipos"
-              className="fixed inset-0 z-30 bg-black/40"
-              onClick={() => setMobileSelectorOpen(false)}
-            />
-            <aside className="fixed top-0 left-0 z-40 h-svh w-[85vw] max-w-[320px] overflow-y-auto border-r border-border bg-background p-4 shadow-xl">
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-xs text-muted-foreground">Equipo activo</p>
-                  <p className="truncate text-sm font-medium text-foreground">{activeGroupLabel}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Cerrar menu de equipos"
-                  onClick={() => setMobileSelectorOpen(false)}
-                >
-                  <X />
-                </Button>
-              </div>
-              <StickerSelector
-                groups={groups}
-                value={activeGroup}
-                onChange={(value) => {
-                  setActiveGroup(value);
-                  setMobileSelectorOpen(false);
-                }}
-                search={search}
-                onSearchChange={setSearch}
-              />
-            </aside>
-          </>
-        ) : null}
-      </div>
+      <MobileTeamSelector
+        groups={groups}
+        activeGroup={activeGroup}
+        activeGroupLabel={activeGroupLabel}
+        search={search}
+        open={mobileSelectorOpen}
+        onOpenChange={setMobileSelectorOpen}
+        onGroupChange={setActiveGroup}
+        onSearchChange={setSearch}
+      />
 
       <aside className="hidden sm:sticky sm:top-6 sm:block">
         <StickerSelector
@@ -261,7 +205,7 @@ export function ExchangeOverridesPanel({
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{sticker.code}</span>
                     <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                      {typeLabels[sticker.type]}
+                      {ALL_TYPE_LABEL[sticker.type as keyof typeof ALL_TYPE_LABEL]}
                     </Badge>
                     <Badge variant="secondary" className="bg-muted text-muted-foreground">
                       {resolved.source === "override" ? "Override activo" : "Usa global"}
@@ -277,7 +221,7 @@ export function ExchangeOverridesPanel({
                                 .filter(([, value]) => value > 0)
                                 .map(
                                   ([offerType, value]) =>
-                                    `${typeLabels[offerType as OfferType]} ${value}`,
+                                    `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
                                 )
                                 .join(" · ")}`
                             : `${component.label}: ${component.stickerCode}`}
@@ -323,10 +267,10 @@ export function ExchangeOverridesPanel({
                           Regla especial por tipo
                         </p>
                         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                          {offerOrder.map((offerType) => (
+                          {OFFER_TYPE_ORDER.map((offerType) => (
                             <div key={`${sticker.code}-${offerType}`} className="space-y-1">
                               <span className="text-[11px] text-muted-foreground">
-                                {typeLabels[offerType]}
+                                {ALL_TYPE_LABEL[offerType]}
                               </span>
                               <Input
                                 type="number"
@@ -368,7 +312,7 @@ export function ExchangeOverridesPanel({
                               .filter(([, value]) => value > 0)
                               .map(
                                 ([offerType, value]) =>
-                                  `${typeLabels[offerType as OfferType]} ${value}`,
+                                  `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
                               )
                               .join(" · ") || "Sin intercambio global"}
                           </p>
@@ -378,7 +322,7 @@ export function ExchangeOverridesPanel({
                               .filter(([, value]) => value > 0)
                               .map(
                                 ([offerType, value]) =>
-                                  `${typeLabels[offerType as OfferType]} ${value}`,
+                                  `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
                               )
                               .join(" · ") || "Desactivada"}
                           </p>

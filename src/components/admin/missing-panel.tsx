@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { type AlbumGroup, getGroupStickers, type StickerType } from "@/lib/album-catalog";
+import { type AlbumGroup, getGroupStickers, STICKER_TYPE_LABEL } from "@/lib/album-catalog";
 import { cn } from "@/lib/utils";
 
 type MissingPanelProps = {
@@ -32,13 +32,6 @@ type MissingPanelProps = {
 };
 
 type BulkMode = "mark" | "unmark";
-
-const typeLabel: Record<StickerType, string> = {
-  BADGE: "Badge",
-  TEAM_PHOTO: "Equipo",
-  PLAYER: "Jugador",
-  SPECIAL: "Especial",
-};
 
 export function MissingPanel({
   groups,
@@ -365,7 +358,7 @@ export function MissingPanel({
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                              {typeLabel[sticker.type]}
+                              {STICKER_TYPE_LABEL[sticker.type]}
                             </Badge>
                             {isMissing ? (
                               <Badge variant="secondary" className="bg-primary/10 text-primary">
