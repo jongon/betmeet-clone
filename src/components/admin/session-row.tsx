@@ -31,7 +31,7 @@ export function SessionRow({ session }: { session: Session }) {
   };
 
   const rowClass = isOpen
-    ? "rounded-xl border border-primary/20 bg-primary/5 p-4 transition-colors"
+    ? "rounded-xl border border-chart-4/35 bg-chart-4/8 p-4 transition-colors"
     : "rounded-xl border border-border bg-muted p-4 text-muted-foreground";
 
   return (
@@ -45,7 +45,7 @@ export function SessionRow({ session }: { session: Session }) {
               {session.cambiadorName}
             </p>
             {isOpen ? (
-              <Badge variant="default" className="bg-brand text-brand-foreground">
+              <Badge variant="secondary" className="bg-chart-4/20 text-foreground">
                 Abierta
               </Badge>
             ) : (

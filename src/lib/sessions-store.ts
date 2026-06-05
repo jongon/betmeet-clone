@@ -12,6 +12,22 @@ import {
 
 const DATA_DIR = path.join(process.cwd(), "data");
 
+function normalizeStoredRuleLabel(label: unknown): unknown {
+  if (label === "Regla general") {
+    return "Intercambio general";
+  }
+
+  if (label === "Regla especial") {
+    return "Intercambio especial";
+  }
+
+  return label;
+}
+
+function normalizeStoredModeLabel(mode: unknown): "Propone otra opcion" | "Acepta la regla" {
+  return mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla";
+}
+
 function getRuntimeFilePath(): string {
   return process.env.SESSIONS_FILE ?? path.join(DATA_DIR, "sessions.json");
 }
@@ -62,10 +78,23 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
 
   const blocks = Array.isArray(base.blocks)
     ? base.blocks.map((block) => {
-        const current = block as { mode?: unknown; modeLabel?: unknown } & Record<string, unknown>;
+        const current = block as {
+          mode?: unknown;
+          modeLabel?: unknown;
+          rule?: unknown;
+        } & Record<string, unknown>;
+        const rule = current.rule as { label?: unknown } & Record<string, unknown>;
+
         return {
           ...current,
-          modeLabel: current.mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla",
+          modeLabel: normalizeStoredModeLabel(current.mode),
+          rule:
+            rule && typeof rule === "object"
+              ? {
+                  ...rule,
+                  label: normalizeStoredRuleLabel(rule.label),
+                }
+              : current.rule,
         };
       })
     : base.blocks;
