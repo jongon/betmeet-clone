@@ -590,58 +590,43 @@ export function ProposalWizard({
                 blocksByCode.get(sticker.code) ??
                 buildProposalBlock(sticker.code, globalSettings, overrides);
               return (
-                // biome-ignore lint/a11y/useSemanticElements: card toggle contains nested action buttons
-                <div
+                <article
                   key={sticker.code}
-                  role="button"
-                  tabIndex={0}
                   className={cn(
                     "space-y-4 rounded-xl border p-4 transition",
-                    isSelected
-                      ? "border-primary/40 bg-primary/10"
-                      : "cursor-pointer border-border bg-background hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    isSelected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
                   )}
-                  onClick={(event) => {
-                    if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
-                      return;
-                    }
-
-                    toggleSticker(sticker.code);
-                  }}
-                  onKeyDown={(event) => {
-                    if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
-                      return;
-                    }
-
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      toggleSticker(sticker.code);
-                    }
-                  }}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <span className="text-sm font-semibold text-foreground">{sticker.code}</span>
-                      {block ? (
-                        <RuleOptions
-                          block={block}
-                          title="Por este cambio obtendrás una de estas opciones:"
-                        />
-                      ) : null}
+                  <button
+                    type="button"
+                    className={cn(
+                      "w-full space-y-2 text-left",
+                      !isSelected
+                        ? "cursor-pointer rounded-lg hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        : "rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    )}
+                    onClick={() => toggleSticker(sticker.code)}
+                  >
+                    <span className="text-sm font-semibold text-foreground">{sticker.code}</span>
+                    {block ? (
+                      <RuleOptions
+                        block={block}
+                        title="Por este cambio obtendrás una de estas opciones:"
+                      />
+                    ) : null}
 
-                      {isSelected && block.mode === "counteroffer" ? (
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant="outline">Contraoferta</Badge>
-                        </div>
-                      ) : null}
+                    {isSelected && block.mode === "counteroffer" ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">Contraoferta</Badge>
+                      </div>
+                    ) : null}
 
-                      {isSelected && block.mode === "counteroffer" ? (
-                        <p className="text-sm text-muted-foreground">
-                          Ofreces: {getCounterofferSummary(block)}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
+                    {isSelected && block.mode === "counteroffer" ? (
+                      <p className="text-sm text-muted-foreground">
+                        Ofreces: {getCounterofferSummary(block)}
+                      </p>
+                    ) : null}
+                  </button>
 
                   <div className="flex w-full flex-wrap items-center justify-between gap-2">
                     <Button
@@ -684,7 +669,7 @@ export function ProposalWizard({
                   </div>
 
                   {isSelected && isExpanded ? renderCounterofferEditor(block) : null}
-                </div>
+                </article>
               );
             })}
           </div>
@@ -726,37 +711,19 @@ export function ProposalWizard({
                 const quantity = selected?.quantity ?? 1;
 
                 return (
-                  // biome-ignore lint/a11y/useSemanticElements: card toggle contains nested quantity controls
-                  <div
+                  <article
                     key={sticker.code}
-                    role="button"
-                    tabIndex={0}
                     className={cn(
                       "space-y-3 rounded-xl border p-4 transition",
-                      selected
-                        ? "border-primary/40 bg-primary/10"
-                        : "cursor-pointer border-border bg-background hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                      selected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
                     )}
-                    onClick={(event) => {
-                      if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
-                        return;
-                      }
-
-                      toggleRequestedRepeated(sticker.code);
-                    }}
-                    onKeyDown={(event) => {
-                      if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
-                        return;
-                      }
-
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        toggleRequestedRepeated(sticker.code);
-                      }
-                    }}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="space-y-2">
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        onClick={() => toggleRequestedRepeated(sticker.code)}
+                      >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-foreground">
                             {sticker.code}
@@ -766,17 +733,13 @@ export function ProposalWizard({
                           <Badge variant="secondary">Disponible x{sticker.availableQuantity}</Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">{sticker.label}</p>
-                      </div>
+                      </button>
 
                       <Button
-                        data-no-toggle="true"
                         type="button"
                         size="sm"
                         variant={selected ? "default" : "outline"}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          toggleRequestedRepeated(sticker.code);
-                        }}
+                        onClick={() => toggleRequestedRepeated(sticker.code)}
                       >
                         {selected ? "Ya me interesa" : "Me interesa"}
                       </Button>
@@ -791,7 +754,6 @@ export function ProposalWizard({
                           Cantidad solicitada
                         </label>
                         <Input
-                          data-no-toggle="true"
                           id={`requested-repeated-${sticker.code}`}
                           type="number"
                           min={1}
@@ -807,7 +769,7 @@ export function ProposalWizard({
                         />
                       </div>
                     ) : null}
-                  </div>
+                  </article>
                 );
               })}
             </div>
