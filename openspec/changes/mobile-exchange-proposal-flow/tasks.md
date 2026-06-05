@@ -8,7 +8,7 @@
 
 ## 2. Shell del wizard mobile
 
-- [x] 2.1 Crear la shell del wizard en el flujo publico de `/cambio/[token]` con progreso visible y navegacion de 5 pasos
+- [x] 2.1 Crear la shell del wizard en el flujo publico de `/cambio/[token]` con progreso visible y navegacion de 4 pasos
 - [x] 2.2 Implementar resumen sticky mobile con conteo de cromos seleccionados y estado parcial de la propuesta
 - [x] 2.3 Mantener transiciones entre pasos sin perder seleccion ni decisiones al volver atras
 
@@ -21,8 +21,8 @@
 ## 4. Paso 1 y paso 2: reglas y decision por bloque
 
 - [x] 4.1 Resolver para cada cromo seleccionado si aplica override por cromo o regla general
-- [x] 4.2 Mostrar etiquetas `Intercambio especial` e `Intercambio general` segun la regla aplicada en la seleccion inicial
-- [x] 4.3 Implementar el paso 2 para decidir por bloque entre `Aceptar la regla` y `Proponer otra opcion`
+- [x] 4.2 Mostrar la condicion resuelta con copy natural, por ejemplo `Se cambia por 2 cromos de jugador` o `Se cambia por 1 badge o por POR-15`, colapsando reglas equivalentes a `cualquier tipo de cromo`
+- [x] 4.3 Implementar en la fila del paso 1 la decision por bloque, asumiendo `Aceptar la regla` por defecto y mostrando solo `Proponer otra opcion` o `Quitar contraoferta`
 - [x] 4.4 Permitir propuestas mixtas dentro de una misma sesion sin afectar otros bloques al cambiar una decision
 
 ## 5. Paso 3: editor de contraofertas
@@ -32,10 +32,10 @@
 - [x] 5.3 Permitir contraoferta con uno o mas cromos exactos cuando el bloque no cumple la regla
 - [x] 5.4 Mostrar y guardar nota opcional solo para bloques en modo `counteroffer`
 
-## 6. Paso 4, paso 5, envio y detalle posterior
+## 6. Paso 3, paso 4, envio y detalle posterior
 
 - [x] 6.1 Construir resumen final priorizando visualmente lo que recibe el coleccionista
-- [x] 6.2 Mostrar por bloque las etiquetas `Acepta la regla`, `Propone otra opcion`, `Intercambio general` e `Intercambio especial`
+- [x] 6.2 Mostrar por bloque las etiquetas `Acepta la regla` y `Propone otra opcion`, dejando la condicion de intercambio en copy natural
 - [x] 6.3 Implementar envio final de propuesta con estado `Pendiente de aprobacion`
 - [x] 6.4 Implementar la vista detallada posterior al envio con todos los bloques y notas de contraoferta
 
@@ -46,13 +46,13 @@
 - [x] 7.3 Correr `pnpm lint`
 - [x] 7.4 Correr `pnpm build`
 
-## 8. Paso 4: repetidos que quiere recibir el cambiador
+## 8. Paso 2: repetidos que quiere recibir el cambiador
 
 - [x] 8.1 Extender el modelo de propuesta para persistir una lista global de repetidos solicitados por el cambiador con `stickerCode` y `quantity`
-- [x] 8.2 Cargar en el paso 4 los repetidos reales del coleccionista usando solo cromos con cantidad disponible `> 0`
+- [x] 8.2 Cargar en el paso 2 los repetidos reales del coleccionista usando solo cromos con cantidad disponible `> 0`
 - [x] 8.3 Permitir seleccionar un repetido con cantidad inicial `1` y ajustar la cantidad hasta el maximo disponible
 - [x] 8.4 Mantener esta lista independiente de los bloques por cromo ofrecido y persistirla en el borrador de sesion
-- [x] 8.5 Mantener el wizard en 5 pasos y dedicar el paso 4 a los repetidos deseados
+- [x] 8.5 Mantener el wizard en 4 pasos y dedicar el paso 2 a los repetidos deseados y a la decision por bloque
 - [x] 8.6 Mostrar en el resumen final la lista global de repetidos que recibe el cambiador
 - [x] 8.7 Cubrir con tests la seleccion y cantidad de repetidos solicitados y correr `pnpm lint` + `pnpm build`
 

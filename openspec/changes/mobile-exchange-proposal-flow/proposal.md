@@ -4,10 +4,10 @@ La entrada por QR ya define como un cambiador crea o reanuda una sesion, pero au
 
 ## What Changes
 
-- Crear un flujo mobile-first de 5 pasos para que el cambiador arme una propuesta de intercambio despues de entrar a su sesion.
+- Crear un flujo mobile-first de 4 pasos para que el cambiador arme una propuesta de intercambio despues de entrar a su sesion.
 - Mostrar primero los cromos que el coleccionista quiere recibir y permitir al cambiador seleccionar solo unidades individuales que puede ofrecer.
 - Agregar un paso nuevo para que el cambiador elija, desde los repetidos reales del coleccionista, que cromos quiere recibir y en que cantidad, con limite por inventario disponible.
-- Mostrar la regla aplicable por cada cromo seleccionado, priorizando override por cromo sobre regla general y etiquetando explicitamente `Intercambio especial` cuando corresponda.
+- Mostrar la regla aplicable por cada cromo seleccionado, priorizando override por cromo sobre regla general y expresandola con copy natural como `Se cambia por 2 cromos de jugador` o `Se cambia por 1 badge o por POR-15`.
 - Expresar cada regla abstracta como un conjunto de opciones alternativas `OR`, no como requisitos acumulativos.
 - Permitir que el cambiador decida por cada cromo si cumple la regla o si envia una contraoferta.
 - Modelar el cumplimiento normal de reglas de forma abstracta por tipo de cromo; permitir detalle explicito por numero exacto solo cuando el cambiador hace una contraoferta.
@@ -18,7 +18,7 @@ La entrada por QR ya define como un cambiador crea o reanuda una sesion, pero au
 ## Capabilities
 
 ### New Capabilities
-- `cambiador-propuesta-cambio`: Wizard mobile de 5 pasos para seleccionar cromos solicitados por el coleccionista viendo la regla en la misma pantalla, decidir entre cumplir o contraofertar, completar lo que el cambiador quiere recibir desde repetidos reales, construir la propuesta y enviarla para aprobacion.
+- `cambiador-propuesta-cambio`: Wizard mobile de 4 pasos para seleccionar cromos solicitados por el coleccionista viendo la regla en la misma pantalla, combinar en el paso 2 lo que el cambiador quiere recibir desde repetidos reales con la decision entre cumplir o contraofertar por bloque, completar contraofertas y enviar la propuesta para aprobacion.
 
 ### Modified Capabilities
 

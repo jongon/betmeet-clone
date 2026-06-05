@@ -7,7 +7,7 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 ## Goals / Non-Goals
 
 **Goals:**
-- Definir un wizard mobile de 5 pasos, corto y legible, para usuarios que abren la app por primera vez desde un QR.
+- Definir un wizard mobile de 4 pasos, corto y legible, para usuarios que abren la app por primera vez desde un QR.
 - Modelar la propuesta como una coleccion de bloques independientes por cromo solicitado por el coleccionista.
 - Modelar lo que el cambiador quiere recibir como una lista global independiente de repetidos reales del coleccionista.
 - Mostrar la regla aplicable despues de seleccionar un cromo, priorizando override por cromo sobre regla general, etiquetando la procedencia de la regla y expresando cada opcion como alternativa `OR`.
@@ -23,9 +23,9 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 
 ## Decisions
 
-### 1) Wizard de 5 pasos en vez de una pantalla unica
-- **Decision:** implementar un flujo guiado de 5 pasos con progreso visible y acciones primarias claras.
-- **Rationale:** el contexto de uso es movil, rapido y muchas veces en via publica. Separar seleccion, decision, ajuste de contraofertas, eleccion de repetidos deseados y resumen reduce carga cognitiva y mejora descubribilidad para usuarios primerizos.
+### 1) Wizard de 4 pasos en vez de una pantalla unica
+- **Decision:** implementar un flujo guiado de 4 pasos con progreso visible y acciones primarias claras.
+- **Rationale:** el contexto de uso es movil, rapido y muchas veces en via publica. Separar seleccion, decision mas repetidos deseados, ajuste de contraofertas y resumen reduce carga cognitiva sin obligar al usuario a pasar por un paso exclusivo para decidir por bloque.
 - **Alternatives considered:**
   - Pantalla unica con bloques expandibles: descartada por mezclar demasiadas decisiones a la vez y dificultar la lectura de overrides y contraofertas.
 
@@ -47,37 +47,48 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 - **Alternatives considered:**
   - Permitir detalle exacto tambien al cumplir regla: descartado por aumentar la complejidad del flujo base sin necesidad funcional inmediata.
 
-### 5) Resolucion de regla por prioridad y etiquetas visibles en el paso de seleccion
-- **Decision:** al mostrar un cromo en el paso 1 se evalua primero override por cromo y, si no existe, se usa la regla general. La UI muestra etiquetas explicitas `Intercambio especial` o `Intercambio general` y un resumen corto de lo que pide ese cromo.
-- **Rationale:** el usuario necesita entender la condicion del intercambio en el mismo momento en que decide si ese cromo le interesa. Evita un paso intermedio redundante, reduce friccion en movil y deja claro que la regla se cumple con una de varias opciones, no con todas a la vez.
+### 5) La decision de contraoferta vive en la fila del paso 1
+- **Decision:** al seleccionar un cromo en el paso 1, el sistema asume por defecto `Aceptar la regla`. En esa misma fila aparece una sola accion secundaria contextual: `Proponer otra opcion`, que selecciona automaticamente el cromo si hacia falta y lo cambia a contraoferta. Si el bloque ya esta en contraoferta, la accion pasa a ser `Quitar contraoferta`.
+- **Rationale:** el usuario entiende esa decision como parte del mismo momento en que evalua si le interesa ofrecer ese cromo. Mantenerla embebida evita navegar a otro paso solo para confirmar el caso por defecto.
 - **Alternatives considered:**
-  - Mostrar solo el contenido de la regla sin procedencia: descartado porque oculta la razon de una diferencia entre cromos.
+  - Pedir la decision en un paso posterior: descartado porque separa demasiado la eleccion del cromo de la excepcion sobre su regla.
 
-### 6) Paso 2 como decision simple: cumplir o contraofertar
-- **Decision:** el paso 2 no edita aun los detalles; solo pide decidir por cada bloque entre `Aceptar la regla` y `Proponer otra opcion`.
-- **Rationale:** mantiene el flujo rapido para quien acepta la regla y solo abre complejidad en el paso siguiente para los bloques que lo necesitan.
+- **Decision:** al mostrar un cromo en el paso 1 se evalua primero override por cromo y, si no existe, se usa la regla general. La UI publica no expone etiquetas tecnicas como `Intercambio general` o `Intercambio especial`; en su lugar muestra frases naturales como `Se cambia por 2 cromos de jugador` o `Se cambia por 1 badge o por POR-15`. Si la misma cantidad positiva aplica a `badge`, `cromo de jugador`, `foto de equipo` y `cromo especial`, la UI colapsa esas alternativas en `Se cambia por cualquier tipo de cromo` o `Se cambia por N cromos de cualquier tipo`.
+- **Rationale:** el usuario necesita entender la condicion del intercambio en el mismo momento en que decide si ese cromo le interesa. El copy directo evita lenguaje interno del sistema, reduce friccion en movil y deja claro que la regla se cumple con una de varias opciones, no con todas a la vez. Colapsar reglas equivalentes evita listar cuatro variantes que en la practica expresan la misma libertad de eleccion.
 - **Alternatives considered:**
-  - Editar directamente en el paso 3: descartado porque mezcla una decision binaria con un formulario detallado.
+  - Mostrar etiquetas tecnicas de procedencia: descartado porque ayudan poco a decidir y suenan administrativas para un usuario final.
 
-### 7) Nota opcional solo para contraofertas
+### 6) Paso 2 solo para lo que quiere recibir el cambiador
+- **Decision:** el paso 2 muestra unicamente los repetidos reales del coleccionista para que el cambiador marque pronto que le interesa recibir.
+- **Rationale:** despues de mover la decision de contraoferta al paso 1, el segundo paso queda enfocado en la contraparte de valor del cambiador y reduce carga cognitiva.
+- **Alternatives considered:**
+  - Mantener tambien la decision por bloque en el paso 2: descartado porque duplicaba control sobre el mismo bloque y hacia mas confuso el flujo.
+
+### 7) Paso 3 para editar solo contraofertas
+- **Decision:** el paso 3 no repite la decision binaria; solo edita cantidad, tipo, cromos exactos y nota para los bloques que quedaron en `Proponer otra opcion`.
+- **Rationale:** mantiene el flujo rapido para quien acepta la regla y deja la complejidad solo donde hace falta.
+- **Alternatives considered:**
+  - Editar dentro del mismo paso 2: descartado porque mezclar seleccion de repetidos, decision por bloque y formulario detallado en la misma surface sobrecarga demasiado la pantalla.
+
+### 8) Nota opcional solo para contraofertas
 - **Decision:** la nota libre viaja unicamente cuando el bloque esta en modo contraoferta.
 - **Rationale:** evita texto innecesario en el camino feliz y preserva un canal humano para explicar excepciones reales.
 - **Alternatives considered:**
   - Nota disponible en todo bloque: descartada por ruido adicional y menor consistencia semantica.
 
-### 8) Persistencia incremental de borrador por sesion
+### 9) Persistencia incremental de borrador por sesion
 - **Decision:** el wizard debe guardar el avance por `sessionId`, incluyendo seleccion inicial, modo de cada bloque y detalle de contraofertas, para soportar refresh o reanudacion.
 - **Rationale:** el flujo publico ya reusa una sesion abierta por navegador; mantener tambien el borrador evita perder trabajo en un entorno movil inestable.
 - **Alternatives considered:**
   - Estado solo en cliente: mas simple, pero fragil ante recargas, cierre accidental o cambio de paso server-side.
 
-### 9) Lo que recibe el cambiador se elige desde repetidos reales y viaja como lista global
-- **Decision:** agregar un paso nuevo donde el cambiador selecciona, desde el inventario real de repetidos del coleccionista, los cromos que quiere recibir. Esa seleccion se guarda como una lista global independiente de los bloques por cromo ofrecido.
-- **Rationale:** evita atar un cromo repetido solicitado a cada bloque individual, simplifica el resumen y mantiene la negociacion por bloque solo del lado de lo que recibe el coleccionista.
+### 10) Lo que recibe el cambiador se elige desde repetidos reales y viaja como lista global
+- **Decision:** el paso 2 deja al cambiador seleccionar, desde el inventario real de repetidos del coleccionista, los cromos que quiere recibir. Esa seleccion se guarda como una lista global independiente de los bloques por cromo ofrecido.
+- **Rationale:** evita atar un cromo repetido solicitado a cada bloque individual, simplifica el resumen y hace visible antes la contraparte de valor que busca el cambiador.
 - **Alternatives considered:**
   - Asociar repetidos solicitados bloque por bloque: descartado por aumentar mucho la complejidad del editor, la persistencia y el resumen final.
 
-### 10) Cantidad por repetido limitada por inventario disponible
+### 11) Cantidad por repetido limitada por inventario disponible
 - **Decision:** al seleccionar un repetido real, la cantidad inicial arranca en `1` y puede subir solo hasta la cantidad disponible en inventario del coleccionista.
 - **Rationale:** permite expresar interes real por varias copias sin romper la consistencia con el stock publicado por el admin.
 - **Alternatives considered:**
