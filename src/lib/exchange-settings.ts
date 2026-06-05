@@ -26,6 +26,14 @@ export const ALL_TYPE_LABEL: Record<StickerType | OfferType, string> = {
   ...OFFER_TYPE_LABEL,
 };
 
+const OFFER_TYPE_OPTION_LABEL: Record<OfferType, { singular: string; plural: string }> = {
+  PLAYER: { singular: "jugador", plural: "jugadores" },
+  BADGE: { singular: "badge", plural: "badges" },
+  TEAM_PHOTO: { singular: "foto de equipo", plural: "fotos de equipo" },
+  SPECIAL: { singular: "especial", plural: "especiales" },
+  ANY: { singular: "cromo cualquiera", plural: "cromos cualquiera" },
+};
+
 export const ExchangeRuleSchema = z.object({
   PLAYER: z.number().int().min(0),
   BADGE: z.number().int().min(0),
@@ -35,6 +43,27 @@ export const ExchangeRuleSchema = z.object({
 });
 
 export type ExchangeRule = z.infer<typeof ExchangeRuleSchema>;
+
+export function getExchangeRuleOptions(
+  rule: ExchangeRule,
+): Array<{ offerType: OfferType; quantity: number }> {
+  return OFFER_TYPE_ORDER.filter((offerType) => rule[offerType] > 0).map((offerType) => ({
+    offerType,
+    quantity: rule[offerType],
+  }));
+}
+
+export function formatExchangeOption(offerType: OfferType, quantity: number): string {
+  const labels = OFFER_TYPE_OPTION_LABEL[offerType];
+  const noun = quantity === 1 ? labels.singular : labels.plural;
+  return `${quantity} ${noun}`;
+}
+
+export function formatExchangeRuleOptions(rule: ExchangeRule): string[] {
+  return getExchangeRuleOptions(rule).map(({ offerType, quantity }) =>
+    formatExchangeOption(offerType, quantity),
+  );
+}
 
 export const ExactStickerRuleSchema = z.object({
   stickerCode: MissingStickerCodeSchema,

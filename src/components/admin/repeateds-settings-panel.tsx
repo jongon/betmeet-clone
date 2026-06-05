@@ -8,7 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { StickerType } from "@/lib/album-catalog";
 import type { ExchangeSettings, OfferType } from "@/lib/exchange-settings";
-import { ALL_TYPE_LABEL, OFFER_TYPE_ORDER } from "@/lib/exchange-settings";
+import {
+  ALL_TYPE_LABEL,
+  formatExchangeRuleOptions,
+  OFFER_TYPE_ORDER,
+} from "@/lib/exchange-settings";
 import { normalizeNumber } from "@/lib/utils";
 
 type PanelProps = {
@@ -61,9 +65,9 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
     <section className="space-y-3 rounded-xl border border-border bg-background p-4">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-foreground">Reglas globales del álbum</p>
+          <p className="text-sm font-medium text-foreground">Opciones globales de intercambio</p>
           <p className="text-xs text-muted-foreground">
-            Aplican a los cromos que no tienen override por fila.
+            Aplican a los cromos que no tienen intercambio especial por fila.
           </p>
         </div>
         <Button
@@ -91,6 +95,9 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
                 <p className="mb-2 text-xs font-semibold text-muted-foreground">
                   Tipo de cromo: {ALL_TYPE_LABEL[kind]}
                 </p>
+                <p className="mb-3 text-xs text-muted-foreground">
+                  El cambiador podrá cumplir cualquiera de estas opciones.
+                </p>
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
                   {OFFER_TYPE_ORDER.map((offerType) => (
                     <div key={`${kind}-${offerType}`} className="space-y-1">
@@ -108,12 +115,17 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
                     </div>
                   ))}
                 </div>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Preview:{" "}
+                  {formatExchangeRuleOptions(draftGlobal[kind]).join(" o ") ||
+                    "Sin opciones definidas"}
+                </p>
               </div>
             ))}
           </div>
 
           {status === "saved-global" ? (
-            <p className="text-xs text-muted-foreground">Settings globales guardados.</p>
+            <p className="text-xs text-muted-foreground">Opciones globales guardadas.</p>
           ) : status === "error" ? (
             <p className="text-xs text-destructive">No se pudo guardar la configuración.</p>
           ) : null}

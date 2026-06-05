@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { countOfferedItems } from "@/lib/cambio-proposal";
+import { countOfferedItems, countRequestedRepeateds } from "@/lib/cambio-proposal";
 import {
   type Session,
   type SessionProposal,
+  SessionProposalSchema,
   SessionSchema,
   SessionsArraySchema,
 } from "@/lib/sessions";
@@ -32,7 +33,65 @@ async function readSessions(): Promise<Session[]> {
   await ensureRuntimeFile();
   const raw = await readFile(getRuntimeFilePath(), "utf8");
   const parsed: unknown = JSON.parse(raw);
-  return SessionsArraySchema.parse(parsed);
+  if (!Array.isArray(parsed)) {
+    return SessionsArraySchema.parse(parsed);
+  }
+
+  return parsed.map((session) => normalizeStoredSession(session));
+}
+
+function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
+  if (!rawProposal) {
+    return null;
+  }
+
+  const parsed = SessionProposalSchema.safeParse(rawProposal);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  const base = rawProposal as {
+    status?: unknown;
+    currentStep?: unknown;
+    selectedStickerCodes?: unknown;
+    blocks?: unknown;
+    requestedRepeateds?: unknown;
+    updatedAt?: unknown;
+    submittedAt?: unknown;
+  };
+
+  const blocks = Array.isArray(base.blocks)
+    ? base.blocks.map((block) => {
+        const current = block as { mode?: unknown; modeLabel?: unknown } & Record<string, unknown>;
+        return {
+          ...current,
+          modeLabel: current.mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla",
+        };
+      })
+    : base.blocks;
+
+  return SessionProposalSchema.parse({
+    status: base.status,
+    currentStep: Math.min(Number(base.currentStep ?? 1), 5),
+    selectedStickerCodes: base.selectedStickerCodes,
+    blocks,
+    requestedRepeateds: base.requestedRepeateds ?? [],
+    updatedAt: base.updatedAt,
+    submittedAt: base.submittedAt,
+  });
+}
+
+function normalizeStoredSession(rawSession: unknown): Session {
+  const parsed = SessionSchema.safeParse(rawSession);
+  if (parsed.success) {
+    return parsed.data;
+  }
+
+  const base = rawSession as Omit<Session, "proposal"> & { proposal?: unknown };
+  return SessionSchema.parse({
+    ...base,
+    proposal: normalizeStoredProposal(base.proposal),
+  });
 }
 
 async function writeSessions(sessions: Session[]): Promise<void> {
@@ -133,7 +192,7 @@ export async function saveSessionProposal(id: string, proposal: SessionProposal)
 
   const nextSession = SessionSchema.parse({
     ...target,
-    requestedCount: proposal.selectedStickerCodes.length,
+    requestedCount: countRequestedRepeateds(proposal.requestedRepeateds),
     offeredCount: countOfferedItems(proposal.blocks),
     proposal,
   });

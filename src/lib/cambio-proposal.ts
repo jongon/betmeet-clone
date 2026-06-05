@@ -7,6 +7,7 @@ import {
 } from "@/lib/album-catalog";
 import {
   type ExchangeSettings,
+  formatExchangeRuleOptions,
   normalizeStickerOverride,
   type OfferType,
   type StickerOverride,
@@ -23,12 +24,18 @@ import {
   type ProposalRuleSnapshot,
   ProposalRuleSnapshotSchema,
   type ProposalRuleSource,
+  type RequestedRepeatedItem,
+  RequestedRepeatedItemSchema,
   type SessionProposal,
   SessionProposalSchema,
 } from "@/lib/sessions";
 
 export type RequestedSticker = AlbumSticker & {
   groupName: string;
+};
+
+export type AvailableRepeatedSticker = RequestedSticker & {
+  availableQuantity: number;
 };
 
 export type StickerFilters = {
@@ -38,11 +45,26 @@ export type StickerFilters = {
 };
 
 export function getRuleLabel(source: ProposalRuleSource): ProposalRuleLabel {
-  return source === "override" ? "Regla especial" : "Regla general";
+  return source === "override" ? "Intercambio especial" : "Intercambio general";
 }
 
-export function getModeLabel(mode: ProposalMode): "Cumple regla" | "Contraoferta" {
-  return mode === "counteroffer" ? "Contraoferta" : "Cumple regla";
+export function getModeLabel(mode: ProposalMode): "Acepta la regla" | "Propone otra opcion" {
+  return mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla";
+}
+
+export function summarizeRule(block: ProposalBlock): string {
+  const options = formatExchangeRuleOptions(block.rule.abstract);
+  const abstract = options.join(", ");
+
+  if (block.rule.exactStickerCode) {
+    return abstract
+      ? `Puedes cambiarmelo por una de estas opciones: ${abstract} o ${block.rule.exactStickerCode}.`
+      : `Puedes cambiarmelo por ${block.rule.exactStickerCode}.`;
+  }
+
+  return abstract
+    ? `Puedes cambiarmelo por una de estas opciones: ${abstract}.`
+    : "Sin condiciones de intercambio definidas.";
 }
 
 export function describeRequestedSticker(stickerCode: string): RequestedSticker {
@@ -68,6 +90,18 @@ export function describeRequestedSticker(stickerCode: string): RequestedSticker 
 export function buildRequestedStickers(stickerCodes: string[]): RequestedSticker[] {
   return [...new Set(stickerCodes)]
     .map((code) => describeRequestedSticker(code))
+    .sort((left, right) => left.code.localeCompare(right.code, "es"));
+}
+
+export function buildAvailableRepeatedStickers(
+  items: Record<string, number>,
+): AvailableRepeatedSticker[] {
+  return Object.entries(items)
+    .filter(([, quantity]) => quantity > 0)
+    .map(([code, quantity]) => ({
+      ...describeRequestedSticker(code),
+      availableQuantity: quantity,
+    }))
     .sort((left, right) => left.code.localeCompare(right.code, "es"));
 }
 
@@ -178,6 +212,7 @@ export function buildEmptyProposal(): SessionProposal {
     currentStep: 1,
     selectedStickerCodes: [],
     blocks: [],
+    requestedRepeateds: [],
     updatedAt: new Date().toISOString(),
     submittedAt: null,
   });
@@ -195,7 +230,31 @@ export function normalizeProposalDraft(
   return SessionProposalSchema.parse({
     ...draft,
     blocks: syncProposalBlocks(draft.selectedStickerCodes, draft.blocks, globalSettings, overrides),
+    requestedRepeateds: draft.requestedRepeateds ?? [],
   });
+}
+
+export function normalizeRequestedRepeateds(
+  requestedRepeateds: RequestedRepeatedItem[],
+  availableItems: Record<string, number>,
+): RequestedRepeatedItem[] {
+  return requestedRepeateds
+    .map((item) => {
+      const maxAvailable = availableItems[item.stickerCode] ?? 0;
+      if (maxAvailable <= 0) {
+        return null;
+      }
+
+      return RequestedRepeatedItemSchema.parse({
+        stickerCode: item.stickerCode,
+        quantity: Math.min(Math.max(item.quantity, 1), maxAvailable),
+      });
+    })
+    .filter((item): item is RequestedRepeatedItem => item !== null);
+}
+
+export function countRequestedRepeateds(requestedRepeateds: RequestedRepeatedItem[]): number {
+  return requestedRepeateds.reduce((total, item) => total + item.quantity, 0);
 }
 
 export function isCounterofferValid(block: ProposalBlock): boolean {

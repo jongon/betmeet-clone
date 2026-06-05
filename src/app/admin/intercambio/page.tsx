@@ -24,11 +24,12 @@ export default async function ExchangeSettingsPage() {
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-display text-3xl tracking-tight text-foreground">
-            Settings de intercambio
+            Opciones de intercambio
           </h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          Configura reglas globales del album y overrides por cromo exacto o por tipo.
+          Configura las opciones globales del álbum y los intercambios especiales por tipo o por
+          cromo exacto.
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link

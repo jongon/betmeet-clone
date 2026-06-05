@@ -7,28 +7,39 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { StickerType } from "@/lib/album-catalog";
 import {
+  type AvailableRepeatedSticker,
   buildEmptyProposal,
+  buildProposalBlock,
+  countRequestedRepeateds,
   filterRequestedStickers,
   formatCounterofferCodes,
   getDecisionSummary,
   getModeLabel,
   isCounterofferValid,
   normalizeProposalDraft,
+  normalizeRequestedRepeateds,
   parseExactStickerCodes,
   type RequestedSticker,
+  summarizeRule,
   syncProposalBlocks,
 } from "@/lib/cambio-proposal";
-import type { ExchangeSettings, OfferType, StickerOverride } from "@/lib/exchange-settings";
+import {
+  type ExchangeSettings,
+  formatExchangeRuleOptions,
+  type OfferType,
+  type StickerOverride,
+} from "@/lib/exchange-settings";
+import { matchesFlexibleSearch } from "@/lib/search";
 import type { ProposalBlock, SessionProposal } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
 import { saveCambioProposalDraftAction, submitCambioProposalAction } from "./actions";
 
 const STEP_LABELS = [
-  "1. Selecciona",
-  "2. Revisa reglas",
-  "3. Decide",
-  "4. Ajusta contraofertas",
-  "5. Resume y envia",
+  "1. Elige qué ofreces",
+  "2. Decide",
+  "3. Ajusta tu propuesta",
+  "4. Elige qué quieres recibir",
+  "5. Revisa y envía",
 ] as const;
 
 const OFFER_TYPE_LABEL: Record<OfferType, string> = {
@@ -51,6 +62,7 @@ type ProposalWizardProps = {
   sessionId: string;
   cambiadorName: string;
   requestedStickers: RequestedSticker[];
+  availableRepeatedStickers: AvailableRepeatedSticker[];
   initialProposal: SessionProposal | null;
   globalSettings: ExchangeSettings;
   overrides: Record<string, StickerOverride>;
@@ -60,16 +72,25 @@ function buildInitialDraft(
   initialProposal: SessionProposal | null,
   globalSettings: ExchangeSettings,
   overrides: Record<string, StickerOverride>,
+  availableRepeatedItems: Record<string, number>,
 ): SessionProposal {
-  return normalizeProposalDraft(initialProposal ?? buildEmptyProposal(), globalSettings, overrides);
+  const draft = normalizeProposalDraft(
+    initialProposal ?? buildEmptyProposal(),
+    globalSettings,
+    overrides,
+  );
+  return {
+    ...draft,
+    requestedRepeateds: normalizeRequestedRepeateds(
+      draft.requestedRepeateds,
+      availableRepeatedItems,
+    ),
+  };
 }
 
 function renderRequirementList(block: ProposalBlock) {
-  return block.fulfillRequirements.length > 0
-    ? block.fulfillRequirements
-        .map((item) => `${item.quantity} ${OFFER_TYPE_LABEL[item.offerType]}`)
-        .join(" + ")
-    : "Sin requisito abstracto";
+  const options = formatExchangeRuleOptions(block.rule.abstract);
+  return options.length > 0 ? options.join(" o ") : "Sin opciones de intercambio";
 }
 
 function getCounterofferSummary(block: ProposalBlock): string {
@@ -86,20 +107,34 @@ function getCounterofferSummary(block: ProposalBlock): string {
   return parts.join(" + ") || "Sin detalle";
 }
 
+function StepEmptyState({ message }: { message: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+      {message}
+    </div>
+  );
+}
+
 export function ProposalWizard({
   token,
   sessionId,
   cambiadorName,
   requestedStickers,
+  availableRepeatedStickers,
   initialProposal,
   globalSettings,
   overrides,
 }: ProposalWizardProps) {
-  const [draft, setDraft] = useState(() =>
-    buildInitialDraft(initialProposal, globalSettings, overrides),
+  const availableRepeatedItems = useMemo(
+    () =>
+      Object.fromEntries(
+        availableRepeatedStickers.map((sticker) => [sticker.code, sticker.availableQuantity]),
+      ),
+    [availableRepeatedStickers],
   );
-  const [groupFilter, setGroupFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState<"ALL" | StickerType>("ALL");
+  const [draft, setDraft] = useState(() =>
+    buildInitialDraft(initialProposal, globalSettings, overrides, availableRepeatedItems),
+  );
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -117,10 +152,31 @@ export function ProposalWizard({
     () => new Map(draft.blocks.map((block) => [block.requestedStickerCode, block])),
     [draft.blocks],
   );
+  const requestedStickerByCode = useMemo(
+    () => new Map(requestedStickers.map((sticker) => [sticker.code, sticker])),
+    [requestedStickers],
+  );
+  const availableRepeatedByCode = useMemo(
+    () => new Map(availableRepeatedStickers.map((sticker) => [sticker.code, sticker])),
+    [availableRepeatedStickers],
+  );
   const visibleRequestedStickers = useMemo(
+    () => filterRequestedStickers(requestedStickers, { group: search, type: "ALL", search }),
+    [requestedStickers, search],
+  );
+  const visibleAvailableRepeatedStickers = useMemo(
     () =>
-      filterRequestedStickers(requestedStickers, { group: groupFilter, type: typeFilter, search }),
-    [groupFilter, requestedStickers, search, typeFilter],
+      availableRepeatedStickers.filter((sticker) =>
+        matchesFlexibleSearch(
+          search,
+          sticker.code,
+          sticker.label,
+          sticker.groupCode,
+          sticker.groupName,
+          STICKER_TYPE_LABEL[sticker.type],
+        ),
+      ),
+    [availableRepeatedStickers, search],
   );
   const decisionSummary = useMemo(() => getDecisionSummary(draft.blocks), [draft.blocks]);
   const isSubmitted = draft.status === "pending";
@@ -162,6 +218,18 @@ export function ProposalWizard({
     persistDraft(nextDraft);
   };
 
+  const replaceRequestedRepeateds = (
+    requestedRepeateds: SessionProposal["requestedRepeateds"],
+    currentStep = draft.currentStep,
+  ) => {
+    persistDraft({
+      ...draft,
+      currentStep,
+      requestedRepeateds: normalizeRequestedRepeateds(requestedRepeateds, availableRepeatedItems),
+      updatedAt: new Date().toISOString(),
+    });
+  };
+
   const toggleSticker = (stickerCode: string) => {
     const selected = new Set(draft.selectedStickerCodes);
     if (selected.has(stickerCode)) {
@@ -189,13 +257,75 @@ export function ProposalWizard({
   const canContinueFromStep =
     currentStep === 1
       ? draft.selectedStickerCodes.length > 0
-      : currentStep === 4
+      : currentStep === 3
         ? draft.blocks.every((block) => isCounterofferValid(block))
-        : true;
+        : currentStep === 4
+          ? availableRepeatedStickers.length === 0 || draft.requestedRepeateds.length > 0
+          : true;
 
   const selectedBlocks = draft.selectedStickerCodes
     .map((code) => blocksByCode.get(code))
     .filter((block): block is ProposalBlock => Boolean(block));
+  const visibleSelectedBlocks = selectedBlocks.filter((block) => {
+    const sticker = requestedStickerByCode.get(block.requestedStickerCode);
+    return matchesFlexibleSearch(
+      search,
+      block.requestedStickerCode,
+      block.requestedStickerLabel,
+      sticker?.groupCode ?? "",
+      sticker?.groupName ?? "",
+      STICKER_TYPE_LABEL[block.requestedStickerType],
+      block.rule.label,
+      block.modeLabel,
+    );
+  });
+  const visibleRequestedRepeateds = draft.requestedRepeateds.filter((item) => {
+    const sticker = availableRepeatedByCode.get(item.stickerCode);
+    return matchesFlexibleSearch(
+      search,
+      item.stickerCode,
+      sticker?.label ?? "",
+      sticker?.groupCode ?? "",
+      sticker?.groupName ?? "",
+    );
+  });
+
+  const toggleRequestedRepeated = (stickerCode: string) => {
+    const existing = draft.requestedRepeateds.find((item) => item.stickerCode === stickerCode);
+    if (existing) {
+      replaceRequestedRepeateds(
+        draft.requestedRepeateds.filter((item) => item.stickerCode !== stickerCode),
+      );
+      return;
+    }
+
+    replaceRequestedRepeateds([...draft.requestedRepeateds, { stickerCode, quantity: 1 }]);
+  };
+
+  const updateRequestedRepeatedQuantity = (stickerCode: string, quantity: number) => {
+    replaceRequestedRepeateds(
+      draft.requestedRepeateds.map((item) =>
+        item.stickerCode === stickerCode ? { ...item, quantity } : item,
+      ),
+    );
+  };
+
+  const renderSharedSearch = () => (
+    <div className="space-y-1">
+      <label htmlFor="proposal-search" className="text-sm font-medium text-foreground">
+        Buscar en esta propuesta
+      </label>
+      <Input
+        id="proposal-search"
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="ARG 7, Argentina, badge..."
+      />
+      <p className="text-xs text-muted-foreground">
+        Usa un solo buscador para encontrar selección, código, número o tipo en cualquier paso.
+      </p>
+    </div>
+  );
 
   const renderStepContent = () => {
     if (isSubmitted) {
@@ -205,12 +335,23 @@ export function ProposalWizard({
             <Badge className="bg-brand text-brand-foreground">Pendiente de aprobacion</Badge>
             <h2 className="font-display text-2xl text-foreground">Propuesta enviada</h2>
             <p className="text-sm text-muted-foreground">
-              El coleccionista vera primero los cromos que necesita y despues tu propuesta por
-              bloque.
+              El coleccionista verá primero los cromos que necesita, luego lo que quieres recibir y
+              después tu propuesta por bloque.
             </p>
           </div>
 
-          {selectedBlocks.map((block) => (
+          <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-medium text-foreground">Quieres recibir del coleccionista</p>
+            <div className="flex flex-wrap gap-2">
+              {visibleRequestedRepeateds.map((item) => (
+                <Badge key={item.stickerCode} variant="secondary">
+                  {item.stickerCode} x{item.quantity}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {visibleSelectedBlocks.map((block) => (
             <article
               key={block.requestedStickerCode}
               className="space-y-3 rounded-xl border border-border p-4"
@@ -246,62 +387,24 @@ export function ProposalWizard({
       return (
         <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
           <div className="space-y-1">
-            <h2 className="font-display text-2xl text-foreground">
-              Paso 1: que necesita el coleccionista
-            </h2>
+            <h2 className="font-display text-2xl text-foreground">Paso 1: elige qué le ofreces</h2>
             <p className="text-sm text-muted-foreground">
-              Selecciona solo los cromos que puedes ofrecer ahora. Cada uno crea un bloque
-              independiente.
+              Selecciona los cromos que sí puedes darle al coleccionista. Aquí mismo verás qué pide
+              por cada uno.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <label htmlFor="group-filter" className="text-sm font-medium text-foreground">
-                Seleccion o pais
-              </label>
-              <Input
-                id="group-filter"
-                value={groupFilter}
-                onChange={(event) => setGroupFilter(event.target.value)}
-                placeholder="Argentina, ARG..."
-              />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="code-filter" className="text-sm font-medium text-foreground">
-                Numero o codigo
-              </label>
-              <Input
-                id="code-filter"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="ARG 7, 14, FWC-0..."
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {(["ALL", "PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL"] as const).map((value) => (
-              <Button
-                key={value}
-                type="button"
-                size="sm"
-                variant={typeFilter === value ? "default" : "outline"}
-                onClick={() => setTypeFilter(value)}
-              >
-                {value === "ALL" ? "Todos" : STICKER_TYPE_LABEL[value]}
-              </Button>
-            ))}
-          </div>
+          {renderSharedSearch()}
 
           <div className="space-y-3">
             {visibleRequestedStickers.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                No hay cromos visibles con esos filtros.
-              </div>
+              <StepEmptyState message="No hay cromos visibles para esa búsqueda." />
             ) : null}
             {visibleRequestedStickers.map((sticker) => {
               const isSelected = draft.selectedStickerCodes.includes(sticker.code);
+              const block =
+                blocksByCode.get(sticker.code) ??
+                buildProposalBlock(sticker.code, globalSettings, overrides);
               return (
                 <button
                   key={sticker.code}
@@ -322,8 +425,12 @@ export function ProposalWizard({
                         </span>
                         <Badge variant="secondary">{sticker.groupName}</Badge>
                         <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
+                        {block ? <Badge variant="secondary">{block.rule.label}</Badge> : null}
                       </div>
                       <p className="text-sm text-muted-foreground">{sticker.label}</p>
+                      {block ? (
+                        <p className="text-xs text-muted-foreground">{summarizeRule(block)}</p>
+                      ) : null}
                     </div>
                     <Badge
                       className={
@@ -347,47 +454,21 @@ export function ProposalWizard({
       return (
         <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
           <div className="space-y-1">
-            <h2 className="font-display text-2xl text-foreground">Paso 2: revisa la regla</h2>
-            <p className="text-sm text-muted-foreground">
-              Cada cromo muestra primero la regla que aplica a ese bloque.
-            </p>
-          </div>
-
-          {selectedBlocks.map((block) => (
-            <article
-              key={block.requestedStickerCode}
-              className="space-y-3 rounded-xl border border-border p-4"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
-                <Badge variant="secondary">{block.requestedStickerLabel}</Badge>
-                <Badge variant="secondary">{block.rule.label}</Badge>
-              </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <p>Base por tipo: {renderRequirementList(block)}</p>
-                {block.rule.exactStickerCode ? (
-                  <p>Regla especial por cromo: {block.rule.exactStickerCode}</p>
-                ) : null}
-              </div>
-            </article>
-          ))}
-        </section>
-      );
-    }
-
-    if (currentStep === 3) {
-      return (
-        <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
-          <div className="space-y-1">
             <h2 className="font-display text-2xl text-foreground">
-              Paso 3: decide bloque por bloque
+              Paso 2: ¿aceptas la regla o propones otra opción?
             </h2>
             <p className="text-sm text-muted-foreground">
-              Puedes mezclar cumplimiento normal y contraofertas dentro de la misma propuesta.
+              Para cada cromo, decide si aceptas la regla tal cual o si prefieres proponer otra
+              opción.
             </p>
           </div>
 
-          {selectedBlocks.map((block) => (
+          {renderSharedSearch()}
+
+          {visibleSelectedBlocks.length === 0 ? (
+            <StepEmptyState message="No hay cromos seleccionados visibles para esa búsqueda." />
+          ) : null}
+          {visibleSelectedBlocks.map((block) => (
             <article
               key={block.requestedStickerCode}
               className="space-y-3 rounded-xl border border-border p-4"
@@ -422,7 +503,7 @@ export function ProposalWizard({
                       }))
                     }
                   >
-                    {mode === "fulfill" ? "Cumplir regla" : "Proponer contraoferta"}
+                    {mode === "fulfill" ? "Aceptar la regla" : "Proponer otra opción"}
                   </Button>
                 ))}
               </div>
@@ -432,20 +513,22 @@ export function ProposalWizard({
       );
     }
 
-    if (currentStep === 4) {
+    if (currentStep === 3) {
       return (
         <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
           <div className="space-y-1">
-            <h2 className="font-display text-2xl text-foreground">
-              Paso 4: ajusta las contraofertas
-            </h2>
+            <h2 className="font-display text-2xl text-foreground">Paso 3: ajusta tu propuesta</h2>
             <p className="text-sm text-muted-foreground">
-              Los bloques en cumplimiento normal siguen abstractos. Solo detalla excepciones donde
-              haga falta.
+              Completa solo los cromos en los que has propuesto una alternativa.
             </p>
           </div>
 
-          {selectedBlocks.map((block) => {
+          {renderSharedSearch()}
+
+          {visibleSelectedBlocks.length === 0 ? (
+            <StepEmptyState message="No hay bloques visibles para esa búsqueda." />
+          ) : null}
+          {visibleSelectedBlocks.map((block) => {
             const exactInput =
               exactInputByCode[block.requestedStickerCode] ??
               formatCounterofferCodes(block.counteroffer?.exactStickerCodes ?? []);
@@ -463,7 +546,7 @@ export function ProposalWizard({
 
                 {block.mode === "fulfill" ? (
                   <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-                    Se enviara como cumplimiento abstracto: {renderRequirementList(block)}.
+                    Aceptas una de estas opciones: {renderRequirementList(block)}.
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -606,19 +689,109 @@ export function ProposalWizard({
       );
     }
 
+    if (currentStep === 4) {
+      return (
+        <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="font-display text-2xl text-foreground">
+              Paso 4: elige qué quieres recibir
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Estos son los repetidos disponibles del coleccionista. Selecciona los que te
+              interesan.
+            </p>
+          </div>
+
+          {renderSharedSearch()}
+
+          <div className="space-y-3">
+            {visibleAvailableRepeatedStickers.length === 0 ? (
+              <StepEmptyState message="No hay repetidos visibles para esa búsqueda." />
+            ) : null}
+            {visibleAvailableRepeatedStickers.map((sticker) => {
+              const selected = draft.requestedRepeateds.find(
+                (item) => item.stickerCode === sticker.code,
+              );
+              const quantity = selected?.quantity ?? 1;
+
+              return (
+                <article
+                  key={sticker.code}
+                  className={cn(
+                    "space-y-3 rounded-xl border p-4 transition",
+                    selected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-foreground">
+                          {sticker.code}
+                        </span>
+                        <Badge variant="secondary">{sticker.groupName}</Badge>
+                        <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
+                        <Badge variant="secondary">Disponible x{sticker.availableQuantity}</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{sticker.label}</p>
+                    </div>
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={selected ? "default" : "outline"}
+                      onClick={() => toggleRequestedRepeated(sticker.code)}
+                    >
+                      {selected ? "Seleccionado" : "Agregar"}
+                    </Button>
+                  </div>
+
+                  {selected ? (
+                    <div className="space-y-1">
+                      <label
+                        htmlFor={`requested-repeated-${sticker.code}`}
+                        className="text-sm font-medium text-foreground"
+                      >
+                        Cantidad solicitada
+                      </label>
+                      <Input
+                        id={`requested-repeated-${sticker.code}`}
+                        type="number"
+                        min={1}
+                        max={sticker.availableQuantity}
+                        value={quantity}
+                        onChange={(event) => {
+                          const nextQuantity = Math.min(
+                            sticker.availableQuantity,
+                            Math.max(1, Number(event.target.value || 1)),
+                          );
+                          updateRequestedRepeatedQuantity(sticker.code, nextQuantity);
+                        }}
+                      />
+                    </div>
+                  ) : null}
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      );
+    }
+
     return (
       <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
         <div className="space-y-1">
-          <h2 className="font-display text-2xl text-foreground">Paso 5: revisa y envia</h2>
+          <h2 className="font-display text-2xl text-foreground">Paso 5: revisa antes de enviar</h2>
           <p className="text-sm text-muted-foreground">
-            Primero veras lo que recibe el coleccionista. Luego, como respondes bloque por bloque.
+            Confirma lo que recibe el coleccionista y lo que recibirías tú.
           </p>
         </div>
+
+        {renderSharedSearch()}
 
         <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
           <p className="text-sm font-medium text-foreground">Recibe el coleccionista</p>
           <div className="flex flex-wrap gap-2">
-            {selectedBlocks.map((block) => (
+            {visibleSelectedBlocks.map((block) => (
               <Badge
                 key={block.requestedStickerCode}
                 className="bg-primary text-primary-foreground"
@@ -629,8 +802,26 @@ export function ProposalWizard({
           </div>
         </div>
 
+        <div className="space-y-3 rounded-xl border border-border bg-background p-4">
+          <p className="text-sm font-medium text-foreground">Recibes del coleccionista</p>
+          {visibleRequestedRepeateds.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No has seleccionado repetidos para ti.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {visibleRequestedRepeateds.map((item) => (
+                <Badge key={item.stickerCode} variant="secondary">
+                  {item.stickerCode} x{item.quantity}
+                </Badge>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="space-y-3">
-          {selectedBlocks.map((block) => (
+          {visibleSelectedBlocks.length === 0 ? (
+            <StepEmptyState message="No hay bloques visibles para esa búsqueda." />
+          ) : null}
+          {visibleSelectedBlocks.map((block) => (
             <article
               key={block.requestedStickerCode}
               className="space-y-2 rounded-xl border border-border p-4"
@@ -644,7 +835,7 @@ export function ProposalWizard({
               </div>
               <p className="text-sm text-muted-foreground">
                 {block.mode === "fulfill"
-                  ? renderRequirementList(block)
+                  ? `Aceptas una de estas opciones: ${renderRequirementList(block)}`
                   : getCounterofferSummary(block)}
               </p>
               {block.counteroffer?.note ? (
@@ -664,7 +855,7 @@ export function ProposalWizard({
           <p className="text-sm text-muted-foreground">Sesion activa</p>
           <h2 className="font-display text-2xl text-foreground">Hola, {cambiadorName}</h2>
           <p className="text-sm text-muted-foreground">
-            Arma tu propuesta rapido desde el movil. Cada cromo se negocia por separado.
+            Prepara tu propuesta de forma rápida desde el móvil. Cada cromo se negocia por separado.
           </p>
         </div>
 
@@ -713,7 +904,8 @@ export function ProposalWizard({
               </p>
               <p className="text-xs text-muted-foreground">
                 {decisionSummary.fulfill} cumplen regla · {decisionSummary.counteroffer}{" "}
-                contraofertas
+                contraofertas · {countRequestedRepeateds(draft.requestedRepeateds)} repetidos para
+                ti
               </p>
             </div>
 

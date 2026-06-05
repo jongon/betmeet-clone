@@ -14,10 +14,10 @@ export type ProposalPersistenceStatus = z.infer<typeof ProposalPersistenceStatus
 export const ProposalRuleSourceSchema = z.enum(["general", "override"]);
 export type ProposalRuleSource = z.infer<typeof ProposalRuleSourceSchema>;
 
-export const ProposalRuleLabelSchema = z.enum(["Regla general", "Regla especial"]);
+export const ProposalRuleLabelSchema = z.enum(["Intercambio general", "Intercambio especial"]);
 export type ProposalRuleLabel = z.infer<typeof ProposalRuleLabelSchema>;
 
-export const ProposalModeLabelSchema = z.enum(["Cumple regla", "Contraoferta"]);
+export const ProposalModeLabelSchema = z.enum(["Acepta la regla", "Propone otra opcion"]);
 export type ProposalModeLabel = z.infer<typeof ProposalModeLabelSchema>;
 
 export const StickerTypeSchema = z.enum(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL"]);
@@ -61,11 +61,19 @@ export const ProposalBlockSchema = z.object({
 
 export type ProposalBlock = z.infer<typeof ProposalBlockSchema>;
 
+export const RequestedRepeatedItemSchema = z.object({
+  stickerCode: MissingStickerCodeSchema,
+  quantity: z.number().int().min(1),
+});
+
+export type RequestedRepeatedItem = z.infer<typeof RequestedRepeatedItemSchema>;
+
 export const SessionProposalSchema = z.object({
   status: ProposalPersistenceStatusSchema,
   currentStep: z.number().int().min(1).max(5),
   selectedStickerCodes: z.array(MissingStickerCodeSchema),
   blocks: z.array(ProposalBlockSchema),
+  requestedRepeateds: z.array(RequestedRepeatedItemSchema),
   updatedAt: z.string().min(1),
   submittedAt: z.string().nullable(),
 });

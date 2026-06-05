@@ -16,7 +16,11 @@ import type {
   OfferType,
   StickerOverride,
 } from "@/lib/exchange-settings";
-import { ALL_TYPE_LABEL, OFFER_TYPE_ORDER } from "@/lib/exchange-settings";
+import {
+  ALL_TYPE_LABEL,
+  formatExchangeRuleOptions,
+  OFFER_TYPE_ORDER,
+} from "@/lib/exchange-settings";
 import { normalizeNumber } from "@/lib/utils";
 
 type PanelProps = {
@@ -34,6 +38,10 @@ function buildEmptyRule(): ExchangeRule {
 
 function cloneRule(rule: ExchangeRule | null | undefined): ExchangeRule {
   return rule ? { ...rule } : buildEmptyRule();
+}
+
+function formatRulePreview(rule: ExchangeRule): string {
+  return formatExchangeRuleOptions(rule).join(" o ") || "Desactivada";
 }
 
 export function ExchangeOverridesPanel({
@@ -130,7 +138,7 @@ export function ExchangeOverridesPanel({
           setDraftExact((prev) => ({ ...prev, [stickerCode]: "" }));
           setStatusByCode((prev) => ({
             ...prev,
-            [stickerCode]: { tone: "saved", message: "Volvió a usar la regla global." },
+            [stickerCode]: { tone: "saved", message: "Volvió a usar el intercambio general." },
           }));
           setEditingCode(null);
           return;
@@ -147,11 +155,12 @@ export function ExchangeOverridesPanel({
         setOverrides((prev) => ({ ...prev, [stickerCode]: nextOverride }));
         setStatusByCode((prev) => ({
           ...prev,
-          [stickerCode]: { tone: "saved", message: "Override guardado." },
+          [stickerCode]: { tone: "saved", message: "Intercambio especial guardado." },
         }));
         setEditingCode(null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "No se pudo guardar el override.";
+        const message =
+          error instanceof Error ? error.message : "No se pudo guardar el intercambio especial.";
         setStatusByCode((prev) => ({
           ...prev,
           [stickerCode]: { tone: "error", message },
@@ -208,7 +217,9 @@ export function ExchangeOverridesPanel({
                       {ALL_TYPE_LABEL[sticker.type as keyof typeof ALL_TYPE_LABEL]}
                     </Badge>
                     <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                      {resolved.source === "override" ? "Override activo" : "Usa global"}
+                      {resolved.source === "override"
+                        ? "Intercambio especial activo"
+                        : "Usa intercambio general"}
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">{sticker.label}</p>
@@ -217,13 +228,7 @@ export function ExchangeOverridesPanel({
                       {resolved.components.map((component) => (
                         <span key={`${sticker.code}-${component.kind}`}>
                           {component.kind === "abstract"
-                            ? `${component.label}: ${Object.entries(component.rule)
-                                .filter(([, value]) => value > 0)
-                                .map(
-                                  ([offerType, value]) =>
-                                    `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
-                                )
-                                .join(" · ")}`
+                            ? `${component.label}: ${formatRulePreview(component.rule)}`
                             : `${component.label}: ${component.stickerCode}`}
                         </span>
                       ))}
@@ -257,14 +262,17 @@ export function ExchangeOverridesPanel({
                         }))
                       }
                     />
-                    <span className="text-sm text-muted-foreground">Usar regla general</span>
+                    <span className="text-sm text-muted-foreground">Usar intercambio general</span>
                   </div>
 
                   {!useGlobal ? (
                     <>
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-foreground">
-                          Regla especial por tipo
+                          Opciones de intercambio especial
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          El cambiador podrá cumplir cualquiera de estas opciones.
                         </p>
                         <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
                           {OFFER_TYPE_ORDER.map((offerType) => (
@@ -291,7 +299,7 @@ export function ExchangeOverridesPanel({
 
                       <div className="space-y-2">
                         <p className="text-sm font-medium text-foreground">
-                          Regla especial por cromo
+                          Intercambio especial por cromo
                         </p>
                         <Input
                           value={draftExactValue}
@@ -308,25 +316,14 @@ export function ExchangeOverridesPanel({
                         <div className="mt-1 space-y-1">
                           <p>
                             Base global visible:{" "}
-                            {Object.entries(globalSettings[sticker.type])
-                              .filter(([, value]) => value > 0)
-                              .map(
-                                ([offerType, value]) =>
-                                  `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
-                              )
-                              .join(" · ") || "Sin intercambio global"}
+                            {formatExchangeRuleOptions(globalSettings[sticker.type]).join(" o ") ||
+                              "Sin intercambio general"}
                           </p>
+                          <p>Intercambio especial: {formatRulePreview(draftRule)}</p>
                           <p>
-                            Regla especial por tipo:{" "}
-                            {Object.entries(draftRule)
-                              .filter(([, value]) => value > 0)
-                              .map(
-                                ([offerType, value]) =>
-                                  `${ALL_TYPE_LABEL[offerType as OfferType]} ${value}`,
-                              )
-                              .join(" · ") || "Desactivada"}
+                            Intercambio especial por cromo:{" "}
+                            {draftExactValue.trim() || "Desactivado"}
                           </p>
-                          <p>Regla especial por cromo: {draftExactValue.trim() || "Desactivada"}</p>
                         </div>
                       </div>
                     </>
@@ -339,7 +336,7 @@ export function ExchangeOverridesPanel({
                       onClick={() => saveOverride(sticker.code)}
                       disabled={isSaving}
                     >
-                      {isSaving ? "Guardando..." : "Guardar override"}
+                      {isSaving ? "Guardando..." : "Guardar intercambio especial"}
                     </Button>
                     <Button
                       type="button"

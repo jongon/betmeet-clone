@@ -4,7 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { resolveStickerOverride } from "@/lib/exchange-resolver";
-import { cloneDefaultExchangeSettings, normalizeStickerOverride } from "@/lib/exchange-settings";
+import {
+  cloneDefaultExchangeSettings,
+  formatExchangeRuleOptions,
+  normalizeStickerOverride,
+} from "@/lib/exchange-settings";
 import {
   getExchangeSettings,
   resetStickerOverride,
@@ -114,5 +118,22 @@ describe("override normalization and resolver", () => {
   test("returns global when the override has no active components", () => {
     const resolved = resolveStickerOverride(null);
     assert.deepEqual(resolved, { source: "global", components: [] });
+  });
+
+  test("formats abstract rules as OR options", () => {
+    const options = formatExchangeRuleOptions({
+      PLAYER: 2,
+      BADGE: 1,
+      TEAM_PHOTO: 1,
+      SPECIAL: 0,
+      ANY: 2,
+    });
+
+    assert.deepEqual(options, [
+      "1 badge",
+      "1 foto de equipo",
+      "2 jugadores",
+      "2 cromos cualquiera",
+    ]);
   });
 });

@@ -10,10 +10,11 @@ import {
   setCambioSessionId,
 } from "@/lib/cambiador-identity";
 import { buildCambioEntryState } from "@/lib/cambio-entry";
-import { normalizeProposalDraft } from "@/lib/cambio-proposal";
+import { normalizeProposalDraft, normalizeRequestedRepeateds } from "@/lib/cambio-proposal";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
 import { validateMissingStickersForProposal } from "@/lib/missing";
 import { getToken } from "@/lib/qr-store";
+import { getInventory } from "@/lib/repeateds-store";
 import { type Session, type SessionProposal, SessionProposalSchema } from "@/lib/sessions";
 import {
   createSession,
@@ -135,9 +136,14 @@ export async function saveCambioProposalDraftAction(input: unknown): Promise<Ses
   }
 
   const settings = await getExchangeSettings(qrToken.ownerEmail);
+  const repeatedInventory = await getInventory(qrToken.ownerEmail);
   const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
   const saved = await saveSessionProposal(parsed.sessionId, {
     ...proposal,
+    requestedRepeateds: normalizeRequestedRepeateds(
+      proposal.requestedRepeateds,
+      repeatedInventory.items,
+    ),
     status: "draft",
     submittedAt: null,
     updatedAt: new Date().toISOString(),
@@ -161,6 +167,7 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
   }
 
   const settings = await getExchangeSettings(qrToken.ownerEmail);
+  const repeatedInventory = await getInventory(qrToken.ownerEmail);
   const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
   const validation = await validateMissingStickersForProposal(
     qrToken.ownerEmail,
@@ -173,6 +180,10 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
 
   const saved = await saveSessionProposal(session.id, {
     ...proposal,
+    requestedRepeateds: normalizeRequestedRepeateds(
+      proposal.requestedRepeateds,
+      repeatedInventory.items,
+    ),
     status: "pending",
     currentStep: 5,
     updatedAt: new Date().toISOString(),

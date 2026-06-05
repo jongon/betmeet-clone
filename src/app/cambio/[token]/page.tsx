@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCambiadorId, getCambioSessionId } from "@/lib/cambiador-identity";
 import { buildCambioEntryState, type CambioEntryState } from "@/lib/cambio-entry";
-import { buildRequestedStickers } from "@/lib/cambio-proposal";
+import { buildAvailableRepeatedStickers, buildRequestedStickers } from "@/lib/cambio-proposal";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
 import { getMissingInventory } from "@/lib/missing-store";
 import { getToken } from "@/lib/qr-store";
+import { getInventory } from "@/lib/repeateds-store";
 import { getSessionById, resolveByTokenAndCambiadorId } from "@/lib/sessions-store";
 import { NameForm } from "./name-form";
 import { ProposalWizard } from "./proposal-wizard";
@@ -66,8 +67,12 @@ export default async function CambioTokenPage({ params }: PageProps) {
 
   const exchangeSettings = qrToken ? await getExchangeSettings(qrToken.ownerEmail) : null;
   const missingInventory = qrToken ? await getMissingInventory(qrToken.ownerEmail) : null;
+  const repeatedInventory = qrToken ? await getInventory(qrToken.ownerEmail) : null;
   const requestedStickers = missingInventory
     ? buildRequestedStickers(Object.keys(missingInventory.items))
+    : [];
+  const availableRepeatedStickers = repeatedInventory
+    ? buildAvailableRepeatedStickers(repeatedInventory.items)
     : [];
 
   return (
@@ -107,6 +112,7 @@ export default async function CambioTokenPage({ params }: PageProps) {
             sessionId={openSession.id}
             cambiadorName={state.cambiadorName}
             requestedStickers={requestedStickers}
+            availableRepeatedStickers={availableRepeatedStickers}
             initialProposal={openSession.proposal ?? null}
             globalSettings={exchangeSettings.global}
             overrides={exchangeSettings.overrides}
