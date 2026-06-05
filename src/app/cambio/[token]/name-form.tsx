@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { labelStyles } from "@/components/ui/label";
 import { createCambioSessionAction } from "./actions";
 import { type CreateCambioSessionState, INITIAL_CREATE_STATE } from "./state";
 
@@ -21,7 +21,9 @@ export function NameForm({ token }: NameFormProps) {
     <form action={action} className="flex flex-col gap-4">
       <input type="hidden" name="token" value={token} />
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="name">Tu nombre</Label>
+        <label htmlFor="name" className={labelStyles()}>
+          Tu nombre
+        </label>
         <Input
           id="name"
           name="name"

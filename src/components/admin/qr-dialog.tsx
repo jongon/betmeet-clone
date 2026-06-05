@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- QR is a data URL from a server action; no next/image needed */
 
 import { ClipboardCheckIcon, ClipboardIcon, XIcon } from "lucide-react";
+import Image from "next/image";
 import { type ReactNode, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { labelStyles } from "@/components/ui/label";
 
 const dateFormatter = new Intl.DateTimeFormat("es", {
   dateStyle: "short",
@@ -96,12 +97,12 @@ export function QrDialog({
           </div>
         ) : dataUrl ? (
           <div className="flex flex-col items-center gap-3">
-            {/* biome-ignore lint/performance/noImgElement: QR is a data URL from a server action; no next/image needed */}
-            <img
+            <Image
               src={dataUrl}
               alt={`QR ${token}`}
               width={256}
               height={256}
+              unoptimized
               className="rounded-lg border border-border bg-background"
             />
             <p className="text-xs text-muted-foreground">
@@ -115,7 +116,9 @@ export function QrDialog({
         )}
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="qr-url">URL para compartir</Label>
+          <label htmlFor="qr-url" className={labelStyles()}>
+            URL para compartir
+          </label>
           <div className="flex gap-2">
             <Input id="qr-url" readOnly value={url} onClick={(e) => e.currentTarget.select()} />
             <Button

@@ -35,7 +35,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { labelStyles } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -223,16 +223,22 @@ export default function DesignSystemPage() {
               <h3 className="text-sm font-medium text-muted-foreground">Inputs & controles</h3>
               <div className="grid max-w-md gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="ds-email">Email</Label>
+                  <label htmlFor="ds-email" className={labelStyles()}>
+                    Email
+                  </label>
                   <Input id="ds-email" type="email" placeholder="coleccionista@mundial.com" />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="ds-disabled">Deshabilitado</Label>
+                  <label htmlFor="ds-disabled" className={labelStyles()}>
+                    Deshabilitado
+                  </label>
                   <Input id="ds-disabled" disabled placeholder="No editable" />
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch id="ds-switch" defaultChecked />
-                  <Label htmlFor="ds-switch">Notificar intercambios</Label>
+                  <label htmlFor="ds-switch" className={labelStyles()}>
+                    Notificar intercambios
+                  </label>
                 </div>
               </div>
             </div>

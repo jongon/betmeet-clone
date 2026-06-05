@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { labelStyles } from "@/components/ui/label";
 import { type SignInState, signIn } from "./actions";
 
 const INITIAL: SignInState = { error: null };
@@ -18,7 +18,9 @@ export function LoginForm({ next }: LoginFormProps) {
       <input type="hidden" name="next" value={next} />
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
+        <label htmlFor="email" className={labelStyles()}>
+          Email
+        </label>
         <Input
           id="email"
           name="email"
@@ -30,7 +32,9 @@ export function LoginForm({ next }: LoginFormProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Contraseña</Label>
+        <label htmlFor="password" className={labelStyles()}>
+          Contraseña
+        </label>
         <Input
           id="password"
           name="password"

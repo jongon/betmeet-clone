@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import Flag from "react-world-flags";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { labelStyles } from "@/components/ui/label";
 import type { AlbumGroup } from "@/lib/album-catalog";
 import { matchesFlexibleSearch } from "@/lib/search";
 import { cn } from "@/lib/utils";
@@ -32,7 +32,9 @@ export function StickerSelector({
   return (
     <div className="space-y-3">
       <div className="space-y-1">
-        <Label htmlFor="team-search">Buscar selección</Label>
+        <label htmlFor="team-search" className={labelStyles()}>
+          Buscar selección
+        </label>
         <Input
           id="team-search"
           value={search}
