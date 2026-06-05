@@ -4,7 +4,7 @@
 TBD - created by archiving change admin-home-sesiones-cambio. Update Purpose after archive.
 ## Requirements
 ### Requirement: Listar sesiones de cambio en /admin
-El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio" obtenidas desde el repositorio de sesiones. Cada fila SHALL mostrar como mínimo: nombre del cambiador, cantidad de cromos ofrecidos, cantidad de cromos solicitados, fecha y hora de creación, y un indicador de estado (badge "Abierta" o "Cerrada"). Las sesiones SHALL estar ordenadas con las abiertas primero, ordenadas de más nueva a más vieja por `createdAt`; las cerradas se ubicarán debajo, sin orden específico. La página SHALL usar los tokens semánticos del design system para la diferenciación visual: las filas abiertas con tinte de azul FIFA (`bg-primary/5 border-primary/20`) y las cerradas con tinte neutro (`bg-muted text-muted-foreground`); el badge "Abierta" SHALL usar el rojo de marca (`bg-brand text-white`) y el badge "Cerrada" SHALL usar tokens muted. La fecha y hora SHALL formatearse con `Intl.DateTimeFormat('es', { dateStyle: 'short', timeStyle: 'short' })` para que sea legible en light y dark mode.
+El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio" obtenidas desde el repositorio de sesiones. Cada fila SHALL mostrar como mínimo: nombre del cambiador, cantidad de cromos ofrecidos, cantidad de cromos solicitados, fecha y hora de creación, y un indicador de estado (badge "Abierta" o "Cerrada"). Las sesiones SHALL estar ordenadas con las abiertas primero, ordenadas de más nueva a más vieja por `createdAt`; las cerradas se ubicarán debajo, sin orden específico. La página SHALL usar los tokens semánticos del design system para la diferenciación visual: las filas abiertas con tinte de verde semántico derivado de `chart-4` (`bg-chart-4/8 border-chart-4/35`) y las cerradas con tinte neutro (`bg-muted text-muted-foreground`); el badge "Abierta" SHALL usar el mismo tratamiento verde suave (`bg-chart-4/20 text-foreground`) y el badge "Cerrada" SHALL usar tokens muted. La fecha y hora SHALL formatearse con `Intl.DateTimeFormat('es', { dateStyle: 'short', timeStyle: 'short' })` para que sea legible en light y dark mode.
 
 #### Scenario: Admin ve múltiples sesiones abiertas y cerradas
 - **WHEN** el admin autenticado navega a `/admin` y el repositorio contiene 3 sesiones (2 abiertas, 1 cerrada)
@@ -16,7 +16,7 @@ El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio
 
 #### Scenario: Las sesiones se diferencian visualmente
 - **WHEN** la lista se renderiza con al menos una sesión abierta y una cerrada
-- **THEN** las filas abiertas tienen fondo tintado con azul FIFA y borde del mismo color, mientras que las cerradas tienen fondo muted y texto muted-foreground, distinguiéndolas a simple vista
+- **THEN** las filas abiertas tienen fondo y borde con tinte verde semántico, mientras que las cerradas tienen fondo muted y texto muted-foreground, distinguiéndolas a simple vista
 
 ### Requirement: Aceptar sesión con confirmación
 El sistema SHALL permitir aceptar una sesión abierta mediante un botón con icono de check (✓) presente solo en filas con `status: "open"`. Al hacer clic en el botón de aceptar, el sistema SHALL abrir un `Dialog` con un mensaje de confirmación que mencione el nombre del cambiador y pida confirmar o cancelar. Al confirmar, el sistema SHALL invocar la Server Action `acceptSession(id)` que cambia el `status` de la sesión a `"closed"` y SHALL llamar a `revalidatePath('/admin')` para que la lista se re-renderice con los datos actualizados sin recarga de página. Si el usuario cancela el dialog, el sistema SHALL no invocar la Server Action y SHALL cerrar el dialog sin cambios.
@@ -89,7 +89,7 @@ El sistema SHALL actualizar la lista de sesiones en pantalla sin requerir un rel
 - **THEN** la fila de esa sesión desaparece del grupo de abiertas y aparece en el de cerradas sin recarga
 
 ### Requirement: Repositorio de sesiones abstracto y swappable
-El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funciones asíncronas: `getAllSessions()`, `acceptSession(id: string)`, `rejectSession(id: string)`. El módulo SHALL usar internamente un archivo JSON (`data/sessions.json`, gitignored) como backing store. Si el archivo no existe en el primer acceso, el sistema SHALL inicializarlo copiando desde `data/sessions.seed.json` (commited al repo con datos de ejemplo). Las funciones SHALL ser la única vía de acceso a los datos desde la UI y Server Actions; ningún componente SHALL leer el archivo directamente. La forma de los datos SHALL validarse con Zod al leer para defenderse de edición manual corrupta.
+El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funciones asíncronas: `getAllSessions()`, `acceptSession(id: string)`, `rejectSession(id: string)`. El módulo SHALL usar internamente un archivo JSON (`data/sessions.json`, gitignored) como backing store. Si el archivo no existe en el primer acceso, el sistema SHALL inicializarlo copiando desde `data/sessions.seed.json` (commited al repo con datos de ejemplo). Las funciones SHALL ser la única vía de acceso a los datos desde la UI y Server Actions; ningún componente SHALL leer el archivo directamente. La forma de los datos SHALL validarse con Zod al leer para defenderse de edición manual corrupta, pero el store SHALL normalizar etiquetas legacy conocidas de propuestas persistidas antes de parsear para mantener compatibilidad con datos históricos válidos.
 
 #### Scenario: Primera lectura siembra el archivo
 - **WHEN** la app arranca y `data/sessions.json` no existe
@@ -106,6 +106,10 @@ El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funci
 #### Scenario: Archivo corrupto
 - **WHEN** `data/sessions.json` contiene JSON inválido o datos que no pasan el schema Zod
 - **THEN** `getAllSessions()` lanza un error explícito en lugar de retornar datos parciales o silenciar el fallo
+
+#### Scenario: Etiquetas legacy de propuesta
+- **WHEN** `data/sessions.json` contiene propuestas persistidas con etiquetas históricas como `Regla general`, `Regla especial` o labels de modo desactualizados
+- **THEN** `getAllSessions()` normaliza esas etiquetas a los valores vigentes antes de validar con Zod y retorna sesiones compatibles sin error
 
 ### Requirement: Ruta /admin protegida por middleware existente
 El sistema SHALL reutilizar el middleware de autenticación definido en la spec `admin-auth` (con `matcher: ['/', '/admin/:path*']`) para proteger la nueva página `/admin`. La nueva página SHALL NO añadir lógica de auth propia; SHALL asumir que cualquier request que llega al Server Component ya pasó la verificación de sesión. Si la sesión no es válida, el middleware existente redirige a `/admin/login` antes de que se ejecute el Server Component.
@@ -143,4 +147,3 @@ El sistema SHALL renderizar en cada fila de `/admin` correspondiente a una sesi\
 #### Scenario: Fila abierta sin token no muestra "Ver QR"
 - **WHEN** la lista incluye una sesi\u00f3n con `status: "open"` pero `token` vacío o ausente
 - **THEN** la fila renderiza ✓ y ✗ pero NO "Ver QR" (compatibilidad con datos legacy)
-
