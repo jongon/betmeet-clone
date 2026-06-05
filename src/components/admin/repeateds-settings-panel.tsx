@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 import { saveGlobalExchangeSettingsAction } from "@/app/admin/cromos/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { StickerType } from "@/lib/album-catalog";
 import type { ExchangeSettings, OfferType } from "@/lib/exchange-settings";
 import {
@@ -101,9 +100,7 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
                 <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-5">
                   {OFFER_TYPE_ORDER.map((offerType) => (
                     <div key={`${kind}-${offerType}`} className="space-y-1">
-                      <Label className="text-xs text-muted-foreground">
-                        {ALL_TYPE_LABEL[offerType]}
-                      </Label>
+                      <p className="text-xs text-muted-foreground">{ALL_TYPE_LABEL[offerType]}</p>
                       <Input
                         type="number"
                         min={0}
