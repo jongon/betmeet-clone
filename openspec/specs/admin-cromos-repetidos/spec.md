@@ -12,11 +12,15 @@ El sistema SHALL renderizar la ruta protegida `/admin/cromos` como panel de gest
 - **THEN** la página renderiza el selector de equipos y la UI de edición de repetidos
 
 ### Requirement: Catálogo oficial del álbum 2026
-El sistema SHALL construir un catálogo canónico del álbum 2026 con 48 selecciones y la categoría especial `FWC`, totalizando 980 cromos: 20 por selección y 20 `FWC`. Cada selección SHALL generar códigos `[PAIS]-1` a `[PAIS]-20`, y `FWC-0` a `FWC-19` para los especiales.
+El sistema SHALL construir un catálogo canónico del álbum 2026 con 48 selecciones y la categoría especial `FWC`, totalizando 980 cromos: 20 por selección y 20 `FWC`. Cada selección SHALL generar códigos `[PAIS]-1` a `[PAIS]-20`, y `FWC-0` a `FWC-19` para los especiales. El catálogo SHALL exponer `FWC` primero y luego las selecciones en el orden oficial de aparición del álbum Panini 2026.
 
 #### Scenario: Total del álbum
 - **WHEN** el catálogo se deriva a partir del seed de selecciones
 - **THEN** el total de cromos es 980 y cada selección tiene exactamente 20 códigos
+
+#### Scenario: Orden oficial del catálogo
+- **WHEN** la UI obtiene los grupos del catálogo para `/admin/cromos`
+- **THEN** `FWC` aparece primero y el resto de selecciones sigue el orden oficial del álbum
 
 ### Requirement: Tipos de cromo derivados por posición
 El sistema SHALL derivar el tipo de cromo automáticamente a partir del código: posición 1 => `BADGE`, posición 13 => `TEAM_PHOTO`, posiciones restantes => `PLAYER`, prefijo `FWC` => `SPECIAL`.
@@ -26,11 +30,15 @@ El sistema SHALL derivar el tipo de cromo automáticamente a partir del código:
 - **THEN** los tipos resultan `BADGE`, `TEAM_PHOTO`, `PLAYER` y `SPECIAL` respectivamente
 
 ### Requirement: Selector de equipo con banderas y búsqueda
-El sistema SHALL proveer un selector de equipo/categoría que muestre nombre y bandera usando `isoCode`. El mapping especial MUST aplicar `ENG -> GB-ENG` y `SCO -> GB-SCO`. La opción `FWC` SHALL mostrarse sin bandera. El selector SHALL incluir búsqueda simple por nombre o código.
+El sistema SHALL proveer un selector de equipo/categoría que muestre nombre y bandera usando `isoCode`. El mapping especial MUST aplicar `ENG -> GB-ENG` y `SCO -> GB-SCO`. La opción `FWC` SHALL mostrarse sin bandera. El selector SHALL incluir búsqueda simple por nombre o código y SHALL preservar el orden oficial del catálogo en sus resultados base.
 
 #### Scenario: Selector con banderas
 - **WHEN** el admin abre el selector de equipos
 - **THEN** cada selección muestra su bandera y nombre, y `FWC` aparece sin bandera
+
+#### Scenario: Grupo inicial del panel
+- **WHEN** el admin abre `/admin/cromos` sin búsqueda activa
+- **THEN** el grupo inicial visible es `FWC`
 
 ### Requirement: Edición de repetidos en desktop
 En viewport `>= 768px`, el sistema SHALL mostrar una grilla de 20 cards para el grupo seleccionado. Cada card SHALL mostrar el código, un badge de tipo, un label derivado y un input numérico de cantidad. Las cards con cantidad > 0 SHALL destacarse visualmente usando tokens semánticos.

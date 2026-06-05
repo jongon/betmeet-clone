@@ -33,12 +33,12 @@
 - [x] 5.6 Mostrar el preview legible solo al editar, con etiquetas `Regla especial por tipo` y `Regla especial por cromo`
 - [x] 5.7 Garantizar la misma experiencia en mobile sin pantalla adicional
 
-## 6. Rechazo automatico de propuestas
+## 6. Validacion de propuestas contra faltantes vigentes
 
-- [ ] 6.1 Consultar `isStickerMissingForAdmin` al enviar una propuesta para cada cromo solicitado
-- [ ] 6.2 Persistir la propuesta como `rechazada automaticamente` cuando un cromo exacto ya no es faltante
-- [ ] 6.3 Registrar el motivo del rechazo para que el admin lo vea
-- [ ] 6.4 Cubrir con tests el escenario de rechazo automatico y el camino feliz de propuesta pendiente
+- [x] 6.1 Consultar el estado de faltantes al enviar una propuesta para cada cromo solicitado
+- [x] 6.2 Interrumpir el envio cuando un cromo solicitado ya no es faltante y devolver un motivo explicito al cambiador
+- [x] 6.3 Evitar persistir la propuesta como pendiente cuando la validacion falla
+- [x] 6.4 Cubrir con tests la validacion contra faltantes y el camino feliz de propuesta pendiente
 
 ## 7. Verificacion
 

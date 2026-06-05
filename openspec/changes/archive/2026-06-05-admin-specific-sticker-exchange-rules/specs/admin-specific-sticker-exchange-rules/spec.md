@@ -72,7 +72,7 @@ El sistema SHALL mostrar en `/admin/intercambio` los valores globales efectivos 
 - **THEN** el preview indica que el cambiador podrá cumplir cualquiera de esas opciones y no todas a la vez
 
 ### Requirement: `/admin/cromos` se limita al inventario de repetidos
-El sistema SHALL mantener la pantalla `/admin/cromos` enfocada exclusivamente en el inventario de repetidos. La pagina SHALL permitir editar cantidades por cromo, pero SHALL no exponer controles ni previews de reglas de intercambio por cromo.
+El sistema SHALL mantener la pantalla `/admin/cromos` enfocada exclusivamente en el inventario de repetidos. La pagina SHALL permitir editar cantidades por cromo, pero SHALL no exponer controles ni previews de reglas de intercambio por cromo. Si un cromo esta marcado como faltante, la UI SHALL deshabilitar su cantidad de repetidos y el guardado SHALL ignorar cualquier valor repetido para ese codigo.
 
 #### Scenario: Admin abre `/admin/cromos`
 - **WHEN** el admin navega a `/admin/cromos`
@@ -81,6 +81,10 @@ El sistema SHALL mantener la pantalla `/admin/cromos` enfocada exclusivamente en
 #### Scenario: Regla por cromo se edita en otra surface
 - **WHEN** el admin necesita cambiar una regla especial por tipo o por cromo
 - **THEN** el flujo ocurre en `/admin/intercambio` y no dentro de la grilla de repetidos
+
+#### Scenario: Cromo faltante no se puede guardar como repetido
+- **WHEN** el admin abre `/admin/cromos` y un codigo ya figura como faltante
+- **THEN** ese input de repetidos aparece deshabilitado y el sistema no persiste cantidades repetidas para ese codigo aunque lleguen al servidor
 
 ### Requirement: Resolucion de la regla como lista ordenada de componentes
 El sistema SHALL resolver la regla aplicable para un cromo como una lista ordenada de componentes. Cuando coexisten componente abstracto y exacto, el componente abstracto SHALL aparecer primero y el exacto despues. Cuando no hay override, el sistema SHALL devolver una lista vacia con `source: "global"`.
@@ -115,12 +119,12 @@ El sistema SHALL importar `isStickerMissingForAdmin` directamente desde `src/lib
 - **WHEN** `src/lib/missing.ts` expone un stub que devuelve `false` por defecto
 - **THEN** el sistema rechaza cualquier intento de guardar un componente exacto y muestra el motivo de validacion
 
-### Requirement: Rechazo automatico de propuestas con cromo exacto no faltante
-El sistema SHALL permitir que el flujo publico consulte el estado de faltantes al enviar una propuesta. Si un cromo solicitado forma parte del componente exacto de un override y ya no es faltante, el sistema SHALL persistir la propuesta como `rechazada automaticamente` y SHALL registrar el motivo para el admin.
+### Requirement: Validacion de propuestas contra faltantes vigentes
+El sistema SHALL permitir que el flujo publico consulte el estado de faltantes al enviar una propuesta. Si un cromo solicitado ya no esta marcado como faltante, el sistema SHALL interrumpir el envio y SHALL devolver un motivo explicito al cambiador en lugar de persistir la propuesta como pendiente.
 
-#### Scenario: Propuesta con cromo exacto no faltante
-- **WHEN** el cambiador envia una propuesta que incluye un cromo cuyo override exacto ya no es faltante
-- **THEN** el sistema persiste la propuesta como `rechazada automaticamente` y muestra el motivo al admin
+#### Scenario: Propuesta con cromo ya no faltante
+- **WHEN** el cambiador envia una propuesta que incluye un cromo solicitado que ya no esta marcado como faltante
+- **THEN** el sistema rechaza el envio, no persiste la propuesta como pendiente y devuelve el motivo del bloqueo
 
 #### Scenario: Cromo exacto sigue faltante
 - **WHEN** el cambiador envia una propuesta cuyos cromos exactos siguen siendo faltantes
