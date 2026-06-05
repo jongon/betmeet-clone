@@ -28,6 +28,36 @@ function normalizeStoredModeLabel(mode: unknown): "Propone otra opcion" | "Acept
   return mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla";
 }
 
+function normalizeStoredCounteroffer(counteroffer: unknown): unknown {
+  if (!counteroffer || typeof counteroffer !== "object") {
+    return counteroffer;
+  }
+
+  const current = counteroffer as {
+    quantity?: unknown;
+    offerType?: unknown;
+    offers?: unknown;
+  } & Record<string, unknown>;
+
+  if (current.offers) {
+    return counteroffer;
+  }
+
+  const offerType = typeof current.offerType === "string" ? current.offerType : "PLAYER";
+  const quantity = Math.max(0, Number(current.quantity ?? 0));
+
+  return {
+    ...current,
+    offers: {
+      PLAYER: offerType === "PLAYER" ? quantity : 0,
+      BADGE: offerType === "BADGE" ? quantity : 0,
+      TEAM_PHOTO: offerType === "TEAM_PHOTO" ? quantity : 0,
+      SPECIAL: offerType === "SPECIAL" ? quantity : 0,
+      ANY: offerType === "ANY" ? quantity : 0,
+    },
+  };
+}
+
 function getRuntimeFilePath(): string {
   return process.env.SESSIONS_FILE ?? path.join(DATA_DIR, "sessions.json");
 }
@@ -69,6 +99,7 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
   const base = rawProposal as {
     status?: unknown;
     currentStep?: unknown;
+    flowVersion?: unknown;
     selectedStickerCodes?: unknown;
     blocks?: unknown;
     requestedRepeateds?: unknown;
@@ -88,6 +119,7 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
         return {
           ...current,
           modeLabel: normalizeStoredModeLabel(current.mode),
+          counteroffer: normalizeStoredCounteroffer(current.counteroffer),
           rule:
             rule && typeof rule === "object"
               ? {
@@ -101,7 +133,8 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
 
   return SessionProposalSchema.parse({
     status: base.status,
-    currentStep: Math.min(Number(base.currentStep ?? 1), 5),
+    currentStep: Math.min(Number(base.currentStep ?? 1), 3),
+    flowVersion: base.flowVersion,
     selectedStickerCodes: base.selectedStickerCodes,
     blocks,
     requestedRepeateds: base.requestedRepeateds ?? [],
@@ -113,12 +146,13 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
 function normalizeStoredSession(rawSession: unknown): Session {
   const parsed = SessionSchema.safeParse(rawSession);
   if (parsed.success) {
-    return parsed.data;
+    return SessionSchema.parse({ ...parsed.data, archivedAt: parsed.data.archivedAt ?? null });
   }
 
   const base = rawSession as Omit<Session, "proposal"> & { proposal?: unknown };
   return SessionSchema.parse({
     ...base,
+    archivedAt: base.archivedAt ?? null,
     proposal: normalizeStoredProposal(base.proposal),
   });
 }
@@ -159,6 +193,21 @@ export async function rejectSession(id: string): Promise<void> {
   const target = findSession(sessions, id);
   if (!isOpen(target)) return;
   const next = sessions.map((s) => (s.id === id ? { ...s, status: "closed" as const } : s));
+  await writeSessions(next);
+}
+
+export async function archiveSession(id: string): Promise<void> {
+  const sessions = await readSessions();
+  const target = findSession(sessions, id);
+
+  if (target?.status !== "closed" || target.archivedAt) {
+    return;
+  }
+
+  const archivedAt = new Date().toISOString();
+  const next = sessions.map((session) =>
+    session.id === id ? { ...session, archivedAt } : session,
+  );
   await writeSessions(next);
 }
 
@@ -205,6 +254,7 @@ export async function createSession(input: CreateSessionInput): Promise<Session>
     createdAt: new Date().toISOString(),
     status: "open",
     token: input.token,
+    archivedAt: null,
     proposal: null,
   };
   await writeSessions([...sessions, created]);

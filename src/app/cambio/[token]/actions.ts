@@ -185,7 +185,7 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
       repeatedInventory.items,
     ),
     status: "pending",
-    currentStep: 5,
+    currentStep: 3,
     updatedAt: new Date().toISOString(),
     submittedAt: new Date().toISOString(),
   });

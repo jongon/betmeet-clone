@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { acceptSession as repoAccept, rejectSession as repoReject } from "@/lib/sessions-store";
+import {
+  acceptSession as repoAccept,
+  archiveSession as repoArchive,
+  rejectSession as repoReject,
+} from "@/lib/sessions-store";
 
 const IdSchema = z.string().min(1);
 
@@ -16,4 +20,11 @@ export async function rejectSession(id: string): Promise<void> {
   const parsedId = IdSchema.parse(id);
   await repoReject(parsedId);
   revalidatePath("/admin");
+}
+
+export async function archiveSession(id: string): Promise<void> {
+  const parsedId = IdSchema.parse(id);
+  await repoArchive(parsedId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/archivadas");
 }

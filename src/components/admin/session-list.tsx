@@ -19,7 +19,19 @@ function filterSessions(
   });
 }
 
-export function SessionList({ sessions }: { sessions: ReadonlyArray<Session> }) {
+export function SessionList({
+  sessions,
+  emptyTitle = "Sin sesiones todavía",
+  emptyDescription = "Cuando un cambiador escanee tu QR y ofrezca cromos, verás sus solicitudes aquí.",
+  noFilterDescription = "No hay sesiones en este estado.",
+  allowArchive = false,
+}: {
+  sessions: ReadonlyArray<Session>;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  noFilterDescription?: string;
+  allowArchive?: boolean;
+}) {
   const [name, setName] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
 
@@ -35,23 +47,20 @@ export function SessionList({ sessions }: { sessions: ReadonlyArray<Session> }) 
       ) : null}
 
       {isServerEmpty ? (
-        <EmptyState
-          title="Sin sesiones todavía"
-          description="Cuando un cambiador escanee tu QR y ofrezca cromos, verás sus solicitudes aquí."
-        />
+        <EmptyState title={emptyTitle} description={emptyDescription} />
       ) : filtered.length === 0 ? (
         <EmptyState
           title="Sin resultados"
           description={
             hasFilter
               ? "No hay sesiones que coincidan con tu búsqueda. Prueba a quitar filtros."
-              : "No hay sesiones en este estado."
+              : noFilterDescription
           }
         />
       ) : (
         <ul className="flex flex-col gap-3">
           {filtered.map((session) => (
-            <SessionRow key={session.id} session={session} />
+            <SessionRow key={session.id} session={session} allowArchive={allowArchive} />
           ))}
         </ul>
       )}

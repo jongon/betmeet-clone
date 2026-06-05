@@ -31,8 +31,7 @@ export const FulfillRequirementSchema = z.object({
 export type FulfillRequirement = z.infer<typeof FulfillRequirementSchema>;
 
 export const CounterofferDetailsSchema = z.object({
-  quantity: z.number().int().min(0),
-  offerType: OfferTypeSchema,
+  offers: ExchangeRuleSchema,
   exactStickerCodes: z.array(MissingStickerCodeSchema),
   note: z.string().trim().max(280).nullable(),
 });
@@ -70,7 +69,8 @@ export type RequestedRepeatedItem = z.infer<typeof RequestedRepeatedItemSchema>;
 
 export const SessionProposalSchema = z.object({
   status: ProposalPersistenceStatusSchema,
-  currentStep: z.number().int().min(1).max(5),
+  currentStep: z.number().int().min(1).max(3),
+  flowVersion: z.number().int().min(1).optional(),
   selectedStickerCodes: z.array(MissingStickerCodeSchema),
   blocks: z.array(ProposalBlockSchema),
   requestedRepeateds: z.array(RequestedRepeatedItemSchema),
@@ -89,6 +89,7 @@ export const SessionSchema = z.object({
   createdAt: z.string().min(1),
   status: SessionStatusSchema,
   token: z.string().min(1),
+  archivedAt: z.string().min(1).nullable().optional(),
   proposal: SessionProposalSchema.nullable().optional(),
 });
 

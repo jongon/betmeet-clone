@@ -220,8 +220,8 @@ export function MissingPanel({
               </span>
             </div>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              Marca lo que aún te falta del álbum completo. Puedes combinar faltantes y repetidos
-              sin que un inventario pise al otro.
+              Marca lo que aún te falta del álbum completo. Un cromo faltante no debe quedar también
+              como repetido.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -388,8 +388,8 @@ export function MissingPanel({
                         >
                           <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
                           <span>
-                            También figura como repetido. La combinación sigue permitida y ambos
-                            inventarios se guardan por separado.
+                            También figura como repetido. Quita ese repetido desde `/admin/cromos`
+                            para dejar el inventario consistente.
                           </span>
                         </div>
                       ) : null}

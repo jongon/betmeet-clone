@@ -24,7 +24,7 @@ export default async function AdminPage() {
     redirect("/admin/login?next=/admin");
   }
 
-  const sessions = sortSessions(await getAllSessions());
+  const sessions = sortSessions((await getAllSessions()).filter((session) => !session.archivedAt));
   const openCount = sessions.filter((s) => s.status === "open").length;
 
   return (
@@ -42,6 +42,12 @@ export default async function AdminPage() {
             ) : null}
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/archivadas"
+              className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background bg-clip-padding text-[0.8rem] font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-muted-foreground"
+            >
+              Archivadas
+            </Link>
             <Link
               href="/admin/cromos"
               className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background bg-clip-padding text-[0.8rem] font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-muted-foreground"
@@ -68,7 +74,7 @@ export default async function AdminPage() {
         </p>
       </header>
 
-      <SessionList sessions={sessions} />
+      <SessionList sessions={sessions} allowArchive />
     </main>
   );
 }

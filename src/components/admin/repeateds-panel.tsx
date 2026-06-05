@@ -2,6 +2,7 @@
 
 import { SearchIcon } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { saveGroupRepeatedsAction } from "@/app/admin/cromos/actions";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -18,16 +19,25 @@ type PanelProps = {
   initialGroup: string;
   totalStickers: number;
   initialItems: Record<string, number>;
+  missingItems: Record<string, boolean>;
 };
 
-export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialItems }: PanelProps) {
+export function RepeatedsPanel({
+  groups,
+  initialGroup,
+  totalStickers,
+  initialItems,
+  missingItems,
+}: PanelProps) {
   const [activeGroup, setActiveGroup] = useState(initialGroup);
   const [search, setSearch] = useState("");
   const [items, setItems] = useState<Record<string, number>>(initialItems);
   const [savedSnapshot, setSavedSnapshot] = useState<Record<string, number>>(initialItems);
   const [pending, startTransition] = useTransition();
   const [status, setStatus] = useState<"idle" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [mobileSelectorOpen, setMobileSelectorOpen] = useState(false);
+  const router = useRouter();
 
   const allStickers = useMemo(() => getAllAlbumStickers(), []);
   const matchingGroupCodes = useMemo(() => {
@@ -73,23 +83,22 @@ export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialIte
     const safe = Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0;
     setItems((prev) => ({ ...prev, [code]: safe }));
     setStatus("idle");
+    setErrorMessage(null);
   };
 
   const onSave = () => {
     setStatus("idle");
+    setErrorMessage(null);
     startTransition(async () => {
       try {
-        await saveGroupRepeatedsAction(displayedGroup, currentItems);
-        setSavedSnapshot((prev) => {
-          const next = { ...prev, ...currentItems };
-          for (const [code, value] of Object.entries(currentItems)) {
-            if (!value) delete next[code];
-          }
-          return next;
-        });
+        const saved = await saveGroupRepeatedsAction(displayedGroup, currentItems);
+        setItems(saved.items);
+        setSavedSnapshot(saved.items);
         setStatus("saved");
-      } catch {
+        router.refresh();
+      } catch (error) {
         setStatus("error");
+        setErrorMessage(error instanceof Error ? error.message : "No se pudo guardar este equipo.");
       }
     });
   };
@@ -105,7 +114,7 @@ export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialIte
         </div>
         <p className="text-sm text-muted-foreground">
           Registra cuántas copias repetidas tienes por selección. Guarda el equipo completo al
-          terminar.
+          terminar. Los cromos marcados como faltantes no pueden guardarse como repetidos.
         </p>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <Link
@@ -179,6 +188,7 @@ export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialIte
               <RepeatedsGrid
                 stickers={visibleStickers}
                 quantities={currentItems}
+                missingItems={missingItems}
                 onChange={onChangeQuantity}
               />
             ) : (
@@ -201,7 +211,7 @@ export function RepeatedsPanel({ groups, initialGroup, totalStickers, initialIte
         {status === "saved" ? (
           <span className="text-xs text-muted-foreground">Guardado</span>
         ) : status === "error" ? (
-          <span className="text-xs text-destructive">Error al guardar</span>
+          <span className="text-xs text-destructive">{errorMessage ?? "Error al guardar"}</span>
         ) : null}
       </div>
     </main>

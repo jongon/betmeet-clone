@@ -53,7 +53,7 @@ export async function saveGroupRepeateds(
   groupCode: string,
   groupItems: RepeatedsRecord,
   allowedCodes: Set<string>,
-): Promise<void> {
+): Promise<RepeatedInventory> {
   const inventories = await readInventories();
   const next = inventories.filter((entry) => entry.ownerEmail !== ownerEmail);
   const previous = inventories.find((entry) => entry.ownerEmail === ownerEmail);
@@ -72,11 +72,14 @@ export async function saveGroupRepeateds(
     }
   }
 
-  next.push({
+  const saved = {
     ownerEmail,
     updatedAt: new Date().toISOString(),
     items: baseItems,
-  });
+  };
+
+  next.push(saved);
 
   await writeInventories(next);
+  return saved;
 }

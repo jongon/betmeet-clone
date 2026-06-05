@@ -1,8 +1,8 @@
 "use client";
 
-import { CheckIcon, XIcon } from "lucide-react";
+import { ArchiveIcon, CheckIcon, XIcon } from "lucide-react";
 import { useTransition } from "react";
-import { rejectSession } from "@/app/admin/actions";
+import { archiveSession, rejectSession } from "@/app/admin/actions";
 import { AcceptDialog } from "@/components/admin/accept-dialog";
 import { ViewSessionQrButton } from "@/components/admin/view-session-qr-button";
 import { Badge } from "@/components/ui/badge";
@@ -19,14 +19,27 @@ function formatDate(iso: string): string {
   return dateFormatter.format(new Date(iso));
 }
 
-export function SessionRow({ session }: { session: Session }) {
+export function SessionRow({
+  session,
+  allowArchive = false,
+}: {
+  session: Session;
+  allowArchive?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const isOpen = session.status === "open";
   const hasToken = session.token.length > 0;
+  const canArchive = allowArchive && session.status === "closed" && !session.archivedAt;
 
   const onReject = () => {
     startTransition(() => {
       void rejectSession(session.id);
+    });
+  };
+
+  const onArchive = () => {
+    startTransition(() => {
+      void archiveSession(session.id);
     });
   };
 
@@ -109,6 +122,27 @@ export function SessionRow({ session }: { session: Session }) {
                 <TooltipContent>{`Aceptar sesión de ${session.cambiadorName}`}</TooltipContent>
               </Tooltip>
             </AcceptDialog>
+          </div>
+        ) : canArchive ? (
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={onArchive}
+                    disabled={isPending}
+                    aria-label={`Archivar sesión de ${session.cambiadorName}`}
+                  />
+                }
+              >
+                <ArchiveIcon />
+                Archivar
+              </TooltipTrigger>
+              <TooltipContent>{`Archivar sesión de ${session.cambiadorName}`}</TooltipContent>
+            </Tooltip>
           </div>
         ) : null}
       </div>

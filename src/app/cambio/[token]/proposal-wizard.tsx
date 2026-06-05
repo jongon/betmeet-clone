@@ -5,7 +5,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { StickerType } from "@/lib/album-catalog";
+import { compareAlbumStickerCodes, type StickerType } from "@/lib/album-catalog";
 import {
   type AvailableRepeatedSticker,
   buildEmptyProposal,
@@ -13,6 +13,8 @@ import {
   countRequestedRepeateds,
   filterRequestedStickers,
   formatCounterofferCodes,
+  formatCounterofferOffers,
+  formatPublicRuleOptions,
   getDecisionSummary,
   getModeLabel,
   isCounterofferValid,
@@ -20,15 +22,9 @@ import {
   normalizeRequestedRepeateds,
   parseExactStickerCodes,
   type RequestedSticker,
-  summarizeRule,
   syncProposalBlocks,
 } from "@/lib/cambio-proposal";
-import {
-  type ExchangeSettings,
-  formatExchangeRuleOptions,
-  type OfferType,
-  type StickerOverride,
-} from "@/lib/exchange-settings";
+import type { ExchangeSettings, OfferType, StickerOverride } from "@/lib/exchange-settings";
 import { matchesFlexibleSearch } from "@/lib/search";
 import type { ProposalBlock, SessionProposal } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
@@ -36,11 +32,17 @@ import { saveCambioProposalDraftAction, submitCambioProposalAction } from "./act
 
 const STEP_LABELS = [
   "1. Elige qué ofreces",
-  "2. Decide",
-  "3. Ajusta tu propuesta",
-  "4. Elige qué quieres recibir",
-  "5. Revisa y envía",
+  "2. Elige qué quieres recibir",
+  "3. Revisa y envía",
 ] as const;
+
+const EMPTY_COUNTEROFFER_OFFERS = {
+  PLAYER: 0,
+  BADGE: 0,
+  TEAM_PHOTO: 0,
+  SPECIAL: 0,
+  ANY: 0,
+} as const;
 
 const OFFER_TYPE_LABEL: Record<OfferType, string> = {
   PLAYER: "Jugador",
@@ -88,9 +90,37 @@ function buildInitialDraft(
   };
 }
 
-function renderRequirementList(block: ProposalBlock) {
-  const options = formatExchangeRuleOptions(block.rule.abstract);
-  return options.length > 0 ? options.join(" o ") : "Sin opciones de intercambio";
+function RuleOptions({
+  block,
+  title = "Se cambia por una de estas opciones",
+  tone = "default",
+}: {
+  block: ProposalBlock;
+  title?: string;
+  tone?: "default" | "muted";
+}) {
+  const options = formatPublicRuleOptions(block);
+
+  if (options.length === 0) {
+    return <p className="text-sm text-muted-foreground">Sin opciones de intercambio.</p>;
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{title}</p>
+      <div className="flex flex-wrap gap-2">
+        {options.map((option) => (
+          <Badge
+            key={option}
+            variant={tone === "muted" ? "outline" : "secondary"}
+            className={tone === "muted" ? "bg-background" : undefined}
+          >
+            {option}
+          </Badge>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function getCounterofferSummary(block: ProposalBlock): string {
@@ -98,9 +128,7 @@ function getCounterofferSummary(block: ProposalBlock): string {
   if (!counteroffer) return "Sin contraoferta";
 
   const parts: string[] = [];
-  if (counteroffer.quantity > 0) {
-    parts.push(`${counteroffer.quantity} ${OFFER_TYPE_LABEL[counteroffer.offerType]}`);
-  }
+  parts.push(...formatCounterofferOffers(counteroffer));
   if (counteroffer.exactStickerCodes.length > 0) {
     parts.push(counteroffer.exactStickerCodes.join(", "));
   }
@@ -145,6 +173,11 @@ export function ProposalWizard({
         formatCounterofferCodes(block.counteroffer?.exactStickerCodes ?? []),
       ]),
     ),
+  );
+  const [expandedCounterofferCodes, setExpandedCounterofferCodes] = useState<string[]>(() =>
+    (initialProposal?.blocks ?? [])
+      .filter((block) => block.mode === "counteroffer")
+      .map((block) => block.requestedStickerCode),
   );
   const [isPending, startTransition] = useTransition();
 
@@ -234,11 +267,15 @@ export function ProposalWizard({
     const selected = new Set(draft.selectedStickerCodes);
     if (selected.has(stickerCode)) {
       selected.delete(stickerCode);
+      setExpandedCounterofferCodes((current) => current.filter((code) => code !== stickerCode));
     } else {
       selected.add(stickerCode);
     }
 
-    replaceSelectedStickers(Array.from(selected).sort(), draft.currentStep);
+    replaceSelectedStickers(
+      Array.from(selected).sort((left, right) => compareAlbumStickerCodes(left, right)),
+      draft.currentStep,
+    );
   };
 
   const updateStep = (currentStep: number) => {
@@ -253,15 +290,52 @@ export function ProposalWizard({
     persistDraft({ ...draft, blocks: nextBlocks, updatedAt: new Date().toISOString() });
   };
 
-  const currentStep = isSubmitted ? 5 : draft.currentStep;
+  const updateCounterofferBlock = (
+    stickerCode: string,
+    updater: (
+      counteroffer: NonNullable<ProposalBlock["counteroffer"]>,
+    ) => NonNullable<ProposalBlock["counteroffer"]>,
+  ) => {
+    updateBlock(stickerCode, (current) => ({
+      ...current,
+      mode: "counteroffer",
+      modeLabel: getModeLabel("counteroffer"),
+      counteroffer: updater(
+        current.counteroffer ?? {
+          offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+          exactStickerCodes: [],
+          note: null,
+        },
+      ),
+    }));
+  };
+
+  const clearCounteroffer = (stickerCode: string) => {
+    setExpandedCounterofferCodes((current) => current.filter((code) => code !== stickerCode));
+    updateBlock(stickerCode, (current) => ({
+      ...current,
+      mode: "fulfill",
+      modeLabel: getModeLabel("fulfill"),
+      counteroffer: null,
+    }));
+  };
+
+  const toggleCounterofferPanel = (stickerCode: string) => {
+    setExpandedCounterofferCodes((current) =>
+      current.includes(stickerCode)
+        ? current.filter((code) => code !== stickerCode)
+        : [...current, stickerCode],
+    );
+  };
+
+  const currentStep = isSubmitted ? 3 : draft.currentStep;
   const canContinueFromStep =
     currentStep === 1
-      ? draft.selectedStickerCodes.length > 0
-      : currentStep === 3
-        ? draft.blocks.every((block) => isCounterofferValid(block))
-        : currentStep === 4
-          ? availableRepeatedStickers.length === 0 || draft.requestedRepeateds.length > 0
-          : true;
+      ? draft.selectedStickerCodes.length > 0 &&
+        draft.blocks.every((block) => isCounterofferValid(block))
+      : currentStep === 2
+        ? availableRepeatedStickers.length === 0 || draft.requestedRepeateds.length > 0
+        : true;
 
   const selectedBlocks = draft.selectedStickerCodes
     .map((code) => blocksByCode.get(code))
@@ -275,7 +349,7 @@ export function ProposalWizard({
       sticker?.groupCode ?? "",
       sticker?.groupName ?? "",
       STICKER_TYPE_LABEL[block.requestedStickerType],
-      block.rule.label,
+      ...formatPublicRuleOptions(block),
       block.modeLabel,
     );
   });
@@ -327,6 +401,117 @@ export function ProposalWizard({
     </div>
   );
 
+  const renderCounterofferEditor = (block: ProposalBlock) => {
+    const exactInput =
+      exactInputByCode[block.requestedStickerCode] ??
+      formatCounterofferCodes(block.counteroffer?.exactStickerCodes ?? []);
+
+    return (
+      <div
+        data-no-toggle="true"
+        className="space-y-3 rounded-xl border border-border bg-background/80 p-4"
+      >
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">Ajusta tu propuesta para este cromo</p>
+          <p className="text-xs text-muted-foreground">
+            Puedes mezclar cantidades por tipo o escribir cromos exactos.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-foreground">Cantidades opcionales por tipo</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL"] as const).map((offerType) => (
+              <div key={offerType} className="space-y-1">
+                <label
+                  htmlFor={`counteroffer-quantity-${block.requestedStickerCode}-${offerType}`}
+                  className="text-sm font-medium text-foreground"
+                >
+                  {OFFER_TYPE_LABEL[offerType]}
+                </label>
+                <Input
+                  id={`counteroffer-quantity-${block.requestedStickerCode}-${offerType}`}
+                  type="number"
+                  min={0}
+                  value={block.counteroffer?.offers?.[offerType] ?? 0}
+                  onChange={(event) => {
+                    const quantity = Math.max(0, Number(event.target.value || 0));
+                    updateCounterofferBlock(block.requestedStickerCode, (current) => ({
+                      ...current,
+                      offers: {
+                        ...(current.offers ?? EMPTY_COUNTEROFFER_OFFERS),
+                        [offerType]: quantity,
+                      },
+                    }));
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor={`counteroffer-exact-${block.requestedStickerCode}`}
+            className="text-sm font-medium text-foreground"
+          >
+            Cromos exactos opcionales
+          </label>
+          <Input
+            id={`counteroffer-exact-${block.requestedStickerCode}`}
+            value={exactInput}
+            onChange={(event) => {
+              const value = event.target.value.toUpperCase();
+              setExactInputByCode((prev) => ({
+                ...prev,
+                [block.requestedStickerCode]: value,
+              }));
+              updateCounterofferBlock(block.requestedStickerCode, (current) => ({
+                ...current,
+                exactStickerCodes: parseExactStickerCodes(value),
+              }));
+            }}
+            placeholder="POR-15, ARG-7"
+          />
+          <p className="text-xs text-muted-foreground">
+            Separa varios cromos con coma o espacio. Si completas este campo, puedes continuar
+            aunque todas las cantidades queden en 0. Ejemplo: `POR-15 ARG-7`.
+          </p>
+        </div>
+
+        <div className="space-y-1">
+          <label
+            htmlFor={`counteroffer-note-${block.requestedStickerCode}`}
+            className="text-sm font-medium text-foreground"
+          >
+            Nota opcional
+          </label>
+          <textarea
+            id={`counteroffer-note-${block.requestedStickerCode}`}
+            value={block.counteroffer?.note ?? ""}
+            onChange={(event) => {
+              const note = event.target.value.trimStart();
+              updateCounterofferBlock(block.requestedStickerCode, (current) => ({
+                ...current,
+                note: note.length > 0 ? note : null,
+              }));
+            }}
+            rows={3}
+            maxLength={280}
+            className="flex min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            placeholder="Explica rapido tu excepcion si hace falta."
+          />
+        </div>
+
+        {!isCounterofferValid(block) ? (
+          <p className="text-xs text-destructive">
+            Agrega una cantidad o escribe al menos un cromo exacto para continuar.
+          </p>
+        ) : null}
+      </div>
+    );
+  };
+
   const renderStepContent = () => {
     if (isSubmitted) {
       return (
@@ -359,19 +544,17 @@ export function ProposalWizard({
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
                 <Badge variant="secondary">{block.requestedStickerLabel}</Badge>
-                <Badge variant="secondary">{block.rule.label}</Badge>
                 <Badge variant={block.mode === "counteroffer" ? "outline" : "secondary"}>
                   {block.modeLabel}
                 </Badge>
               </div>
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>Recibe el coleccionista: {block.requestedStickerCode}</p>
-                <p>
-                  Ofreces:{" "}
-                  {block.mode === "fulfill"
-                    ? renderRequirementList(block)
-                    : getCounterofferSummary(block)}
-                </p>
+                {block.mode === "fulfill" ? (
+                  <RuleOptions block={block} title="Se cambia por una de estas opciones" />
+                ) : (
+                  <p>Ofreces: {getCounterofferSummary(block)}</p>
+                )}
                 {block.rule.exactStickerCode ? (
                   <p>Regla exacta visible: {block.rule.exactStickerCode}</p>
                 ) : null}
@@ -389,8 +572,8 @@ export function ProposalWizard({
           <div className="space-y-1">
             <h2 className="font-display text-2xl text-foreground">Paso 1: elige qué le ofreces</h2>
             <p className="text-sm text-muted-foreground">
-              Selecciona los cromos que sí puedes darle al coleccionista. Aquí mismo verás qué pide
-              por cada uno.
+              Selecciona los cromos que sí puedes darle al coleccionista. Si quieres personalizar
+              una oferta, abre su panel desde `Proponer otra opción`.
             </p>
           </div>
 
@@ -402,47 +585,106 @@ export function ProposalWizard({
             ) : null}
             {visibleRequestedStickers.map((sticker) => {
               const isSelected = draft.selectedStickerCodes.includes(sticker.code);
+              const isExpanded = expandedCounterofferCodes.includes(sticker.code);
               const block =
                 blocksByCode.get(sticker.code) ??
                 buildProposalBlock(sticker.code, globalSettings, overrides);
               return (
-                <button
+                // biome-ignore lint/a11y/useSemanticElements: card toggle contains nested action buttons
+                <div
                   key={sticker.code}
-                  type="button"
-                  onClick={() => toggleSticker(sticker.code)}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
-                    "w-full rounded-xl border p-4 text-left transition",
+                    "space-y-4 rounded-xl border p-4 transition",
                     isSelected
                       ? "border-primary/40 bg-primary/10"
-                      : "border-border bg-background hover:border-primary/30",
+                      : "cursor-pointer border-border bg-background hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   )}
+                  onClick={(event) => {
+                    if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
+                      return;
+                    }
+
+                    toggleSticker(sticker.code);
+                  }}
+                  onKeyDown={(event) => {
+                    if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
+                      return;
+                    }
+
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      toggleSticker(sticker.code);
+                    }
+                  }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">
-                          {sticker.code}
-                        </span>
-                        <Badge variant="secondary">{sticker.groupName}</Badge>
-                        <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
-                        {block ? <Badge variant="secondary">{block.rule.label}</Badge> : null}
-                      </div>
-                      <p className="text-sm text-muted-foreground">{sticker.label}</p>
+                      <span className="text-sm font-semibold text-foreground">{sticker.code}</span>
                       {block ? (
-                        <p className="text-xs text-muted-foreground">{summarizeRule(block)}</p>
+                        <RuleOptions
+                          block={block}
+                          title="Por este cambio obtendrás una de estas opciones:"
+                        />
+                      ) : null}
+
+                      {isSelected && block.mode === "counteroffer" ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge variant="outline">Contraoferta</Badge>
+                        </div>
+                      ) : null}
+
+                      {isSelected && block.mode === "counteroffer" ? (
+                        <p className="text-sm text-muted-foreground">
+                          Ofreces: {getCounterofferSummary(block)}
+                        </p>
                       ) : null}
                     </div>
-                    <Badge
-                      className={
-                        isSelected
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted text-muted-foreground"
-                      }
-                    >
-                      {isSelected ? "Seleccionado" : "Agregar"}
-                    </Badge>
                   </div>
-                </button>
+
+                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                    <Button
+                      type="button"
+                      variant={isSelected ? "default" : "outline"}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        toggleSticker(sticker.code);
+                      }}
+                    >
+                      {isSelected ? "Quitar" : "Lo puedo ofrecer"}
+                    </Button>
+
+                    {isSelected ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          if (block.mode === "counteroffer" && isExpanded) {
+                            clearCounteroffer(sticker.code);
+                            return;
+                          }
+
+                          if (block.mode === "counteroffer") {
+                            toggleCounterofferPanel(sticker.code);
+                            return;
+                          }
+
+                          toggleCounterofferPanel(sticker.code);
+                        }}
+                      >
+                        {block.mode === "counteroffer"
+                          ? isExpanded
+                            ? "Eliminar propuesta"
+                            : "Editar propuesta"
+                          : "Proponer otra opción"}
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {isSelected && isExpanded ? renderCounterofferEditor(block) : null}
+                </div>
               );
             })}
           </div>
@@ -455,246 +697,7 @@ export function ProposalWizard({
         <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
           <div className="space-y-1">
             <h2 className="font-display text-2xl text-foreground">
-              Paso 2: ¿aceptas la regla o propones otra opción?
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              Para cada cromo, decide si aceptas la regla tal cual o si prefieres proponer otra
-              opción.
-            </p>
-          </div>
-
-          {renderSharedSearch()}
-
-          {visibleSelectedBlocks.length === 0 ? (
-            <StepEmptyState message="No hay cromos seleccionados visibles para esa búsqueda." />
-          ) : null}
-          {visibleSelectedBlocks.map((block) => (
-            <article
-              key={block.requestedStickerCode}
-              className="space-y-3 rounded-xl border border-border p-4"
-            >
-              <div className="space-y-1">
-                <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
-                <p className="text-sm text-muted-foreground">
-                  {block.requestedStickerLabel} · {block.rule.label}
-                </p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(["fulfill", "counteroffer"] as const).map((mode) => (
-                  <Button
-                    key={mode}
-                    type="button"
-                    variant={block.mode === mode ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() =>
-                      updateBlock(block.requestedStickerCode, (current) => ({
-                        ...current,
-                        mode,
-                        modeLabel: getModeLabel(mode),
-                        counteroffer:
-                          mode === "counteroffer"
-                            ? (current.counteroffer ?? {
-                                quantity: 0,
-                                offerType: "PLAYER",
-                                exactStickerCodes: [],
-                                note: null,
-                              })
-                            : null,
-                      }))
-                    }
-                  >
-                    {mode === "fulfill" ? "Aceptar la regla" : "Proponer otra opción"}
-                  </Button>
-                ))}
-              </div>
-            </article>
-          ))}
-        </section>
-      );
-    }
-
-    if (currentStep === 3) {
-      return (
-        <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
-          <div className="space-y-1">
-            <h2 className="font-display text-2xl text-foreground">Paso 3: ajusta tu propuesta</h2>
-            <p className="text-sm text-muted-foreground">
-              Completa solo los cromos en los que has propuesto una alternativa.
-            </p>
-          </div>
-
-          {renderSharedSearch()}
-
-          {visibleSelectedBlocks.length === 0 ? (
-            <StepEmptyState message="No hay bloques visibles para esa búsqueda." />
-          ) : null}
-          {visibleSelectedBlocks.map((block) => {
-            const exactInput =
-              exactInputByCode[block.requestedStickerCode] ??
-              formatCounterofferCodes(block.counteroffer?.exactStickerCodes ?? []);
-
-            return (
-              <article
-                key={block.requestedStickerCode}
-                className="space-y-3 rounded-xl border border-border p-4"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
-                  <Badge variant="secondary">{block.modeLabel}</Badge>
-                  <Badge variant="secondary">{block.rule.label}</Badge>
-                </div>
-
-                {block.mode === "fulfill" ? (
-                  <div className="rounded-lg border border-border bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-                    Aceptas una de estas opciones: {renderRequirementList(block)}.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid gap-3 sm:grid-cols-[110px_1fr]">
-                      <div className="space-y-1">
-                        <label
-                          htmlFor={`counteroffer-quantity-${block.requestedStickerCode}`}
-                          className="text-sm font-medium text-foreground"
-                        >
-                          Cantidad
-                        </label>
-                        <Input
-                          id={`counteroffer-quantity-${block.requestedStickerCode}`}
-                          type="number"
-                          min={0}
-                          value={block.counteroffer?.quantity ?? 0}
-                          onChange={(event) => {
-                            const quantity = Math.max(0, Number(event.target.value || 0));
-                            updateBlock(block.requestedStickerCode, (current) => ({
-                              ...current,
-                              counteroffer: {
-                                quantity,
-                                offerType: current.counteroffer?.offerType ?? "PLAYER",
-                                exactStickerCodes: current.counteroffer?.exactStickerCodes ?? [],
-                                note: current.counteroffer?.note ?? null,
-                              },
-                            }));
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">Tipo</p>
-                        <div className="flex flex-wrap gap-2">
-                          {(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL", "ANY"] as const).map(
-                            (offerType) => (
-                              <Button
-                                key={offerType}
-                                type="button"
-                                size="sm"
-                                variant={
-                                  block.counteroffer?.offerType === offerType
-                                    ? "default"
-                                    : "outline"
-                                }
-                                onClick={() =>
-                                  updateBlock(block.requestedStickerCode, (current) => ({
-                                    ...current,
-                                    counteroffer: {
-                                      quantity: current.counteroffer?.quantity ?? 0,
-                                      offerType,
-                                      exactStickerCodes:
-                                        current.counteroffer?.exactStickerCodes ?? [],
-                                      note: current.counteroffer?.note ?? null,
-                                    },
-                                  }))
-                                }
-                              >
-                                {OFFER_TYPE_LABEL[offerType]}
-                              </Button>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label
-                        htmlFor={`counteroffer-exact-${block.requestedStickerCode}`}
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Cromos exactos opcionales
-                      </label>
-                      <Input
-                        id={`counteroffer-exact-${block.requestedStickerCode}`}
-                        value={exactInput}
-                        onChange={(event) => {
-                          const value = event.target.value.toUpperCase();
-                          setExactInputByCode((prev) => ({
-                            ...prev,
-                            [block.requestedStickerCode]: value,
-                          }));
-                          updateBlock(block.requestedStickerCode, (current) => ({
-                            ...current,
-                            counteroffer: {
-                              quantity: current.counteroffer?.quantity ?? 0,
-                              offerType: current.counteroffer?.offerType ?? "PLAYER",
-                              exactStickerCodes: parseExactStickerCodes(value),
-                              note: current.counteroffer?.note ?? null,
-                            },
-                          }));
-                        }}
-                        placeholder="POR-15, ARG-7"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Separa varios cromos con coma o espacio. Ejemplo: `POR-15 ARG-7`.
-                      </p>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label
-                        htmlFor={`counteroffer-note-${block.requestedStickerCode}`}
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Nota opcional
-                      </label>
-                      <textarea
-                        id={`counteroffer-note-${block.requestedStickerCode}`}
-                        value={block.counteroffer?.note ?? ""}
-                        onChange={(event) => {
-                          const note = event.target.value.trimStart();
-                          updateBlock(block.requestedStickerCode, (current) => ({
-                            ...current,
-                            counteroffer: {
-                              quantity: current.counteroffer?.quantity ?? 0,
-                              offerType: current.counteroffer?.offerType ?? "PLAYER",
-                              exactStickerCodes: current.counteroffer?.exactStickerCodes ?? [],
-                              note: note.length > 0 ? note : null,
-                            },
-                          }));
-                        }}
-                        rows={3}
-                        maxLength={280}
-                        className="flex min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                        placeholder="Explica rapido tu excepcion si hace falta."
-                      />
-                    </div>
-
-                    {!isCounterofferValid(block) ? (
-                      <p className="text-xs text-destructive">
-                        Agrega una cantidad o al menos un cromo exacto para continuar.
-                      </p>
-                    ) : null}
-                  </div>
-                )}
-              </article>
-            );
-          })}
-        </section>
-      );
-    }
-
-    if (currentStep === 4) {
-      return (
-        <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
-          <div className="space-y-1">
-            <h2 className="font-display text-2xl text-foreground">
-              Paso 4: elige qué quieres recibir
+              Paso 2: elige qué quieres recibir
             </h2>
             <p className="text-sm text-muted-foreground">
               Estos son los repetidos disponibles del coleccionista. Selecciona los que te
@@ -704,74 +707,110 @@ export function ProposalWizard({
 
           {renderSharedSearch()}
 
-          <div className="space-y-3">
-            {visibleAvailableRepeatedStickers.length === 0 ? (
-              <StepEmptyState message="No hay repetidos visibles para esa búsqueda." />
-            ) : null}
-            {visibleAvailableRepeatedStickers.map((sticker) => {
-              const selected = draft.requestedRepeateds.find(
-                (item) => item.stickerCode === sticker.code,
-              );
-              const quantity = selected?.quantity ?? 1;
+          <div className="space-y-3 rounded-xl border border-border bg-muted/30 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">Tú recibirías del coleccionista</p>
+              <p className="text-sm text-muted-foreground">
+                Estos son sus repetidos disponibles. Selecciona los que te interesan.
+              </p>
+            </div>
 
-              return (
-                <article
-                  key={sticker.code}
-                  className={cn(
-                    "space-y-3 rounded-xl border p-4 transition",
-                    selected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-foreground">
-                          {sticker.code}
-                        </span>
-                        <Badge variant="secondary">{sticker.groupName}</Badge>
-                        <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
-                        <Badge variant="secondary">Disponible x{sticker.availableQuantity}</Badge>
+            <div className="space-y-3">
+              {visibleAvailableRepeatedStickers.length === 0 ? (
+                <StepEmptyState message="No hay repetidos visibles para esa búsqueda." />
+              ) : null}
+              {visibleAvailableRepeatedStickers.map((sticker) => {
+                const selected = draft.requestedRepeateds.find(
+                  (item) => item.stickerCode === sticker.code,
+                );
+                const quantity = selected?.quantity ?? 1;
+
+                return (
+                  // biome-ignore lint/a11y/useSemanticElements: card toggle contains nested quantity controls
+                  <div
+                    key={sticker.code}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      "space-y-3 rounded-xl border p-4 transition",
+                      selected
+                        ? "border-primary/40 bg-primary/10"
+                        : "cursor-pointer border-border bg-background hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    )}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
+                        return;
+                      }
+
+                      toggleRequestedRepeated(sticker.code);
+                    }}
+                    onKeyDown={(event) => {
+                      if ((event.target as HTMLElement).closest('[data-no-toggle="true"]')) {
+                        return;
+                      }
+
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        toggleRequestedRepeated(sticker.code);
+                      }
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-foreground">
+                            {sticker.code}
+                          </span>
+                          <Badge variant="secondary">{sticker.groupName}</Badge>
+                          <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
+                          <Badge variant="secondary">Disponible x{sticker.availableQuantity}</Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{sticker.label}</p>
                       </div>
-                      <p className="text-sm text-muted-foreground">{sticker.label}</p>
-                    </div>
 
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={selected ? "default" : "outline"}
-                      onClick={() => toggleRequestedRepeated(sticker.code)}
-                    >
-                      {selected ? "Seleccionado" : "Agregar"}
-                    </Button>
-                  </div>
-
-                  {selected ? (
-                    <div className="space-y-1">
-                      <label
-                        htmlFor={`requested-repeated-${sticker.code}`}
-                        className="text-sm font-medium text-foreground"
-                      >
-                        Cantidad solicitada
-                      </label>
-                      <Input
-                        id={`requested-repeated-${sticker.code}`}
-                        type="number"
-                        min={1}
-                        max={sticker.availableQuantity}
-                        value={quantity}
-                        onChange={(event) => {
-                          const nextQuantity = Math.min(
-                            sticker.availableQuantity,
-                            Math.max(1, Number(event.target.value || 1)),
-                          );
-                          updateRequestedRepeatedQuantity(sticker.code, nextQuantity);
+                      <Button
+                        data-no-toggle="true"
+                        type="button"
+                        size="sm"
+                        variant={selected ? "default" : "outline"}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          toggleRequestedRepeated(sticker.code);
                         }}
-                      />
+                      >
+                        {selected ? "Ya me interesa" : "Me interesa"}
+                      </Button>
                     </div>
-                  ) : null}
-                </article>
-              );
-            })}
+
+                    {selected ? (
+                      <div className="space-y-1">
+                        <label
+                          htmlFor={`requested-repeated-${sticker.code}`}
+                          className="text-sm font-medium text-foreground"
+                        >
+                          Cantidad solicitada
+                        </label>
+                        <Input
+                          data-no-toggle="true"
+                          id={`requested-repeated-${sticker.code}`}
+                          type="number"
+                          min={1}
+                          max={sticker.availableQuantity}
+                          value={quantity}
+                          onChange={(event) => {
+                            const nextQuantity = Math.min(
+                              sticker.availableQuantity,
+                              Math.max(1, Number(event.target.value || 1)),
+                            );
+                            updateRequestedRepeatedQuantity(sticker.code, nextQuantity);
+                          }}
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       );
@@ -780,7 +819,7 @@ export function ProposalWizard({
     return (
       <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
         <div className="space-y-1">
-          <h2 className="font-display text-2xl text-foreground">Paso 5: revisa antes de enviar</h2>
+          <h2 className="font-display text-2xl text-foreground">Paso 3: revisa antes de enviar</h2>
           <p className="text-sm text-muted-foreground">
             Confirma lo que recibe el coleccionista y lo que recibirías tú.
           </p>
@@ -828,16 +867,15 @@ export function ProposalWizard({
             >
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
-                <Badge variant="secondary">{block.rule.label}</Badge>
                 <Badge variant={block.mode === "counteroffer" ? "outline" : "secondary"}>
                   {block.modeLabel}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">
-                {block.mode === "fulfill"
-                  ? `Aceptas una de estas opciones: ${renderRequirementList(block)}`
-                  : getCounterofferSummary(block)}
-              </p>
+              {block.mode === "fulfill" ? (
+                <RuleOptions block={block} title="Se cambia por una de estas opciones" />
+              ) : (
+                <p className="text-sm text-muted-foreground">{getCounterofferSummary(block)}</p>
+              )}
               {block.counteroffer?.note ? (
                 <p className="text-xs text-muted-foreground">Nota: {block.counteroffer.note}</p>
               ) : null}
@@ -859,7 +897,7 @@ export function ProposalWizard({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {STEP_LABELS.map((label, index) => {
             const stepNumber = index + 1;
             const isActive = currentStep === stepNumber;
@@ -920,11 +958,11 @@ export function ProposalWizard({
                 Volver
               </Button>
 
-              {currentStep < 5 ? (
+              {currentStep < 3 ? (
                 <Button
                   type="button"
                   disabled={isPending || !canContinueFromStep}
-                  onClick={() => updateStep(Math.min(5, currentStep + 1))}
+                  onClick={() => updateStep(Math.min(3, currentStep + 1))}
                 >
                   Continuar
                   <ChevronRight />

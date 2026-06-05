@@ -1,13 +1,16 @@
 import {
   type AlbumSticker,
+  compareAlbumStickerCodes,
   getGroupByCode,
   getStickerLabel,
   getStickerType,
   isValidStickerCode,
 } from "@/lib/album-catalog";
 import {
+  ExchangeRuleSchema,
   type ExchangeSettings,
-  formatExchangeRuleOptions,
+  formatExchangeOption,
+  getExchangeRuleOptions,
   normalizeStickerOverride,
   type OfferType,
   type StickerOverride,
@@ -29,6 +32,16 @@ import {
   type SessionProposal,
   SessionProposalSchema,
 } from "@/lib/sessions";
+
+const CURRENT_PROPOSAL_FLOW_VERSION = 3;
+
+const EMPTY_COUNTEROFFER_OFFERS = ExchangeRuleSchema.parse({
+  PLAYER: 0,
+  BADGE: 0,
+  TEAM_PHOTO: 0,
+  SPECIAL: 0,
+  ANY: 0,
+});
 
 export type RequestedSticker = AlbumSticker & {
   groupName: string;
@@ -52,18 +65,74 @@ export function getModeLabel(mode: ProposalMode): "Acepta la regla" | "Propone o
   return mode === "counteroffer" ? "Propone otra opcion" : "Acepta la regla";
 }
 
-export function summarizeRule(block: ProposalBlock): string {
-  const options = formatExchangeRuleOptions(block.rule.abstract);
-  const abstract = options.join(", ");
-
-  if (block.rule.exactStickerCode) {
-    return abstract
-      ? `Puedes cambiarmelo por una de estas opciones: ${abstract} o ${block.rule.exactStickerCode}.`
-      : `Puedes cambiarmelo por ${block.rule.exactStickerCode}.`;
+function formatPublicExchangeOption(offerType: OfferType, quantity: number): string {
+  if (offerType === "PLAYER") {
+    return `${quantity} ${quantity === 1 ? "cromo de jugador" : "cromos de jugador"}`;
   }
 
-  return abstract
-    ? `Puedes cambiarmelo por una de estas opciones: ${abstract}.`
+  if (offerType === "SPECIAL") {
+    return `${quantity} ${quantity === 1 ? "cromo especial" : "cromos especiales"}`;
+  }
+
+  if (offerType === "ANY") {
+    return quantity === 1 ? "cualquier tipo de cromo" : `${quantity} cromos de cualquier tipo`;
+  }
+
+  if (offerType === "TEAM_PHOTO") {
+    return `${quantity} ${quantity === 1 ? "foto de equipo" : "fotos de equipo"}`;
+  }
+
+  return `${quantity} ${quantity === 1 ? "badge" : "badges"}`;
+}
+
+function getCollapsedAnyQuantity(rule: ProposalBlock["rule"]["abstract"]): number | null {
+  const quantities = [rule.BADGE, rule.PLAYER, rule.TEAM_PHOTO, rule.SPECIAL];
+  const first = quantities[0] ?? 0;
+
+  if (first <= 0 || quantities.some((quantity) => quantity !== first)) {
+    return null;
+  }
+
+  return first;
+}
+
+export function formatPublicRuleOptions(block: ProposalBlock): string[] {
+  const collapsedAnyQuantity = getCollapsedAnyQuantity(block.rule.abstract);
+  const options = getExchangeRuleOptions(block.rule.abstract)
+    .filter(({ offerType, quantity }) => {
+      if (collapsedAnyQuantity === null) {
+        return true;
+      }
+
+      if (
+        offerType === "BADGE" ||
+        offerType === "PLAYER" ||
+        offerType === "TEAM_PHOTO" ||
+        offerType === "SPECIAL"
+      ) {
+        return false;
+      }
+
+      return !(offerType === "ANY" && quantity === collapsedAnyQuantity);
+    })
+    .map(({ offerType, quantity }) => formatPublicExchangeOption(offerType, quantity));
+
+  if (collapsedAnyQuantity !== null) {
+    options.unshift(formatPublicExchangeOption("ANY", collapsedAnyQuantity));
+  }
+
+  if (block.rule.exactStickerCode) {
+    options.push(block.rule.exactStickerCode);
+  }
+
+  return options;
+}
+
+export function summarizeRule(block: ProposalBlock): string {
+  const options = formatPublicRuleOptions(block);
+
+  return options.length > 0
+    ? `Se cambia por ${options.join(" o por ")}.`
     : "Sin condiciones de intercambio definidas.";
 }
 
@@ -90,7 +159,7 @@ export function describeRequestedSticker(stickerCode: string): RequestedSticker 
 export function buildRequestedStickers(stickerCodes: string[]): RequestedSticker[] {
   return [...new Set(stickerCodes)]
     .map((code) => describeRequestedSticker(code))
-    .sort((left, right) => left.code.localeCompare(right.code, "es"));
+    .sort((left, right) => compareAlbumStickerCodes(left.code, right.code));
 }
 
 export function buildAvailableRepeatedStickers(
@@ -102,7 +171,7 @@ export function buildAvailableRepeatedStickers(
       ...describeRequestedSticker(code),
       availableQuantity: quantity,
     }))
-    .sort((left, right) => left.code.localeCompare(right.code, "es"));
+    .sort((left, right) => compareAlbumStickerCodes(left.code, right.code));
 }
 
 export function filterRequestedStickers(
@@ -160,14 +229,32 @@ export function resolveProposalRuleSnapshot(
 }
 
 function normalizeCounteroffer(counteroffer: CounterofferDetails | null): CounterofferDetails {
-  return CounterofferDetailsSchema.parse(
-    counteroffer ?? {
-      quantity: 0,
-      offerType: "PLAYER",
+  if (!counteroffer) {
+    return CounterofferDetailsSchema.parse({
+      offers: EMPTY_COUNTEROFFER_OFFERS,
       exactStickerCodes: [],
       note: null,
-    },
-  );
+    });
+  }
+
+  const legacy = counteroffer as CounterofferDetails & {
+    quantity?: number;
+    offerType?: OfferType;
+    offers?: unknown;
+  };
+
+  const offers = legacy.offers
+    ? ExchangeRuleSchema.parse(legacy.offers)
+    : ExchangeRuleSchema.parse({
+        ...EMPTY_COUNTEROFFER_OFFERS,
+        [(legacy.offerType ?? "PLAYER") as OfferType]: Math.max(0, legacy.quantity ?? 0),
+      });
+
+  return CounterofferDetailsSchema.parse({
+    offers,
+    exactStickerCodes: legacy.exactStickerCodes ?? [],
+    note: legacy.note ?? null,
+  });
 }
 
 export function buildProposalBlock(
@@ -210,6 +297,7 @@ export function buildEmptyProposal(): SessionProposal {
   return SessionProposalSchema.parse({
     status: "draft",
     currentStep: 1,
+    flowVersion: CURRENT_PROPOSAL_FLOW_VERSION,
     selectedStickerCodes: [],
     blocks: [],
     requestedRepeateds: [],
@@ -227,8 +315,21 @@ export function normalizeProposalDraft(
     return buildEmptyProposal();
   }
 
+  const flowVersion = draft.flowVersion ?? 1;
+  let currentStep = draft.currentStep;
+
+  if (flowVersion < 2 && currentStep >= 3) {
+    currentStep -= 1;
+  }
+
+  if (flowVersion < 3 && currentStep >= 3) {
+    currentStep -= 1;
+  }
+
   return SessionProposalSchema.parse({
     ...draft,
+    currentStep,
+    flowVersion: CURRENT_PROPOSAL_FLOW_VERSION,
     blocks: syncProposalBlocks(draft.selectedStickerCodes, draft.blocks, globalSettings, overrides),
     requestedRepeateds: draft.requestedRepeateds ?? [],
   });
@@ -263,13 +364,19 @@ export function isCounterofferValid(block: ProposalBlock): boolean {
   }
 
   const counteroffer = normalizeCounteroffer(block.counteroffer);
-  return counteroffer.quantity > 0 || counteroffer.exactStickerCodes.length > 0;
+  return (
+    Object.values(counteroffer.offers).some((quantity) => quantity > 0) ||
+    counteroffer.exactStickerCodes.length > 0
+  );
 }
 
 export function countOfferedItems(blocks: ProposalBlock[]): number {
   return blocks.reduce((total, block) => {
     if (block.mode === "counteroffer") {
-      const quantity = block.counteroffer?.quantity ?? 0;
+      const quantity = Math.max(
+        ...Object.values(normalizeCounteroffer(block.counteroffer).offers),
+        0,
+      );
       const exactCount = block.counteroffer?.exactStickerCodes.length ?? 0;
       return total + Math.max(quantity, exactCount);
     }
@@ -325,4 +432,12 @@ export function parseExactStickerCodes(value: string): string[] {
 
 export function formatCounterofferCodes(codes: string[]): string {
   return codes.join(", ");
+}
+
+export function formatCounterofferOffers(counteroffer: CounterofferDetails | null): string[] {
+  const normalized = normalizeCounteroffer(counteroffer);
+
+  return getExchangeRuleOptions(normalized.offers).map(({ offerType, quantity }) =>
+    formatExchangeOption(offerType, quantity),
+  );
 }

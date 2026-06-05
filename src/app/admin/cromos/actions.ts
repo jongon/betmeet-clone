@@ -22,6 +22,7 @@ import {
 } from "@/lib/missing";
 import { MissingStickerCodeSchema } from "@/lib/missing-schema";
 import { getMissingInventory, replaceMissingInventory } from "@/lib/missing-store";
+import type { RepeatedInventory } from "@/lib/repeateds";
 import { saveGroupRepeateds } from "@/lib/repeateds-store";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -31,7 +32,7 @@ const StickerCodesSchema = z.array(MissingStickerCodeSchema);
 export async function saveGroupRepeatedsAction(
   groupCode: string,
   quantities: Record<string, number>,
-): Promise<void> {
+): Promise<RepeatedInventory> {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -46,14 +47,20 @@ export async function saveGroupRepeatedsAction(
 
   const parsed = QuantityMapSchema.parse(quantities);
   const allowedCodes = new Set(getGroupStickers(groupCode).map((sticker) => sticker.code));
+  const missingInventory = await getMissingInventory(user.email);
   for (const code of Object.keys(parsed)) {
     if (!allowedCodes.has(code)) {
       throw new Error("Código fuera del grupo seleccionado");
     }
   }
 
-  await saveGroupRepeateds(user.email, groupCode, parsed, allowedCodes);
+  const sanitized = Object.fromEntries(
+    Object.entries(parsed).filter(([code]) => !missingInventory.items[code]),
+  );
+
+  const saved = await saveGroupRepeateds(user.email, groupCode, sanitized, allowedCodes);
   revalidatePath("/admin/cromos");
+  return saved;
 }
 
 export async function saveGlobalExchangeSettingsAction(

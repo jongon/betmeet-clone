@@ -11,6 +11,7 @@ import {
   countRequestedRepeateds,
   filterRequestedStickers,
   isCounterofferValid,
+  normalizeProposalDraft,
   normalizeRequestedRepeateds,
   parseExactStickerCodes,
   summarizeRule,
@@ -75,8 +76,13 @@ describe("cambio proposal persistence", () => {
             mode: "counteroffer" as const,
             modeLabel: "Propone otra opcion" as const,
             counteroffer: {
-              quantity: 1,
-              offerType: "BADGE" as const,
+              offers: {
+                PLAYER: 0,
+                BADGE: 1,
+                TEAM_PHOTO: 0,
+                SPECIAL: 0,
+                ANY: 0,
+              },
               exactStickerCodes: ["POR-15"],
               note: "Solo tengo este badge.",
             },
@@ -86,7 +92,7 @@ describe("cambio proposal persistence", () => {
 
     await saveSessionProposal(session.id, {
       status: "pending",
-      currentStep: 5,
+      currentStep: 3,
       selectedStickerCodes: ["ARG-7", "MEX-1"],
       blocks: nextBlocks,
       requestedRepeateds: [{ stickerCode: "ARG-3", quantity: 2 }],
@@ -99,11 +105,48 @@ describe("cambio proposal persistence", () => {
     assert.equal(saved?.requestedCount, 2);
     assert.equal(saved?.offeredCount, 2);
   });
+
+  test("migrates old 5-step drafts to the 3-step flow", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const migrated = normalizeProposalDraft(
+      {
+        ...buildEmptyProposal(),
+        flowVersion: 1,
+        currentStep: 3,
+      },
+      settings,
+      {},
+    );
+
+    assert.equal(migrated.currentStep, 2);
+    assert.equal(migrated.flowVersion, 3);
+  });
+
+  test("migrates old 4-step review drafts to the 3-step flow", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const migrated = normalizeProposalDraft(
+      {
+        ...buildEmptyProposal(),
+        flowVersion: 2,
+        currentStep: 4,
+      },
+      settings,
+      {},
+    );
+
+    assert.equal(migrated.currentStep, 3);
+    assert.equal(migrated.flowVersion, 3);
+  });
 });
 
 describe("cambio proposal helpers", () => {
   test("filters requested stickers by team, type and flexible code", () => {
     const stickers = buildRequestedStickers(["ARG-7", "ARG-1", "MEX-14", "FWC-0"]);
+
+    assert.deepEqual(
+      stickers.map((sticker) => sticker.code),
+      ["FWC-0", "MEX-14", "ARG-1", "ARG-7"],
+    );
 
     const filtered = filterRequestedStickers(stickers, {
       group: "Argentina",
@@ -131,7 +174,7 @@ describe("cambio proposal helpers", () => {
     assert.equal(blocks[1]?.rule.label, "Intercambio general");
   });
 
-  test("keeps fulfill abstract and validates explicit counteroffers", () => {
+  test("allows exact-only counteroffers with quantity 0", () => {
     const settings = cloneDefaultExchangeSettings();
     const [block] = syncProposalBlocks(["ARG-7"], [], settings, {});
 
@@ -143,8 +186,7 @@ describe("cambio proposal helpers", () => {
       mode: "counteroffer" as const,
       modeLabel: "Propone otra opcion" as const,
       counteroffer: {
-        quantity: 0,
-        offerType: "PLAYER" as const,
+        offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
         exactStickerCodes: parseExactStickerCodes("POR 15 ARG-1"),
         note: "Cambio exacto",
       },
@@ -152,6 +194,42 @@ describe("cambio proposal helpers", () => {
 
     assert.equal(isCounterofferValid(counterofferBlock), true);
     assert.deepEqual(counterofferBlock.counteroffer.exactStickerCodes, ["POR-15", "ARG-1"]);
+  });
+
+  test("blocks empty counteroffers without quantity or exact stickers", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const [block] = syncProposalBlocks(["ARG-7"], [], settings, {});
+
+    const counterofferBlock = {
+      ...block,
+      mode: "counteroffer" as const,
+      modeLabel: "Propone otra opcion" as const,
+      counteroffer: {
+        offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        exactStickerCodes: [],
+        note: null,
+      },
+    };
+
+    assert.equal(isCounterofferValid(counterofferBlock), false);
+  });
+
+  test("allows multiple quantities across offer types in counteroffers", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const [block] = syncProposalBlocks(["ARG-7"], [], settings, {});
+
+    const counterofferBlock = {
+      ...block,
+      mode: "counteroffer" as const,
+      modeLabel: "Propone otra opcion" as const,
+      counteroffer: {
+        offers: { PLAYER: 5, BADGE: 3, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        exactStickerCodes: [],
+        note: null,
+      },
+    };
+
+    assert.equal(isCounterofferValid(counterofferBlock), true);
   });
 
   test("summarizes abstract and exact rules as OR options", () => {
@@ -165,8 +243,32 @@ describe("cambio proposal helpers", () => {
 
     assert.equal(
       summarizeRule(block),
-      "Puedes cambiarmelo por una de estas opciones: 1 badge, 2 jugadores o POR-15.",
+      "Se cambia por 1 badge o por 2 cromos de jugador o por POR-15.",
     );
+  });
+
+  test("collapses equivalent abstract types into any-type copy", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const block = buildProposalBlock("ARG-7", settings, {
+      "ARG-7": {
+        abstract: { PLAYER: 1, BADGE: 1, TEAM_PHOTO: 1, SPECIAL: 1, ANY: 0 },
+        exact: null,
+      },
+    });
+
+    assert.equal(summarizeRule(block), "Se cambia por cualquier tipo de cromo.");
+  });
+
+  test("keeps any-type collapse when there is also an exact option", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const block = buildProposalBlock("ARG-7", settings, {
+      "ARG-7": {
+        abstract: { PLAYER: 2, BADGE: 2, TEAM_PHOTO: 2, SPECIAL: 2, ANY: 0 },
+        exact: { stickerCode: "POR-15" },
+      },
+    });
+
+    assert.equal(summarizeRule(block), "Se cambia por 2 cromos de cualquier tipo o por POR-15.");
   });
 
   test("builds repeated stickers from real inventory and clamps requested quantities", () => {
