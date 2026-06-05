@@ -93,6 +93,25 @@ Cuando el cambiador elige `Proponer otra opcion` para un bloque, el sistema SHAL
 - **WHEN** un override especifico pide un cromo exacto y el cambiador propone dos cromos exactos distintos en lugar de cumplirlo
 - **THEN** el sistema acepta la contraoferta como excepcion explicita del bloque
 
+#### Scenario: Contraoferta con cromos exactos vigentes
+- **WHEN** el cambiador escribe `POR-15, ARG-7` en los cromos exactos opcionales y ambos existen entre los repetidos del coleccionista
+- **THEN** el sistema permite continuar al siguiente paso
+
+#### Scenario: Contraoferta con cromo exacto no repetido
+- **WHEN** el cambiador escribe `POR-15, ARG-7` en los cromos exactos opcionales y alguno de esos cromos no esta entre los repetidos del coleccionista
+- **THEN** el sistema bloquea el avance al siguiente paso y muestra un motivo explicito con el codigo invalido
+
+### Requirement: Validacion de cromos exactos opcionales antes de avanzar
+El sistema SHALL validar que todos los `exactStickerCodes` escritos en las contraofertas de la propuesta existan entre los repetidos del coleccionista antes de que el cambiador pueda avanzar al siguiente paso del wizard. Si algun cromo exacto opcional no esta entre los repetidos, el sistema SHALL bloquear el avance y SHALL mostrar un mensaje con el codigo invalido. El envio final SHALL revalidar esta misma condicion como defensa adicional.
+
+#### Scenario: Validacion previa al paso siguiente
+- **WHEN** el cambiador pulsa `Continuar` en cualquier paso donde existan contraofertas con cromos exactos opcionales
+- **THEN** el sistema comprueba que todos esos codigos existan entre los repetidos del coleccionista antes de mover al siguiente paso
+
+#### Scenario: Revalidacion al enviar una propuesta con cromos exactos
+- **WHEN** el cambiador intenta enviar una propuesta cuyos cromos exactos opcionales ya no estan entre los repetidos del coleccionista
+- **THEN** el sistema rechaza el envio, no persiste la propuesta como pendiente y devuelve el motivo del bloqueo
+
 ### Requirement: Nota opcional solo en contraofertas
 El sistema SHALL mostrar y persistir una nota opcional unicamente para bloques en modo `Proponer otra opcion`. El sistema SHALL no pedir ni guardar nota para bloques que aceptan la regla.
 

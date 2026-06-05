@@ -70,6 +70,13 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 - **Alternatives considered:**
   - Editar dentro del mismo paso 2: descartado porque mezclar seleccion de repetidos, decision por bloque y formulario detallado en la misma surface sobrecarga demasiado la pantalla.
 
+### 7.1) Validacion de existencia para cromos exactos opcionales
+- **Decision:** cuando una contraoferta incluya cromos exactos opcionales, el wizard valida antes de avanzar al siguiente paso que todos esos codigos existan entre los repetidos del coleccionista. El envio final vuelve a ejecutar la misma validacion server-side.
+- **Rationale:** el formato del input no alcanza; el usuario necesita saber antes del resumen si `POR-15` o `ARG-7` no estan disponibles entre los repetidos del coleccionista para negociar.
+- **Alternatives considered:**
+  - Validar solo al enviar: descartada porque deja avanzar con una propuesta inconsistente y descubre el problema demasiado tarde.
+  - Validar mientras el usuario escribe: descartada por ruido excesivo y por acoplar cada tecla a una validacion remota.
+
 ### 8) Nota opcional solo para contraofertas
 - **Decision:** la nota libre viaja unicamente cuando el bloque esta en modo contraoferta.
 - **Rationale:** evita texto innecesario en el camino feliz y preserva un canal humano para explicar excepciones reales.
@@ -100,6 +107,7 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 - **[Trade-off] Cumplimiento abstracto reduce precision inmediata del detalle ofrecido** -> **Mitigacion:** el admin vera el detalle final en la transaccion y el flujo conserva la opcion de contraofertar con cromos exactos cuando sea necesario.
 - **[Riesgo] Overrides por cromo sin explicacion visual pueden parecer errores** -> **Mitigacion:** usar etiquetas visibles y copy corto que indique si la regla viene de una excepcion especial.
 - **[Riesgo] Persistencia incremental aumenta complejidad del modelo de sesion** -> **Mitigacion:** separar el borrador de propuesta en una estructura propia anidada bajo la sesion y validar cada transicion por paso.
+- **[Riesgo] Un cromo exacto puede desaparecer del inventario de repetidos entre el borrador y el envio** -> **Mitigacion:** validar al avanzar de paso y revalidar al enviar con mensaje explicito que nombre el codigo bloqueado.
 - **[Trade-off] No soportar bolsas agrupadas limita negociaciones complejas** -> **Mitigacion:** priorizar primero el caso sencillo por cromo y dejar agregaciones para una spec futura si el producto lo necesita.
 
 ## Migration Plan

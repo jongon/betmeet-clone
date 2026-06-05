@@ -61,3 +61,11 @@
 - [x] 9.1 Mostrar la regla del paso 1 como lista de opciones alternativas y no como suma acumulativa
 - [x] 9.2 Ajustar el copy del wizard a `Acepta la regla` y `Propone otra opcion`
 - [x] 9.3 Mantener el resumen final coherente con la semantica OR y validarlo con tests
+
+## 10. Validacion de cromos exactos opcionales contra repetidos
+
+- [x] 10.1 Validar en server-side que todos los `counteroffer.exactStickerCodes` existan entre los repetidos del coleccionista
+- [x] 10.2 Bloquear el avance al siguiente paso del wizard cuando algun cromo exacto opcional no este entre los repetidos
+- [x] 10.3 Reutilizar la misma validacion al enviar la propuesta final
+- [x] 10.4 Mostrar un error explicito con el codigo invalido cuando falle la validacion
+- [x] 10.5 Cubrir con tests el caso valido `POR-15, ARG-7`, el caso invalido y la revalidacion al enviar

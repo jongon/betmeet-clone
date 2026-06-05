@@ -4,11 +4,13 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import {
+  buildExactStickerNotRepeatedReason,
   buildMissingStickerAutoRejectionReason,
   clearMissingInventoryForAdmin,
   isStickerMissingForAdmin,
   markStickersAsCompletedForAdmin,
   toMissingRecord,
+  validateExactStickersAgainstRepeateds,
   validateMissingStickersForProposal,
 } from "@/lib/missing";
 import { getMissingInventory, replaceMissingInventory } from "@/lib/missing-store";
@@ -118,6 +120,46 @@ describe("missing proposal validation", () => {
       stickerCode: "ARG-2",
       reason: buildMissingStickerAutoRejectionReason("ARG-2"),
     });
+  });
+
+  test("returns pending when every exact optional sticker exists in repeated inventory", () => {
+    const repeatedItems = { "POR-15": 2, "ARG-7": 1 };
+
+    const result = validateExactStickersAgainstRepeateds(["POR-15", "ARG-7"], repeatedItems);
+
+    assert.deepEqual(result, { status: "pending" });
+  });
+
+  test("returns automatic rejection when one exact optional sticker is not in repeated inventory", () => {
+    const repeatedItems = { "ARG-7": 1 };
+
+    const result = validateExactStickersAgainstRepeateds(["POR-15", "ARG-7"], repeatedItems);
+
+    assert.deepEqual(result, {
+      status: "rechazada automaticamente",
+      stickerCode: "POR-15",
+      reason: buildExactStickerNotRepeatedReason("POR-15"),
+    });
+  });
+
+  test("returns automatic rejection when exact optional sticker has zero quantity in repeated inventory", () => {
+    const repeatedItems = { "POR-15": 0 };
+
+    const result = validateExactStickersAgainstRepeateds(["POR-15"], repeatedItems);
+
+    assert.deepEqual(result, {
+      status: "rechazada automaticamente",
+      stickerCode: "POR-15",
+      reason: buildExactStickerNotRepeatedReason("POR-15"),
+    });
+  });
+
+  test("returns pending for empty exact sticker list", () => {
+    const repeatedItems = {};
+
+    const result = validateExactStickersAgainstRepeateds([], repeatedItems);
+
+    assert.deepEqual(result, { status: "pending" });
   });
 });
 

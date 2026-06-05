@@ -439,3 +439,7 @@ export function formatCounterofferOffers(counteroffer: CounterofferDetails | nul
     formatExchangeOption(offerType, quantity),
   );
 }
+
+export function collectCounterofferExactStickerCodes(blocks: ProposalBlock[]): string[] {
+  return [...new Set(blocks.flatMap((block) => block.counteroffer?.exactStickerCodes ?? []))];
+}

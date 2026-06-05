@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Send } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,11 @@ import type { ExchangeSettings, OfferType, StickerOverride } from "@/lib/exchang
 import { matchesFlexibleSearch } from "@/lib/search";
 import type { ProposalBlock, SessionProposal } from "@/lib/sessions";
 import { cn } from "@/lib/utils";
-import { saveCambioProposalDraftAction, submitCambioProposalAction } from "./actions";
+import {
+  saveCambioProposalDraftAction,
+  submitCambioProposalAction,
+  validateCambioProposalStepAction,
+} from "./actions";
 
 const STEP_LABELS = [
   "1. Elige qué ofreces",
@@ -180,6 +184,8 @@ export function ProposalWizard({
       .map((block) => block.requestedStickerCode),
   );
   const [isPending, startTransition] = useTransition();
+  const [blockErrors, setBlockErrors] = useState<Record<string, string>>({});
+  const blockRefs = useRef(new Map<string, HTMLElement>());
 
   const blocksByCode = useMemo(
     () => new Map(draft.blocks.map((block) => [block.requestedStickerCode, block])),
@@ -217,6 +223,7 @@ export function ProposalWizard({
   const persistDraft = (nextDraft: SessionProposal, submit = false) => {
     setDraft(nextDraft);
     setError(null);
+    setBlockErrors({});
     setFeedback(submit ? "Enviando propuesta..." : "Guardando borrador...");
 
     startTransition(async () => {
@@ -280,6 +287,49 @@ export function ProposalWizard({
 
   const updateStep = (currentStep: number) => {
     persistDraft({ ...draft, currentStep, updatedAt: new Date().toISOString() });
+  };
+
+  const continueToStep = (nextStep: number) => {
+    setError(null);
+    setBlockErrors({});
+    setFeedback("Validando propuesta...");
+    startTransition(async () => {
+      try {
+        const result = await validateCambioProposalStepAction({
+          token,
+          sessionId,
+          proposal: draft,
+        });
+        if (!result.ok) {
+          const offendingCodes = draft.blocks
+            .filter((block) => block.counteroffer?.exactStickerCodes?.includes(result.stickerCode))
+            .map((block) => block.requestedStickerCode);
+
+          const newBlockErrors: Record<string, string> = {};
+          for (const code of offendingCodes) {
+            newBlockErrors[code] = result.reason;
+          }
+          setBlockErrors(newBlockErrors);
+          setFeedback(null);
+
+          if (offendingCodes.length > 0) {
+            const firstCode = offendingCodes[0];
+            const el = blockRefs.current.get(firstCode);
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
+          } else {
+            setError(result.reason);
+          }
+          return;
+        }
+
+        persistDraft({ ...draft, currentStep: nextStep, updatedAt: new Date().toISOString() });
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "No se pudo validar la propuesta.");
+        setFeedback(null);
+      }
+    });
   };
 
   const updateBlock = (stickerCode: string, updater: (block: ProposalBlock) => ProposalBlock) => {
@@ -592,9 +642,17 @@ export function ProposalWizard({
               return (
                 <article
                   key={sticker.code}
+                  ref={(el) => {
+                    if (el) blockRefs.current.set(sticker.code, el);
+                    else blockRefs.current.delete(sticker.code);
+                  }}
                   className={cn(
                     "space-y-4 rounded-xl border p-4 transition",
-                    isSelected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
+                    blockErrors[sticker.code]
+                      ? "border-destructive/50 bg-destructive/5"
+                      : isSelected
+                        ? "border-primary/40 bg-primary/10"
+                        : "border-border bg-background",
                   )}
                 >
                   <button
@@ -669,6 +727,12 @@ export function ProposalWizard({
                   </div>
 
                   {isSelected && isExpanded ? renderCounterofferEditor(block) : null}
+
+                  {blockErrors[sticker.code] ? (
+                    <p className="text-sm font-medium text-destructive">
+                      {blockErrors[sticker.code]}
+                    </p>
+                  ) : null}
                 </article>
               );
             })}
@@ -825,7 +889,16 @@ export function ProposalWizard({
           {visibleSelectedBlocks.map((block) => (
             <article
               key={block.requestedStickerCode}
-              className="space-y-2 rounded-xl border border-border p-4"
+              ref={(el) => {
+                if (el) blockRefs.current.set(block.requestedStickerCode, el);
+                else blockRefs.current.delete(block.requestedStickerCode);
+              }}
+              className={cn(
+                "space-y-2 rounded-xl border p-4",
+                blockErrors[block.requestedStickerCode]
+                  ? "border-destructive/50 bg-destructive/5"
+                  : "border-border",
+              )}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <p className="font-semibold text-foreground">{block.requestedStickerCode}</p>
@@ -840,6 +913,11 @@ export function ProposalWizard({
               )}
               {block.counteroffer?.note ? (
                 <p className="text-xs text-muted-foreground">Nota: {block.counteroffer.note}</p>
+              ) : null}
+              {blockErrors[block.requestedStickerCode] ? (
+                <p className="text-sm font-medium text-destructive">
+                  {blockErrors[block.requestedStickerCode]}
+                </p>
               ) : null}
             </article>
           ))}
@@ -924,7 +1002,7 @@ export function ProposalWizard({
                 <Button
                   type="button"
                   disabled={isPending || !canContinueFromStep}
-                  onClick={() => updateStep(Math.min(3, currentStep + 1))}
+                  onClick={() => continueToStep(Math.min(3, currentStep + 1))}
                 >
                   Continuar
                   <ChevronRight />

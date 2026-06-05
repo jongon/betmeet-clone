@@ -88,6 +88,11 @@ export function buildMissingStickerAutoRejectionReason(stickerCode: string): str
   return `La propuesta se rechazó automáticamente porque ${stickerCode} ya no está marcado como faltante.`;
 }
 
+export function buildExactStickerNotRepeatedReason(stickerCode: string): string {
+  MissingStickerCodeSchema.parse(stickerCode);
+  return `No puedes continuar porque ${stickerCode} no está entre los cromos repetidos del coleccionista.`;
+}
+
 // Consumidoras futuras: validar al enviar o aprobar y persistir el motivo devuelto.
 export async function validateMissingStickersForProposal(
   ownerEmail: string,
@@ -101,6 +106,24 @@ export async function validateMissingStickersForProposal(
         status: "rechazada automaticamente",
         stickerCode: code,
         reason: buildMissingStickerAutoRejectionReason(code),
+      };
+    }
+  }
+
+  return { status: "pending" };
+}
+
+export function validateExactStickersAgainstRepeateds(
+  stickerCodes: string[],
+  repeatedItems: Record<string, number>,
+): MissingProposalValidation {
+  for (const code of normalizeStickerCodes(stickerCodes)) {
+    const quantity = repeatedItems[code];
+    if (typeof quantity !== "number" || quantity <= 0) {
+      return {
+        status: "rechazada automaticamente",
+        stickerCode: code,
+        reason: buildExactStickerNotRepeatedReason(code),
       };
     }
   }

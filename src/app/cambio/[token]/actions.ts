@@ -10,9 +10,16 @@ import {
   setCambioSessionId,
 } from "@/lib/cambiador-identity";
 import { buildCambioEntryState } from "@/lib/cambio-entry";
-import { normalizeProposalDraft, normalizeRequestedRepeateds } from "@/lib/cambio-proposal";
+import {
+  collectCounterofferExactStickerCodes,
+  normalizeProposalDraft,
+  normalizeRequestedRepeateds,
+} from "@/lib/cambio-proposal";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
-import { validateMissingStickersForProposal } from "@/lib/missing";
+import {
+  validateExactStickersAgainstRepeateds,
+  validateMissingStickersForProposal,
+} from "@/lib/missing";
 import { QrTokenStringSchema } from "@/lib/qr";
 import { getToken } from "@/lib/qr-store";
 import { getInventory } from "@/lib/repeateds-store";
@@ -169,13 +176,23 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
   const settings = await getExchangeSettings(qrToken.ownerEmail);
   const repeatedInventory = await getInventory(qrToken.ownerEmail);
   const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
-  const validation = await validateMissingStickersForProposal(
+  const missingValidation = await validateMissingStickersForProposal(
     qrToken.ownerEmail,
     proposal.selectedStickerCodes,
   );
 
-  if (validation.status !== "pending") {
-    throw new Error(validation.reason);
+  if (missingValidation.status !== "pending") {
+    throw new Error(missingValidation.reason);
+  }
+
+  const exactStickerCodes = collectCounterofferExactStickerCodes(proposal.blocks);
+  const repeatedValidation = validateExactStickersAgainstRepeateds(
+    exactStickerCodes,
+    repeatedInventory.items,
+  );
+
+  if (repeatedValidation.status !== "pending") {
+    throw new Error(repeatedValidation.reason);
   }
 
   const saved = await saveSessionProposal(session.id, {
@@ -196,4 +213,53 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
   }
 
   return saved.proposal;
+}
+
+export type ValidacionPasoResult =
+  | { ok: true }
+  | { ok: false; stickerCode: string; reason: string };
+
+export async function validateCambioProposalStepAction(
+  input: unknown,
+): Promise<ValidacionPasoResult> {
+  const parsed = SaveProposalInputSchema.parse(input);
+  await resolveOpenSessionForAction(parsed.token, parsed.sessionId);
+  const qrToken = await getToken(parsed.token);
+
+  if (!qrToken || qrToken.revokedAt !== null) {
+    throw new Error("Este QR ya no está disponible.");
+  }
+
+  const settings = await getExchangeSettings(qrToken.ownerEmail);
+  const repeatedInventory = await getInventory(qrToken.ownerEmail);
+  const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
+
+  const missingValidation = await validateMissingStickersForProposal(
+    qrToken.ownerEmail,
+    proposal.selectedStickerCodes,
+  );
+
+  if (missingValidation.status !== "pending") {
+    return {
+      ok: false,
+      stickerCode: missingValidation.stickerCode,
+      reason: missingValidation.reason,
+    };
+  }
+
+  const exactStickerCodes = collectCounterofferExactStickerCodes(proposal.blocks);
+  const repeatedValidation = validateExactStickersAgainstRepeateds(
+    exactStickerCodes,
+    repeatedInventory.items,
+  );
+
+  if (repeatedValidation.status !== "pending") {
+    return {
+      ok: false,
+      stickerCode: repeatedValidation.stickerCode,
+      reason: repeatedValidation.reason,
+    };
+  }
+
+  return { ok: true };
 }
