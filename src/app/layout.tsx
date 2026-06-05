@@ -36,7 +36,8 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
-        <script>{themeBootScript}</script>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: inline boot script avoids theme flicker before hydration */}
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
       </head>
       <body className={`${inter.variable} ${sora.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
