@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Wizard mobile de 5 pasos para propuesta de intercambio
-El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 5 pasos para crear una propuesta de intercambio: (1) seleccionar cromos que el coleccionista quiere recibir, (2) revisar la regla aplicable por cada cromo seleccionado, (3) decidir por cada bloque si cumple la regla o si envia una contraoferta, (4) completar detalles de las contraofertas, y (5) revisar y enviar el resumen final.
+El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 5 pasos para crear una propuesta de intercambio: (1) seleccionar cromos que el coleccionista quiere recibir viendo ya la regla aplicable, (2) decidir por cada bloque si acepta la regla o si propone otra opcion, (3) completar detalles de las contraofertas, (4) seleccionar desde los repetidos reales del coleccionista lo que el cambiador quiere recibir, y (5) revisar y enviar el resumen final.
 
 #### Scenario: Progreso secuencial del wizard
 - **WHEN** el cambiador entra a una sesion abierta y comienza a armar su propuesta
@@ -12,10 +12,10 @@ El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/
 - **THEN** el sistema reanuda el wizard conservando la seleccion, decisiones y contraofertas guardadas en esa sesion
 
 ### Requirement: Seleccion de cromos que quiere recibir el coleccionista
-En el paso 1, el sistema SHALL mostrar los cromos que el coleccionista quiere recibir y permitir al cambiador seleccionar unidades individuales que puede ofrecer. La pantalla SHALL incluir filtros por seleccion o pais, tipo de cromo y busqueda por numero o codigo.
+En el paso 1, el sistema SHALL mostrar los cromos que el coleccionista quiere recibir y permitir al cambiador seleccionar unidades individuales que puede ofrecer. La pantalla SHALL incluir un unico buscador capaz de encontrar por seleccion o pais, tipo de cromo, numero o codigo, y SHALL mostrar en la misma card la regla aplicable a cada cromo.
 
-#### Scenario: Seleccion con filtros
-- **WHEN** el cambiador aplica filtros por pais, tipo o codigo en el paso 1
+#### Scenario: Seleccion con buscador unico
+- **WHEN** el cambiador busca por pais, tipo o codigo en el paso 1
 - **THEN** el sistema actualiza la lista visible sin perder los cromos ya seleccionados
 
 #### Scenario: Seleccion de una sola unidad por cromo
@@ -23,36 +23,40 @@ En el paso 1, el sistema SHALL mostrar los cromos que el coleccionista quiere re
 - **THEN** el sistema agrega un unico bloque de propuesta para ese cromo sin pedir cantidad
 
 ### Requirement: Regla aplicable por cromo seleccionado
-En el paso 2, el sistema SHALL mostrar la regla aplicable para cada cromo seleccionado. Si existe override por cromo, el sistema SHALL usarlo en lugar de la regla general y SHALL mostrar la etiqueta `Regla especial`; si no existe override, SHALL mostrar la etiqueta `Regla general`.
+En el paso 1, el sistema SHALL mostrar la regla aplicable para cada cromo visible. Si existe override por cromo, el sistema SHALL usarlo en lugar de la regla general y SHALL mostrar la etiqueta `Intercambio especial`; si no existe override, SHALL mostrar la etiqueta `Intercambio general`.
+
+#### Scenario: Regla abstracta mostrada como alternativas
+- **WHEN** la regla abstracta de un cromo tiene varios `OfferType` activos
+- **THEN** el sistema muestra esas opciones como alternativas `OR`, dejando claro que basta con una de ellas y no con todas a la vez
 
 #### Scenario: Cromo con override por cromo
 - **WHEN** el cambiador revisa un cromo seleccionado que tiene override especifico
-- **THEN** el sistema muestra esa regla en lugar de la general y la etiqueta como `Regla especial`
+- **THEN** el sistema muestra esa regla en lugar de la general y la etiqueta como `Intercambio especial`
 
 #### Scenario: Cromo sin override especifico
 - **WHEN** el cambiador revisa un cromo seleccionado que no tiene override especifico
-- **THEN** el sistema muestra la regla general correspondiente y la etiqueta como `Regla general`
+- **THEN** el sistema muestra la regla general correspondiente y la etiqueta como `Intercambio general`
 
 ### Requirement: Decision por bloque entre cumplir o contraofertar
-En el paso 3, el sistema SHALL pedir al cambiador una decision independiente por cada bloque de propuesta: `Cumplir regla` o `Proponer contraoferta`. El sistema SHALL permitir mezclar ambos modos dentro de la misma propuesta.
+En el paso 2, el sistema SHALL pedir al cambiador una decision independiente por cada bloque de propuesta: `Aceptar la regla` o `Proponer otra opcion`. El sistema SHALL permitir mezclar ambos modos dentro de la misma propuesta.
 
 #### Scenario: Mezcla de bloques en una misma propuesta
-- **WHEN** el cambiador marca `Cumplir regla` para `POR-15` y `Proponer contraoferta` para `MEX-07`
+- **WHEN** el cambiador marca `Aceptar la regla` para `POR-15` y `Proponer otra opcion` para `MEX-07`
 - **THEN** el sistema conserva ambas decisiones y permite continuar con una propuesta mixta
 
 #### Scenario: Cambio de decision antes del resumen
-- **WHEN** el cambiador vuelve al paso 3 y cambia un bloque de `Cumplir regla` a `Proponer contraoferta`
+- **WHEN** el cambiador vuelve al paso 2 y cambia un bloque de `Aceptar la regla` a `Proponer otra opcion`
 - **THEN** el sistema actualiza ese bloque sin afectar las decisiones de los demas cromos
 
 ### Requirement: Cumplimiento abstracto de la regla
-Cuando el cambiador elige `Cumplir regla` para un bloque, el sistema SHALL registrar la propuesta de forma abstracta usando la cantidad y el tipo definidos por la regla aplicable. El sistema SHALL no exigir numeros exactos de cromos para ese bloque.
+Cuando el cambiador elige `Aceptar la regla` para un bloque, el sistema SHALL registrar la propuesta de forma abstracta aceptando una de las opciones permitidas por la regla aplicable. El sistema SHALL no exigir numeros exactos de cromos para ese bloque.
 
 #### Scenario: Cumplir una regla general por tipo
-- **WHEN** la regla aplicable para `BRA-03` pide `2 jugadores` y el cambiador marca `Cumplir regla`
+- **WHEN** la regla aplicable para `BRA-03` ofrece como opcion `2 jugadores` y el cambiador marca `Aceptar la regla`
 - **THEN** la propuesta guarda ese bloque como cumplimiento abstracto de `2 jugadores` sin solicitar codigos exactos
 
 ### Requirement: Contraoferta explicita por cromo
-Cuando el cambiador elige `Proponer contraoferta` para un bloque, el sistema SHALL permitir cambiar la cantidad, el tipo de cromo o proponer uno o mas cromos exactos como alternativa. Cada contraoferta SHALL pertenecer a un unico cromo solicitado y SHALL poder incluir una nota opcional.
+Cuando el cambiador elige `Proponer otra opcion` para un bloque, el sistema SHALL permitir cambiar la cantidad, el tipo de cromo o proponer uno o mas cromos exactos como alternativa. Cada contraoferta SHALL pertenecer a un unico cromo solicitado y SHALL poder incluir una nota opcional.
 
 #### Scenario: Contraoferta cambiando cantidad
 - **WHEN** la regla para `MEX-07` pide `2 jugadores` y el cambiador propone `1 jugador`
@@ -67,18 +71,33 @@ Cuando el cambiador elige `Proponer contraoferta` para un bloque, el sistema SHA
 - **THEN** el sistema acepta la contraoferta como excepcion explicita del bloque
 
 ### Requirement: Nota opcional solo en contraofertas
-El sistema SHALL mostrar y persistir una nota opcional unicamente para bloques en modo `Contraoferta`. El sistema SHALL no pedir ni guardar nota para bloques que cumplen la regla.
+El sistema SHALL mostrar y persistir una nota opcional unicamente para bloques en modo `Proponer otra opcion`. El sistema SHALL no pedir ni guardar nota para bloques que aceptan la regla.
 
 #### Scenario: Nota presente en contraoferta
 - **WHEN** el cambiador agrega una explicacion libre en un bloque de contraoferta
 - **THEN** el sistema guarda la nota junto con ese bloque y la muestra en el resumen final
 
 #### Scenario: Bloque que cumple regla
-- **WHEN** el cambiador deja un bloque en modo `Cumplir regla`
+- **WHEN** el cambiador deja un bloque en modo `Aceptar la regla`
 - **THEN** el sistema no muestra ni persiste una nota libre para ese bloque
 
+### Requirement: Seleccion global de repetidos que quiere recibir el cambiador
+En el paso 4, el sistema SHALL mostrar el inventario real de repetidos del coleccionista y permitir al cambiador seleccionar que cromos quiere recibir. Esa seleccion SHALL persistirse como una lista global independiente de los bloques por cromo ofrecido. Si un cromo tiene mas de una copia disponible, el sistema SHALL permitir ajustar la cantidad desde `1` hasta el maximo disponible.
+
+#### Scenario: Seleccion de un repetido disponible
+- **WHEN** el cambiador selecciona `ARG-7` de los repetidos del coleccionista
+- **THEN** el sistema agrega `ARG-7` a la lista global de repetidos solicitados con cantidad inicial `1`
+
+#### Scenario: Ajuste de cantidad segun inventario
+- **WHEN** el coleccionista tiene `ARG-7 x3` y el cambiador ajusta la cantidad solicitada
+- **THEN** el sistema permite elegir entre `1` y `3`, sin superar el inventario disponible
+
+#### Scenario: Repetido sin stock suficiente
+- **WHEN** el cambiador intenta pedir mas copias de un cromo de las que existen en repetidos
+- **THEN** el sistema impide superar la cantidad disponible en el inventario del coleccionista
+
 ### Requirement: Resumen final priorizando lo que recibe el coleccionista
-En el paso 5, el sistema SHALL mostrar un resumen final que priorice visualmente lo que recibe el coleccionista. El resumen SHALL listar despues lo que recibe el cambiador y SHALL mostrar etiquetas visibles por bloque, incluyendo `Cumple regla`, `Contraoferta`, `Regla general` y `Regla especial` cuando apliquen.
+En el paso 5, el sistema SHALL mostrar un resumen final que priorice visualmente lo que recibe el coleccionista. El resumen SHALL listar despues, como lista global independiente, lo que recibe el cambiador desde los repetidos del coleccionista y SHALL mostrar etiquetas visibles por bloque, incluyendo `Acepta la regla`, `Propone otra opcion`, `Intercambio general` e `Intercambio especial` cuando apliquen.
 
 #### Scenario: Resumen de propuesta mixta
 - **WHEN** la propuesta contiene bloques que cumplen regla y otros con contraoferta

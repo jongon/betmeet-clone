@@ -18,24 +18,24 @@
 - [x] 3.2 Implementar filtros por seleccion o pais, tipo de cromo y busqueda por numero o codigo
 - [x] 3.3 Permitir seleccionar una sola unidad por cromo sin pedir cantidad
 
-## 4. Paso 2 y paso 3: reglas y decision por bloque
+## 4. Paso 1 y paso 2: reglas y decision por bloque
 
 - [x] 4.1 Resolver para cada cromo seleccionado si aplica override por cromo o regla general
-- [x] 4.2 Mostrar etiquetas `Regla especial` y `Regla general` segun la regla aplicada
-- [x] 4.3 Implementar el paso 3 para decidir por bloque entre `Cumplir regla` y `Proponer contraoferta`
+- [x] 4.2 Mostrar etiquetas `Intercambio especial` e `Intercambio general` segun la regla aplicada en la seleccion inicial
+- [x] 4.3 Implementar el paso 2 para decidir por bloque entre `Aceptar la regla` y `Proponer otra opcion`
 - [x] 4.4 Permitir propuestas mixtas dentro de una misma sesion sin afectar otros bloques al cambiar una decision
 
-## 5. Paso 4: editor de contraofertas
+## 5. Paso 3: editor de contraofertas
 
 - [x] 5.1 Implementar cumplimiento abstracto para bloques en modo `fulfill` sin exigir cromos exactos
 - [x] 5.2 Implementar formulario de contraoferta por bloque con cambio de cantidad y tipo
 - [x] 5.3 Permitir contraoferta con uno o mas cromos exactos cuando el bloque no cumple la regla
 - [x] 5.4 Mostrar y guardar nota opcional solo para bloques en modo `counteroffer`
 
-## 6. Paso 5, envio y detalle posterior
+## 6. Paso 4, paso 5, envio y detalle posterior
 
 - [x] 6.1 Construir resumen final priorizando visualmente lo que recibe el coleccionista
-- [x] 6.2 Mostrar por bloque las etiquetas `Cumple regla`, `Contraoferta`, `Regla general` y `Regla especial`
+- [x] 6.2 Mostrar por bloque las etiquetas `Acepta la regla`, `Propone otra opcion`, `Intercambio general` e `Intercambio especial`
 - [x] 6.3 Implementar envio final de propuesta con estado `Pendiente de aprobacion`
 - [x] 6.4 Implementar la vista detallada posterior al envio con todos los bloques y notas de contraoferta
 
@@ -45,3 +45,19 @@
 - [x] 7.2 Cubrir con tests el cumplimiento abstracto frente a contraofertas explicitas por cromo
 - [x] 7.3 Correr `pnpm lint`
 - [x] 7.4 Correr `pnpm build`
+
+## 8. Paso 4: repetidos que quiere recibir el cambiador
+
+- [x] 8.1 Extender el modelo de propuesta para persistir una lista global de repetidos solicitados por el cambiador con `stickerCode` y `quantity`
+- [x] 8.2 Cargar en el paso 4 los repetidos reales del coleccionista usando solo cromos con cantidad disponible `> 0`
+- [x] 8.3 Permitir seleccionar un repetido con cantidad inicial `1` y ajustar la cantidad hasta el maximo disponible
+- [x] 8.4 Mantener esta lista independiente de los bloques por cromo ofrecido y persistirla en el borrador de sesion
+- [x] 8.5 Mantener el wizard en 5 pasos y dedicar el paso 4 a los repetidos deseados
+- [x] 8.6 Mostrar en el resumen final la lista global de repetidos que recibe el cambiador
+- [x] 8.7 Cubrir con tests la seleccion y cantidad de repetidos solicitados y correr `pnpm lint` + `pnpm build`
+
+## 9. Semantica OR en el flujo publico
+
+- [x] 9.1 Mostrar la regla del paso 1 como lista de opciones alternativas y no como suma acumulativa
+- [x] 9.2 Ajustar el copy del wizard a `Acepta la regla` y `Propone otra opcion`
+- [x] 9.3 Mantener el resumen final coherente con la semantica OR y validarlo con tests

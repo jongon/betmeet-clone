@@ -3,6 +3,10 @@
 ### Requirement: Override por cromo con componente abstracto
 El sistema SHALL permitir que el admin defina un componente abstracto opcional por cromo en `/admin/intercambio`, expresado como un `ExchangeRule` con cantidades por cada `OfferType`. Cuando el componente abstracto esta activo con al menos un `OfferType` mayor a `0`, SHALL tener prioridad sobre la regla general. Cuando todos los `OfferType` del componente abstracto son `0`, el sistema SHALL tratar el componente abstracto como desactivado y SHALL aplicar la regla general o el componente exacto si existe.
 
+#### Scenario: Componente abstracto interpretado como alternativas
+- **WHEN** el admin activa varios `OfferType` dentro del mismo componente abstracto
+- **THEN** el sistema trata cada `OfferType` activo como una opcion alternativa `OR` y no como un requisito acumulativo `AND`
+
 #### Scenario: Cromo con solo componente abstracto activo
 - **WHEN** el admin guarda un override para `ARG-14` con componente abstracto `{ PLAYER: 2, ANY: 1 }` y sin componente exacto
 - **THEN** el sistema persiste el override y al servir la regla para `ARG-14` se devuelve la composicion con un unico componente abstracto
@@ -62,6 +66,10 @@ El sistema SHALL mostrar en `/admin/intercambio` los valores globales efectivos 
 #### Scenario: Cromo con exacto vacio
 - **WHEN** el admin abre la edicion de un cromo sin componente exacto guardado
 - **THEN** el campo del cromo exacto aparece vacio mientras el abstracto sigue mostrando la base global
+
+#### Scenario: Preview del abstracto como opciones
+- **WHEN** el admin edita un cromo con varias cantidades activas en el componente abstracto
+- **THEN** el preview indica que el cambiador podrá cumplir cualquiera de esas opciones y no todas a la vez
 
 ### Requirement: `/admin/cromos` se limita al inventario de repetidos
 El sistema SHALL mantener la pantalla `/admin/cromos` enfocada exclusivamente en el inventario de repetidos. La pagina SHALL permitir editar cantidades por cromo, pero SHALL no exponer controles ni previews de reglas de intercambio por cromo.

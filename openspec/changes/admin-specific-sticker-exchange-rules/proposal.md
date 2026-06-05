@@ -5,12 +5,14 @@ El admin puede definir reglas globales y overrides por cromo, pero el override s
 ## What Changes
 
 - Evolucionar el override por cromo para soportar dos componentes independientes: abstracto opcional y exacto opcional.
+- Expresar el componente abstracto como un conjunto de opciones alternativas `OR`, tanto en admin como en el flujo publico.
 - Aceptar `0` como valor valido en el componente abstracto y tratarlo como desactivado.
 - Permitir que el componente exacto guarde un unico cromo especifico, validado contra `isStickerMissingForAdmin` importado directamente desde `src/lib/missing.ts`.
 - Mantener formato antiguo en disco: leer overrides antiguos como override abstracto y escribir siempre el nuevo formato.
 - Limpiar el override completo con un toggle unico `Usar regla general`.
 - Resolver la regla aplicable como una lista ordenada de componentes, con abstracto antes que exacto.
 - Exponer la composicion al flujo publico con etiquetas `Regla especial por tipo` y `Regla especial por cromo`.
+- Hacer visible en admin que el cambiador puede cumplir cualquiera de las opciones activas del componente abstracto.
 - Persistir la propuesta como `rechazada automaticamente` si al envio incluye un cromo exacto que ya no es faltante.
 - Definir un stub vacio para `isStickerMissingForAdmin` solo si la spec de faltantes no estuviera implementada al aplicar este change.
 

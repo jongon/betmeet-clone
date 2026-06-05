@@ -46,3 +46,9 @@
 - [x] 7.2 Cubrir con tests el orden de los componentes y la composicion servida al flujo publico
 - [x] 7.3 Correr `pnpm lint`
 - [x] 7.4 Correr `pnpm build`
+
+## 8. Semantica OR de intercambio
+
+- [x] 8.1 Expresar en admin que cada `OfferType` activo del componente abstracto es una opcion alternativa `OR`
+- [x] 8.2 Ajustar el preview de `/admin/intercambio` para listar opciones separadas por `o`
+- [x] 8.3 Cubrir con tests el formateo legible de opciones de intercambio

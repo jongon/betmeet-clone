@@ -10,6 +10,7 @@ El flujo publico del cambiador (`/cambio/[token]`) ya esta alineado con override
 
 **Goals:**
 - Modelar el override por cromo como `{ abstract: ExchangeRule | null, exact: { stickerCode: string } | null }`.
+- Tratar cada `OfferType` activo del componente abstracto como una opcion alternativa `OR` y no como un requisito acumulativo.
 - Tratar el componente abstracto con todos los `OfferType` en `0` como desactivado.
 - Resolver la regla aplicable como una lista ordenada de componentes: abstracto antes que exacto.
 - Exponer la composicion al flujo publico con etiquetas `Regla especial por tipo` y `Regla especial por cromo`.
@@ -50,7 +51,7 @@ El flujo publico del cambiador (`/cambio/[token]`) ya esta alineado con override
 
 ### 4) Resolucion como lista ordenada de componentes
 - **Decision:** el resolvedor devuelve `{ source: "global", components: [] }` o `{ source: "override", components: ResolvedComponent[] }`, donde el orden es abstracto antes que exacto.
-- **Rationale:** simplifica el render y la validacion en el flujo publico, que itera sobre componentes.
+- **Rationale:** simplifica el render y la validacion en el flujo publico, que itera sobre componentes. Ademas permite mostrar las opciones abstractas como alternativas `OR` dentro del mismo componente.
 - **Alternatives considered:**
   - Objeto `{ abstract, exact }`: descartado por requerir ramas especiales al iterar.
 
@@ -62,8 +63,8 @@ El flujo publico del cambiador (`/cambio/[token]`) ya esta alineado con override
   - Acciones `solo abstracto` / `solo exacto`: descartadas por sobreespecificar.
 
 ### 6) UI admin en la misma fila dentro de `/admin/intercambio`
-- **Decision:** la edicion de ambos componentes se hace en la misma fila de la lista de cromos dentro de `/admin/intercambio`, con la misma pantalla en mobile. `/admin/cromos` no expone controles ni preview de intercambio por fila. El preview legible aparece solo al editar.
-- **Rationale:** concentra las reglas de intercambio en una sola surface y deja el inventario de repetidos libre de ruido operativo.
+- **Decision:** la edicion de ambos componentes se hace en la misma fila de la lista de cromos dentro de `/admin/intercambio`, con la misma pantalla en mobile. `/admin/cromos` no expone controles ni preview de intercambio por fila. El preview legible aparece solo al editar y explica que el cambiador puede cumplir cualquiera de las opciones activas.
+- **Rationale:** concentra las reglas de intercambio en una sola surface y deja el inventario de repetidos libre de ruido operativo, evitando que el admin interprete varias cantidades activas como un `AND`.
 - **Alternatives considered:**
   - Panel lateral al seleccionar el cromo: descartado por añadir un nivel extra innecesario.
   - Pantalla mobile separada: descartada por fragmentar la experiencia.
