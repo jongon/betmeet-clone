@@ -9,7 +9,7 @@ services:
     image: nextjs/code
     volumes:
       - '.:/var/www/html'
-      - 'opencode-config:/home/node/.config/opencode'
+      - 'node-home:/home/node'
     networks:
       - nextjs
     extra_hosts:
@@ -83,5 +83,5 @@ networks:
 volumes:
   nextjs-postgres:
     driver: local
-  opencode-config:
+  node-home:
     driver: local

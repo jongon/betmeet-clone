@@ -26,6 +26,7 @@
     "ghcr.io/georgofenbeck/features/lazygit-linuxbinary:1": {},
     "ghcr.io/jsburckhardt/devcontainer-features/opencode:1": {},
     "ghcr.io/devcontainers-extra/features/claude-code:2": {},
+    "ghcr.io/aqua/devcontainer-antigravity-cli/antigravity-cli:1": {},
     "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
       "plugins": "colorize colored-man-pages command-not-found common-aliases copybuffer copypath cp encode64 git github git-commit git-extras git-flow gitignore history npm node sudo vscode zsh-autosuggestions zsh-syntax-highlighting",
       "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions.git https://github.com/zsh-users/zsh-syntax-highlighting.git"
@@ -81,5 +82,5 @@
     }
   },
   "remoteUser": "node",
-  "postCreateCommand": "[ -f \"$HOME/.zshrc\" ] && sed -i 's/^ZSH_THEME=.*/ZSH_THEME=norm/' \"$HOME/.zshrc\" || true"
+  "postCreateCommand": "pnpm add -g @fission-ai/openspec@latest --allow-build=@fission-ai/openspec --store-dir /home/node/.local/share/pnpm/store && (command -v kiro-cli >/dev/null 2>&1 || curl -fsSL https://cli.kiro.dev/install | bash) && sudo chown -R node:node /home/node 2>/dev/null; [ -f \"$HOME/.zshrc\" ] && sed -i 's/^ZSH_THEME=.*/ZSH_THEME=norm/' \"$HOME/.zshrc\" || true"
 }
