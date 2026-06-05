@@ -13,6 +13,7 @@ import { buildCambioEntryState } from "@/lib/cambio-entry";
 import { normalizeProposalDraft, normalizeRequestedRepeateds } from "@/lib/cambio-proposal";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
 import { validateMissingStickersForProposal } from "@/lib/missing";
+import { QrTokenStringSchema } from "@/lib/qr";
 import { getToken } from "@/lib/qr-store";
 import { getInventory } from "@/lib/repeateds-store";
 import { type Session, type SessionProposal, SessionProposalSchema } from "@/lib/sessions";
@@ -22,7 +23,6 @@ import {
   saveSessionProposal,
 } from "@/lib/sessions-store";
 
-const TokenSchema = z.string().regex(/^qr_[0-9a-f]{32}$/, "Token inválido");
 const NameSchema = z
   .string()
   .trim()
@@ -36,7 +36,7 @@ type CreateCambioSessionState = {
 };
 
 const SaveProposalInputSchema = z.object({
-  token: TokenSchema,
+  token: QrTokenStringSchema,
   sessionId: z.string().min(1),
   proposal: SessionProposalSchema,
 });
@@ -68,7 +68,7 @@ export async function createCambioSessionAction(
   const rawName = formData.get("name");
   const value = typeof rawName === "string" ? rawName : "";
 
-  const tokenParsed = TokenSchema.safeParse(rawToken);
+  const tokenParsed = QrTokenStringSchema.safeParse(rawToken);
   if (!tokenParsed.success) {
     return { error: "El QR no es válido.", fieldError: null, value };
   }

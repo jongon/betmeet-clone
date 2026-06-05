@@ -24,7 +24,7 @@ import { MissingStickerCodeSchema } from "@/lib/missing-schema";
 import { getMissingInventory, replaceMissingInventory } from "@/lib/missing-store";
 import type { RepeatedInventory } from "@/lib/repeateds";
 import { saveGroupRepeateds } from "@/lib/repeateds-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAdminEmail } from "@/lib/supabase/server";
 
 const QuantityMapSchema = z.record(z.string(), z.number().int().min(0));
 const StickerCodesSchema = z.array(MissingStickerCodeSchema);
@@ -33,13 +33,7 @@ export async function saveGroupRepeatedsAction(
   groupCode: string,
   quantities: Record<string, number>,
 ): Promise<RepeatedInventory> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   if (!isValidGroupCode(groupCode)) {
     throw new Error("Grupo inválido");
@@ -47,7 +41,7 @@ export async function saveGroupRepeatedsAction(
 
   const parsed = QuantityMapSchema.parse(quantities);
   const allowedCodes = new Set(getGroupStickers(groupCode).map((sticker) => sticker.code));
-  const missingInventory = await getMissingInventory(user.email);
+  const missingInventory = await getMissingInventory(email);
   for (const code of Object.keys(parsed)) {
     if (!allowedCodes.has(code)) {
       throw new Error("Código fuera del grupo seleccionado");
@@ -58,7 +52,7 @@ export async function saveGroupRepeatedsAction(
     Object.entries(parsed).filter(([code]) => !missingInventory.items[code]),
   );
 
-  const saved = await saveGroupRepeateds(user.email, groupCode, sanitized, allowedCodes);
+  const saved = await saveGroupRepeateds(email, groupCode, sanitized, allowedCodes);
   revalidatePath("/admin/cromos");
   return saved;
 }
@@ -66,16 +60,10 @@ export async function saveGroupRepeatedsAction(
 export async function saveGlobalExchangeSettingsAction(
   globalSettings: ExchangeSettings,
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   const parsed = ExchangeSettingsSchema.parse(globalSettings);
-  await saveGlobalExchangeSettings(user.email, parsed);
+  await saveGlobalExchangeSettings(email, parsed);
   revalidatePath("/admin/cromos");
   revalidatePath("/admin/intercambio");
 }
@@ -83,13 +71,7 @@ export async function saveStickerRuleAction(
   stickerCode: string,
   override: StickerOverride | null,
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   if (!stickerCode?.includes("-")) {
     throw new Error("Código de cromo inválido");
@@ -98,29 +80,23 @@ export async function saveStickerRuleAction(
   const parsedOverride = StickerOverrideSchema.nullable().parse(override);
   const exactStickerCode = parsedOverride?.exact?.stickerCode;
 
-  if (exactStickerCode && !(await isStickerMissingForAdmin(user.email, exactStickerCode))) {
+  if (exactStickerCode && !(await isStickerMissingForAdmin(email, exactStickerCode))) {
     throw new Error("El cromo exacto debe estar marcado como faltante antes de guardarlo.");
   }
 
-  await saveStickerOverride(user.email, stickerCode, parsedOverride);
+  await saveStickerOverride(email, stickerCode, parsedOverride);
   revalidatePath("/admin/intercambio");
   revalidatePath("/admin/cromos");
 }
 
 export async function resetStickerOverrideAction(stickerCode: string): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   if (!stickerCode?.includes("-")) {
     throw new Error("Código de cromo inválido");
   }
 
-  await resetStickerOverride(user.email, stickerCode);
+  await resetStickerOverride(email, stickerCode);
   revalidatePath("/admin/intercambio");
   revalidatePath("/admin/cromos");
 }
@@ -129,17 +105,10 @@ export async function toggleMissingStickerAction(
   stickerCode: string,
   nextMissing: boolean,
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   const parsedStickerCode = MissingStickerCodeSchema.parse(stickerCode);
-  const inventory = await getMissingInventory(user.email);
+  const inventory = await getMissingInventory(email);
   const nextItems = { ...inventory.items };
 
   if (nextMissing) {
@@ -148,7 +117,7 @@ export async function toggleMissingStickerAction(
     delete nextItems[parsedStickerCode];
   }
 
-  await replaceMissingInventory(user.email, nextItems);
+  await replaceMissingInventory(email, nextItems);
   revalidatePath("/admin/cromos/faltantes");
 }
 
@@ -156,17 +125,10 @@ export async function applyBulkMissingAction(
   stickerCodes: string[],
   nextMissing: boolean,
 ): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
   const parsedStickerCodes = StickerCodesSchema.parse(stickerCodes);
-  const inventory = await getMissingInventory(user.email);
+  const inventory = await getMissingInventory(email);
   const nextCodes = new Set(Object.keys(inventory.items));
 
   for (const code of parsedStickerCodes) {
@@ -177,34 +139,20 @@ export async function applyBulkMissingAction(
     }
   }
 
-  await replaceMissingInventory(user.email, toMissingRecord([...nextCodes]));
+  await replaceMissingInventory(email, toMissingRecord([...nextCodes]));
   revalidatePath("/admin/cromos/faltantes");
 }
 
 export async function clearMissingInventoryAction(): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const email = await getAdminEmail();
 
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
-
-  await clearMissingInventoryForAdmin(user.email);
+  await clearMissingInventoryForAdmin(email);
   revalidatePath("/admin/cromos/faltantes");
 }
 
 export async function markMissingStickerCompletedAction(stickerCode: string): Promise<void> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const email = await getAdminEmail();
 
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
-
-  await markStickersAsCompletedForAdmin(user.email, [MissingStickerCodeSchema.parse(stickerCode)]);
+  await markStickersAsCompletedForAdmin(email, [MissingStickerCodeSchema.parse(stickerCode)]);
   revalidatePath("/admin/cromos/faltantes");
 }

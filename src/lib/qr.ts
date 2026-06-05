@@ -1,7 +1,11 @@
 import { z } from "zod";
 
-export const TokenSchema = z.object({
-  token: z.string().regex(/^qr_[0-9a-f]{32}$/, "Invalid qr token format"),
+export const QR_TOKEN_REGEX = /^qr_[0-9a-f]{32}$/;
+
+export const QrTokenStringSchema = z.string().regex(QR_TOKEN_REGEX, "Invalid qr token format");
+
+const TokenSchema = z.object({
+  token: QrTokenStringSchema,
   ownerEmail: z.string().email(),
   createdAt: z.string().min(1),
   revokedAt: z.string().nullable(),

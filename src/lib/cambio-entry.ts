@@ -1,6 +1,7 @@
+import { QR_TOKEN_REGEX } from "@/lib/qr";
 import type { CreadorSessionResolution } from "@/lib/sessions-store";
 
-export const cambioTokenRegex = /^qr_[0-9a-f]{32}$/;
+export const cambioTokenRegex = QR_TOKEN_REGEX;
 
 export type CambioEntryState =
   | { kind: "invalid-token" }

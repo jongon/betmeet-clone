@@ -9,6 +9,7 @@ import {
   markMissingStickerCompletedAction,
   toggleMissingStickerAction,
 } from "@/app/admin/cromos/actions";
+import { AdminNavLink } from "@/components/admin/nav-link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -225,12 +226,7 @@ export function MissingPanel({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Link
-              href="/admin/cromos"
-              className="group/button inline-flex shrink-0 items-center justify-center rounded-lg border border-border bg-background bg-clip-padding text-[0.8rem] font-medium whitespace-nowrap transition-all outline-none select-none hover:bg-muted hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-muted-foreground"
-            >
-              Ver repetidos
-            </Link>
+            <AdminNavLink href="/admin/cromos">Ver repetidos</AdminNavLink>
             <Link
               href="/admin"
               className="inline-flex text-xs font-medium text-primary hover:underline"

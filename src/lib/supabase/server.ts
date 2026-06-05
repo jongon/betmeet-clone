@@ -30,6 +30,17 @@ type CreateSupabaseServerClientOptions = {
   persistSession?: boolean;
 };
 
+export async function getAdminEmail(): Promise<string> {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user?.email) {
+    throw new Error("No authenticated admin");
+  }
+  return user.email;
+}
+
 export async function createSupabaseServerClient(options: CreateSupabaseServerClientOptions = {}) {
   const { persistSession = false } = options;
   const { url, anonKey } = readSupabaseEnv();

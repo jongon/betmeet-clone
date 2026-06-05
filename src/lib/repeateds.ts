@@ -1,11 +1,10 @@
 import { z } from "zod";
 
-export const StickerCodeSchema = z.string().min(3);
-export const QuantitySchema = z.number().int().min(0);
+const StickerCodeSchema = z.string().min(3);
+const QuantitySchema = z.number().int().min(0);
+const RepeatedsRecordSchema = z.record(StickerCodeSchema, QuantitySchema);
 
-export const RepeatedsRecordSchema = z.record(StickerCodeSchema, QuantitySchema);
-
-export const RepeatedInventorySchema = z.object({
+const RepeatedInventorySchema = z.object({
   ownerEmail: z.string().email(),
   updatedAt: z.string(),
   items: RepeatedsRecordSchema,

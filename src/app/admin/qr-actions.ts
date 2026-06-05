@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { toDataURL } from "qrcode";
 import { z } from "zod";
 import { generateToken, revokeToken } from "@/lib/qr-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAdminEmail } from "@/lib/supabase/server";
 
 export type GeneratedQr = {
   token: string;
@@ -20,15 +20,9 @@ function getBaseUrl(): string {
 }
 
 export async function generateQr(): Promise<GeneratedQr> {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) {
-    throw new Error("No authenticated admin");
-  }
+  const email = await getAdminEmail();
 
-  const created = await generateToken(user.email);
+  const created = await generateToken(email);
   const url = `${getBaseUrl()}/cambio/${created.token}`;
   const dataUrl = await toDataURL(url, { width: 256, margin: 1 });
   revalidatePath("/admin");

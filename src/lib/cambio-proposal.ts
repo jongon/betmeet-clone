@@ -51,13 +51,13 @@ export type AvailableRepeatedSticker = RequestedSticker & {
   availableQuantity: number;
 };
 
-export type StickerFilters = {
+type StickerFilters = {
   group: string;
   type: "ALL" | AlbumSticker["type"];
   search: string;
 };
 
-export function getRuleLabel(source: ProposalRuleSource): ProposalRuleLabel {
+function getRuleLabel(source: ProposalRuleSource): ProposalRuleLabel {
   return source === "override" ? "Intercambio especial" : "Intercambio general";
 }
 
@@ -136,7 +136,7 @@ export function summarizeRule(block: ProposalBlock): string {
     : "Sin condiciones de intercambio definidas.";
 }
 
-export function describeRequestedSticker(stickerCode: string): RequestedSticker {
+function describeRequestedSticker(stickerCode: string): RequestedSticker {
   if (!isValidStickerCode(stickerCode)) {
     throw new Error(`Cromo inválido: ${stickerCode}`);
   }
@@ -201,15 +201,13 @@ export function filterRequestedStickers(
   });
 }
 
-export function buildFulfillRequirements(
-  rule: ProposalRuleSnapshot["abstract"],
-): FulfillRequirement[] {
+function buildFulfillRequirements(rule: ProposalRuleSnapshot["abstract"]): FulfillRequirement[] {
   return Object.entries(rule)
     .filter(([, quantity]) => quantity > 0)
     .map(([offerType, quantity]) => ({ offerType: offerType as OfferType, quantity }));
 }
 
-export function resolveProposalRuleSnapshot(
+function resolveProposalRuleSnapshot(
   stickerCode: string,
   globalSettings: ExchangeSettings,
   overrides: Record<string, StickerOverride>,

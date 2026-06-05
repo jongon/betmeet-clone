@@ -4,7 +4,6 @@ import { Bell, Heart, Star, Trophy } from "lucide-react";
 import type * as React from "react";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +35,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { labelStyles } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -135,7 +133,6 @@ export default function DesignSystemPage() {
               <p className="font-display text-5xl font-bold tracking-tight">Aa Bb Cc 2026</p>
               <p className="font-display text-3xl font-semibold">¡Que empiece el Mundial!</p>
             </div>
-            <Separator />
             <div className="space-y-1">
               <span className="label-stadium text-xs text-muted-foreground">Cuerpo · Inter</span>
               <p className="max-w-2xl text-base leading-relaxed">
@@ -326,20 +323,6 @@ export default function DesignSystemPage() {
                 >
                   Mostrar toast
                 </Button>
-              </div>
-            </div>
-
-            {/* Avatars */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-medium text-muted-foreground">Avatars</h3>
-              <div className="flex items-center gap-3">
-                <Avatar>
-                  <AvatarImage src="https://github.com/shadcn.png" alt="@user" />
-                  <AvatarFallback>JG</AvatarFallback>
-                </Avatar>
-                <Avatar>
-                  <AvatarFallback>M10</AvatarFallback>
-                </Avatar>
               </div>
             </div>
           </div>

@@ -1,7 +1,5 @@
 "use client";
 
-/* eslint-disable @next/next/no-img-element -- QR is a data URL from a server action; no next/image needed */
-
 import { ClipboardCheckIcon, ClipboardIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import { type ReactNode, useState } from "react";

@@ -1,22 +1,14 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { ExchangeOverridesPanel } from "@/components/admin/exchange-overrides-panel";
 import { RepeatedsSettingsPanel } from "@/components/admin/repeateds-settings-panel";
 import { getAlbumGroups } from "@/lib/album-catalog";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getAdminEmail } from "@/lib/supabase/server";
 
 export default async function ExchangeSettingsPage() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const email = await getAdminEmail();
 
-  if (!user?.email) {
-    redirect("/admin/login?next=/admin/intercambio");
-  }
-
-  const exchangeSettings = await getExchangeSettings(user.email);
+  const exchangeSettings = await getExchangeSettings(email);
   const groups = getAlbumGroups();
 
   return (

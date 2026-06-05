@@ -1,6 +1,6 @@
-export type Confederation = "CONMEBOL" | "UEFA" | "CAF" | "AFC" | "CONCACAF" | "OFC";
+type Confederation = "CONMEBOL" | "UEFA" | "CAF" | "AFC" | "CONCACAF" | "OFC";
 
-export type TeamSeed = {
+type TeamSeed = {
   albumCode: string;
   displayName: string;
   isoCode: string;
@@ -172,7 +172,7 @@ export function getAlbumTotal(): number {
   return TEAM_SEED.length * 20 + 20;
 }
 
-export function compareAlbumGroupCodes(left: string, right: string): number {
+function compareAlbumGroupCodes(left: string, right: string): number {
   const leftOrder = GROUP_ORDER.get(left) ?? Number.MAX_SAFE_INTEGER;
   const rightOrder = GROUP_ORDER.get(right) ?? Number.MAX_SAFE_INTEGER;
 
