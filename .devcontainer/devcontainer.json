@@ -41,18 +41,19 @@
         "prisma.prisma",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
+        "biomejs.biome",
+        "seatonjiang.gitmoji-vscode",
         "GitHub.copilot",
         "GitHub.copilot-chat",
         "GitHub.copilotworkspace",
         "eamodio.gitlens",
         "donjayamanne.githistory",
         "ecmel.vscode-html-css",
-        "antfu.vite",
         "usernamehw.error-lens",
         "streetsidesoftware.code-spell-checker",
         "wayou.vscode-todo-highlight",
-        "alefragnani.project-manager",
-        "ms-vscode.remote-repositories"
+        "ms-vscode.remote-repositories",
+        "joshbolduc.commitlint"
       ],
       "settings": {
         "terminal.integrated.defaultProfile.linux": "zsh",
