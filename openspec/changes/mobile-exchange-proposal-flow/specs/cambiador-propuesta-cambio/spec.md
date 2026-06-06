@@ -1,15 +1,19 @@
 ## ADDED Requirements
 
-### Requirement: Wizard mobile de 4 pasos para propuesta de intercambio
-El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 4 pasos para crear una propuesta de intercambio: (1) seleccionar cromos que el coleccionista quiere recibir viendo ya la regla aplicable y pudiendo marcar `Proponer otra opcion`, (2) seleccionar desde los repetidos reales del coleccionista lo que el cambiador quiere recibir, (3) completar detalles de las contraofertas, y (4) revisar y enviar el resumen final.
+### Requirement: Wizard mobile de 3 pasos para propuesta de intercambio
+El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 3 pasos para crear una propuesta de intercambio: (1) elegir que ofreces, seleccionando cromos y editando contraofertas inline en un panel colapsable, (2) elegir que quieres recibir seleccionando desde los repetidos reales del coleccionista, y (3) revisar y enviar el resumen final.
 
 #### Scenario: Progreso secuencial del wizard
 - **WHEN** el cambiador entra a una sesion abierta y comienza a armar su propuesta
-- **THEN** el sistema muestra el wizard de 4 pasos en orden, con progreso visible y accion principal para continuar o volver
+- **THEN** el sistema muestra el wizard de 3 pasos en orden, con progreso visible y accion principal para continuar o volver
 
 #### Scenario: Reanudacion con borrador existente
 - **WHEN** el cambiador reabre una sesion publica que ya tenia una propuesta en borrador
 - **THEN** el sistema reanuda el wizard conservando la seleccion, decisiones y contraofertas guardadas en esa sesion
+
+#### Scenario: No persistencia del buscador entre pasos
+- **WHEN** el cambiador navega a un paso distinto o avanza en el wizard
+- **THEN** el sistema limpia el buscador de cromos para evitar filtros residuales en la nueva vista
 
 ### Requirement: Seleccion de cromos que quiere recibir el coleccionista
 En el paso 1, el sistema SHALL mostrar los cromos que el coleccionista quiere recibir y permitir al cambiador seleccionar unidades individuales que puede ofrecer. La pantalla SHALL incluir un unico buscador capaz de encontrar por seleccion o pais, tipo de cromo, numero o codigo, SHALL mostrar en la misma card la regla aplicable a cada cromo y SHALL dejar embebida en esa misma card la decision de mantener la regla o pasar a contraoferta.
@@ -57,11 +61,11 @@ En el paso 2, el sistema SHALL mostrar el inventario real de repetidos del colec
 - **THEN** el sistema impide superar la cantidad disponible en el inventario del coleccionista
 
 ### Requirement: Sincronizacion automatica de cromos exactos opcionales con repetidos solicitados
-El sistema SHALL agregar automaticamente a la lista global de repetidos solicitados del paso 2 todo `exactStickerCode` valido escrito en una contraoferta. Esos cromos SHALL permanecer seleccionados y no SHALL poder desmarcarse manualmente mientras sigan referenciados por alguna contraoferta activa.
+El sistema SHALL agregar automaticamente a la lista global de repetidos solicitados del paso 2 todo `exactStickerCode` valido escrito en una contraoferta. Esos cromos SHALL permanecer seleccionados y no SHALL poder desmarcarse manualmente mientras sigan referenciados por alguna contraoferta activa. El sistema SHALL mostrar una notificacion al usuario cuando se agregue de esta forma un cromo de forma automatica.
 
 #### Scenario: Cromo exacto valido aparece marcado en paso 2
 - **WHEN** el cambiador escribe `POR-15` como cromo exacto opcional en una contraoferta valida
-- **THEN** el sistema marca automaticamente `POR-15` en el paso 2 dentro de los repetidos que quiere recibir el cambiador
+- **THEN** el sistema marca automaticamente `POR-15` en el paso 2 dentro de los repetidos que quiere recibir el cambiador y notifica al usuario
 
 #### Scenario: Cromo exacto sincronizado queda bloqueado en paso 2
 - **WHEN** un repetido fue marcado automaticamente porque esta referenciado por una contraoferta activa
@@ -94,7 +98,7 @@ Cuando el cambiador elige `Aceptar la regla` para un bloque, el sistema SHALL re
 - **THEN** la propuesta guarda ese bloque como cumplimiento abstracto de `2 jugadores` sin solicitar codigos exactos
 
 ### Requirement: Contraoferta explicita por cromo
-Cuando el cambiador elige `Proponer otra opcion` para un bloque, el sistema SHALL permitir en el paso 3 cambiar la cantidad, el tipo de cromo o proponer uno o mas cromos exactos como alternativa. Cada contraoferta SHALL pertenecer a un unico cromo solicitado y SHALL poder incluir una nota opcional.
+Cuando el cambiador elige `Proponer otra opcion` para un bloque, el sistema SHALL permitir en el paso 1 cambiar la cantidad, el tipo de cromo o proponer uno o mas cromos exactos como alternativa. Cada contraoferta SHALL pertenecer a un unico cromo solicitado y SHALL poder incluir una nota opcional.
 
 #### Scenario: Contraoferta cambiando cantidad
 - **WHEN** la regla para `MEX-07` pide `2 jugadores` y el cambiador propone `1 jugador`
@@ -117,11 +121,11 @@ Cuando el cambiador elige `Proponer otra opcion` para un bloque, el sistema SHAL
 - **THEN** el sistema bloquea el avance al siguiente paso y muestra un motivo explicito con el codigo invalido
 
 ### Requirement: Validacion de cromos exactos opcionales antes de avanzar
-El sistema SHALL validar que todos los `exactStickerCodes` escritos en las contraofertas de la propuesta existan entre los repetidos del coleccionista antes de que el cambiador pueda avanzar al siguiente paso del wizard. Si algun cromo exacto opcional no esta entre los repetidos, el sistema SHALL bloquear el avance y SHALL mostrar un mensaje con el codigo invalido. El envio final SHALL revalidar esta misma condicion como defensa adicional.
+El sistema SHALL validar que todos los `exactStickerCodes` escritos en las contraofertas de la propuesta existan entre los repetidos del coleccionista antes de que el cambiador pueda avanzar al siguiente paso del wizard. Si algun cromo exacto opcional no esta entre los repetidos o tiene algun error, el sistema SHALL limpiar el buscador de cromos para asegurar que la card ofensora sea visible, SHALL bloquear el avance, y SHALL mostrar un mensaje con el codigo invalido. El envio final SHALL revalidar esta misma condicion como defensa adicional.
 
-#### Scenario: Validacion previa al paso siguiente
-- **WHEN** el cambiador pulsa `Continuar` en cualquier paso donde existan contraofertas con cromos exactos opcionales
-- **THEN** el sistema comprueba que todos esos codigos existan entre los repetidos del coleccionista antes de mover al siguiente paso
+#### Scenario: Validacion previa al paso siguiente con filtro de busqueda activo
+- **WHEN** el cambiador pulsa `Continuar` con un filtro activo y existe un error de validacion en un cromo
+- **THEN** el sistema limpia el buscador para que todas las cards sean visibles, realiza scroll hasta la card con el error y lo muestra debajo del campo
 
 #### Scenario: Revalidacion al enviar una propuesta con cromos exactos
 - **WHEN** el cambiador intenta enviar una propuesta cuyos cromos exactos opcionales ya no estan entre los repetidos del coleccionista
@@ -146,14 +150,14 @@ El sistema SHALL mostrar y persistir una nota opcional unicamente para bloques e
 - **THEN** el sistema no muestra ni persiste una nota libre para ese bloque
 
 ### Requirement: Resumen final priorizando lo que recibe el coleccionista
-En el paso 4, el sistema SHALL mostrar un resumen final que priorice visualmente lo que recibe el coleccionista. El resumen SHALL listar despues, como lista global independiente, lo que recibe el cambiador desde los repetidos del coleccionista y SHALL mostrar etiquetas visibles por bloque, incluyendo `Acepta la regla` y `Propone otra opcion` cuando apliquen. Cuando muestre la condicion de intercambio de un bloque, SHALL usar el mismo copy natural del flujo, por ejemplo `Se cambia por 2 cromos de jugador`.
+En el paso 3, el sistema SHALL mostrar un resumen final que priorice visualmente lo que recibe el coleccionista. El resumen SHALL listar despues, como lista global independiente, lo que recibe el cambiador desde los repetidos del coleccionista y SHALL mostrar etiquetas visibles por bloque, incluyendo `Acepta la regla` y `Propone otra opcion` cuando apliquen. Cuando muestre la condicion de intercambio de un bloque, SHALL usar el mismo copy natural del flujo, por ejemplo `Se cambia por 2 cromos de jugador`.
 
 #### Scenario: Resumen de propuesta mixta
 - **WHEN** la propuesta contiene bloques que cumplen regla y otros con contraoferta
 - **THEN** el resumen muestra ambos tipos con sus etiquetas correspondientes y presenta primero lo que recibe el coleccionista
 
 ### Requirement: Envio de propuesta pendiente de aprobacion
-Al confirmar el paso 4, el sistema SHALL enviar la propuesta y marcarla con estado `Pendiente de aprobacion`. Despues del envio, el sistema SHALL mostrar una vista detallada de la propuesta enviada.
+Al confirmar el paso 3, el sistema SHALL enviar la propuesta y marcarla con estado `Pendiente de aprobacion`. Despues del envio, el sistema SHALL mostrar una vista detallada de la propuesta enviada.
 
 #### Scenario: Envio exitoso de propuesta
 - **WHEN** el cambiador confirma una propuesta valida en el resumen final
