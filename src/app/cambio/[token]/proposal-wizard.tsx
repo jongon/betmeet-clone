@@ -1,10 +1,18 @@
 "use client";
 
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Send } from "lucide-react";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { compareAlbumStickerCodes, type StickerType } from "@/lib/album-catalog";
 import {
@@ -19,10 +27,13 @@ import {
   formatPublicRuleOptions,
   getDecisionSummary,
   getModeLabel,
+  getProposalBalance,
+  getProposalBlockCapacity,
   isCounterofferValid,
   normalizeProposalDraft,
   type RequestedSticker,
   resolveExactStickerInput,
+  summarizeRule,
   syncProposalBlocks,
   syncRequestedRepeatedsWithExactStickerCodes,
   validateExactStickerCodesAgainstAvailableItems,
@@ -175,6 +186,11 @@ export function ProposalWizard({
   const [search, setSearch] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [drawerBlock, setDrawerBlock] = useState<ProposalBlock | null>(null);
+  const [drawerExactInput, setDrawerExactInput] = useState("");
+  const [drawerError, setDrawerError] = useState<string | null>(null);
+  const [confirmDiscardCounteroffer, setConfirmDiscardCounteroffer] = useState(false);
+  const [highlightBalance, setHighlightBalance] = useState(false);
   const [exactInputByCode, setExactInputByCode] = useState<Record<string, string>>(() =>
     Object.fromEntries(
       (initialProposal?.blocks ?? []).map((block) => [
@@ -190,7 +206,11 @@ export function ProposalWizard({
   );
   const [isPending, startTransition] = useTransition();
   const [blockErrors, setBlockErrors] = useState<Record<string, string>>({});
+  const wizardTopRef = useRef<HTMLDivElement | null>(null);
   const blockRefs = useRef(new Map<string, HTMLElement>());
+  const balanceRef = useRef<HTMLElement | null>(null);
+  const repeatedsSectionRef = useRef<HTMLElement | null>(null);
+  const offersSectionRef = useRef<HTMLElement | null>(null);
 
   const blocksByCode = useMemo(
     () => new Map(draft.blocks.map((block) => [block.requestedStickerCode, block])),
@@ -224,6 +244,10 @@ export function ProposalWizard({
   );
   const decisionSummary = useMemo(() => getDecisionSummary(draft.blocks), [draft.blocks]);
   const isSubmitted = draft.status === "pending";
+  const balance = useMemo(
+    () => getProposalBalance(draft.blocks, draft.requestedRepeateds),
+    [draft.blocks, draft.requestedRepeateds],
+  );
   const lockedRequestedRepeatedCodes = useMemo(
     () => new Set(collectCounterofferExactStickerCodes(draft.blocks)),
     [draft.blocks],
@@ -470,7 +494,6 @@ export function ProposalWizard({
       sticker?.groupName ?? "",
     );
   });
-
   const toggleRequestedRepeated = (stickerCode: string) => {
     if (lockedRequestedRepeatedCodes.has(stickerCode)) {
       return;
@@ -515,6 +538,160 @@ export function ProposalWizard({
       </p>
     </div>
   );
+
+  const focusBalance = () => {
+    balanceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setHighlightBalance(true);
+    window.setTimeout(() => setHighlightBalance(false), 1600);
+  };
+
+  const openOfferDrawer = (block: ProposalBlock) => {
+    setDrawerBlock(structuredClone(block));
+    setDrawerExactInput(formatCounterofferCodes(block.counteroffer?.exactStickerCodes ?? []));
+    setDrawerError(null);
+    setConfirmDiscardCounteroffer(false);
+  };
+
+  const closeOfferDrawer = () => {
+    setDrawerBlock(null);
+    setDrawerExactInput("");
+    setDrawerError(null);
+    setConfirmDiscardCounteroffer(false);
+  };
+
+  const updateDrawerBlock = (updater: (block: ProposalBlock) => ProposalBlock) => {
+    setDrawerBlock((current) => (current ? updater(current) : current));
+    setDrawerError(null);
+  };
+
+  const drawerHasCustomCounteroffer = (block: ProposalBlock | null) => {
+    if (block?.mode !== "counteroffer") {
+      return false;
+    }
+
+    const current = block.counteroffer;
+    return Boolean(
+      current &&
+        (Object.values(current.offers).some((quantity) => quantity > 0) ||
+          current.exactStickerCodes.length > 0 ||
+          current.note),
+    );
+  };
+
+  const getBalanceGuidance = () => {
+    if (balance.isExact) {
+      return {
+        tone: "positive" as const,
+        summary: "Tu propuesta ya está lista para enviarse.",
+        detail: "El intercambio cierra exacto.",
+      };
+    }
+
+    if (balance.delta > 0) {
+      return {
+        tone: "warning" as const,
+        summary: `Te sobran ${balance.delta} ${balance.delta === 1 ? "unidad" : "unidades"} para enviar.`,
+        detail: `Quita ${balance.delta} ${balance.delta === 1 ? "unidad" : "unidades"} de tu oferta o pide ${balance.delta} repetido${balance.delta === 1 ? "" : "s"} más.`,
+      };
+    }
+
+    const missing = Math.abs(balance.delta);
+    return {
+      tone: "warning" as const,
+      summary: `Te faltan ${missing} ${missing === 1 ? "unidad" : "unidades"} para enviar.`,
+      detail: `Añade ${missing} ${missing === 1 ? "unidad" : "unidades"} a tu oferta o reduce ${missing} repetido${missing === 1 ? "" : "s"} pedido${missing === 1 ? "" : "s"}.`,
+    };
+  };
+
+  const getDrawerPreviewBlock = () => {
+    if (!drawerBlock) {
+      return null;
+    }
+
+    if (drawerBlock.mode !== "counteroffer") {
+      return drawerBlock;
+    }
+
+    return {
+      ...drawerBlock,
+      counteroffer: {
+        ...(drawerBlock.counteroffer ?? {
+          offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+          exactStickerCodes: [],
+          note: null,
+        }),
+        exactStickerCodes: resolveExactStickerInput(drawerExactInput).exactStickerCodes,
+      },
+    } satisfies ProposalBlock;
+  };
+
+  const saveDrawerChanges = () => {
+    if (!drawerBlock) {
+      return;
+    }
+
+    const finalizedExactInput = resolveExactStickerInput(drawerExactInput, {
+      forceFinalized: true,
+    });
+
+    if (drawerBlock.mode === "counteroffer" && finalizedExactInput.issue) {
+      setDrawerError(finalizedExactInput.issue.reason);
+      return;
+    }
+
+    const nextDrawerBlock: ProposalBlock =
+      drawerBlock.mode === "counteroffer"
+        ? {
+            ...drawerBlock,
+            counteroffer: {
+              ...(drawerBlock.counteroffer ?? {
+                offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                exactStickerCodes: [],
+                note: null,
+              }),
+              exactStickerCodes: finalizedExactInput.exactStickerCodes,
+            },
+          }
+        : {
+            ...drawerBlock,
+            counteroffer: null,
+          };
+
+    if (nextDrawerBlock.mode === "counteroffer" && !isCounterofferValid(nextDrawerBlock)) {
+      setDrawerError("Agrega una cantidad o escribe al menos un cromo exacto para continuar.");
+      return;
+    }
+
+    const nextBlocks = draft.blocks.map((block) =>
+      block.requestedStickerCode === nextDrawerBlock.requestedStickerCode ? nextDrawerBlock : block,
+    );
+    const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(nextBlocks);
+
+    if (!duplicateExactCodes.ok) {
+      setDrawerError(duplicateExactCodes.reason);
+      return;
+    }
+
+    const repeatedValidation = validateExactStickerCodesAgainstAvailableItems(
+      finalizedExactInput.exactStickerCodes,
+      availableRepeatedItems,
+    );
+
+    if (!repeatedValidation.ok) {
+      setDrawerError(repeatedValidation.reason);
+      return;
+    }
+
+    setExactInputByCode((current) => ({
+      ...current,
+      [nextDrawerBlock.requestedStickerCode]: formatCounterofferCodes(
+        finalizedExactInput.exactStickerCodes,
+      ),
+    }));
+    persistDraft({ ...draft, blocks: nextBlocks, updatedAt: new Date().toISOString() });
+    closeOfferDrawer();
+    window.setTimeout(() => focusBalance(), 120);
+  };
 
   const renderCounterofferEditor = (block: ProposalBlock) => {
     const exactInput =
@@ -763,6 +940,14 @@ export function ProposalWizard({
       </div>
     );
   };
+
+  const drawerPreviewBlock = getDrawerPreviewBlock();
+
+  useEffect(() => {
+    void currentStep;
+    void isSubmitted;
+    wizardTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentStep, isSubmitted]);
 
   const renderStepContent = () => {
     if (isSubmitted) {
@@ -1065,6 +1250,8 @@ export function ProposalWizard({
       );
     }
 
+    const balanceGuidance = getBalanceGuidance();
+
     return (
       <section className="space-y-4 rounded-2xl border border-border bg-background p-4 shadow-sm">
         <div className="space-y-1">
@@ -1074,9 +1261,149 @@ export function ProposalWizard({
           </p>
         </div>
 
+        <section
+          ref={balanceRef}
+          className={cn(
+            "space-y-3 rounded-xl border p-4 transition",
+            highlightBalance && "ring-2 ring-primary/30",
+            balance.isExact
+              ? "border-primary/30 bg-primary/5"
+              : "border-destructive/40 bg-destructive/5",
+          )}
+        >
+          <p className="text-sm font-medium text-foreground">Balance del intercambio</p>
+          <p className="text-sm text-muted-foreground">
+            El coleccionista recibe {balance.offeredUnits} unidad
+            {balance.offeredUnits === 1 ? "" : "es"}. Tú recibes {balance.requestedUnits} unidad
+            {balance.requestedUnits === 1 ? "" : "es"}.
+          </p>
+          <div className="space-y-1">
+            <p
+              className={cn(
+                "text-sm font-medium",
+                balance.isExact ? "text-foreground" : "text-destructive",
+              )}
+            >
+              {balanceGuidance.summary}
+            </p>
+            <p className="text-sm text-muted-foreground">{balanceGuidance.detail}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                repeatedsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              Ajustar repetidos
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={visibleSelectedBlocks.length === 0}
+              onClick={() => {
+                const firstBlock = visibleSelectedBlocks[0] ?? selectedBlocks[0];
+                if (firstBlock) {
+                  openOfferDrawer(firstBlock);
+                }
+              }}
+            >
+              Editar oferta
+            </Button>
+          </div>
+        </section>
+
         {renderSharedSearch()}
 
-        <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+        <section
+          ref={repeatedsSectionRef}
+          className="space-y-3 rounded-xl border border-border bg-background p-4"
+        >
+          <p className="text-sm font-medium text-foreground">Recibes del coleccionista</p>
+          {visibleRequestedRepeateds.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No has seleccionado repetidos para ti.</p>
+          ) : (
+            <div className="space-y-3">
+              {visibleRequestedRepeateds.map((item) => {
+                const sticker = availableRepeatedByCode.get(item.stickerCode);
+                const isLocked = lockedRequestedRepeatedCodes.has(item.stickerCode);
+
+                return (
+                  <div
+                    key={item.stickerCode}
+                    className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{item.stickerCode}</p>
+                        <Badge variant="secondary">x{item.quantity}</Badge>
+                        {isLocked ? <Badge variant="outline">Incluido desde paso 1</Badge> : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{sticker?.label ?? ""}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isLocked || item.quantity <= 1}
+                        onClick={() =>
+                          updateRequestedRepeatedQuantity(item.stickerCode, item.quantity - 1)
+                        }
+                      >
+                        -
+                      </Button>
+                      <Input
+                        type="number"
+                        min={1}
+                        max={sticker?.availableQuantity ?? item.quantity}
+                        value={item.quantity}
+                        disabled={isLocked}
+                        onChange={(event) => {
+                          const maxAvailable = sticker?.availableQuantity ?? item.quantity;
+                          const nextQuantity = Math.min(
+                            maxAvailable,
+                            Math.max(1, Number(event.target.value || 1)),
+                          );
+                          updateRequestedRepeatedQuantity(item.stickerCode, nextQuantity);
+                        }}
+                        className="w-20"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={
+                          isLocked || item.quantity >= (sticker?.availableQuantity ?? item.quantity)
+                        }
+                        onClick={() =>
+                          updateRequestedRepeatedQuantity(item.stickerCode, item.quantity + 1)
+                        }
+                      >
+                        +
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={isLocked}
+                        onClick={() => toggleRequestedRepeated(item.stickerCode)}
+                      >
+                        Quitar
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
           <p className="text-sm font-medium text-foreground">Recibe el coleccionista</p>
           <div className="flex flex-wrap gap-2">
             {visibleSelectedBlocks.map((block) => (
@@ -1088,24 +1415,9 @@ export function ProposalWizard({
               </Badge>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="space-y-3 rounded-xl border border-border bg-background p-4">
-          <p className="text-sm font-medium text-foreground">Recibes del coleccionista</p>
-          {visibleRequestedRepeateds.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No has seleccionado repetidos para ti.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {visibleRequestedRepeateds.map((item) => (
-                <Badge key={item.stickerCode} variant="secondary">
-                  {item.stickerCode} x{item.quantity}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-3">
+        <section ref={offersSectionRef} className="space-y-3">
           {visibleSelectedBlocks.length === 0 ? (
             <StepEmptyState message="No hay bloques visibles para esa búsqueda." />
           ) : null}
@@ -1128,6 +1440,10 @@ export function ProposalWizard({
                 <Badge variant={block.mode === "counteroffer" ? "outline" : "secondary"}>
                   {block.modeLabel}
                 </Badge>
+                <Badge variant="secondary">
+                  {getProposalBlockCapacity(block)} unidad
+                  {getProposalBlockCapacity(block) === 1 ? "" : "es"}
+                </Badge>
               </div>
               {block.mode === "fulfill" ? (
                 <RuleOptions block={block} title="Se cambia por una de estas opciones" />
@@ -1137,6 +1453,16 @@ export function ProposalWizard({
               {block.counteroffer?.note ? (
                 <p className="text-xs text-muted-foreground">Nota: {block.counteroffer.note}</p>
               ) : null}
+              <div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => openOfferDrawer(block)}
+                >
+                  Editar oferta
+                </Button>
+              </div>
               {blockErrors[block.requestedStickerCode] ? (
                 <p className="text-sm font-medium text-destructive">
                   {blockErrors[block.requestedStickerCode]}
@@ -1144,13 +1470,13 @@ export function ProposalWizard({
               ) : null}
             </article>
           ))}
-        </div>
+        </section>
       </section>
     );
   };
 
   return (
-    <div className="space-y-4">
+    <div ref={wizardTopRef} className="space-y-4">
       <section className="space-y-3 rounded-2xl border border-border bg-background p-4 shadow-sm">
         <div className="space-y-1">
           <p className="text-sm text-muted-foreground">Sesion activa</p>
@@ -1233,7 +1559,11 @@ export function ProposalWizard({
               ) : (
                 <Button
                   type="button"
-                  disabled={isPending || !draft.blocks.every((block) => isCounterofferValid(block))}
+                  disabled={
+                    isPending ||
+                    !draft.blocks.every((block) => isCounterofferValid(block)) ||
+                    !balance.isExact
+                  }
                   onClick={() =>
                     persistDraft(
                       { ...draft, status: "pending", submittedAt: new Date().toISOString() },
@@ -1249,6 +1579,227 @@ export function ProposalWizard({
           </div>
         </div>
       ) : null}
+
+      <Dialog
+        open={Boolean(drawerBlock)}
+        onOpenChange={(open) => (!open ? closeOfferDrawer() : null)}
+      >
+        {drawerBlock ? (
+          <DialogContent
+            showCloseButton={false}
+            className="top-auto bottom-0 left-0 w-full max-w-none translate-x-0 translate-y-0 rounded-b-none rounded-t-2xl sm:top-1/2 sm:bottom-auto sm:left-1/2 sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2"
+          >
+            <DialogHeader>
+              <DialogTitle>Editar oferta de {drawerBlock.requestedStickerCode}</DialogTitle>
+              <DialogDescription>Regla actual: {summarizeRule(drawerBlock)}</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Modo del bloque</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    variant={drawerBlock.mode === "fulfill" ? "default" : "outline"}
+                    onClick={() => {
+                      if (drawerHasCustomCounteroffer(drawerBlock)) {
+                        setConfirmDiscardCounteroffer(true);
+                        return;
+                      }
+
+                      updateDrawerBlock((current) => ({
+                        ...current,
+                        mode: "fulfill",
+                        modeLabel: getModeLabel("fulfill"),
+                        counteroffer: null,
+                      }));
+                    }}
+                  >
+                    Acepta la regla
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={drawerBlock.mode === "counteroffer" ? "default" : "outline"}
+                    onClick={() =>
+                      updateDrawerBlock((current) => ({
+                        ...current,
+                        mode: "counteroffer",
+                        modeLabel: getModeLabel("counteroffer"),
+                        counteroffer: current.counteroffer ?? {
+                          offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                          exactStickerCodes: [],
+                          note: null,
+                        },
+                      }))
+                    }
+                  >
+                    Propone otra opción
+                  </Button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-muted/40 p-3">
+                <p className="text-sm font-medium text-foreground">
+                  Este bloque habilita {getProposalBlockCapacity(drawerPreviewBlock ?? drawerBlock)}{" "}
+                  unidad
+                  {getProposalBlockCapacity(drawerPreviewBlock ?? drawerBlock) === 1 ? "" : "es"}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {drawerBlock.mode === "fulfill"
+                    ? "La capacidad sale automáticamente de la regla aceptada."
+                    : "La capacidad suma todas las cantidades por tipo y cada cromo exacto opcional."}
+                </p>
+              </div>
+
+              {confirmDiscardCounteroffer ? (
+                <div className="space-y-3 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                  <p className="text-sm font-medium text-foreground">
+                    Volver a aceptar la regla eliminará esta contraoferta personalizada.
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setConfirmDiscardCounteroffer(false)}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setConfirmDiscardCounteroffer(false);
+                        updateDrawerBlock((current) => ({
+                          ...current,
+                          mode: "fulfill",
+                          modeLabel: getModeLabel("fulfill"),
+                          counteroffer: null,
+                        }));
+                        setDrawerExactInput("");
+                      }}
+                    >
+                      Volver a aceptar
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {drawerBlock.mode === "fulfill" ? (
+                <RuleOptions
+                  block={drawerBlock}
+                  title="La regla se puede cumplir con una de estas opciones"
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-foreground">Cantidades por tipo</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {(["PLAYER", "BADGE", "TEAM_PHOTO", "SPECIAL"] as const).map((offerType) => (
+                        <div key={offerType} className="space-y-1">
+                          <label
+                            htmlFor={`drawer-counteroffer-quantity-${offerType}`}
+                            className="text-sm font-medium text-foreground"
+                          >
+                            {OFFER_TYPE_LABEL[offerType]}
+                          </label>
+                          <Input
+                            id={`drawer-counteroffer-quantity-${offerType}`}
+                            type="number"
+                            min={0}
+                            value={drawerBlock.counteroffer?.offers?.[offerType] ?? 0}
+                            onChange={(event) => {
+                              const quantity = Math.max(0, Number(event.target.value || 0));
+                              updateDrawerBlock((current) => ({
+                                ...current,
+                                counteroffer: {
+                                  ...(current.counteroffer ?? {
+                                    offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                                    exactStickerCodes: [],
+                                    note: null,
+                                  }),
+                                  offers: {
+                                    ...((current.counteroffer?.offers ??
+                                      EMPTY_COUNTEROFFER_OFFERS) as Record<OfferType, number>),
+                                    [offerType]: quantity,
+                                  },
+                                },
+                              }));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="drawer-counteroffer-exact"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Cromos exactos opcionales
+                    </label>
+                    <Input
+                      id="drawer-counteroffer-exact"
+                      value={drawerExactInput}
+                      onChange={(event) => {
+                        setDrawerExactInput(event.target.value.toUpperCase());
+                        setDrawerError(null);
+                      }}
+                      placeholder="POR-15, ARG-7"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Separa varios cromos con coma o espacio. Cada cromo exacto suma 1 unidad.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label
+                      htmlFor="drawer-counteroffer-note"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Nota opcional
+                    </label>
+                    <textarea
+                      id="drawer-counteroffer-note"
+                      value={drawerBlock.counteroffer?.note ?? ""}
+                      onChange={(event) => {
+                        const note = event.target.value.trimStart();
+                        updateDrawerBlock((current) => ({
+                          ...current,
+                          counteroffer: {
+                            ...(current.counteroffer ?? {
+                              offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                              exactStickerCodes: [],
+                              note: null,
+                            }),
+                            note: note.length > 0 ? note : null,
+                          },
+                        }));
+                      }}
+                      rows={3}
+                      maxLength={280}
+                      className="flex min-h-20 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      placeholder="Explica rápido tu excepción si hace falta."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {drawerError ? <p className="text-sm text-destructive">{drawerError}</p> : null}
+            </div>
+
+            <DialogFooter showCloseButton={false}>
+              <Button type="button" variant="outline" onClick={closeOfferDrawer}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={saveDrawerChanges}>
+                Guardar cambios
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        ) : null}
+      </Dialog>
     </div>
   );
 }

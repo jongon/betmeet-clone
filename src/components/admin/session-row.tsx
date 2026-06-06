@@ -1,23 +1,17 @@
 "use client";
 
 import { ArchiveIcon, CheckIcon, XIcon } from "lucide-react";
+import Link from "next/link";
 import { useTransition } from "react";
-import { archiveSession, rejectSession } from "@/app/admin/actions";
+import { archiveSession } from "@/app/admin/actions";
 import { AcceptDialog } from "@/components/admin/accept-dialog";
+import { RejectSessionButton } from "@/components/admin/reject-session-button";
+import { SessionStatusBadge } from "@/components/admin/session-status-badge";
 import { ViewSessionQrButton } from "@/components/admin/view-session-qr-button";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { buildAdminSessionDetailPath, formatAdminSessionDate } from "@/lib/admin-session-detail";
 import type { Session } from "@/lib/sessions";
-
-const dateFormatter = new Intl.DateTimeFormat("es", {
-  dateStyle: "short",
-  timeStyle: "short",
-});
-
-function formatDate(iso: string): string {
-  return dateFormatter.format(new Date(iso));
-}
 
 export function SessionRow({
   session,
@@ -30,12 +24,6 @@ export function SessionRow({
   const isOpen = session.status === "open";
   const hasToken = session.token.length > 0;
   const canArchive = allowArchive && session.status === "closed" && !session.archivedAt;
-
-  const onReject = () => {
-    startTransition(() => {
-      void rejectSession(session.id);
-    });
-  };
 
   const onArchive = () => {
     startTransition(() => {
@@ -57,27 +45,27 @@ export function SessionRow({
             >
               {session.cambiadorName}
             </p>
-            {isOpen ? (
-              <Badge variant="secondary" className="bg-chart-4/20 text-foreground">
-                Abierta
-              </Badge>
-            ) : (
-              <Badge variant="secondary" className="bg-muted text-muted-foreground">
-                Cerrada
-              </Badge>
-            )}
+            <SessionStatusBadge session={session} />
           </div>
           <p className="text-sm">
             Ofrece <span className="font-semibold text-foreground">{session.offeredCount}</span> ·
             Te pide <span className="font-semibold text-foreground">{session.requestedCount}</span>
           </p>
           <p className="text-xs" suppressHydrationWarning>
-            {formatDate(session.createdAt)}
+            {formatAdminSessionDate(session.createdAt)}
           </p>
         </div>
 
         {isOpen ? (
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={buildAdminSessionDetailPath(session.id)} />}
+            >
+              Ver detalle
+            </Button>
             {hasToken ? (
               <ViewSessionQrButton
                 token={session.token}
@@ -88,13 +76,11 @@ export function SessionRow({
             <Tooltip>
               <TooltipTrigger
                 render={
-                  <Button
-                    type="button"
+                  <RejectSessionButton
+                    sessionId={session.id}
+                    cambiadorName={session.cambiadorName}
                     variant="ghost"
                     size="icon-sm"
-                    onClick={onReject}
-                    disabled={isPending}
-                    aria-label={`Rechazar sesión de ${session.cambiadorName}`}
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                   />
                 }
@@ -124,7 +110,15 @@ export function SessionRow({
             </AcceptDialog>
           </div>
         ) : canArchive ? (
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={buildAdminSessionDetailPath(session.id)} />}
+            >
+              Ver detalle
+            </Button>
             <Tooltip>
               <TooltipTrigger
                 render={
@@ -144,7 +138,18 @@ export function SessionRow({
               <TooltipContent>{`Archivar sesión de ${session.cambiadorName}`}</TooltipContent>
             </Tooltip>
           </div>
-        ) : null}
+        ) : (
+          <div className="flex flex-wrap items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              nativeButton={false}
+              render={<Link href={buildAdminSessionDetailPath(session.id)} />}
+            >
+              Ver detalle
+            </Button>
+          </div>
+        )}
       </div>
     </li>
   );

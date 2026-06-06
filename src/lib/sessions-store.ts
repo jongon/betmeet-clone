@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { countOfferedItems, countRequestedRepeateds } from "@/lib/cambio-proposal";
+import { markStickersAsCompletedForAdmin, validateMissingStickersForProposal } from "@/lib/missing";
+import { decrementRepeatedInventory, getInventory } from "@/lib/repeateds-store";
 import {
   type Session,
   type SessionProposal,
@@ -185,6 +187,65 @@ export async function acceptSession(id: string): Promise<void> {
   const target = findSession(sessions, id);
   if (!isOpen(target)) return;
   const next = sessions.map((s) => (s.id === id ? { ...s, status: "closed" as const } : s));
+  await writeSessions(next);
+}
+
+export async function acceptPendingSessionForAdmin(id: string, ownerEmail: string): Promise<void> {
+  const sessions = await readSessions();
+  const target = findSession(sessions, id);
+
+  if (!isOpen(target)) {
+    return;
+  }
+
+  if (target.proposal?.status !== "pending") {
+    return;
+  }
+
+  const requestedStickerCodes = target.proposal.blocks.map((block) => block.requestedStickerCode);
+  const missingValidation = await validateMissingStickersForProposal(
+    ownerEmail,
+    requestedStickerCodes,
+  );
+
+  if (missingValidation.status !== "pending") {
+    const next = sessions.map((session) =>
+      session.id === id ? { ...session, status: "closed" as const } : session,
+    );
+    await writeSessions(next);
+    return;
+  }
+
+  const repeatedInventory = await getInventory(ownerEmail);
+  const hasEnoughRepeateds = target.proposal.requestedRepeateds.every(
+    (item) => (repeatedInventory.items[item.stickerCode] ?? 0) >= item.quantity,
+  );
+
+  if (!hasEnoughRepeateds) {
+    const next = sessions.map((session) =>
+      session.id === id ? { ...session, status: "closed" as const } : session,
+    );
+    await writeSessions(next);
+    return;
+  }
+
+  const decremented = await decrementRepeatedInventory(
+    ownerEmail,
+    target.proposal.requestedRepeateds,
+  );
+  if (!decremented.ok) {
+    const next = sessions.map((session) =>
+      session.id === id ? { ...session, status: "closed" as const } : session,
+    );
+    await writeSessions(next);
+    return;
+  }
+
+  await markStickersAsCompletedForAdmin(ownerEmail, requestedStickerCodes);
+
+  const next = sessions.map((session) =>
+    session.id === id ? { ...session, status: "closed" as const } : session,
+  );
   await writeSessions(next);
 }
 

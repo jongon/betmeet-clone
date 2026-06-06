@@ -7,10 +7,14 @@ import {
   buildAvailableRepeatedStickers,
   buildDuplicateExactStickerCodeReason,
   buildEmptyProposal,
+  buildProposalBalanceReason,
   buildProposalBlock,
   buildRequestedStickers,
   countRequestedRepeateds,
   filterRequestedStickers,
+  getCounterofferCapacity,
+  getFulfillBlockCapacity,
+  getProposalBalance,
   isCounterofferValid,
   normalizeProposalDraft,
   normalizeRequestedRepeateds,
@@ -108,7 +112,7 @@ describe("cambio proposal persistence", () => {
     const saved = await getSessionById(session.id);
     assert.equal(saved?.proposal?.status, "pending");
     assert.equal(saved?.requestedCount, 2);
-    assert.equal(saved?.offeredCount, 2);
+    assert.equal(saved?.offeredCount, 3);
   });
 
   test("migrates old 5-step drafts to the 3-step flow", () => {
@@ -169,7 +173,7 @@ describe("cambio proposal helpers", () => {
     const settings = cloneDefaultExchangeSettings();
     const blocks = syncProposalBlocks(["ARG-7", "MEX-1"], [], settings, {
       "ARG-7": {
-        abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
         exact: { stickerCode: "POR-15" },
       },
     });
@@ -282,14 +286,14 @@ describe("cambio proposal helpers", () => {
     const settings = cloneDefaultExchangeSettings();
     const block = buildProposalBlock("ARG-7", settings, {
       "ARG-7": {
-        abstract: { PLAYER: 2, BADGE: 1, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        abstract: { PLAYER: 2, BADGE: 1, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
         exact: { stickerCode: "POR-15" },
       },
     });
 
     assert.equal(
       summarizeRule(block),
-      "Se cambia por 1 badge o por 2 cromos de jugador o por POR-15.",
+      "Se cambia por 1 badge o por 2 cromos de jugador o por 2 cromos de cualquier tipo o por POR-15.",
     );
   });
 
@@ -297,7 +301,7 @@ describe("cambio proposal helpers", () => {
     const settings = cloneDefaultExchangeSettings();
     const block = buildProposalBlock("ARG-7", settings, {
       "ARG-7": {
-        abstract: { PLAYER: 1, BADGE: 1, TEAM_PHOTO: 1, SPECIAL: 1, ANY: 0 },
+        abstract: { PLAYER: 1, BADGE: 1, TEAM_PHOTO: 1, SPECIAL: 1, ANY: 1 },
         exact: null,
       },
     });
@@ -309,7 +313,7 @@ describe("cambio proposal helpers", () => {
     const settings = cloneDefaultExchangeSettings();
     const block = buildProposalBlock("ARG-7", settings, {
       "ARG-7": {
-        abstract: { PLAYER: 2, BADGE: 2, TEAM_PHOTO: 2, SPECIAL: 2, ANY: 0 },
+        abstract: { PLAYER: 2, BADGE: 2, TEAM_PHOTO: 2, SPECIAL: 2, ANY: 2 },
         exact: { stickerCode: "POR-15" },
       },
     });
@@ -426,5 +430,59 @@ describe("cambio proposal helpers", () => {
       reason:
         "No puedes continuar porque MEX-10 no está entre los cromos repetidos del coleccionista.",
     });
+  });
+
+  test("uses the highest positive abstract quantity as fulfill capacity", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const block = buildProposalBlock("ARG-7", settings, {
+      "ARG-7": {
+        abstract: { PLAYER: 2, BADGE: 1, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
+        exact: null,
+      },
+    });
+
+    assert.equal(getFulfillBlockCapacity(block), 2);
+  });
+
+  test("sums counteroffer quantities and exact sticker codes for capacity", () => {
+    assert.equal(
+      getCounterofferCapacity({
+        offers: { PLAYER: 1, BADGE: 2, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        exactStickerCodes: ["POR-15", "ARG-1"],
+        note: null,
+      }),
+      5,
+    );
+  });
+
+  test("computes exact balance and explains missing units", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const blocks = syncProposalBlocks(["ARG-7", "MEX-1"], [], settings, {}).map((block) =>
+      block.requestedStickerCode === "MEX-1"
+        ? {
+            ...block,
+            mode: "counteroffer" as const,
+            modeLabel: "Propone otra opcion" as const,
+            counteroffer: {
+              offers: { PLAYER: 1, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+              exactStickerCodes: ["POR-15"],
+              note: null,
+            },
+          }
+        : block,
+    );
+
+    const balance = getProposalBalance(blocks, [{ stickerCode: "ARG-7", quantity: 5 }]);
+
+    assert.deepEqual(balance, {
+      offeredUnits: 3,
+      requestedUnits: 5,
+      delta: -2,
+      isExact: false,
+    });
+    assert.equal(
+      buildProposalBalanceReason(balance),
+      "Tu propuesta todavía no cierra: faltan 2 unidades por ajustar.",
+    );
   });
 });

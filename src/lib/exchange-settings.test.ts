@@ -5,6 +5,8 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { resolveStickerOverride } from "@/lib/exchange-resolver";
 import {
+  AdminExchangeRuleSchema,
+  buildAnyBelowSpecificRuleReason,
   cloneDefaultExchangeSettings,
   formatExchangeRuleOptions,
   normalizeStickerOverride,
@@ -67,20 +69,20 @@ describe("exchange settings compatibility", () => {
 
   test("writes overrides in the new format", async () => {
     await saveStickerOverride(OWNER_EMAIL, "ARG-14", {
-      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 1 },
+      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
       exact: { stickerCode: "POR-15" },
     });
 
     const raw = JSON.parse(await readFile(exchangeSettingsFile, "utf8"));
     assert.deepEqual(raw[0].overrides["ARG-14"], {
-      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 1 },
+      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
       exact: { stickerCode: "POR-15" },
     });
   });
 
   test("resets an override when toggling back to global", async () => {
     await saveStickerOverride(OWNER_EMAIL, "ARG-14", {
-      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 1 },
+      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
       exact: { stickerCode: "POR-15" },
     });
 
@@ -104,7 +106,7 @@ describe("override normalization and resolver", () => {
 
   test("returns abstract before exact", () => {
     const resolved = resolveStickerOverride({
-      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 1 },
+      abstract: { PLAYER: 2, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 2 },
       exact: { stickerCode: "POR-15" },
     });
 
@@ -135,5 +137,18 @@ describe("override normalization and resolver", () => {
       "2 jugadores",
       "2 cromos cualquiera",
     ]);
+  });
+
+  test("rejects abstract rules when ANY is below the max specific quantity", () => {
+    const parsed = AdminExchangeRuleSchema.safeParse({
+      PLAYER: 3,
+      BADGE: 1,
+      TEAM_PHOTO: 0,
+      SPECIAL: 0,
+      ANY: 2,
+    });
+
+    assert.equal(parsed.success, false);
+    assert.equal(parsed.error?.issues[0]?.message, buildAnyBelowSpecificRuleReason(3));
   });
 });

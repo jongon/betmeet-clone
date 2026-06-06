@@ -11,7 +11,9 @@ import {
 } from "@/lib/cambiador-identity";
 import { buildCambioEntryState } from "@/lib/cambio-entry";
 import {
+  buildProposalBalanceReason,
   collectCounterofferExactStickerCodes,
+  getProposalBalance,
   normalizeProposalDraft,
   syncRequestedRepeatedsWithExactStickerCodes,
   validateUniqueCounterofferExactStickerCodes,
@@ -209,13 +211,20 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
     throw new Error(repeatedValidation.reason);
   }
 
+  const syncedRequestedRepeateds = syncRequestedRepeatedsWithExactStickerCodes(
+    proposal.requestedRepeateds,
+    proposal.blocks,
+    repeatedInventory.items,
+  );
+  const balance = getProposalBalance(proposal.blocks, syncedRequestedRepeateds);
+
+  if (!balance.isExact) {
+    throw new Error(buildProposalBalanceReason(balance));
+  }
+
   const saved = await saveSessionProposal(session.id, {
     ...proposal,
-    requestedRepeateds: syncRequestedRepeatedsWithExactStickerCodes(
-      proposal.requestedRepeateds,
-      proposal.blocks,
-      repeatedInventory.items,
-    ),
+    requestedRepeateds: syncedRequestedRepeateds,
     status: "pending",
     currentStep: 3,
     updatedAt: new Date().toISOString(),

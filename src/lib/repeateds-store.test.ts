@@ -3,7 +3,11 @@ import { mkdtemp, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
-import { getInventory, saveGroupRepeateds } from "@/lib/repeateds-store";
+import {
+  decrementRepeatedInventory,
+  getInventory,
+  saveGroupRepeateds,
+} from "@/lib/repeateds-store";
 
 let tmpDir = "";
 let repeatedsFile = "";
@@ -54,5 +58,31 @@ describe("repeateds store", () => {
 
     const inventory = await getInventory("owner@example.com");
     assert.deepEqual(inventory.items, { "ARG-4": 2, "MEX-1": 3 });
+  });
+
+  test("decrements repeated inventory across multiple groups", async () => {
+    await saveGroupRepeateds("owner@example.com", "ARG", { "ARG-4": 2 }, new Set(["ARG-4"]));
+    await saveGroupRepeateds("owner@example.com", "POR", { "POR-15": 3 }, new Set(["POR-15"]));
+
+    const result = await decrementRepeatedInventory("owner@example.com", [
+      { stickerCode: "ARG-4", quantity: 1 },
+      { stickerCode: "POR-15", quantity: 2 },
+    ]);
+
+    assert.equal(result.ok, true);
+    const inventory = await getInventory("owner@example.com");
+    assert.deepEqual(inventory.items, { "ARG-4": 1, "POR-15": 1 });
+  });
+
+  test("does not persist changes when repeated stock is insufficient", async () => {
+    await saveGroupRepeateds("owner@example.com", "ARG", { "ARG-4": 1 }, new Set(["ARG-4"]));
+
+    const result = await decrementRepeatedInventory("owner@example.com", [
+      { stickerCode: "ARG-4", quantity: 2 },
+    ]);
+
+    assert.deepEqual(result, { ok: false, stickerCode: "ARG-4" });
+    const inventory = await getInventory("owner@example.com");
+    assert.deepEqual(inventory.items, { "ARG-4": 1 });
   });
 });

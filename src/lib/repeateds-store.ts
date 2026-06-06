@@ -83,3 +83,40 @@ export async function saveGroupRepeateds(
   await writeInventories(next);
   return saved;
 }
+
+export async function decrementRepeatedInventory(
+  ownerEmail: string,
+  requestedRepeateds: Array<{ stickerCode: string; quantity: number }>,
+): Promise<{ ok: true; inventory: RepeatedInventory } | { ok: false; stickerCode: string }> {
+  const inventories = await readInventories();
+  const previous = inventories.find((entry) => entry.ownerEmail === ownerEmail);
+  const baseItems = { ...(previous?.items ?? {}) };
+
+  for (const item of requestedRepeateds) {
+    const available = baseItems[item.stickerCode] ?? 0;
+    if (available < item.quantity) {
+      return { ok: false, stickerCode: item.stickerCode };
+    }
+  }
+
+  for (const item of requestedRepeateds) {
+    const nextQuantity = (baseItems[item.stickerCode] ?? 0) - item.quantity;
+    if (nextQuantity > 0) {
+      baseItems[item.stickerCode] = nextQuantity;
+    } else {
+      delete baseItems[item.stickerCode];
+    }
+  }
+
+  const saved = {
+    ownerEmail,
+    updatedAt: new Date().toISOString(),
+    items: baseItems,
+  };
+
+  const next = inventories.filter((entry) => entry.ownerEmail !== ownerEmail);
+  next.push(saved);
+  await writeInventories(next);
+
+  return { ok: true, inventory: saved };
+}

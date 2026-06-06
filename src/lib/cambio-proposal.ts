@@ -7,10 +7,13 @@ import {
   isValidStickerCode,
 } from "@/lib/album-catalog";
 import {
+  buildAnyBelowSpecificRuleReason,
+  type ExchangeRule,
   ExchangeRuleSchema,
   type ExchangeSettings,
   formatExchangeOption,
   getExchangeRuleOptions,
+  getMaxSpecificExchangeQuantity,
   normalizeStickerOverride,
   type OfferType,
   type StickerOverride,
@@ -521,6 +524,68 @@ export function countRequestedRepeateds(requestedRepeateds: RequestedRepeatedIte
   return requestedRepeateds.reduce((total, item) => total + item.quantity, 0);
 }
 
+export function getFulfillBlockCapacity(block: ProposalBlock): number {
+  return Math.max(...Object.values(block.rule.abstract), 0);
+}
+
+export function getCounterofferCapacity(counteroffer: CounterofferDetails | null): number {
+  const normalized = normalizeCounteroffer(counteroffer);
+  return (
+    Object.values(normalized.offers).reduce((total, quantity) => total + quantity, 0) +
+    normalized.exactStickerCodes.length
+  );
+}
+
+export function getProposalBlockCapacity(block: ProposalBlock): number {
+  return block.mode === "counteroffer"
+    ? getCounterofferCapacity(block.counteroffer)
+    : getFulfillBlockCapacity(block);
+}
+
+export function getProposalOfferedUnits(blocks: ProposalBlock[]): number {
+  return blocks.reduce((total, block) => total + getProposalBlockCapacity(block), 0);
+}
+
+export function getProposalRequestedUnits(requestedRepeateds: RequestedRepeatedItem[]): number {
+  return countRequestedRepeateds(requestedRepeateds);
+}
+
+export function getProposalBalance(
+  blocks: ProposalBlock[],
+  requestedRepeateds: RequestedRepeatedItem[],
+): {
+  offeredUnits: number;
+  requestedUnits: number;
+  delta: number;
+  isExact: boolean;
+} {
+  const offeredUnits = getProposalOfferedUnits(blocks);
+  const requestedUnits = getProposalRequestedUnits(requestedRepeateds);
+  return {
+    offeredUnits,
+    requestedUnits,
+    delta: offeredUnits - requestedUnits,
+    isExact: offeredUnits === requestedUnits,
+  };
+}
+
+export function buildProposalBalanceReason(balance: {
+  offeredUnits: number;
+  requestedUnits: number;
+  delta: number;
+}): string {
+  if (balance.delta > 0) {
+    return `Tu propuesta todavía no cierra: sobran ${balance.delta} unidad${balance.delta === 1 ? "" : "es"} por ajustar.`;
+  }
+
+  if (balance.delta < 0) {
+    const missing = Math.abs(balance.delta);
+    return `Tu propuesta todavía no cierra: faltan ${missing} unidad${missing === 1 ? "" : "es"} por ajustar.`;
+  }
+
+  return "Tu propuesta está balanceada.";
+}
+
 export function isCounterofferValid(block: ProposalBlock): boolean {
   if (block.mode !== "counteroffer") {
     return true;
@@ -534,20 +599,7 @@ export function isCounterofferValid(block: ProposalBlock): boolean {
 }
 
 export function countOfferedItems(blocks: ProposalBlock[]): number {
-  return blocks.reduce((total, block) => {
-    if (block.mode === "counteroffer") {
-      const quantity = Math.max(
-        ...Object.values(normalizeCounteroffer(block.counteroffer).offers),
-        0,
-      );
-      const exactCount = block.counteroffer?.exactStickerCodes.length ?? 0;
-      return total + Math.max(quantity, exactCount);
-    }
-
-    return (
-      total + block.fulfillRequirements.reduce((subtotal, item) => subtotal + item.quantity, 0)
-    );
-  }, 0);
+  return getProposalOfferedUnits(blocks);
 }
 
 export function getDecisionSummary(blocks: ProposalBlock[]): {
@@ -608,6 +660,18 @@ export function validateExactStickerCodesAgainstAvailableItems(
         reason: buildExactStickerNotRepeatedReason(stickerCode),
       };
     }
+  }
+
+  return { ok: true };
+}
+
+export function validateExchangeRuleConsistency(
+  rule: ExchangeRule,
+): { ok: true } | { ok: false; reason: string } {
+  const maxSpecific = getMaxSpecificExchangeQuantity(rule);
+
+  if (rule.ANY < maxSpecific) {
+    return { ok: false, reason: buildAnyBelowSpecificRuleReason(maxSpecific) };
   }
 
   return { ok: true };

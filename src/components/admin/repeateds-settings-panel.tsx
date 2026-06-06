@@ -19,6 +19,11 @@ type PanelProps = {
   onGlobalSaved?: (globalSettings: ExchangeSettings) => void;
 };
 
+type GlobalStatus =
+  | { tone: "idle"; message: string }
+  | { tone: "saved"; message: string }
+  | { tone: "error"; message: string };
+
 function cloneGlobalSettings(globalSettings: ExchangeSettings): ExchangeSettings {
   return {
     PLAYER: { ...globalSettings.PLAYER },
@@ -30,7 +35,7 @@ function cloneGlobalSettings(globalSettings: ExchangeSettings): ExchangeSettings
 
 export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelProps) {
   const [isSavingGlobal, startSavingGlobal] = useTransition();
-  const [status, setStatus] = useState<"idle" | "saved-global" | "error">("idle");
+  const [status, setStatus] = useState<GlobalStatus>({ tone: "idle", message: "" });
   const [expanded, setExpanded] = useState(false);
 
   const [draftGlobal, setDraftGlobal] = useState<ExchangeSettings>(() =>
@@ -45,7 +50,7 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
         [offerType]: normalizeNumber(value),
       },
     }));
-    setStatus("idle");
+    setStatus({ tone: "idle", message: "" });
   };
 
   const saveGlobal = () => {
@@ -53,9 +58,12 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
       try {
         await saveGlobalExchangeSettingsAction(draftGlobal);
         onGlobalSaved?.(draftGlobal);
-        setStatus("saved-global");
-      } catch {
-        setStatus("error");
+        setStatus({ tone: "saved", message: "Opciones globales guardadas." });
+      } catch (error) {
+        setStatus({
+          tone: "error",
+          message: error instanceof Error ? error.message : "No se pudo guardar la configuración.",
+        });
       }
     });
   };
@@ -121,10 +129,10 @@ export function RepeatedsSettingsPanel({ globalSettings, onGlobalSaved }: PanelP
             ))}
           </div>
 
-          {status === "saved-global" ? (
-            <p className="text-xs text-muted-foreground">Opciones globales guardadas.</p>
-          ) : status === "error" ? (
-            <p className="text-xs text-destructive">No se pudo guardar la configuración.</p>
+          {status.tone === "saved" ? (
+            <p className="text-xs text-muted-foreground">{status.message}</p>
+          ) : status.tone === "error" ? (
+            <p className="text-xs text-destructive">{status.message}</p>
           ) : null}
         </>
       ) : null}

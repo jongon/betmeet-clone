@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type ReactNode, useState, useTransition } from "react";
 import { acceptSession } from "@/app/admin/actions";
 import { Button } from "@/components/ui/button";
@@ -18,17 +19,25 @@ export function AcceptDialog({
   sessionId,
   cambiadorName,
   children,
+  redirectTo,
 }: {
   sessionId: string;
   cambiadorName: string;
   children: ReactNode;
+  redirectTo?: string;
 }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const onConfirm = () => {
     startTransition(async () => {
       await acceptSession(sessionId);
+      if (redirectTo) {
+        router.push(redirectTo);
+        return;
+      }
+
       setOpen(false);
     });
   };

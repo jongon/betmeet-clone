@@ -44,6 +44,26 @@ export const ExchangeRuleSchema = z.object({
 
 export type ExchangeRule = z.infer<typeof ExchangeRuleSchema>;
 
+export function getMaxSpecificExchangeQuantity(rule: ExchangeRule): number {
+  return Math.max(rule.PLAYER, rule.BADGE, rule.TEAM_PHOTO, rule.SPECIAL, 0);
+}
+
+export function buildAnyBelowSpecificRuleReason(maxSpecific: number): string {
+  return `Cualquiera debe ser igual o mayor que la opcion especifica mas alta (${maxSpecific}).`;
+}
+
+export const AdminExchangeRuleSchema = ExchangeRuleSchema.superRefine((rule, ctx) => {
+  const maxSpecific = getMaxSpecificExchangeQuantity(rule);
+
+  if (rule.ANY < maxSpecific) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["ANY"],
+      message: buildAnyBelowSpecificRuleReason(maxSpecific),
+    });
+  }
+});
+
 export function getExchangeRuleOptions(
   rule: ExchangeRule,
 ): Array<{ offerType: OfferType; quantity: number }> {
@@ -72,17 +92,17 @@ export const ExactStickerRuleSchema = z.object({
 export type ExactStickerRule = z.infer<typeof ExactStickerRuleSchema>;
 
 export const StickerOverrideSchema = z.object({
-  abstract: ExchangeRuleSchema.nullable(),
+  abstract: AdminExchangeRuleSchema.nullable(),
   exact: ExactStickerRuleSchema.nullable(),
 });
 
 export type StickerOverride = z.infer<typeof StickerOverrideSchema>;
 
 export const ExchangeSettingsSchema = z.object({
-  PLAYER: ExchangeRuleSchema,
-  BADGE: ExchangeRuleSchema,
-  TEAM_PHOTO: ExchangeRuleSchema,
-  SPECIAL: ExchangeRuleSchema,
+  PLAYER: AdminExchangeRuleSchema,
+  BADGE: AdminExchangeRuleSchema,
+  TEAM_PHOTO: AdminExchangeRuleSchema,
+  SPECIAL: AdminExchangeRuleSchema,
 });
 
 export type ExchangeSettings = z.infer<typeof ExchangeSettingsSchema>;
