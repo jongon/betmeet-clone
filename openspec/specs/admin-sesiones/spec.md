@@ -4,7 +4,7 @@
 TBD - created by archiving change admin-home-sesiones-cambio. Update Purpose after archive.
 ## Requirements
 ### Requirement: Listar sesiones de cambio en /admin
-El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio" obtenidas desde el repositorio de sesiones. Cada fila SHALL mostrar como mínimo: nombre del cambiador, cantidad de cromos ofrecidos, cantidad de cromos solicitados, fecha y hora de creación, y un indicador de estado (badge "Abierta" o "Cerrada"). La página SHALL excluir del listado principal cualquier sesión con `archivedAt` no nulo y SHALL usar los tokens semánticos del design system para la diferenciación visual: las filas abiertas con tinte de verde semántico derivado de `chart-4` (`bg-chart-4/8 border-chart-4/35`) y las cerradas con tinte neutro (`bg-muted text-muted-foreground`); el badge "Abierta" SHALL usar el mismo tratamiento verde suave (`bg-chart-4/20 text-foreground`) y el badge "Cerrada" SHALL usar tokens muted. La fecha y hora SHALL formatearse con `Intl.DateTimeFormat('es', { dateStyle: 'short', timeStyle: 'short' })` para que sea legible en light y dark mode.
+El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio" obtenidas desde el repositorio de sesiones. Cada fila SHALL mostrar como mínimo: nombre del cambiador, cantidad de cromos ofrecidos, cantidad de cromos solicitados, fecha y hora de creación, y un indicador de estado (badge "Abierta" o "Cerrada"). La página SHALL excluir del listado principal cualquier sesión con `archivedAt` no nulo y SHALL usar los tokens semánticos del design system para la diferenciación visual: las filas abiertas con tinte de verde semántico derivado de `chart-4` (`bg-chart-4/8 border-chart-4/35`) y las cerradas con tinte neutro (`bg-muted text-muted-foreground`); el badge "Abierta" SHALL usar el mismo tratamiento verde suave (`bg-chart-4/20 text-foreground`) y el badge "Cerrada" SHALL usar tokens muted. Cada fila SHALL ofrecer además una acción visible `Ver detalle` para abrir la ruta `/admin/sesiones/[id]` sin quitar las acciones rápidas existentes de aceptar o rechazar cuando la sesión siga abierta. La fecha y hora SHALL formatearse con `Intl.DateTimeFormat('es', { dateStyle: 'short', timeStyle: 'short' })` para que sea legible en light y dark mode.
 
 #### Scenario: Admin ve múltiples sesiones no archivadas
 - **WHEN** el admin autenticado navega a `/admin` y el repositorio contiene sesiones abiertas, cerradas no archivadas y archivadas
@@ -18,16 +18,36 @@ El sistema SHALL renderizar en la ruta `/admin` una lista de "sesiones de cambio
 - **WHEN** la lista se renderiza con al menos una sesión abierta y una cerrada no archivada
 - **THEN** las filas abiertas tienen fondo y borde con tinte verde semántico, mientras que las cerradas tienen fondo muted y texto muted-foreground, distinguiéndolas a simple vista
 
-### Requirement: Aceptar sesión con confirmación
-El sistema SHALL permitir aceptar una sesión abierta mediante un botón con icono de check (✓) presente solo en filas con `status: "open"`. Al hacer clic en el botón de aceptar, el sistema SHALL abrir un `Dialog` con un mensaje de confirmación que mencione el nombre del cambiador y pida confirmar o cancelar. Al confirmar, el sistema SHALL invocar la Server Action `acceptSession(id)` que cambia el `status` de la sesión a `"closed"` y SHALL llamar a `revalidatePath('/admin')` para que la lista se re-renderice con los datos actualizados sin recarga de página. Si el usuario cancela el dialog, el sistema SHALL no invocar la Server Action y SHALL cerrar el dialog sin cambios.
+#### Scenario: Ver detalle desde la fila
+- **WHEN** el admin revisa una fila en `/admin`
+- **THEN** la fila muestra una acción `Ver detalle` que abre `/admin/sesiones/[id]` sin eliminar las acciones rápidas ya existentes
 
-#### Scenario: Admin acepta una sesión abierta
-- **WHEN** el admin hace clic en el botón ✓ de una sesión abierta, confirma el dialog
-- **THEN** la Server Action cambia el `status` de esa sesión a `closed`, la lista se re-renderiza, y la sesión aceptada aparece en el grupo de cerradas
+### Requirement: Aceptar sesión con confirmación
+El sistema SHALL permitir aceptar una sesión abierta mediante un botón con icono de check (✓) presente solo en filas con `status: "open"`. Al hacer clic en el botón de aceptar, el sistema SHALL abrir un `Dialog` con un mensaje de confirmación que mencione el nombre del cambiador y pida confirmar o cancelar. Al confirmar, el sistema SHALL invocar la Server Action `acceptSession(id)` solo si la sesión sigue `open`, existe `proposal` y `proposal.status === "pending"`.
+
+Si la propuesta pendiente sigue siendo válida contra los inventarios actuales del admin, el sistema SHALL aplicar el intercambio aceptado antes de cerrar la sesión: SHALL desmarcar de faltantes los `requestedStickerCode` de `proposal.blocks`, SHALL descontar del inventario de repetidos los `requestedRepeateds`, y luego SHALL cambiar el `status` de la sesión a `"closed"`. Si el usuario cancela el dialog, el sistema SHALL no invocar la Server Action y SHALL cerrar el dialog sin cambios.
+
+Si al confirmar la propuesta ya no es aceptable porque alguno de los cromos solicitados ya no está marcado como faltante o porque los repetidos actuales no alcanzan para cubrir `requestedRepeateds`, el sistema SHALL rechazar la aceptación, SHALL cerrar la sesión igualmente y SHALL dejar intactos los inventarios.
+
+#### Scenario: Admin acepta una sesión abierta con propuesta vigente
+- **WHEN** el admin hace clic en el botón ✓ de una sesión abierta con `proposal.status: "pending"`, confirma el dialog y el inventario actual sigue siendo compatible con esa propuesta
+- **THEN** el sistema consume el intercambio en faltantes y repetidos, cambia el `status` de esa sesión a `closed`, la lista se re-renderiza, y la sesión aceptada aparece en el grupo de cerradas
 
 #### Scenario: Admin cancela el dialog de aceptar
 - **WHEN** el admin abre el dialog de aceptar y hace clic en "Cancelar"
 - **THEN** el dialog se cierra, la Server Action no se invoca, y la sesión permanece abierta
+
+#### Scenario: Admin intenta aceptar una sesión desfasada por faltantes
+- **WHEN** el admin confirma la aceptación de una sesión pendiente y uno de los `requestedStickerCode` ya no está marcado como faltante
+- **THEN** el sistema rechaza la aceptación, cierra la sesión, y no modifica ni faltantes ni repetidos
+
+#### Scenario: Admin intenta aceptar una sesión desfasada por repetidos
+- **WHEN** el admin confirma la aceptación de una sesión pendiente y el inventario actual ya no alcanza para cubrir alguno de los `requestedRepeateds`
+- **THEN** el sistema rechaza la aceptación, cierra la sesión, y no modifica ni faltantes ni repetidos
+
+#### Scenario: Admin intenta aceptar una sesión sin propuesta pendiente
+- **WHEN** la operación de aceptar recibe una sesión abierta sin `proposal` o con un `proposal.status` distinto de `pending`
+- **THEN** el sistema no aplica inventario, no descuenta dos veces, deja la sesión abierta y trata la operación como no-op defensivo
 
 #### Scenario: Botón de aceptar no aparece en sesiones cerradas
 - **WHEN** la lista incluye sesiones cerradas
@@ -41,11 +61,11 @@ El sistema SHALL permitir rechazar una sesión abierta mediante un botón con ic
 - **THEN** la Server Action cambia el `status` de esa sesión a `closed` y la lista se re-renderiza sin abrir ningún dialog
 
 ### Requirement: Sesión cerrada es definitiva
-El sistema SHALL garantizar que una sesión con `status: "closed"` no pueda transicionar de vuelta a `open`. Si una Server Action (`acceptSession` o `rejectSession`) recibe un `id` de una sesión que ya está `closed`, el sistema SHALL tratarlo como un no-op y SHALL no modificar el repositorio. El botón ✓ y el botón ✗ SHALL renderizarse únicamente en filas con `status: "open"`. Una sesión cerrada SHALL poder archivarse como acción separada de organización, sin cambiar su `status`.
+El sistema SHALL garantizar que una sesión con `status: "closed"` no pueda transicionar de vuelta a `open`. Si una Server Action (`acceptSession` o `rejectSession`) recibe un `id` de una sesión que ya está `closed`, el sistema SHALL tratarlo como un no-op y SHALL no modificar el repositorio ni volver a descontar inventario. El botón ✓ y el botón ✗ SHALL renderizarse únicamente en filas con `status: "open"`. Una sesión cerrada SHALL poder archivarse como acción separada de organización, sin cambiar su `status`.
 
 #### Scenario: Acción sobre sesión cerrada
 - **WHEN** la Server Action `acceptSession` o `rejectSession` recibe un `id` de una sesión con `status: "closed"`
-- **THEN** el sistema no modifica el estado de la sesión y la lista permanece sin cambios
+- **THEN** el sistema no modifica el estado de la sesión, no vuelve a consumir inventarios y la lista permanece sin cambios
 
 #### Scenario: Sesión cerrada puede archivarse sin reabrirse
 - **WHEN** el admin archiva una sesión con `status: "closed"`
@@ -82,7 +102,7 @@ El sistema SHALL proporcionar un selector tipo Tabs (Todas / Abiertas / Cerradas
 - **THEN** la lista muestra solo sesiones abiertas cuyo `cambiadorName` contiene "mar"
 
 ### Requirement: Actualización sin recarga tras acciones
-El sistema SHALL actualizar la lista de sesiones en pantalla sin requerir un reload completo del navegador después de que el admin acepte o rechace una sesión. La implementación SHALL usar Server Actions que muten el repositorio y SHALL invocar `revalidatePath('/admin')` para que el Server Component se re-renderice con datos frescos. La lista resultante (incluyendo filtros y sort) SHALL llegar al Client Component a través de props re-frescas.
+El sistema SHALL actualizar la lista de sesiones en pantalla sin requerir un reload completo del navegador después de que el admin acepte o rechace una sesión. La implementación SHALL usar Server Actions que muten el repositorio y SHALL invocar `revalidatePath('/admin')` para que el Server Component se re-renderice con datos frescos. Cuando la aceptación consuma inventario o cierre una sesión por inconsistencia, la implementación SHALL además revalidar `/admin/cromos` y `/admin/cromos/faltantes` para reflejar el estado final sin recarga completa. La lista resultante (incluyendo filtros y sort) SHALL llegar al Client Component a través de props re-frescas.
 
 #### Scenario: Lista actualizada tras aceptar
 - **WHEN** el admin acepta una sesión y la Server Action retorna
@@ -92,8 +112,12 @@ El sistema SHALL actualizar la lista de sesiones en pantalla sin requerir un rel
 - **WHEN** el admin rechaza una sesión y la Server Action retorna
 - **THEN** la fila de esa sesión desaparece del grupo de abiertas y aparece en el de cerradas sin recarga
 
+#### Scenario: Inventarios reflejan una aceptación válida
+- **WHEN** el admin acepta una sesión pendiente vigente y la Server Action retorna
+- **THEN** `/admin/cromos` y `/admin/cromos/faltantes` muestran los inventarios actualizados sin requerir recarga manual
+
 ### Requirement: Repositorio de sesiones abstracto y swappable
-El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funciones asíncronas: `getAllSessions()`, `acceptSession(id: string)`, `rejectSession(id: string)` y una operación de archivado para sesiones cerradas. El módulo SHALL usar internamente un archivo JSON (`data/sessions.json`, gitignored) como backing store. Si el archivo no existe en el primer acceso, el sistema SHALL inicializarlo copiando desde `data/sessions.seed.json` (commited al repo con datos de ejemplo). Las funciones SHALL ser la única vía de acceso a los datos desde la UI y Server Actions; ningún componente SHALL leer el archivo directamente. La forma de los datos SHALL validarse con Zod al leer para defenderse de edición manual corrupta, y el store SHALL normalizar etiquetas legacy conocidas de propuestas persistidas y sesiones sin `archivedAt` para mantener compatibilidad con datos históricos válidos.
+El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funciones asíncronas: `getAllSessions()`, `acceptSession(id: string)`, `rejectSession(id: string)` y una operación de archivado para sesiones cerradas. El módulo SHALL usar internamente un archivo JSON (`data/sessions.json`, gitignored) como backing store. Si el archivo no existe en el primer acceso, el sistema SHALL inicializarlo copiando desde `data/sessions.seed.json` (commited al repo con datos de ejemplo). Las funciones SHALL ser la única vía de acceso a los datos desde la UI y Server Actions; ningún componente SHALL leer el archivo directamente. La forma de los datos SHALL validarse con Zod al leer para defenderse de edición manual corrupta, y el store SHALL normalizar etiquetas legacy conocidas de propuestas persistidas y sesiones sin `archivedAt` para mantener compatibilidad con datos históricos válidos. La operación semántica de aceptar una sesión pendiente SHALL validar el estado actual de la propuesta y coordinar el consumo de inventario antes de cerrar la sesión. Si la propuesta ya no es aplicable, la operación SHALL cerrar la sesión sin consumir inventario. La operación SHALL ser idempotente para sesiones ya cerradas.
 
 #### Scenario: Primera lectura siembra el archivo
 - **WHEN** la app arranca y `data/sessions.json` no existe
@@ -103,9 +127,13 @@ El sistema SHALL exponer un módulo `src/lib/sessions-store.ts` que provea funci
 - **WHEN** `data/sessions.json` ya existe
 - **THEN** `getAllSessions()` lee su contenido sin sobrescribirlo
 
-#### Scenario: Accept modifica el archivo
-- **WHEN** el admin acepta una sesión con `id: "ses_01"`
-- **THEN** `acceptSession("ses_01")` actualiza `data/sessions.json` cambiando el `status` de esa sesión a `closed`
+#### Scenario: Accept modifica archivo e inventario solo cuando procede
+- **WHEN** el admin acepta una sesión con propuesta pendiente todavía vigente
+- **THEN** la operación actualiza el `status` a `closed` y además coordina el consumo de faltantes y repetidos
+
+#### Scenario: Accept cierra sin consumir por inventario desfasado
+- **WHEN** el admin acepta una sesión con propuesta pendiente que ya no puede cumplirse con el inventario actual
+- **THEN** la operación deja intactos faltantes y repetidos, pero persiste la sesión como `closed`
 
 #### Scenario: Archivo corrupto
 - **WHEN** `data/sessions.json` contiene JSON inválido o datos que no pasan el schema Zod

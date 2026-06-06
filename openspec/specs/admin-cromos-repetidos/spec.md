@@ -70,11 +70,23 @@ En viewport `< 768px`, el sistema SHALL mostrar un único cromo a la vez con con
 - **THEN** el cromo visible cambia y el indicador refleja la posición actual
 
 ### Requirement: Persistencia de inventario por admin
-El sistema SHALL persistir los repetidos en un repositorio JSON swappable por `ownerEmail`, con auto-seed desde `data/repeateds.seed.json`. El inventario SHALL almacenarse como record sparse de `stickerCode -> cantidad` y las cantidades 0 SHALL eliminarse del record antes de persistir. La lectura SHALL validarse con Zod.
+El sistema SHALL persistir los repetidos en un repositorio JSON swappable por `ownerEmail`, con auto-seed desde `data/repeateds.seed.json`. El inventario SHALL almacenarse como record sparse de `stickerCode -> cantidad` y las cantidades 0 SHALL eliminarse del record antes de persistir. La lectura SHALL validarse con Zod. El sistema SHALL permitir que una aceptacion valida de sesion descuente cantidades arbitrarias del inventario global de repetidos del admin, incluso cuando la propuesta mezcle cromos de varios grupos. La operacion SHALL rechazar cantidades negativas y SHALL no persistir cambios si alguna resta requerida supera el stock actual.
 
 #### Scenario: Persistencia sparse
 - **WHEN** el admin guarda un grupo con varias cantidades en 0
 - **THEN** el repositorio persiste solo las cantidades positivas
+
+#### Scenario: Descuento valido sobre varios grupos
+- **WHEN** una propuesta aceptada pide `ARG-7 x1` y `POR-15 x2` y ambas cantidades existen en el inventario actual
+- **THEN** el sistema persiste el inventario con esas cantidades descontadas, aunque pertenezcan a grupos distintos
+
+#### Scenario: Descuento que agota un cromo
+- **WHEN** una propuesta aceptada pide exactamente la ultima copia disponible de un cromo repetido
+- **THEN** el sistema descuenta la cantidad y elimina ese codigo del record sparse persistido
+
+#### Scenario: Repetidos insuficientes al aceptar
+- **WHEN** una propuesta pendiente pide una cantidad mayor a la disponible en algun cromo repetido al momento de aceptar
+- **THEN** el sistema rechaza la aceptacion, cierra la sesion y no persiste cambios en repetidos
 
 ### Requirement: Guardado por equipo completo
 El sistema SHALL guardar los cambios del grupo seleccionado en una única acción, validando que las cantidades sean enteros no negativos y que los códigos pertenezcan al grupo. Al finalizar, SHALL revalidar `/admin/cromos`.

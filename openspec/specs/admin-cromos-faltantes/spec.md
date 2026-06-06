@@ -101,10 +101,10 @@ El sistema SHALL exponer la funcion `isStickerMissingForAdmin(ownerEmail, sticke
 - **THEN** la funcion devuelve `false`
 
 ### Requirement: Hook de marcado como completado con lista completa
-El sistema SHALL exponer la funcion `markStickersAsCompletedForAdmin(ownerEmail, stickerCodes[])` que elimina del inventario los cromos indicados. La funcion SHALL operar en una sola llamada con la lista completa, SHALL ser idempotente y SHALL actualizar `updatedAt` solo si hay cambios efectivos.
+El sistema SHALL exponer la funcion `markStickersAsCompletedForAdmin(ownerEmail, stickerCodes[])` para que una aceptacion valida de sesion pueda eliminar del inventario los cromos recibidos por el coleccionista. La funcion SHALL operar en una sola llamada con la lista completa, SHALL ser idempotente y SHALL actualizar `updatedAt` solo si hay cambios efectivos.
 
-#### Scenario: Marcar varios como completados
-- **WHEN** la spec futura invoca `markStickersAsCompletedForAdmin` con una lista de cromos faltantes
+#### Scenario: Aceptacion valida completa varios faltantes
+- **WHEN** una operacion futura de aceptacion de sesion invoca `markStickersAsCompletedForAdmin` con todos los `requestedStickerCode` de una propuesta vigente
 - **THEN** el sistema elimina esos cromos del inventario en una sola operacion y actualiza `updatedAt`
 
 #### Scenario: Lista con cromo no faltante
@@ -149,12 +149,12 @@ El sistema SHALL permitir que un mismo cromo este marcado como faltante y tambie
 - **THEN** cada vista refleja su propio inventario sin afectar al otro
 
 ### Requirement: Rechazo automatico de propuestas con cromo no faltante
-El sistema SHALL permitir a la spec futura de aprobacion de propuestas invocar la validacion de faltantes en el momento del envio y de la aprobacion. Si un cromo solicitado ya no es faltante, la propuesta SHALL persistirse con estado `rechazada automaticamente` y SHALL registrar el motivo para el admin.
+El sistema SHALL permitir a la spec futura de aprobacion de propuestas invocar la validacion de faltantes en el momento del envio y de la aceptacion. Si un cromo solicitado ya no es faltante al momento de aceptar, la aceptacion SHALL rechazarse, la sesion SHALL cerrarse, y el inventario SHALL permanecer intacto. Si un cromo solicitado ya no es faltante al momento del envio, la propuesta SHALL persistirse con estado `rechazada automaticamente` y SHALL registrar el motivo para el admin.
 
 #### Scenario: Propuesta con cromo no faltante al envio
 - **WHEN** el flujo publico envia una propuesta y uno de los cromos solicitados ya no es faltante
 - **THEN** el sistema persiste la propuesta como `rechazada automaticamente` y registra el cromo que causo el rechazo
 
-#### Scenario: Propuesta pendiente que pierde un cromo antes de aprobarse
-- **WHEN** una propuesta pendiente incluye un cromo y el admin lo marca como completado o lo quita de faltantes
-- **THEN** la spec futura de aprobacion detecta el cambio y persiste la propuesta como `rechazada automaticamente` al evaluarla
+#### Scenario: Propuesta pendiente que pierde un cromo antes de aceptarse
+- **WHEN** una propuesta pendiente incluye un cromo y el admin lo marca como completado o lo quita de faltantes antes de aprobarla
+- **THEN** la operacion de aceptacion detecta el cambio, rechaza la aceptacion, cierra la sesion y no modifica inventarios
