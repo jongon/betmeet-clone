@@ -13,7 +13,8 @@ import { buildCambioEntryState } from "@/lib/cambio-entry";
 import {
   collectCounterofferExactStickerCodes,
   normalizeProposalDraft,
-  normalizeRequestedRepeateds,
+  syncRequestedRepeatedsWithExactStickerCodes,
+  validateUniqueCounterofferExactStickerCodes,
 } from "@/lib/cambio-proposal";
 import { getExchangeSettings } from "@/lib/exchange-settings-store";
 import {
@@ -145,10 +146,17 @@ export async function saveCambioProposalDraftAction(input: unknown): Promise<Ses
   const settings = await getExchangeSettings(qrToken.ownerEmail);
   const repeatedInventory = await getInventory(qrToken.ownerEmail);
   const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
+  const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(proposal.blocks);
+
+  if (!duplicateExactCodes.ok) {
+    throw new Error(duplicateExactCodes.reason);
+  }
+
   const saved = await saveSessionProposal(parsed.sessionId, {
     ...proposal,
-    requestedRepeateds: normalizeRequestedRepeateds(
+    requestedRepeateds: syncRequestedRepeatedsWithExactStickerCodes(
       proposal.requestedRepeateds,
+      proposal.blocks,
       repeatedInventory.items,
     ),
     status: "draft",
@@ -186,6 +194,12 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
   }
 
   const exactStickerCodes = collectCounterofferExactStickerCodes(proposal.blocks);
+  const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(proposal.blocks);
+
+  if (!duplicateExactCodes.ok) {
+    throw new Error(duplicateExactCodes.reason);
+  }
+
   const repeatedValidation = validateExactStickersAgainstRepeateds(
     exactStickerCodes,
     repeatedInventory.items,
@@ -197,8 +211,9 @@ export async function submitCambioProposalAction(input: unknown): Promise<Sessio
 
   const saved = await saveSessionProposal(session.id, {
     ...proposal,
-    requestedRepeateds: normalizeRequestedRepeateds(
+    requestedRepeateds: syncRequestedRepeatedsWithExactStickerCodes(
       proposal.requestedRepeateds,
+      proposal.blocks,
       repeatedInventory.items,
     ),
     status: "pending",
@@ -233,6 +248,15 @@ export async function validateCambioProposalStepAction(
   const settings = await getExchangeSettings(qrToken.ownerEmail);
   const repeatedInventory = await getInventory(qrToken.ownerEmail);
   const proposal = normalizeProposalDraft(parsed.proposal, settings.global, settings.overrides);
+  const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(proposal.blocks);
+
+  if (!duplicateExactCodes.ok) {
+    return {
+      ok: false,
+      stickerCode: duplicateExactCodes.stickerCode,
+      reason: duplicateExactCodes.reason,
+    };
+  }
 
   const missingValidation = await validateMissingStickersForProposal(
     qrToken.ownerEmail,

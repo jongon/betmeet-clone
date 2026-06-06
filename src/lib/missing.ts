@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { isValidStickerCode } from "@/lib/album-catalog";
+import { buildExactStickerNotRepeatedReason } from "@/lib/cambio-proposal";
 import {
   MissingInventoriesSchema,
   type MissingInventory,
@@ -24,6 +25,7 @@ export type MissingProposalValidation =
     };
 
 export {
+  buildExactStickerNotRepeatedReason,
   MissingInventoriesSchema,
   MissingInventorySchema,
   MissingRecordSchema,
@@ -86,11 +88,6 @@ export async function clearMissingInventoryForAdmin(ownerEmail: string): Promise
 export function buildMissingStickerAutoRejectionReason(stickerCode: string): string {
   MissingStickerCodeSchema.parse(stickerCode);
   return `La propuesta se rechazó automáticamente porque ${stickerCode} ya no está marcado como faltante.`;
-}
-
-export function buildExactStickerNotRepeatedReason(stickerCode: string): string {
-  MissingStickerCodeSchema.parse(stickerCode);
-  return `No puedes continuar porque ${stickerCode} no está entre los cromos repetidos del coleccionista.`;
 }
 
 // Consumidoras futuras: validar al enviar o aprobar y persistir el motivo devuelto.

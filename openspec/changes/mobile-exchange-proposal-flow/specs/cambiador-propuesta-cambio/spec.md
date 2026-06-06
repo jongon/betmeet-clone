@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Wizard mobile de 4 pasos para propuesta de intercambio
-El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 4 pasos para crear una propuesta de intercambio: (1) seleccionar cromos que el coleccionista quiere recibir viendo ya la regla aplicable, (2) seleccionar desde los repetidos reales del coleccionista lo que el cambiador quiere recibir y decidir por cada bloque si acepta la regla o si propone otra opcion, (3) completar detalles de las contraofertas, y (4) revisar y enviar el resumen final.
+El sistema SHALL exponer, dentro de la sesion publica del cambiador en `/cambio/[token]`, un wizard mobile de 4 pasos para crear una propuesta de intercambio: (1) seleccionar cromos que el coleccionista quiere recibir viendo ya la regla aplicable y pudiendo marcar `Proponer otra opcion`, (2) seleccionar desde los repetidos reales del coleccionista lo que el cambiador quiere recibir, (3) completar detalles de las contraofertas, y (4) revisar y enviar el resumen final.
 
 #### Scenario: Progreso secuencial del wizard
 - **WHEN** el cambiador entra a una sesion abierta y comienza a armar su propuesta
@@ -55,6 +55,21 @@ En el paso 2, el sistema SHALL mostrar el inventario real de repetidos del colec
 #### Scenario: Repetido sin stock suficiente
 - **WHEN** el cambiador intenta pedir mas copias de un cromo de las que existen en repetidos
 - **THEN** el sistema impide superar la cantidad disponible en el inventario del coleccionista
+
+### Requirement: Sincronizacion automatica de cromos exactos opcionales con repetidos solicitados
+El sistema SHALL agregar automaticamente a la lista global de repetidos solicitados del paso 2 todo `exactStickerCode` valido escrito en una contraoferta. Esos cromos SHALL permanecer seleccionados y no SHALL poder desmarcarse manualmente mientras sigan referenciados por alguna contraoferta activa.
+
+#### Scenario: Cromo exacto valido aparece marcado en paso 2
+- **WHEN** el cambiador escribe `POR-15` como cromo exacto opcional en una contraoferta valida
+- **THEN** el sistema marca automaticamente `POR-15` en el paso 2 dentro de los repetidos que quiere recibir el cambiador
+
+#### Scenario: Cromo exacto sincronizado queda bloqueado en paso 2
+- **WHEN** un repetido fue marcado automaticamente porque esta referenciado por una contraoferta activa
+- **THEN** el sistema lo muestra con una diferenciacion visual de card bloqueada y no permite desmarcarlo manualmente en el paso 2
+
+#### Scenario: Quitar la referencia libera el repetido sincronizado
+- **WHEN** el cambiador elimina `POR-15` de la contraoferta o quita esa contraoferta
+- **THEN** el sistema deja de tratar `POR-15` como repetido bloqueado por el paso 1 y vuelve a permitir editarlo en el paso 2
 
 ### Requirement: Decision por bloque entre cumplir o contraofertar
 En el paso 1, el sistema SHALL dejar por defecto cada bloque nuevo en modo `Aceptar la regla` y SHALL ofrecer en la misma fila una unica accion visible para desviarse: `Proponer otra opcion`. Si el bloque ya esta en contraoferta, el sistema SHALL reemplazar esa accion por `Quitar contraoferta` para volver a `Aceptar la regla` sin sacar el cromo de la propuesta.
@@ -111,6 +126,13 @@ El sistema SHALL validar que todos los `exactStickerCodes` escritos en las contr
 #### Scenario: Revalidacion al enviar una propuesta con cromos exactos
 - **WHEN** el cambiador intenta enviar una propuesta cuyos cromos exactos opcionales ya no estan entre los repetidos del coleccionista
 - **THEN** el sistema rechaza el envio, no persiste la propuesta como pendiente y devuelve el motivo del bloqueo
+
+### Requirement: Unicidad global de cromos exactos opcionales
+El sistema SHALL impedir que un mismo `exactStickerCode` aparezca mas de una vez entre todas las contraofertas activas de la propuesta.
+
+#### Scenario: Codigo exacto repetido en otra contraoferta
+- **WHEN** el cambiador intenta usar `POR-15` en una segunda contraoferta despues de haberlo usado ya en otra
+- **THEN** el sistema rechaza esa entrada y muestra un mensaje explicito indicando que ese cromo exacto ya fue usado en otra propuesta
 
 ### Requirement: Nota opcional solo en contraofertas
 El sistema SHALL mostrar y persistir una nota opcional unicamente para bloques en modo `Proponer otra opcion`. El sistema SHALL no pedir ni guardar nota para bloques que aceptan la regla.

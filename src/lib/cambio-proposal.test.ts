@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import {
   buildAvailableRepeatedStickers,
+  buildDuplicateExactStickerCodeReason,
   buildEmptyProposal,
   buildProposalBlock,
   buildRequestedStickers,
@@ -14,8 +15,12 @@ import {
   normalizeProposalDraft,
   normalizeRequestedRepeateds,
   parseExactStickerCodes,
+  resolveExactStickerInput,
   summarizeRule,
   syncProposalBlocks,
+  syncRequestedRepeatedsWithExactStickerCodes,
+  validateExactStickerCodesAgainstAvailableItems,
+  validateUniqueCounterofferExactStickerCodes,
 } from "@/lib/cambio-proposal";
 import { cloneDefaultExchangeSettings } from "@/lib/exchange-settings";
 import { createSession, getSessionById, saveSessionProposal } from "@/lib/sessions-store";
@@ -187,13 +192,54 @@ describe("cambio proposal helpers", () => {
       modeLabel: "Propone otra opcion" as const,
       counteroffer: {
         offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
-        exactStickerCodes: parseExactStickerCodes("POR 15 ARG-1"),
+        exactStickerCodes: parseExactStickerCodes("POR 15 ARG-1 "),
         note: "Cambio exacto",
       },
     };
 
     assert.equal(isCounterofferValid(counterofferBlock), true);
     assert.deepEqual(counterofferBlock.counteroffer.exactStickerCodes, ["POR-15", "ARG-1"]);
+  });
+
+  test("normalizes flexible exact sticker formats without confusing similar codes", () => {
+    assert.deepEqual(parseExactStickerCodes("mex01 MEX-1 mex1 MEX10 MEX-11 por 15"), [
+      "MEX-1",
+      "MEX-10",
+      "MEX-11",
+      "POR-15",
+    ]);
+  });
+
+  test("treats unfinished compact exact codes as incomplete until finalized", () => {
+    assert.deepEqual(resolveExactStickerInput("MEX0"), {
+      exactStickerCodes: [],
+      issue: {
+        token: "MEX0",
+        kind: "incomplete",
+        reason: "Completa MEX0 para confirmar el cromo exacto.",
+      },
+    });
+
+    assert.deepEqual(resolveExactStickerInput("MEX1"), {
+      exactStickerCodes: [],
+      issue: {
+        token: "MEX1",
+        kind: "incomplete",
+        reason: "Completa MEX1 para confirmar el cromo exacto.",
+      },
+    });
+  });
+
+  test("accepts finalized flexible exact codes after a separator", () => {
+    assert.deepEqual(resolveExactStickerInput("MEX1, "), {
+      exactStickerCodes: ["MEX-1"],
+      issue: null,
+    });
+
+    assert.deepEqual(resolveExactStickerInput("MEX 01 "), {
+      exactStickerCodes: ["MEX-1"],
+      issue: null,
+    });
   });
 
   test("blocks empty counteroffers without quantity or exact stickers", () => {
@@ -295,5 +341,90 @@ describe("cambio proposal helpers", () => {
       { stickerCode: "POR-15", quantity: 1 },
     ]);
     assert.equal(countRequestedRepeateds(normalized), 4);
+  });
+
+  test("syncs exact counteroffer stickers into requested repeateds with quantity 1", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const blocks = syncProposalBlocks(["ARG-7", "MEX-1"], [], settings, {}).map((block) =>
+      block.requestedStickerCode === "MEX-1"
+        ? {
+            ...block,
+            mode: "counteroffer" as const,
+            modeLabel: "Propone otra opcion" as const,
+            counteroffer: {
+              offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+              exactStickerCodes: ["POR-15"],
+              note: null,
+            },
+          }
+        : block,
+    );
+
+    const requestedRepeateds = syncRequestedRepeatedsWithExactStickerCodes(
+      [
+        { stickerCode: "ARG-7", quantity: 3 },
+        { stickerCode: "POR-15", quantity: 2 },
+      ],
+      blocks,
+      { "ARG-7": 3, "POR-15": 4 },
+    );
+
+    assert.deepEqual(requestedRepeateds, [
+      { stickerCode: "ARG-7", quantity: 3 },
+      { stickerCode: "POR-15", quantity: 1 },
+    ]);
+  });
+
+  test("drops synced exact stickers when they are no longer repeated", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const [block] = syncProposalBlocks(["ARG-7"], [], settings, {});
+
+    const requestedRepeateds = syncRequestedRepeatedsWithExactStickerCodes(
+      [{ stickerCode: "ARG-7", quantity: 1 }],
+      [
+        {
+          ...block,
+          mode: "counteroffer" as const,
+          modeLabel: "Propone otra opcion" as const,
+          counteroffer: {
+            offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+            exactStickerCodes: ["POR-15"],
+            note: null,
+          },
+        },
+      ],
+      { "ARG-7": 1, "POR-15": 0 },
+    );
+
+    assert.deepEqual(requestedRepeateds, [{ stickerCode: "ARG-7", quantity: 1 }]);
+  });
+
+  test("rejects duplicate exact sticker codes across counteroffers", () => {
+    const settings = cloneDefaultExchangeSettings();
+    const blocks = syncProposalBlocks(["ARG-7", "MEX-1"], [], settings, {}).map((block) => ({
+      ...block,
+      mode: "counteroffer" as const,
+      modeLabel: "Propone otra opcion" as const,
+      counteroffer: {
+        offers: { PLAYER: 0, BADGE: 0, TEAM_PHOTO: 0, SPECIAL: 0, ANY: 0 },
+        exactStickerCodes: ["POR-15"],
+        note: null,
+      },
+    }));
+
+    assert.deepEqual(validateUniqueCounterofferExactStickerCodes(blocks), {
+      ok: false,
+      stickerCode: "POR-15",
+      reason: buildDuplicateExactStickerCodeReason("POR-15"),
+    });
+  });
+
+  test("rejects exact sticker codes that are not available in repeated inventory", () => {
+    assert.deepEqual(validateExactStickerCodesAgainstAvailableItems(["MEX-10"], { "MEX-1": 1 }), {
+      ok: false,
+      stickerCode: "MEX-10",
+      reason:
+        "No puedes continuar porque MEX-10 no está entre los cromos repetidos del coleccionista.",
+    });
   });
 });

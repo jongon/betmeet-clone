@@ -12,6 +12,8 @@ La entrada por QR ya define como un cambiador crea o reanuda una sesion, pero au
 - Permitir que el cambiador decida por cada cromo si cumple la regla o si envia una contraoferta.
 - Modelar el cumplimiento normal de reglas de forma abstracta por tipo de cromo; permitir detalle explicito por numero exacto solo cuando el cambiador hace una contraoferta.
 - Permitir contraofertas por cromo independiente que puedan cambiar cantidad, tipo o uno o mas cromos exactos, con nota opcional solo para esas excepciones.
+- Sincronizar automaticamente los cromos exactos opcionales validos con el paso 2, marcandolos como repetidos solicitados no editables mientras sigan referenciados por una contraoferta activa.
+- Impedir que un mismo cromo exacto opcional se repita en mas de una contraoferta activa dentro de la misma propuesta.
 - Mostrar un resumen final que priorice visualmente lo que recibe el coleccionista, etiquete `Acepta la regla` o `Propone otra opción`, y envie la propuesta en estado `Pendiente de aprobacion`.
 - Mostrar una vista detallada de la propuesta enviada para que el cambiador revise exactamente que mando.
 
@@ -28,4 +30,5 @@ La entrada por QR ya define como un cambiador crea o reanuda una sesion, pero au
 - Modelo de sesion publica del cambiador: la sesion deja de ser solo una entrada nominal y pasa a contener una propuesta estructurada por cromo.
 - Capa de reglas de intercambio: el flujo publico debe consumir reglas generales y overrides por cromo, mostrando prioridad y etiquetas visibles.
 - Persistencia de propuestas: se necesitara almacenar bloques independientes por cromo, una lista global de repetidos solicitados por el cambiador, elecciones de cumplimiento o contraoferta, notas opcionales de excepcion y estado `pending`.
+- Paso 2 del wizard: necesitara distinguir repetidos elegidos manualmente de repetidos bloqueados por una contraoferta activa del paso 1.
 - Specs OpenSpec afectadas: nueva capability `cambiador-propuesta-cambio`.

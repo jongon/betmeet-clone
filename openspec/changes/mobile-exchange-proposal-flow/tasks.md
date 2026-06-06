@@ -69,3 +69,11 @@
 - [x] 10.3 Reutilizar la misma validacion al enviar la propuesta final
 - [x] 10.4 Mostrar un error explicito con el codigo invalido cuando falle la validacion
 - [x] 10.5 Cubrir con tests el caso valido `POR-15, ARG-7`, el caso invalido y la revalidacion al enviar
+
+## 11. Sincronizacion y unicidad de cromos exactos opcionales
+
+- [x] 11.1 Sincronizar automaticamente cada `exactStickerCode` valido con la lista global de repetidos solicitados del paso 2
+- [x] 11.2 Bloquear en el paso 2 los repetidos sincronizados desde contraofertas activas y diferenciarlos visualmente como cards no editables
+- [x] 11.3 Liberar en el paso 2 un repetido sincronizado cuando deja de estar referenciado por una contraoferta activa
+- [x] 11.4 Impedir que un mismo `exactStickerCode` se reutilice en mas de una contraoferta activa dentro de la misma propuesta
+- [x] 11.5 Cubrir con tests la sincronizacion automatica, el bloqueo visual/funcional y el rechazo de codigos exactos duplicados

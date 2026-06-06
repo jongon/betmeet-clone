@@ -156,6 +156,143 @@ function describeRequestedSticker(stickerCode: string): RequestedSticker {
   };
 }
 
+function normalizeLooseStickerCode(rawValue: string): string | null {
+  const match = rawValue
+    .trim()
+    .toUpperCase()
+    .match(/^([A-Z]{3})-?(\d{1,2})$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const [, groupCode, rawPosition] = match;
+  const normalized = `${groupCode}-${Number(rawPosition)}`;
+
+  return isValidStickerCode(normalized) ? normalized : null;
+}
+
+type ExactStickerInputToken = {
+  value: string;
+  finalized: boolean;
+};
+
+export type ResolvedExactStickerInput = {
+  exactStickerCodes: string[];
+  issue: null | {
+    token: string;
+    reason: string;
+    kind: "incomplete" | "invalid";
+  };
+};
+
+function tokenizeExactStickerInput(value: string): ExactStickerInputToken[] {
+  return Array.from(value.toUpperCase().matchAll(/[A-Z0-9-]+/g)).map((match) => {
+    const token = match[0] ?? "";
+    const index = match.index ?? 0;
+
+    return {
+      value: token,
+      finalized: index + token.length < value.length,
+    };
+  });
+}
+
+function resolveCompactExactStickerToken(
+  token: string,
+  finalized: boolean,
+): ResolvedExactStickerInput["issue"] | { code: string } {
+  const compactMatch = token.match(/^([A-Z]{3})-?(\d{1,2})$/);
+
+  if (compactMatch) {
+    const [, groupCode, rawPosition] = compactMatch;
+
+    if (!finalized && rawPosition.length === 1) {
+      return {
+        token,
+        kind: "incomplete",
+        reason: `Completa ${groupCode}${rawPosition} para confirmar el cromo exacto.`,
+      };
+    }
+
+    const normalized = normalizeLooseStickerCode(token);
+    if (normalized) {
+      return { code: normalized };
+    }
+
+    return {
+      token,
+      kind: finalized ? "invalid" : "incomplete",
+      reason: finalized
+        ? `El cromo exacto ${token} no es válido.`
+        : `Completa ${token} para confirmar el cromo exacto.`,
+    };
+  }
+
+  if (/^[A-Z]{1,3}-?$/.test(token)) {
+    return {
+      token,
+      kind: "incomplete",
+      reason: `Completa ${token} para confirmar el cromo exacto.`,
+    };
+  }
+
+  return {
+    token,
+    kind: finalized ? "invalid" : "incomplete",
+    reason: finalized
+      ? `El cromo exacto ${token} no es válido.`
+      : `Completa ${token} para confirmar el cromo exacto.`,
+  };
+}
+
+export function resolveExactStickerInput(value: string): ResolvedExactStickerInput {
+  const tokens = tokenizeExactStickerInput(value);
+  const normalized: string[] = [];
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const current = tokens[index];
+    if (!current) {
+      continue;
+    }
+
+    const next = tokens[index + 1];
+
+    if (/^[A-Z]{3}$/.test(current.value) && next && /^\d{1,2}$/.test(next.value)) {
+      const combined = `${current.value}-${next.value}`;
+      const resolvedPair = resolveCompactExactStickerToken(combined, next.finalized);
+
+      if ("code" in resolvedPair) {
+        normalized.push(resolvedPair.code);
+        index += 1;
+        continue;
+      }
+
+      return {
+        exactStickerCodes: [...new Set(normalized)],
+        issue: resolvedPair,
+      };
+    }
+
+    const resolved = resolveCompactExactStickerToken(current.value, current.finalized);
+
+    if ("code" in resolved) {
+      normalized.push(resolved.code);
+      continue;
+    }
+
+    return {
+      exactStickerCodes: [...new Set(normalized)],
+      issue: resolved,
+    };
+  }
+
+  return {
+    exactStickerCodes: [...new Set(normalized)],
+    issue: null,
+  };
+}
+
 export function buildRequestedStickers(stickerCodes: string[]): RequestedSticker[] {
   return [...new Set(stickerCodes)]
     .map((code) => describeRequestedSticker(code))
@@ -349,7 +486,29 @@ export function normalizeRequestedRepeateds(
         quantity: Math.min(Math.max(item.quantity, 1), maxAvailable),
       });
     })
-    .filter((item): item is RequestedRepeatedItem => item !== null);
+    .filter((item): item is RequestedRepeatedItem => item !== null)
+    .sort((left, right) => compareAlbumStickerCodes(left.stickerCode, right.stickerCode));
+}
+
+export function syncRequestedRepeatedsWithExactStickerCodes(
+  requestedRepeateds: RequestedRepeatedItem[],
+  blocks: ProposalBlock[],
+  availableItems: Record<string, number>,
+): RequestedRepeatedItem[] {
+  const normalized = normalizeRequestedRepeateds(requestedRepeateds, availableItems);
+  const requestedMap = new Map(normalized.map((item) => [item.stickerCode, item]));
+
+  for (const stickerCode of collectCounterofferExactStickerCodes(blocks)) {
+    if ((availableItems[stickerCode] ?? 0) <= 0) {
+      continue;
+    }
+
+    requestedMap.set(stickerCode, RequestedRepeatedItemSchema.parse({ stickerCode, quantity: 1 }));
+  }
+
+  return [...requestedMap.values()].sort((left, right) =>
+    compareAlbumStickerCodes(left.stickerCode, right.stickerCode),
+  );
 }
 
 export function countRequestedRepeateds(requestedRepeateds: RequestedRepeatedItem[]): number {
@@ -404,28 +563,7 @@ export function getDecisionSummary(blocks: ProposalBlock[]): {
 }
 
 export function parseExactStickerCodes(value: string): string[] {
-  if (!value.trim()) return [];
-
-  const rawTokens = value
-    .toUpperCase()
-    .split(/[^A-Z0-9-]+/)
-    .filter(Boolean);
-  const normalized: string[] = [];
-
-  for (let index = 0; index < rawTokens.length; index += 1) {
-    const current = rawTokens[index] ?? "";
-    const next = rawTokens[index + 1] ?? "";
-
-    if (/^[A-Z]{3}$/.test(current) && /^\d{1,2}$/.test(next)) {
-      normalized.push(`${current}-${next}`);
-      index += 1;
-      continue;
-    }
-
-    normalized.push(current);
-  }
-
-  return [...new Set(normalized)].filter((code) => isValidStickerCode(code));
+  return resolveExactStickerInput(value).exactStickerCodes;
 }
 
 export function formatCounterofferCodes(codes: string[]): string {
@@ -442,4 +580,51 @@ export function formatCounterofferOffers(counteroffer: CounterofferDetails | nul
 
 export function collectCounterofferExactStickerCodes(blocks: ProposalBlock[]): string[] {
   return [...new Set(blocks.flatMap((block) => block.counteroffer?.exactStickerCodes ?? []))];
+}
+
+export function buildDuplicateExactStickerCodeReason(stickerCode: string): string {
+  return `No puedes reutilizar ${stickerCode} en mas de una contraoferta.`;
+}
+
+export function buildExactStickerNotRepeatedReason(stickerCode: string): string {
+  return `No puedes continuar porque ${stickerCode} no está entre los cromos repetidos del coleccionista.`;
+}
+
+export function validateExactStickerCodesAgainstAvailableItems(
+  stickerCodes: string[],
+  availableItems: Record<string, number>,
+): { ok: true } | { ok: false; stickerCode: string; reason: string } {
+  for (const stickerCode of [...new Set(stickerCodes)]) {
+    if ((availableItems[stickerCode] ?? 0) <= 0) {
+      return {
+        ok: false,
+        stickerCode,
+        reason: buildExactStickerNotRepeatedReason(stickerCode),
+      };
+    }
+  }
+
+  return { ok: true };
+}
+
+export function validateUniqueCounterofferExactStickerCodes(
+  blocks: ProposalBlock[],
+): { ok: true } | { ok: false; stickerCode: string; reason: string } {
+  const seen = new Set<string>();
+
+  for (const block of blocks) {
+    for (const stickerCode of block.counteroffer?.exactStickerCodes ?? []) {
+      if (seen.has(stickerCode)) {
+        return {
+          ok: false,
+          stickerCode,
+          reason: buildDuplicateExactStickerCodeReason(stickerCode),
+        };
+      }
+
+      seen.add(stickerCode);
+    }
+  }
+
+  return { ok: true };
 }

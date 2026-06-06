@@ -77,6 +77,19 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
   - Validar solo al enviar: descartada porque deja avanzar con una propuesta inconsistente y descubre el problema demasiado tarde.
   - Validar mientras el usuario escribe: descartada por ruido excesivo y por acoplar cada tecla a una validacion remota.
 
+### 7.2) Sincronizacion automatica con paso 2 para cromos exactos opcionales
+- **Decision:** cada `exactStickerCode` valido escrito en una contraoferta se agrega automaticamente a la lista global de repetidos solicitados del paso 2. Mientras siga referenciado por alguna contraoferta activa, ese repetido permanece seleccionado, bloqueado contra edicion manual y con una diferenciacion visual propia.
+- **Rationale:** si el cambiador pide `POR-15` de forma explicita en el paso 1, el paso 2 no puede presentar ese mismo cromo como una eleccion opcional desmarcable porque dejaria la propuesta en un estado contradictorio entre bloques y lista global.
+- **Alternatives considered:**
+  - Obligar al usuario a marcarlo otra vez manualmente en el paso 2: descartada por duplicar trabajo y abrir inconsistencias.
+  - Ocultarlo del paso 2: descartada porque el usuario perderia visibilidad de todo lo que espera recibir del coleccionista.
+
+### 7.3) Unicidad global de cromos exactos opcionales
+- **Decision:** un mismo `exactStickerCode` solo puede aparecer una vez entre todas las contraofertas activas de la propuesta.
+- **Rationale:** el producto quiere que `POR-15` se negocie como una pieza unica dentro de la propuesta. Permitir duplicados entre bloques volveria ambigua la expectativa de recepcion y complicaria el resumen final.
+- **Alternatives considered:**
+  - Permitir duplicados y agregarlos por cantidad en el paso 2: descartada porque el paso 1 no debe dejar reutilizar el mismo codigo exacto.
+
 ### 8) Nota opcional solo para contraofertas
 - **Decision:** la nota libre viaja unicamente cuando el bloque esta en modo contraoferta.
 - **Rationale:** evita texto innecesario en el camino feliz y preserva un canal humano para explicar excepciones reales.
@@ -108,6 +121,7 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 - **[Riesgo] Overrides por cromo sin explicacion visual pueden parecer errores** -> **Mitigacion:** usar etiquetas visibles y copy corto que indique si la regla viene de una excepcion especial.
 - **[Riesgo] Persistencia incremental aumenta complejidad del modelo de sesion** -> **Mitigacion:** separar el borrador de propuesta en una estructura propia anidada bajo la sesion y validar cada transicion por paso.
 - **[Riesgo] Un cromo exacto puede desaparecer del inventario de repetidos entre el borrador y el envio** -> **Mitigacion:** validar al avanzar de paso y revalidar al enviar con mensaje explicito que nombre el codigo bloqueado.
+- **[Riesgo] El usuario puede no entender por que un repetido ya aparece marcado y sin poder editarse en el paso 2** -> **Mitigacion:** mostrar una card visualmente diferenciada y copy corto indicando que ese cromo viene bloqueado por una contraoferta del paso 1.
 - **[Trade-off] No soportar bolsas agrupadas limita negociaciones complejas** -> **Mitigacion:** priorizar primero el caso sencillo por cromo y dejar agregaciones para una spec futura si el producto lo necesita.
 
 ## Migration Plan
@@ -116,7 +130,7 @@ El cambio cruza UI publica, estado de sesion, reglas de intercambio y persistenc
 2. Implementar shell del wizard mobile con progreso, resumen sticky y navegacion entre pasos.
 3. Conectar el wizard a los datos del coleccionista: cromos que quiere recibir, filtros, reglas globales y overrides por cromo.
 4. Implementar decision por bloque (`fulfill` o `counteroffer`) y el editor de contraofertas con nota opcional.
-5. Implementar el paso de repetidos solicitados por el cambiador usando el inventario real del coleccionista.
+5. Implementar el paso de repetidos solicitados por el cambiador usando el inventario real del coleccionista, incluyendo sincronizacion y bloqueo visual de los cromos exactos opcionales referenciados desde contraofertas.
 6. Implementar resumen final, envio de propuesta y pantalla detallada posterior al envio.
 7. Agregar tests de reglas, pasos, repetidos solicitados y persistencia de borrador. El rollback consiste en volver a dejar la sesion publica en estado de entrada sin wizard.
 

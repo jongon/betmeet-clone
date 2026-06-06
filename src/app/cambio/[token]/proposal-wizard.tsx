@@ -10,6 +10,7 @@ import {
   type AvailableRepeatedSticker,
   buildEmptyProposal,
   buildProposalBlock,
+  collectCounterofferExactStickerCodes,
   countRequestedRepeateds,
   filterRequestedStickers,
   formatCounterofferCodes,
@@ -19,10 +20,12 @@ import {
   getModeLabel,
   isCounterofferValid,
   normalizeProposalDraft,
-  normalizeRequestedRepeateds,
-  parseExactStickerCodes,
   type RequestedSticker,
+  resolveExactStickerInput,
   syncProposalBlocks,
+  syncRequestedRepeatedsWithExactStickerCodes,
+  validateExactStickerCodesAgainstAvailableItems,
+  validateUniqueCounterofferExactStickerCodes,
 } from "@/lib/cambio-proposal";
 import type { ExchangeSettings, OfferType, StickerOverride } from "@/lib/exchange-settings";
 import { matchesFlexibleSearch } from "@/lib/search";
@@ -87,8 +90,9 @@ function buildInitialDraft(
   );
   return {
     ...draft,
-    requestedRepeateds: normalizeRequestedRepeateds(
+    requestedRepeateds: syncRequestedRepeatedsWithExactStickerCodes(
       draft.requestedRepeateds,
+      draft.blocks,
       availableRepeatedItems,
     ),
   };
@@ -219,9 +223,24 @@ export function ProposalWizard({
   );
   const decisionSummary = useMemo(() => getDecisionSummary(draft.blocks), [draft.blocks]);
   const isSubmitted = draft.status === "pending";
+  const lockedRequestedRepeatedCodes = useMemo(
+    () => new Set(collectCounterofferExactStickerCodes(draft.blocks)),
+    [draft.blocks],
+  );
+
+  const syncDraft = (nextDraft: SessionProposal): SessionProposal => ({
+    ...nextDraft,
+    requestedRepeateds: syncRequestedRepeatedsWithExactStickerCodes(
+      nextDraft.requestedRepeateds,
+      nextDraft.blocks,
+      availableRepeatedItems,
+    ),
+  });
 
   const persistDraft = (nextDraft: SessionProposal, submit = false) => {
-    setDraft(nextDraft);
+    const syncedDraft = syncDraft(nextDraft);
+
+    setDraft(syncedDraft);
     setError(null);
     setBlockErrors({});
     setFeedback(submit ? "Enviando propuesta..." : "Guardando borrador...");
@@ -229,8 +248,8 @@ export function ProposalWizard({
     startTransition(async () => {
       try {
         const saved = submit
-          ? await submitCambioProposalAction({ token, sessionId, proposal: nextDraft })
-          : await saveCambioProposalDraftAction({ token, sessionId, proposal: nextDraft });
+          ? await submitCambioProposalAction({ token, sessionId, proposal: syncedDraft })
+          : await saveCambioProposalDraftAction({ token, sessionId, proposal: syncedDraft });
 
         setDraft(saved);
         setFeedback(submit ? "Propuesta enviada." : "Borrador guardado.");
@@ -265,7 +284,7 @@ export function ProposalWizard({
     persistDraft({
       ...draft,
       currentStep,
-      requestedRepeateds: normalizeRequestedRepeateds(requestedRepeateds, availableRepeatedItems),
+      requestedRepeateds,
       updatedAt: new Date().toISOString(),
     });
   };
@@ -293,6 +312,35 @@ export function ProposalWizard({
     setError(null);
     setBlockErrors({});
     setFeedback("Validando propuesta...");
+
+    const localBlockErrors: Record<string, string> = {};
+    for (const block of draft.blocks) {
+      if (block.mode !== "counteroffer") {
+        continue;
+      }
+
+      const exactInput = exactInputByCode[block.requestedStickerCode] ?? "";
+      const resolvedExactInput = resolveExactStickerInput(exactInput);
+
+      if (resolvedExactInput.issue) {
+        localBlockErrors[block.requestedStickerCode] = resolvedExactInput.issue.reason;
+      }
+    }
+
+    if (Object.keys(localBlockErrors).length > 0) {
+      setBlockErrors(localBlockErrors);
+      setFeedback(null);
+
+      const firstCode = Object.keys(localBlockErrors)[0];
+      if (firstCode) {
+        const el = blockRefs.current.get(firstCode);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+      return;
+    }
+
     startTransition(async () => {
       try {
         const result = await validateCambioProposalStepAction({
@@ -415,6 +463,10 @@ export function ProposalWizard({
   });
 
   const toggleRequestedRepeated = (stickerCode: string) => {
+    if (lockedRequestedRepeatedCodes.has(stickerCode)) {
+      return;
+    }
+
     const existing = draft.requestedRepeateds.find((item) => item.stickerCode === stickerCode);
     if (existing) {
       replaceRequestedRepeateds(
@@ -427,6 +479,10 @@ export function ProposalWizard({
   };
 
   const updateRequestedRepeatedQuantity = (stickerCode: string, quantity: number) => {
+    if (lockedRequestedRepeatedCodes.has(stickerCode)) {
+      return;
+    }
+
     replaceRequestedRepeateds(
       draft.requestedRepeateds.map((item) =>
         item.stickerCode === stickerCode ? { ...item, quantity } : item,
@@ -516,10 +572,61 @@ export function ProposalWizard({
                 ...prev,
                 [block.requestedStickerCode]: value,
               }));
+              const resolvedExactInput = resolveExactStickerInput(value);
+              const exactStickerCodes = resolvedExactInput.exactStickerCodes;
+              const nextBlocks = draft.blocks.map((currentBlock) =>
+                currentBlock.requestedStickerCode === block.requestedStickerCode
+                  ? {
+                      ...currentBlock,
+                      mode: "counteroffer" as const,
+                      modeLabel: getModeLabel("counteroffer"),
+                      counteroffer: {
+                        ...(currentBlock.counteroffer ?? {
+                          offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                          exactStickerCodes: [],
+                          note: null,
+                        }),
+                        exactStickerCodes,
+                      },
+                    }
+                  : currentBlock,
+              );
+              const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(nextBlocks);
+              const repeatedValidation = validateExactStickerCodesAgainstAvailableItems(
+                exactStickerCodes,
+                availableRepeatedItems,
+              );
+
+              const localError = !duplicateExactCodes.ok
+                ? duplicateExactCodes.reason
+                : resolvedExactInput.issue?.kind === "invalid"
+                  ? resolvedExactInput.issue.reason
+                  : !repeatedValidation.ok
+                    ? repeatedValidation.reason
+                    : null;
+
               updateCounterofferBlock(block.requestedStickerCode, (current) => ({
                 ...current,
-                exactStickerCodes: parseExactStickerCodes(value),
+                exactStickerCodes,
               }));
+
+              if (localError) {
+                setBlockErrors((current) => ({
+                  ...current,
+                  [block.requestedStickerCode]: localError,
+                }));
+                return;
+              }
+
+              setBlockErrors((current) => {
+                if (!current[block.requestedStickerCode]) {
+                  return current;
+                }
+
+                const nextErrors = { ...current };
+                delete nextErrors[block.requestedStickerCode];
+                return nextErrors;
+              });
             }}
             placeholder="POR-15, ARG-7"
           />
@@ -772,6 +879,7 @@ export function ProposalWizard({
                 const selected = draft.requestedRepeateds.find(
                   (item) => item.stickerCode === sticker.code,
                 );
+                const isLocked = lockedRequestedRepeatedCodes.has(sticker.code);
                 const quantity = selected?.quantity ?? 1;
 
                 return (
@@ -779,7 +887,11 @@ export function ProposalWizard({
                     key={sticker.code}
                     className={cn(
                       "space-y-3 rounded-xl border p-4 transition",
-                      selected ? "border-primary/40 bg-primary/10" : "border-border bg-background",
+                      isLocked
+                        ? "border-primary/25 bg-primary/5"
+                        : selected
+                          ? "border-primary/40 bg-primary/10"
+                          : "border-border bg-background",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -787,6 +899,7 @@ export function ProposalWizard({
                         type="button"
                         className="flex min-w-0 flex-1 flex-col gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                         onClick={() => toggleRequestedRepeated(sticker.code)}
+                        disabled={isLocked}
                       >
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-foreground">
@@ -795,8 +908,15 @@ export function ProposalWizard({
                           <Badge variant="secondary">{sticker.groupName}</Badge>
                           <Badge variant="secondary">{STICKER_TYPE_LABEL[sticker.type]}</Badge>
                           <Badge variant="secondary">Disponible x{sticker.availableQuantity}</Badge>
+                          {isLocked ? <Badge variant="outline">Incluido desde paso 1</Badge> : null}
                         </div>
                         <p className="text-sm text-muted-foreground">{sticker.label}</p>
+                        {isLocked ? (
+                          <p className="text-xs text-muted-foreground">
+                            Este cromo ya forma parte de una contraoferta exacta y queda marcado
+                            automaticamente.
+                          </p>
+                        ) : null}
                       </button>
 
                       <Button
@@ -804,8 +924,9 @@ export function ProposalWizard({
                         size="sm"
                         variant={selected ? "default" : "outline"}
                         onClick={() => toggleRequestedRepeated(sticker.code)}
+                        disabled={isLocked}
                       >
-                        {selected ? "Ya me interesa" : "Me interesa"}
+                        {isLocked ? "Incluido" : selected ? "Ya me interesa" : "Me interesa"}
                       </Button>
                     </div>
 
@@ -823,6 +944,7 @@ export function ProposalWizard({
                           min={1}
                           max={sticker.availableQuantity}
                           value={quantity}
+                          disabled={isLocked}
                           onChange={(event) => {
                             const nextQuantity = Math.min(
                               sticker.availableQuantity,
@@ -831,6 +953,12 @@ export function ProposalWizard({
                             updateRequestedRepeatedQuantity(sticker.code, nextQuantity);
                           }}
                         />
+                        {isLocked ? (
+                          <p className="text-xs text-muted-foreground">
+                            La cantidad queda fija en `1` mientras este cromo siga referenciado en
+                            una contraoferta.
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
                   </article>
