@@ -2,6 +2,7 @@
 
 import { CheckCircle2, ChevronLeft, ChevronRight, CircleDashed, Send } from "lucide-react";
 import { useMemo, useRef, useState, useTransition } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -305,6 +306,7 @@ export function ProposalWizard({
   };
 
   const updateStep = (currentStep: number) => {
+    setSearch("");
     persistDraft({ ...draft, currentStep, updatedAt: new Date().toISOString() });
   };
 
@@ -320,7 +322,7 @@ export function ProposalWizard({
       }
 
       const exactInput = exactInputByCode[block.requestedStickerCode] ?? "";
-      const resolvedExactInput = resolveExactStickerInput(exactInput);
+      const resolvedExactInput = resolveExactStickerInput(exactInput, { forceFinalized: true });
 
       if (resolvedExactInput.issue) {
         localBlockErrors[block.requestedStickerCode] = resolvedExactInput.issue.reason;
@@ -328,15 +330,18 @@ export function ProposalWizard({
     }
 
     if (Object.keys(localBlockErrors).length > 0) {
+      setSearch("");
       setBlockErrors(localBlockErrors);
       setFeedback(null);
 
       const firstCode = Object.keys(localBlockErrors)[0];
       if (firstCode) {
-        const el = blockRefs.current.get(firstCode);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+        setTimeout(() => {
+          const el = blockRefs.current.get(firstCode);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        }, 50);
       }
       return;
     }
@@ -349,6 +354,7 @@ export function ProposalWizard({
           proposal: draft,
         });
         if (!result.ok) {
+          setSearch("");
           const offendingCodes = draft.blocks
             .filter((block) => block.counteroffer?.exactStickerCodes?.includes(result.stickerCode))
             .map((block) => block.requestedStickerCode);
@@ -362,16 +368,19 @@ export function ProposalWizard({
 
           if (offendingCodes.length > 0) {
             const firstCode = offendingCodes[0];
-            const el = blockRefs.current.get(firstCode);
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-            }
+            setTimeout(() => {
+              const el = blockRefs.current.get(firstCode);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "center" });
+              }
+            }, 50);
           } else {
             setError(result.reason);
           }
           return;
         }
 
+        setSearch("");
         persistDraft({ ...draft, currentStep: nextStep, updatedAt: new Date().toISOString() });
       } catch (caught) {
         setError(caught instanceof Error ? caught.message : "No se pudo validar la propuesta.");
@@ -605,6 +614,16 @@ export function ProposalWizard({
                     ? repeatedValidation.reason
                     : null;
 
+              const prevCodes = block.counteroffer?.exactStickerCodes ?? [];
+              const newlyAdded = exactStickerCodes.filter((code) => !prevCodes.includes(code));
+              for (const code of newlyAdded) {
+                if (availableRepeatedItems[code] > 0) {
+                  toast.success(
+                    `Cromo ${code} agregado automáticamente a tus interesados (Paso 2).`,
+                  );
+                }
+              }
+
               updateCounterofferBlock(block.requestedStickerCode, (current) => ({
                 ...current,
                 exactStickerCodes,
@@ -617,6 +636,82 @@ export function ProposalWizard({
                 }));
                 return;
               }
+
+              setBlockErrors((current) => {
+                if (!current[block.requestedStickerCode]) {
+                  return current;
+                }
+
+                const nextErrors = { ...current };
+                delete nextErrors[block.requestedStickerCode];
+                return nextErrors;
+              });
+            }}
+            onBlur={() => {
+              const value = exactInput.trim();
+              if (!value) return;
+
+              const resolvedExactInput = resolveExactStickerInput(value, { forceFinalized: true });
+              const exactStickerCodes = resolvedExactInput.exactStickerCodes;
+
+              const nextBlocks = draft.blocks.map((currentBlock) =>
+                currentBlock.requestedStickerCode === block.requestedStickerCode
+                  ? {
+                      ...currentBlock,
+                      mode: "counteroffer" as const,
+                      modeLabel: getModeLabel("counteroffer"),
+                      counteroffer: {
+                        ...(currentBlock.counteroffer ?? {
+                          offers: { ...EMPTY_COUNTEROFFER_OFFERS },
+                          exactStickerCodes: [],
+                          note: null,
+                        }),
+                        exactStickerCodes,
+                      },
+                    }
+                  : currentBlock,
+              );
+              const duplicateExactCodes = validateUniqueCounterofferExactStickerCodes(nextBlocks);
+              const repeatedValidation = validateExactStickerCodesAgainstAvailableItems(
+                exactStickerCodes,
+                availableRepeatedItems,
+              );
+
+              const localError = !duplicateExactCodes.ok
+                ? duplicateExactCodes.reason
+                : resolvedExactInput.issue?.kind === "invalid"
+                  ? resolvedExactInput.issue.reason
+                  : !repeatedValidation.ok
+                    ? repeatedValidation.reason
+                    : null;
+
+              const prevCodes = block.counteroffer?.exactStickerCodes ?? [];
+              const newlyAdded = exactStickerCodes.filter((code) => !prevCodes.includes(code));
+              for (const code of newlyAdded) {
+                if (availableRepeatedItems[code] > 0) {
+                  toast.success(
+                    `Cromo ${code} agregado automáticamente a tus interesados (Paso 2).`,
+                  );
+                }
+              }
+
+              updateCounterofferBlock(block.requestedStickerCode, (current) => ({
+                ...current,
+                exactStickerCodes,
+              }));
+
+              if (localError) {
+                setBlockErrors((current) => ({
+                  ...current,
+                  [block.requestedStickerCode]: localError,
+                }));
+                return;
+              }
+
+              setExactInputByCode((prev) => ({
+                ...prev,
+                [block.requestedStickerCode]: formatCounterofferCodes(exactStickerCodes),
+              }));
 
               setBlockErrors((current) => {
                 if (!current[block.requestedStickerCode]) {

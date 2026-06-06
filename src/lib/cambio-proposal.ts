@@ -186,14 +186,17 @@ export type ResolvedExactStickerInput = {
   };
 };
 
-function tokenizeExactStickerInput(value: string): ExactStickerInputToken[] {
+function tokenizeExactStickerInput(
+  value: string,
+  forceFinalized = false,
+): ExactStickerInputToken[] {
   return Array.from(value.toUpperCase().matchAll(/[A-Z0-9-]+/g)).map((match) => {
     const token = match[0] ?? "";
     const index = match.index ?? 0;
 
     return {
       value: token,
-      finalized: index + token.length < value.length,
+      finalized: forceFinalized || index + token.length < value.length,
     };
   });
 }
@@ -201,7 +204,7 @@ function tokenizeExactStickerInput(value: string): ExactStickerInputToken[] {
 function resolveCompactExactStickerToken(
   token: string,
   finalized: boolean,
-): ResolvedExactStickerInput["issue"] | { code: string } {
+): NonNullable<ResolvedExactStickerInput["issue"]> | { code: string } {
   const compactMatch = token.match(/^([A-Z]{3})-?(\d{1,2})$/);
 
   if (compactMatch) {
@@ -246,8 +249,11 @@ function resolveCompactExactStickerToken(
   };
 }
 
-export function resolveExactStickerInput(value: string): ResolvedExactStickerInput {
-  const tokens = tokenizeExactStickerInput(value);
+export function resolveExactStickerInput(
+  value: string,
+  options?: { forceFinalized?: boolean },
+): ResolvedExactStickerInput {
+  const tokens = tokenizeExactStickerInput(value, options?.forceFinalized);
   const normalized: string[] = [];
 
   for (let index = 0; index < tokens.length; index += 1) {
