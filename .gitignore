@@ -52,3 +52,5 @@ data/qr-tokens.json
 data/repeateds.json
 data/exchange-settings.json
 data/missing.json
+
+/src/generated/prisma

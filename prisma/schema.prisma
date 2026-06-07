@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model QrToken {
+  token      String    @id
+  ownerEmail String
+  createdAt  DateTime  @default(now())
+  revokedAt  DateTime?
+}
+
+model RepeatedInventory {
+  id         Int      @id @default(autoincrement())
+  ownerEmail String   @unique
+  updatedAt  DateTime @updatedAt
+  items      Json
+}
+
+model MissingInventory {
+  id         Int      @id @default(autoincrement())
+  ownerEmail String   @unique
+  updatedAt  DateTime @updatedAt
+  items      Json
+}
+
+model ExchangeSettings {
+  id         Int      @id @default(autoincrement())
+  ownerEmail String   @unique
+  updatedAt  DateTime @updatedAt
+  global     Json
+  overrides  Json
+}
+
+model Session {
+  id              String            @id
+  cambiadorName   String
+  cambiadorId     String?
+  offeredCount    Int               @default(0)
+  requestedCount  Int               @default(0)
+  createdAt       DateTime          @default(now())
+  status          String            @default("open")
+  token           String
+  archivedAt      DateTime?
+  proposal        SessionProposal?
+}
+
+model SessionProposal {
+  id                   Int               @id @default(autoincrement())
+  sessionId            String            @unique
+  session              Session           @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  status               String            @default("draft")
+  currentStep          Int               @default(1)
+  flowVersion          Int?
+  selectedStickerCodes Json
+  updatedAt            DateTime          @updatedAt
+  submittedAt          DateTime?
+  blocks               ProposalBlock[]
+  requestedRepeateds   RequestedRepeated[]
+}
+
+model ProposalBlock {
+  id                    Int              @id @default(autoincrement())
+  proposalId            Int
+  proposal              SessionProposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  requestedStickerCode  String
+  requestedStickerLabel String
+  requestedStickerType  String
+  mode                  String
+  modeLabel             String
+  rule                  Json
+  fulfillRequirements   Json
+  counteroffer          Json?
+}
+
+model RequestedRepeated {
+  id          Int              @id @default(autoincrement())
+  proposalId  Int
+  proposal    SessionProposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  stickerCode String
+  quantity    Int
+}
