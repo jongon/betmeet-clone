@@ -17,6 +17,7 @@
     "check:toggle:browser": "node scripts/check-theme-toggle-browser.mjs",
     "commit": "gitmoji -c",
     "prisma:generate": "rm -rf src/generated/prisma && prisma generate",
+    "postinstall": "{ [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; } && bash scripts/setup-agent.sh",
     "prepare": "lefthook install"
   },
   "dependencies": {
