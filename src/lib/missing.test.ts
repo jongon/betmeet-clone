@@ -1,7 +1,4 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import {
   buildExactStickerNotRepeatedReason,
@@ -15,41 +12,22 @@ import {
 } from "@/lib/missing";
 import { getMissingInventory, replaceMissingInventory } from "@/lib/missing-store";
 import { getInventory, saveGroupRepeateds } from "@/lib/repeateds-store";
+import { cleanDatabase } from "@/lib/test-helpers";
 
 const OWNER_EMAIL = "admin@example.com";
 
-let tmpDir = "";
-let missingFile = "";
-let repeatedsFile = "";
-let repeatedsSeedFile = "";
-
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), "missing-store-"));
-  missingFile = path.join(tmpDir, "missing.json");
-  repeatedsFile = path.join(tmpDir, "repeateds.json");
-  repeatedsSeedFile = path.join(tmpDir, "repeateds.seed.json");
-
-  process.env.MISSINGS_FILE = missingFile;
-  process.env.REPEATEDS_FILE = repeatedsFile;
-  process.env.REPEATEDS_SEED_FILE = repeatedsSeedFile;
-
-  await writeFile(repeatedsSeedFile, "[]\n", "utf8");
+  await cleanDatabase();
 });
 
-afterEach(() => {
-  delete process.env.MISSINGS_FILE;
-  delete process.env.REPEATEDS_FILE;
-  delete process.env.REPEATEDS_SEED_FILE;
-});
+afterEach(() => {});
 
 describe("missing-store", () => {
   test("auto-seeds an empty inventory on first access", async () => {
     const inventory = await getMissingInventory(OWNER_EMAIL);
-    const raw = await readFile(missingFile, "utf8");
 
     assert.equal(inventory.ownerEmail, OWNER_EMAIL);
     assert.deepEqual(inventory.items, {});
-    assert.match(raw, /admin@example.com/);
   });
 
   test("persists sparse items only", async () => {

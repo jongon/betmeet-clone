@@ -1,12 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { buildEmptyProposal, syncProposalBlocks } from "@/lib/cambio-proposal";
 import { cloneDefaultExchangeSettings } from "@/lib/exchange-settings";
 import { toMissingRecord } from "@/lib/missing";
 import { getMissingInventory, replaceMissingInventory } from "@/lib/missing-store";
+import { prisma } from "@/lib/prisma";
 import { getInventory, saveGroupRepeateds } from "@/lib/repeateds-store";
 import {
   acceptPendingSessionForAdmin,
@@ -17,62 +15,28 @@ import {
   rejectSession,
   saveSessionProposal,
 } from "@/lib/sessions-store";
-
-let tmpDir = "";
-let sessionsFile = "";
-let sessionsSeedFile = "";
-let missingFile = "";
-let repeatedsFile = "";
-let repeatedsSeedFile = "";
+import { cleanDatabase } from "@/lib/test-helpers";
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), "sessions-store-"));
-  sessionsFile = path.join(tmpDir, "sessions.json");
-  sessionsSeedFile = path.join(tmpDir, "sessions.seed.json");
-  missingFile = path.join(tmpDir, "missing.json");
-  repeatedsFile = path.join(tmpDir, "repeateds.json");
-  repeatedsSeedFile = path.join(tmpDir, "repeateds.seed.json");
-
-  process.env.SESSIONS_FILE = sessionsFile;
-  process.env.SESSIONS_SEED_FILE = sessionsSeedFile;
-  process.env.MISSINGS_FILE = missingFile;
-  process.env.REPEATEDS_FILE = repeatedsFile;
-  process.env.REPEATEDS_SEED_FILE = repeatedsSeedFile;
-
-  await writeFile(sessionsSeedFile, "[]\n", "utf8");
-  await writeFile(repeatedsSeedFile, "[]\n", "utf8");
+  await cleanDatabase();
 });
 
-afterEach(() => {
-  delete process.env.SESSIONS_FILE;
-  delete process.env.SESSIONS_SEED_FILE;
-  delete process.env.MISSINGS_FILE;
-  delete process.env.REPEATEDS_FILE;
-  delete process.env.REPEATEDS_SEED_FILE;
-});
+afterEach(() => {});
 
 describe("sessions store archiving", () => {
-  test("normalizes legacy sessions without archivedAt", async () => {
-    await writeFile(
-      sessionsFile,
-      JSON.stringify(
-        [
-          {
-            id: "ses_legacy",
-            cambiadorName: "Carlos",
-            offeredCount: 1,
-            requestedCount: 1,
-            createdAt: "2026-06-05T10:00:00.000Z",
-            status: "closed",
-            token: "qr_1234567890abcdef1234567890abcdef",
-            proposal: null,
-          },
-        ],
-        null,
-        2,
-      ),
-      "utf8",
-    );
+  test("normalizes sessions without archivedAt", async () => {
+    await prisma.session.create({
+      data: {
+        id: "ses_legacy",
+        cambiadorName: "Carlos",
+        offeredCount: 1,
+        requestedCount: 1,
+        createdAt: new Date("2026-06-05T10:00:00.000Z"),
+        status: "closed",
+        token: "qr_1234567890abcdef1234567890abcdef",
+        archivedAt: null,
+      },
+    });
 
     const sessions = await getAllSessions();
     assert.equal(sessions[0]?.archivedAt, null);

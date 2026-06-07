@@ -1,7 +1,4 @@
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import {
   buildAvailableRepeatedStickers,
@@ -28,26 +25,13 @@ import {
 } from "@/lib/cambio-proposal";
 import { cloneDefaultExchangeSettings } from "@/lib/exchange-settings";
 import { createSession, getSessionById, saveSessionProposal } from "@/lib/sessions-store";
-
-let tmpDir = "";
-let sessionsFile = "";
-let sessionsSeedFile = "";
+import { cleanDatabase } from "@/lib/test-helpers";
 
 beforeEach(async () => {
-  tmpDir = await mkdtemp(path.join(os.tmpdir(), "cambio-proposal-"));
-  sessionsFile = path.join(tmpDir, "sessions.json");
-  sessionsSeedFile = path.join(tmpDir, "sessions.seed.json");
-
-  process.env.SESSIONS_FILE = sessionsFile;
-  process.env.SESSIONS_SEED_FILE = sessionsSeedFile;
-
-  await writeFile(sessionsSeedFile, "[]\n", "utf8");
+  await cleanDatabase();
 });
 
-afterEach(() => {
-  delete process.env.SESSIONS_FILE;
-  delete process.env.SESSIONS_SEED_FILE;
-});
+afterEach(() => {});
 
 describe("cambio proposal persistence", () => {
   test("rehydrates an existing draft for an open session", async () => {
