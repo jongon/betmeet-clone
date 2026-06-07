@@ -3,6 +3,25 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
 
+function readDatabaseUrl() {
+  const rawValue =
+    process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? process.env.POSTGRES_PRISMA_URL;
+  if (!rawValue) {
+    throw new Error("DATABASE_URL is required");
+  }
+
+  const trimmedValue = rawValue.trim();
+  if (trimmedValue.length >= 2) {
+    const first = trimmedValue[0];
+    const last = trimmedValue.at(-1);
+    if ((first === '"' || first === "'") && first === last) {
+      return trimmedValue.slice(1, -1);
+    }
+  }
+
+  return trimmedValue;
+}
+
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
@@ -10,6 +29,6 @@ export default defineConfig({
     seed: "tsx ./prisma/seed.ts",
   },
   datasource: {
-    url: process.env.DATABASE_URL,
+    url: readDatabaseUrl(),
   },
 });
