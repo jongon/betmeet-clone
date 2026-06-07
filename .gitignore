@@ -23,22 +23,17 @@ build/
 !.vscode/settings.json
 
 # AI tools — directories are generated, MCP configs are tracked
-.claude/*
-!.claude/settings.json
-.opencode/*
-!.opencode/opencode.json
-.cursor/*
-!.cursor/mcp.json
-.kiro/*
-!.kiro/mcp.json
-.kilocode/*
-!.kilocode/mcp.json
-.copilot/*
-!.copilot/mcp.json
-.codex/*
-!.codex/mcp.json
+.agent
+.claude/
+.opencode/
+.cursor/
+.kiro/
+.kilocode/
+.github-copilot/
+.codex/
 .antigravity/*
-!.antigravity/mcp.json
+.github/prompts
+.github/skills
 
 # OS
 .DS_Store

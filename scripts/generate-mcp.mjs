@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,27 @@ try {
 const servers = source.servers ?? {};
 const serverNames = Object.keys(servers);
 
+function commandExists(cmd) {
+  try {
+    const check = process.platform === "win32" ? `where ${cmd}` : `command -v ${cmd}`;
+    execSync(check, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const toolDetectors = {
+  claude: () => commandExists("claude"),
+  opencode: () => commandExists("opencode"),
+  cursor: () => commandExists("cursor"),
+  kiro: () => commandExists("kiro"),
+  kilocode: () => commandExists("kilocode"),
+  "github-copilot": () => commandExists("gh"),
+  codex: () => commandExists("codex"),
+  antigravity: () => commandExists("antigravity"),
+};
+
 function toStdioEntry(name) {
   switch (name) {
     case "context7":
@@ -35,17 +57,27 @@ function toStdioEntry(name) {
 const stdioServers = Object.fromEntries(serverNames.map((name) => [name, toStdioEntry(name)]));
 
 const toolOutputs = [
-  { dir: ".claude", file: "settings.json", type: "mcpServers" },
-  { dir: ".opencode", file: "opencode.json", type: "opencode" },
-  { dir: ".cursor", file: "mcp.json", type: "mcpServers" },
-  { dir: ".kiro", file: "mcp.json", type: "mcpServers" },
-  { dir: ".kilocode", file: "mcp.json", type: "mcpServers" },
-  { dir: ".copilot", file: "mcp.json", type: "mcpServers" },
-  { dir: ".codex", file: "mcp.json", type: "mcpServers" },
-  { dir: ".antigravity", file: "mcp.json", type: "mcpServers" },
+  { dir: ".claude", file: "settings.json", type: "mcpServers", tool: "claude" },
+  { dir: ".opencode", file: "opencode.json", type: "opencode", tool: "opencode" },
+  { dir: ".cursor", file: "mcp.json", type: "mcpServers", tool: "cursor" },
+  { dir: ".kiro", file: "mcp.json", type: "mcpServers", tool: "kiro" },
+  { dir: ".kilocode", file: "mcp.json", type: "mcpServers", tool: "kilocode" },
+  { dir: ".github-copilot", file: "mcp.json", type: "mcpServers", tool: "github-copilot" },
+  { dir: ".codex", file: "mcp.json", type: "mcpServers", tool: "codex" },
+  { dir: ".antigravity", file: "mcp.json", type: "mcpServers", tool: "antigravity" },
 ];
 
-for (const { dir, file, type } of toolOutputs) {
+let generated = 0;
+let skipped = 0;
+
+for (const { dir, file, type, tool } of toolOutputs) {
+  const detector = toolDetectors[tool];
+  if (detector && !detector()) {
+    console.log(`✗ ${dir}/${file} (${tool} not found)`);
+    skipped++;
+    continue;
+  }
+
   mkdirSync(resolve(root, dir), { recursive: true });
 
   const content =
@@ -56,6 +88,7 @@ for (const { dir, file, type } of toolOutputs) {
   writeFileSync(resolve(root, dir, file), `${JSON.stringify(content, null, 2)}\n`);
 
   console.log(`✓ ${dir}/${file}`);
+  generated++;
 }
 
-console.log(`Done — generated from ${sourcePath}`);
+console.log(`Done — ${generated} generated, ${skipped} skipped (source: ${sourcePath})`);
