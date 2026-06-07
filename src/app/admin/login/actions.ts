@@ -1,7 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { CAMBIADOR_COOKIE } from "@/lib/cambiador-identity";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type SignInState = { error: string | null };
@@ -45,6 +47,14 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
   if (error) {
     return { error: "Credenciales no válidas" };
+  }
+
+  const cookieStore = await cookies();
+  const allCookies = cookieStore.getAll();
+  for (const cookie of allCookies) {
+    if (cookie.name === CAMBIADOR_COOKIE || cookie.name.startsWith("cambio_session_")) {
+      cookieStore.set(cookie.name, "", { maxAge: 0, path: "/" });
+    }
   }
 
   redirect(safeNext(raw.next));

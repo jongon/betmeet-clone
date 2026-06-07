@@ -32,6 +32,7 @@ import {
   resolveByTokenAndCambiadorId,
   saveSessionProposal,
 } from "@/lib/sessions-store";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const NameSchema = z
   .string()
@@ -118,6 +119,14 @@ export async function createCambioSessionAction(
       fieldError: null,
       value: nameParsed.data,
     };
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user) {
+    await supabase.auth.signOut();
   }
 
   if (entryState.kind === "resume") {

@@ -35,7 +35,7 @@ Al cargar `/cambio/[token]`, el sistema SHALL ejecutar automáticamente una reso
 - **THEN** muestra un estado de error y no crea ni reabre sesión
 
 ### Requirement: Creación de sesión desde formulario de nombre
-Si no existe sesión previa abierta, el sistema SHALL mostrar un formulario con campo `nombre` y acción principal `Aceptar`. El formulario SHALL permitir envío por tecla Enter y por click en el botón Aceptar. Al enviar un nombre válido, el sistema SHALL crear una sesión abierta asociada al token y entrar inmediatamente a la sesión creada.
+Si no existe sesión previa abierta, el sistema SHALL mostrar un formulario con campo `nombre` y acción principal `Aceptar`. El formulario SHALL permitir envío por tecla Enter y por click en el botón Aceptar. Al enviar un nombre válido, el sistema SHALL primero verificar si existe una sesión admin activa; si existe, SHALL cerrarla mediante `supabase.auth.signOut()`. Luego SHALL crear una sesión abierta asociada al token y entrar inmediatamente a la sesión creada.
 
 #### Scenario: Creación con Enter
 - **WHEN** el cambiador escribe un nombre válido y presiona Enter
@@ -44,6 +44,10 @@ Si no existe sesión previa abierta, el sistema SHALL mostrar un formulario con 
 #### Scenario: Creación con botón Aceptar
 - **WHEN** el cambiador escribe un nombre válido y hace click en Aceptar
 - **THEN** el sistema crea la sesión abierta y entra a la sesión creada
+
+#### Scenario: Creación con sesión admin activa
+- **WHEN** el cambiador envía un nombre válido y existe una sesión admin activa en el navegador
+- **THEN** el sistema cierra la sesión admin, crea la sesión de cambiador, y entra a la sesión creada
 
 ### Requirement: Validación de nombre del cambiador
 El sistema SHALL validar en servidor el campo `nombre` con las reglas: requerido, `trim`, longitud mínima 2 y máxima 40 caracteres. Si la validación falla, SHALL mostrar error en formulario y SHALL no crear sesión.
