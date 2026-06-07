@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "pnpm prisma:generate",
     "dev": "next dev",
+    "prebuild": "pnpm prisma:generate",
     "build": "next build",
     "start": "next start",
     "test": "DATABASE_URL=\"postgresql://username:password@postgres:5432/nextjs_test\" tsx --test --test-concurrency 1",
@@ -14,6 +16,7 @@
     "check:toggle": "node scripts/check-theme-toggle.mjs",
     "check:toggle:browser": "node scripts/check-theme-toggle-browser.mjs",
     "commit": "gitmoji -c",
+    "prisma:generate": "rm -rf src/generated/prisma && prisma generate",
     "prepare": "lefthook install"
   },
   "dependencies": {
