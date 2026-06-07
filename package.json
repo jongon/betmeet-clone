@@ -14,7 +14,7 @@
     "check:toggle": "node scripts/check-theme-toggle.mjs",
     "check:toggle:browser": "node scripts/check-theme-toggle-browser.mjs",
     "commit": "gitmoji -c",
-    "postinstall": "bash scripts/setup-agent.sh",
+    "postinstall": "{ [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; } && bash scripts/setup-agent.sh",
     "prepare": "lefthook install"
   },
   "dependencies": {
