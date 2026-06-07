@@ -4,17 +4,25 @@ Template Next.js 16 + TypeScript + Tailwind CSS v4 con tooling de desarrollo com
 
 ## Setup
 
-`.agent/` es la **fuente de verdad** para configuración MCP de herramientas AI. `scripts/setup-agent.sh` genera los archivos de configuración MCP para cada herramienta:
+`.agent/` es la **fuente de verdad** para configuración MCP de herramientas AI. `scripts/generate-mcp.mjs` genera los archivos de configuración MCP para cada herramienta:
 
-- `.claude/settings.json` — MCP config para Claude Code
-- `.opencode/opencode.json` — MCP config para opencode
+| Herramienta | Archivo generado |
+|-------------|-----------------|
+| Claude Code | `.claude/settings.json` |
+| opencode | `.opencode/opencode.json` |
+| Cursor | `.cursor/mcp.json` |
+| Kiro | `.kiro/mcp.json` |
+| Kilocode | `.kilocode/mcp.json` |
+| GitHub Copilot | `.copilot/mcp.json` |
+| Codex | `.codex/mcp.json` |
+| Antigravity | `.antigravity/mcp.json` |
 
 Cada herramienta AI (Claude, opencode, Cursor, Kiro) genera sus propios directorios `commands/` y `skills/` automáticamente.
 
 **Ejecutar tras clonar** para generar la configuración MCP:
 
 ```bash
-bash scripts/setup-agent.sh
+node scripts/generate-mcp.mjs
 ```
 
 ### Configuración de opencode
@@ -31,7 +39,7 @@ El devcontainer ya tiene esta variable configurada en `remoteEnv`.
 
 1. Editar `.agent/config/mcp/source.json` (entrada nueva en `servers`)
 2. Si el cliente lo necesita en formato distinto a remote, añadir un case en `to_claude_entry()` dentro del script
-3. Correr `bash scripts/setup-agent.sh`
+3. Correr `node scripts/generate-mcp.mjs`
 
 ## Documentación
 

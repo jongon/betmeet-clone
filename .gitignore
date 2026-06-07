@@ -22,15 +22,23 @@ build/
 !.vscode/launch.json
 !.vscode/settings.json
 
-# AI tools (each tool generates its own config)
-.cursor/
-.kiro/
-.kilocode/
-.claude/
-.codex/
-.copilot/
-.opencode/
-.antigravity/
+# AI tools — directories are generated, MCP configs are tracked
+.claude/*
+!.claude/settings.json
+.opencode/*
+!.opencode/opencode.json
+.cursor/*
+!.cursor/mcp.json
+.kiro/*
+!.kiro/mcp.json
+.kilocode/*
+!.kilocode/mcp.json
+.copilot/*
+!.copilot/mcp.json
+.codex/*
+!.codex/mcp.json
+.antigravity/*
+!.antigravity/mcp.json
 
 # OS
 .DS_Store

@@ -59,8 +59,7 @@ Template para proyectos Next.js 16 con App Router, TypeScript, Tailwind CSS v4 y
 
 1. Clonar el repositorio
 2. Copiar `.env.example` a `.env` y configurar `DATABASE_URL`
-3. Ejecutar `bash scripts/setup-agent.sh` para generar config MCP
-4. Ejecutar `pnpm install` (ejecuta setup-agent.sh y lefthook install automáticamente)
-5. Ejecutar `pnpm prisma:generate` para generar el cliente Prisma
-6. Ejecutar `pnpm prisma migrate dev` para crear la base de datos
-7. Iniciar desarrollo con `pnpm dev`
+3. Ejecutar `pnpm install` (ejecuta `node scripts/generate-mcp.mjs` y `lefthook install` automáticamente)
+4. Ejecutar `pnpm prisma:generate` para generar el cliente Prisma
+5. Ejecutar `pnpm prisma migrate dev` para crear la base de datos
+6. Iniciar desarrollo con `pnpm dev`

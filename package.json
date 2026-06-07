@@ -15,7 +15,7 @@
     "commit": "gitmoji -c",
     "prisma:generate": "rm -rf src/generated/prisma && prisma generate",
     "prisma:studio": "prisma studio",
-    "postinstall": "{ [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; } && bash scripts/setup-agent.sh",
+    "postinstall": "node scripts/generate-mcp.mjs",
     "prepare": "lefthook install"
   },
   "dependencies": {

@@ -7,8 +7,8 @@ pre-commit:
       stage_fixed: true
     agent-config:
       glob: ".agent/**"
-      run: bash scripts/setup-agent.sh && git diff --exit-code .claude/settings.json .opencode/opencode.json
-      fail_text: "Drift detectado entre .agent/ y los configs generados. Haz commit de los cambios en .claude/settings.json y .opencode/opencode.json."
+      run: node scripts/generate-mcp.mjs && git diff --exit-code -- .claude/settings.json .opencode/opencode.json .cursor/mcp.json .kiro/mcp.json .kilocode/mcp.json .copilot/mcp.json .codex/mcp.json .antigravity/mcp.json
+      fail_text: "Drift detectado entre .agent/ y los configs generados. Haz commit de los archivos MCP regenerados."
 
 commit-msg:
   commands:
