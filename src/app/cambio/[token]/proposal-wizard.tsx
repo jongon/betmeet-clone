@@ -1288,32 +1288,6 @@ export function ProposalWizard({
             </p>
             <p className="text-sm text-muted-foreground">{balanceGuidance.detail}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={() =>
-                repeatedsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-              }
-            >
-              Ajustar repetidos
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              disabled={visibleSelectedBlocks.length === 0}
-              onClick={() => {
-                const firstBlock = visibleSelectedBlocks[0] ?? selectedBlocks[0];
-                if (firstBlock) {
-                  openOfferDrawer(firstBlock);
-                }
-              }}
-            >
-              Editar oferta
-            </Button>
-          </div>
         </section>
 
         {renderSharedSearch()}
@@ -1322,7 +1296,7 @@ export function ProposalWizard({
           ref={repeatedsSectionRef}
           className="space-y-3 rounded-xl border border-border bg-background p-4"
         >
-          <p className="text-sm font-medium text-foreground">Recibes del coleccionista</p>
+          <p className="text-sm font-medium text-foreground">Tú recibes</p>
           {visibleRequestedRepeateds.length === 0 ? (
             <p className="text-sm text-muted-foreground">No has seleccionado repetidos para ti.</p>
           ) : (
@@ -1336,13 +1310,10 @@ export function ProposalWizard({
                     key={item.stickerCode}
                     className="flex flex-col gap-3 rounded-xl border border-border p-3 sm:flex-row sm:items-center sm:justify-between"
                   >
-                    <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-medium text-foreground">{item.stickerCode}</p>
-                        <Badge variant="secondary">x{item.quantity}</Badge>
-                        {isLocked ? <Badge variant="outline">Incluido desde paso 1</Badge> : null}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{sticker?.label ?? ""}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-medium text-foreground">{item.stickerCode}</p>
+                      <Badge variant="secondary">x{item.quantity}</Badge>
+                      {isLocked ? <Badge variant="outline">Incluido desde paso 1</Badge> : null}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1403,21 +1374,16 @@ export function ProposalWizard({
           )}
         </section>
 
-        <section className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
-          <p className="text-sm font-medium text-foreground">Recibe el coleccionista</p>
-          <div className="flex flex-wrap gap-2">
-            {visibleSelectedBlocks.map((block) => (
-              <Badge
-                key={block.requestedStickerCode}
-                className="bg-primary text-primary-foreground"
-              >
-                {block.requestedStickerCode}
-              </Badge>
-            ))}
+        <section
+          ref={offersSectionRef}
+          className="space-y-3 rounded-xl border border-border bg-background p-4"
+        >
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-foreground">Tú das</p>
+            <p className="text-sm text-muted-foreground">
+              Revisa bloque por bloque qué estás ofreciendo al coleccionista.
+            </p>
           </div>
-        </section>
-
-        <section ref={offersSectionRef} className="space-y-3">
           {visibleSelectedBlocks.length === 0 ? (
             <StepEmptyState message="No hay bloques visibles para esa búsqueda." />
           ) : null}
@@ -1453,7 +1419,7 @@ export function ProposalWizard({
               {block.counteroffer?.note ? (
                 <p className="text-xs text-muted-foreground">Nota: {block.counteroffer.note}</p>
               ) : null}
-              <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <Button
                   type="button"
                   size="sm"
@@ -1461,6 +1427,13 @@ export function ProposalWizard({
                   onClick={() => openOfferDrawer(block)}
                 >
                   Editar oferta
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={() => toggleSticker(block.requestedStickerCode)}
+                >
+                  Quitar
                 </Button>
               </div>
               {blockErrors[block.requestedStickerCode] ? (
