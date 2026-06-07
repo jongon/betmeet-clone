@@ -1,18 +1,55 @@
 import { randomUUID } from "node:crypto";
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import type { ProposalBlock, RequestedRepeated } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { countOfferedItems, countRequestedRepeateds } from "@/lib/cambio-proposal";
 import { markStickersAsCompletedForAdmin, validateMissingStickersForProposal } from "@/lib/missing";
+import { prisma } from "@/lib/prisma";
 import { decrementRepeatedInventory, getInventory } from "@/lib/repeateds-store";
 import {
   type Session,
   type SessionProposal,
   SessionProposalSchema,
   SessionSchema,
-  SessionsArraySchema,
 } from "@/lib/sessions";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+type PrismaProposal = {
+  id: number;
+  sessionId: string;
+  status: string;
+  currentStep: number;
+  flowVersion: number | null;
+  selectedStickerCodes: unknown;
+  updatedAt: Date;
+  submittedAt: Date | null;
+  blocks: ProposalBlock[];
+  requestedRepeateds: RequestedRepeated[];
+};
+
+type PrismaSessionRow = {
+  id: string;
+  cambiadorName: string;
+  cambiadorId: string | null;
+  offeredCount: number;
+  requestedCount: number;
+  createdAt: Date;
+  status: string;
+  token: string;
+  archivedAt: Date | null;
+  proposal: PrismaProposal | null;
+};
+
+const proposalInclude = {
+  include: {
+    blocks: true,
+    requestedRepeateds: true,
+  },
+} as const;
+
+const sessionInclude = {
+  include: {
+    proposal: proposalInclude,
+  },
+} as const;
 
 function normalizeStoredRuleLabel(label: unknown): unknown {
   if (label === "Regla general") {
@@ -58,34 +95,6 @@ function normalizeStoredCounteroffer(counteroffer: unknown): unknown {
       ANY: offerType === "ANY" ? quantity : 0,
     },
   };
-}
-
-function getRuntimeFilePath(): string {
-  return process.env.SESSIONS_FILE ?? path.join(DATA_DIR, "sessions.json");
-}
-
-function getSeedFilePath(): string {
-  return process.env.SESSIONS_SEED_FILE ?? path.join(DATA_DIR, "sessions.seed.json");
-}
-
-async function ensureRuntimeFile(): Promise<void> {
-  await mkdir(path.dirname(getRuntimeFilePath()), { recursive: true });
-  try {
-    await readFile(getRuntimeFilePath(), "utf8");
-  } catch {
-    await copyFile(getSeedFilePath(), getRuntimeFilePath());
-  }
-}
-
-async function readSessions(): Promise<Session[]> {
-  await ensureRuntimeFile();
-  const raw = await readFile(getRuntimeFilePath(), "utf8");
-  const parsed: unknown = JSON.parse(raw);
-  if (!Array.isArray(parsed)) {
-    return SessionsArraySchema.parse(parsed);
-  }
-
-  return parsed.map((session) => normalizeStoredSession(session));
 }
 
 function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
@@ -145,142 +154,143 @@ function normalizeStoredProposal(rawProposal: unknown): SessionProposal | null {
   });
 }
 
-function normalizeStoredSession(rawSession: unknown): Session {
-  const parsed = SessionSchema.safeParse(rawSession);
-  if (parsed.success) {
-    return SessionSchema.parse({ ...parsed.data, archivedAt: parsed.data.archivedAt ?? null });
-  }
+function toProposal(row: PrismaProposal): SessionProposal {
+  const raw = {
+    status: row.status,
+    currentStep: row.currentStep,
+    flowVersion: row.flowVersion ?? undefined,
+    selectedStickerCodes: row.selectedStickerCodes,
+    blocks: row.blocks.map((b) => ({
+      ...b,
+      modeLabel: normalizeStoredModeLabel(b.mode),
+      counteroffer: normalizeStoredCounteroffer(b.counteroffer),
+      rule:
+        b.rule && typeof b.rule === "object"
+          ? {
+              ...(b.rule as Record<string, unknown>),
+              label: normalizeStoredRuleLabel((b.rule as Record<string, unknown>).label),
+            }
+          : b.rule,
+    })),
+    requestedRepeateds: row.requestedRepeateds.map((r) => ({
+      stickerCode: r.stickerCode,
+      quantity: r.quantity,
+    })),
+    updatedAt: row.updatedAt.toISOString(),
+    submittedAt: row.submittedAt?.toISOString() ?? null,
+  };
 
-  const base = rawSession as Omit<Session, "proposal"> & { proposal?: unknown };
+  return normalizeStoredProposal(raw) ?? SessionProposalSchema.parse(raw);
+}
+
+function toSession(row: PrismaSessionRow): Session {
   return SessionSchema.parse({
-    ...base,
-    archivedAt: base.archivedAt ?? null,
-    proposal: normalizeStoredProposal(base.proposal),
+    id: row.id,
+    cambiadorName: row.cambiadorName,
+    cambiadorId: row.cambiadorId ?? undefined,
+    offeredCount: row.offeredCount,
+    requestedCount: row.requestedCount,
+    createdAt: row.createdAt.toISOString(),
+    status: row.status,
+    token: row.token,
+    archivedAt: row.archivedAt?.toISOString() ?? null,
+    proposal: row.proposal ? toProposal(row.proposal) : undefined,
   });
 }
 
-async function writeSessions(sessions: Session[]): Promise<void> {
-  await ensureRuntimeFile();
-  await writeFile(getRuntimeFilePath(), JSON.stringify(sessions, null, 2), "utf8");
-}
-
-function findSession(sessions: Session[], id: string): Session | undefined {
-  return sessions.find((s) => s.id === id);
-}
-
-function isOpen(session: Session | undefined): session is Session {
-  return session !== undefined && session.status === "open";
-}
-
 export async function getAllSessions(): Promise<Session[]> {
-  return readSessions();
+  const rows = await prisma.session.findMany({
+    ...sessionInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map(toSession);
 }
 
 export async function getSessionById(id: string): Promise<Session | null> {
-  const sessions = await readSessions();
-  const found = sessions.find((session) => session.id === id);
-  return found ? SessionSchema.parse(found) : null;
+  const row = await prisma.session.findUnique({
+    where: { id },
+    ...sessionInclude,
+  });
+  return row ? toSession(row) : null;
 }
 
 export async function acceptSession(id: string): Promise<void> {
-  const sessions = await readSessions();
-  const target = findSession(sessions, id);
-  if (!isOpen(target)) return;
-  const next = sessions.map((s) => (s.id === id ? { ...s, status: "closed" as const } : s));
-  await writeSessions(next);
+  await prisma.session.updateMany({
+    where: { id, status: "open" },
+    data: { status: "closed" },
+  });
 }
 
 export async function acceptPendingSessionForAdmin(id: string, ownerEmail: string): Promise<void> {
-  const sessions = await readSessions();
-  const target = findSession(sessions, id);
+  const session = await prisma.session.findUnique({
+    where: { id },
+    ...sessionInclude,
+  });
 
-  if (!isOpen(target)) {
-    return;
-  }
+  if (!session || session.status !== "open") return;
 
-  if (target.proposal?.status !== "pending") {
-    return;
-  }
+  const domainProposal = toProposal(session.proposal!);
+  if (domainProposal.status !== "pending") return;
 
-  const requestedStickerCodes = target.proposal.blocks.map((block) => block.requestedStickerCode);
+  const requestedStickerCodes = domainProposal.blocks.map((block) => block.requestedStickerCode);
   const missingValidation = await validateMissingStickersForProposal(
     ownerEmail,
     requestedStickerCodes,
   );
 
   if (missingValidation.status !== "pending") {
-    const next = sessions.map((session) =>
-      session.id === id ? { ...session, status: "closed" as const } : session,
-    );
-    await writeSessions(next);
+    await prisma.session.update({ where: { id }, data: { status: "closed" } });
     return;
   }
 
   const repeatedInventory = await getInventory(ownerEmail);
-  const hasEnoughRepeateds = target.proposal.requestedRepeateds.every(
+  const hasEnoughRepeateds = domainProposal.requestedRepeateds.every(
     (item) => (repeatedInventory.items[item.stickerCode] ?? 0) >= item.quantity,
   );
 
   if (!hasEnoughRepeateds) {
-    const next = sessions.map((session) =>
-      session.id === id ? { ...session, status: "closed" as const } : session,
-    );
-    await writeSessions(next);
+    await prisma.session.update({ where: { id }, data: { status: "closed" } });
     return;
   }
 
   const decremented = await decrementRepeatedInventory(
     ownerEmail,
-    target.proposal.requestedRepeateds,
+    domainProposal.requestedRepeateds,
   );
   if (!decremented.ok) {
-    const next = sessions.map((session) =>
-      session.id === id ? { ...session, status: "closed" as const } : session,
-    );
-    await writeSessions(next);
+    await prisma.session.update({ where: { id }, data: { status: "closed" } });
     return;
   }
 
   await markStickersAsCompletedForAdmin(ownerEmail, requestedStickerCodes);
 
-  const next = sessions.map((session) =>
-    session.id === id ? { ...session, status: "closed" as const } : session,
-  );
-  await writeSessions(next);
+  await prisma.session.update({ where: { id }, data: { status: "closed" } });
 }
 
 export async function rejectSession(id: string): Promise<void> {
-  const sessions = await readSessions();
-  const target = findSession(sessions, id);
-  if (!isOpen(target)) return;
-  const next = sessions.map((s) => (s.id === id ? { ...s, status: "closed" as const } : s));
-  await writeSessions(next);
+  await prisma.session.updateMany({
+    where: { id, status: "open" },
+    data: { status: "closed" },
+  });
 }
 
 export async function archiveSession(id: string): Promise<void> {
-  const sessions = await readSessions();
-  const target = findSession(sessions, id);
-
-  if (target?.status !== "closed" || target.archivedAt) {
-    return;
-  }
-
-  const archivedAt = new Date().toISOString();
-  const next = sessions.map((session) =>
-    session.id === id ? { ...session, archivedAt } : session,
-  );
-  await writeSessions(next);
+  await prisma.session.updateMany({
+    where: { id, status: "closed", archivedAt: null },
+    data: { archivedAt: new Date() },
+  });
 }
 
 export async function findLatestSessionByTokenAndCambiadorId(
   token: string,
   cambiadorId: string,
 ): Promise<Session | null> {
-  const sessions = await readSessions();
-  const matches = sessions
-    .filter((session) => session.token === token && session.cambiadorId === cambiadorId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  return matches[0] ?? null;
+  const row = await prisma.session.findFirst({
+    where: { token, cambiadorId },
+    ...sessionInclude,
+    orderBy: { createdAt: "desc" },
+  });
+  return row ? toSession(row) : null;
 }
 
 type CreateSessionInput = {
@@ -305,38 +315,84 @@ export async function resolveByTokenAndCambiadorId(
 }
 
 export async function createSession(input: CreateSessionInput): Promise<Session> {
-  const sessions = await readSessions();
-  const created: Session = {
-    id: `ses_${randomUUID()}`,
-    cambiadorName: input.cambiadorName,
-    cambiadorId: input.cambiadorId,
-    offeredCount: 0,
-    requestedCount: 0,
-    createdAt: new Date().toISOString(),
-    status: "open",
-    token: input.token,
+  const row = await prisma.session.create({
+    data: {
+      id: `ses_${randomUUID()}`,
+      cambiadorName: input.cambiadorName,
+      cambiadorId: input.cambiadorId,
+      offeredCount: 0,
+      requestedCount: 0,
+      createdAt: new Date(),
+      status: "open",
+      token: input.token,
+    },
+  });
+
+  return SessionSchema.parse({
+    id: row.id,
+    cambiadorName: row.cambiadorName,
+    cambiadorId: row.cambiadorId,
+    offeredCount: row.offeredCount,
+    requestedCount: row.requestedCount,
+    createdAt: row.createdAt.toISOString(),
+    status: row.status,
+    token: row.token,
     archivedAt: null,
     proposal: null,
-  };
-  await writeSessions([...sessions, created]);
-  return created;
+  });
 }
 
 export async function saveSessionProposal(id: string, proposal: SessionProposal): Promise<Session> {
-  const sessions = await readSessions();
-  const target = findSession(sessions, id);
+  const session = await prisma.session.findUnique({ where: { id } });
 
-  if (!target) {
+  if (!session) {
     throw new Error("Sesión no encontrada");
   }
 
-  const nextSession = SessionSchema.parse({
-    ...target,
-    requestedCount: countRequestedRepeateds(proposal.requestedRepeateds),
-    offeredCount: countOfferedItems(proposal.blocks),
-    proposal,
+  await prisma.sessionProposal.deleteMany({ where: { sessionId: id } });
+
+  await prisma.sessionProposal.create({
+    data: {
+      session: { connect: { id } },
+      status: proposal.status,
+      currentStep: proposal.currentStep,
+      flowVersion: proposal.flowVersion,
+      selectedStickerCodes: proposal.selectedStickerCodes,
+      updatedAt: new Date(),
+      submittedAt: proposal.submittedAt ? new Date(proposal.submittedAt) : null,
+      blocks: {
+        create: proposal.blocks.map((block) => ({
+          requestedStickerCode: block.requestedStickerCode,
+          requestedStickerLabel: block.requestedStickerLabel,
+          requestedStickerType: block.requestedStickerType,
+          mode: block.mode,
+          modeLabel: block.modeLabel,
+          rule: block.rule,
+          fulfillRequirements: block.fulfillRequirements,
+          counteroffer: block.counteroffer ?? Prisma.JsonNull,
+        })),
+      },
+      requestedRepeateds: {
+        create: proposal.requestedRepeateds.map((item) => ({
+          stickerCode: item.stickerCode,
+          quantity: item.quantity,
+        })),
+      },
+    },
   });
 
-  await writeSessions(sessions.map((session) => (session.id === id ? nextSession : session)));
-  return nextSession;
+  await prisma.session.update({
+    where: { id },
+    data: {
+      requestedCount: countRequestedRepeateds(proposal.requestedRepeateds),
+      offeredCount: countOfferedItems(proposal.blocks),
+    },
+  });
+
+  const updated = await prisma.session.findUnique({
+    where: { id },
+    ...sessionInclude,
+  });
+
+  return toSession(updated!);
 }

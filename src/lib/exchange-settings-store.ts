@@ -1,5 +1,3 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import {
   cloneDefaultExchangeSettings,
   type ExchangeSettingsDocument,
@@ -9,27 +7,7 @@ import {
   type StickerOverride,
   StickerOverrideSchema,
 } from "@/lib/exchange-settings";
-
-const DATA_DIR = path.join(process.cwd(), "data");
-
-function getRuntimeFilePath(): string {
-  return process.env.EXCHANGE_SETTINGS_FILE ?? path.join(DATA_DIR, "exchange-settings.json");
-}
-
-function getSeedFilePath(): string {
-  return (
-    process.env.EXCHANGE_SETTINGS_SEED_FILE ?? path.join(DATA_DIR, "exchange-settings.seed.json")
-  );
-}
-
-async function ensureRuntimeFile(): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  try {
-    await readFile(getRuntimeFilePath(), "utf8");
-  } catch {
-    await copyFile(getSeedFilePath(), getRuntimeFilePath());
-  }
-}
+import { prisma } from "@/lib/prisma";
 
 function normalizeStoredOverrides(
   overrides: Record<string, unknown>,
@@ -55,48 +33,18 @@ function normalizeStoredOverrides(
   return next;
 }
 
-function normalizeStoredDocument(rawDocument: unknown): ExchangeSettingsDocument {
-  const parsed = ExchangeSettingsDocumentSchema.safeParse(rawDocument);
-  if (parsed.success) {
-    return parsed.data;
-  }
-
-  const base = rawDocument as {
-    ownerEmail?: unknown;
-    updatedAt?: unknown;
-    global?: unknown;
-    overrides?: unknown;
-  };
-
-  return ExchangeSettingsDocumentSchema.parse({
-    ownerEmail: base.ownerEmail,
-    updatedAt: base.updatedAt,
-    global: base.global,
-    overrides: normalizeStoredOverrides((base.overrides ?? {}) as Record<string, unknown>),
-  });
-}
-
-async function readDocuments(): Promise<ExchangeSettingsDocument[]> {
-  await ensureRuntimeFile();
-  const raw = await readFile(getRuntimeFilePath(), "utf8");
-  const parsed: unknown = JSON.parse(raw);
-
-  if (!Array.isArray(parsed)) {
-    throw new Error("Exchange settings document inválido");
-  }
-
-  return parsed.map((document) => normalizeStoredDocument(document));
-}
-
-async function writeDocuments(docs: ExchangeSettingsDocument[]): Promise<void> {
-  await ensureRuntimeFile();
-  await writeFile(getRuntimeFilePath(), JSON.stringify(docs, null, 2), "utf8");
-}
-
 export async function getExchangeSettings(ownerEmail: string): Promise<ExchangeSettingsDocument> {
-  const docs = await readDocuments();
-  const found = docs.find((doc) => doc.ownerEmail === ownerEmail);
-  if (found) return found;
+  const row = await prisma.exchangeSettings.findUnique({ where: { ownerEmail } });
+
+  if (row) {
+    return ExchangeSettingsDocumentSchema.parse({
+      ownerEmail: row.ownerEmail,
+      updatedAt: row.updatedAt.toISOString(),
+      global: row.global,
+      overrides: normalizeStoredOverrides((row.overrides ?? {}) as Record<string, unknown>),
+    });
+  }
+
   return {
     ownerEmail,
     updatedAt: new Date().toISOString(),
@@ -109,18 +57,19 @@ export async function saveGlobalExchangeSettings(
   ownerEmail: string,
   globalSettings: ExchangeSettingsDocument["global"],
 ): Promise<void> {
-  const docs = await readDocuments();
-  const previous = docs.find((doc) => doc.ownerEmail === ownerEmail);
-  const next = docs.filter((doc) => doc.ownerEmail !== ownerEmail);
-
-  next.push({
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    global: globalSettings,
-    overrides: previous?.overrides ?? {},
+  await prisma.exchangeSettings.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      global: globalSettings,
+      overrides: {},
+    },
+    update: {
+      updatedAt: new Date(),
+      global: globalSettings,
+    },
   });
-
-  await writeDocuments(next);
 }
 
 export async function saveStickerOverride(
@@ -129,10 +78,10 @@ export async function saveStickerOverride(
   override: StickerOverride | null,
 ): Promise<void> {
   const parsedOverride = normalizeStickerOverride(StickerOverrideSchema.nullable().parse(override));
-  const docs = await readDocuments();
-  const previous = docs.find((doc) => doc.ownerEmail === ownerEmail);
-  const next = docs.filter((doc) => doc.ownerEmail !== ownerEmail);
-  const nextOverrides = { ...(previous?.overrides ?? {}) };
+  const existing = await prisma.exchangeSettings.findUnique({ where: { ownerEmail } });
+  const nextOverrides: Record<string, StickerOverride> = {
+    ...((existing?.overrides as Record<string, StickerOverride>) ?? {}),
+  };
 
   if (parsedOverride) {
     nextOverrides[stickerCode] = parsedOverride;
@@ -140,34 +89,43 @@ export async function saveStickerOverride(
     delete nextOverrides[stickerCode];
   }
 
-  next.push({
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    global: previous?.global ?? cloneDefaultExchangeSettings(),
-    overrides: nextOverrides,
+  await prisma.exchangeSettings.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      global: cloneDefaultExchangeSettings(),
+      overrides: nextOverrides,
+    },
+    update: {
+      updatedAt: new Date(),
+      overrides: nextOverrides,
+    },
   });
-
-  await writeDocuments(next);
 }
 
 export async function resetStickerOverride(ownerEmail: string, stickerCode: string): Promise<void> {
-  const docs = await readDocuments();
-  const previous = docs.find((doc) => doc.ownerEmail === ownerEmail);
+  const existing = await prisma.exchangeSettings.findUnique({ where: { ownerEmail } });
+  const previousOverrides = (existing?.overrides as Record<string, StickerOverride>) ?? {};
 
-  if (!previous?.overrides[stickerCode]) {
+  if (!previousOverrides[stickerCode]) {
     return;
   }
 
-  const nextOverrides = { ...previous.overrides };
+  const nextOverrides = { ...previousOverrides };
   delete nextOverrides[stickerCode];
 
-  const next = docs.filter((doc) => doc.ownerEmail !== ownerEmail);
-  next.push({
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    global: previous.global,
-    overrides: nextOverrides,
+  await prisma.exchangeSettings.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      global: cloneDefaultExchangeSettings(),
+      overrides: nextOverrides,
+    },
+    update: {
+      updatedAt: new Date(),
+      overrides: nextOverrides,
+    },
   });
-
-  await writeDocuments(next);
 }

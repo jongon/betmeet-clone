@@ -1,42 +1,24 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import {
-  MissingInventoriesSchema,
   type MissingInventory,
   MissingInventorySchema,
   MissingRecordSchema,
 } from "@/lib/missing-schema";
+import { prisma } from "@/lib/prisma";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-
-function getRuntimeFilePath(): string {
-  return process.env.MISSINGS_FILE ?? path.join(DATA_DIR, "missing.json");
+function toInventory(row: {
+  ownerEmail: string;
+  updatedAt: Date;
+  items: unknown;
+}): MissingInventory {
+  const parsed = MissingInventorySchema.parse({
+    ownerEmail: row.ownerEmail,
+    updatedAt: row.updatedAt.toISOString(),
+    items: row.items,
+  });
+  return parsed;
 }
 
-async function ensureRuntimeFile(): Promise<void> {
-  const runtimeFile = getRuntimeFilePath();
-  await mkdir(path.dirname(runtimeFile), { recursive: true });
-
-  try {
-    await readFile(runtimeFile, "utf8");
-  } catch {
-    await writeFile(runtimeFile, "[]\n", "utf8");
-  }
-}
-
-async function readInventories(): Promise<MissingInventory[]> {
-  await ensureRuntimeFile();
-  const raw = await readFile(getRuntimeFilePath(), "utf8");
-  const parsed: unknown = JSON.parse(raw);
-  return MissingInventoriesSchema.parse(parsed);
-}
-
-async function writeInventories(inventories: MissingInventory[]): Promise<void> {
-  await ensureRuntimeFile();
-  await writeFile(getRuntimeFilePath(), `${JSON.stringify(inventories, null, 2)}\n`, "utf8");
-}
-
-function createEmptyInventory(ownerEmail: string): MissingInventory {
+function createDefault(ownerEmail: string): MissingInventory {
   return MissingInventorySchema.parse({
     ownerEmail,
     updatedAt: new Date().toISOString(),
@@ -56,16 +38,19 @@ function hasSameItems(left: MissingInventory["items"], right: MissingInventory["
 }
 
 export async function getMissingInventory(ownerEmail: string): Promise<MissingInventory> {
-  const inventories = await readInventories();
-  const found = inventories.find((entry) => entry.ownerEmail === ownerEmail);
+  const row = await prisma.missingInventory.findUnique({ where: { ownerEmail } });
 
-  if (found) {
-    return found;
-  }
+  if (row) return toInventory(row);
 
-  const created = createEmptyInventory(ownerEmail);
-  await writeInventories([...inventories, created]);
-  return created;
+  const created = await prisma.missingInventory.create({
+    data: {
+      ownerEmail,
+      updatedAt: new Date(),
+      items: {},
+    },
+  });
+
+  return toInventory(created);
 }
 
 export async function replaceMissingInventory(
@@ -73,25 +58,28 @@ export async function replaceMissingInventory(
   items: Record<string, true>,
 ): Promise<MissingInventory> {
   const normalizedItems = MissingRecordSchema.parse(items);
-  const inventories = await readInventories();
-  const previous =
-    inventories.find((entry) => entry.ownerEmail === ownerEmail) ??
-    createEmptyInventory(ownerEmail);
+  const existing = await prisma.missingInventory.findUnique({ where: { ownerEmail } });
 
-  if (hasSameItems(previous.items, normalizedItems)) {
-    return previous;
+  const previousItems: Record<string, true> = (existing?.items as Record<string, true>) ?? {};
+
+  if (hasSameItems(previousItems, normalizedItems)) {
+    return existing ? toInventory(existing) : createDefault(ownerEmail);
   }
 
-  const nextInventory = MissingInventorySchema.parse({
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    items: normalizedItems,
+  const row = await prisma.missingInventory.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      items: normalizedItems,
+    },
+    update: {
+      updatedAt: new Date(),
+      items: normalizedItems,
+    },
   });
 
-  const next = inventories.filter((entry) => entry.ownerEmail !== ownerEmail);
-  next.push(nextInventory);
-  await writeInventories(next);
-  return nextInventory;
+  return toInventory(row);
 }
 
 export async function clearStoredMissingInventory(ownerEmail: string): Promise<MissingInventory> {

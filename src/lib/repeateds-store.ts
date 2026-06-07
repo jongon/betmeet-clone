@@ -1,46 +1,30 @@
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { prisma } from "@/lib/prisma";
 import {
   RepeatedInventoriesSchema,
   type RepeatedInventory,
   type RepeatedsRecord,
 } from "@/lib/repeateds";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-
-function getRuntimeFilePath(): string {
-  return process.env.REPEATEDS_FILE ?? path.join(DATA_DIR, "repeateds.json");
-}
-
-function getSeedFilePath(): string {
-  return process.env.REPEATEDS_SEED_FILE ?? path.join(DATA_DIR, "repeateds.seed.json");
-}
-
-async function ensureRuntimeFile(): Promise<void> {
-  await mkdir(DATA_DIR, { recursive: true });
-  try {
-    await readFile(getRuntimeFilePath(), "utf8");
-  } catch {
-    await copyFile(getSeedFilePath(), getRuntimeFilePath());
-  }
-}
-
-async function readInventories(): Promise<RepeatedInventory[]> {
-  await ensureRuntimeFile();
-  const raw = await readFile(getRuntimeFilePath(), "utf8");
-  const parsed: unknown = JSON.parse(raw);
-  return RepeatedInventoriesSchema.parse(parsed);
-}
-
-async function writeInventories(inventories: RepeatedInventory[]): Promise<void> {
-  await ensureRuntimeFile();
-  await writeFile(getRuntimeFilePath(), JSON.stringify(inventories, null, 2), "utf8");
+function toInventory(row: {
+  ownerEmail: string;
+  updatedAt: Date;
+  items: unknown;
+}): RepeatedInventory {
+  const parsed = RepeatedInventoriesSchema.element.parse({
+    ownerEmail: row.ownerEmail,
+    updatedAt: row.updatedAt.toISOString(),
+    items: row.items,
+  });
+  return parsed;
 }
 
 export async function getInventory(ownerEmail: string): Promise<RepeatedInventory> {
-  const inventories = await readInventories();
-  const found = inventories.find((entry) => entry.ownerEmail === ownerEmail);
-  if (found) return found;
+  const row = await prisma.repeatedInventory.findUnique({
+    where: { ownerEmail },
+  });
+
+  if (row) return toInventory(row);
+
   return {
     ownerEmail,
     updatedAt: new Date().toISOString(),
@@ -54,10 +38,10 @@ export async function saveGroupRepeateds(
   groupItems: RepeatedsRecord,
   allowedCodes: Set<string>,
 ): Promise<RepeatedInventory> {
-  const inventories = await readInventories();
-  const next = inventories.filter((entry) => entry.ownerEmail !== ownerEmail);
-  const previous = inventories.find((entry) => entry.ownerEmail === ownerEmail);
-  const baseItems = { ...(previous?.items ?? {}) };
+  const existing = await prisma.repeatedInventory.findUnique({ where: { ownerEmail } });
+  const baseItems: Record<string, number> = {
+    ...((existing?.items as Record<string, number>) ?? {}),
+  };
 
   for (const code of Object.keys(baseItems)) {
     if (code.startsWith(`${groupCode}-`)) {
@@ -72,25 +56,30 @@ export async function saveGroupRepeateds(
     }
   }
 
-  const saved = {
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    items: baseItems,
-  };
+  const row = await prisma.repeatedInventory.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      items: baseItems,
+    },
+    update: {
+      updatedAt: new Date(),
+      items: baseItems,
+    },
+  });
 
-  next.push(saved);
-
-  await writeInventories(next);
-  return saved;
+  return toInventory(row);
 }
 
 export async function decrementRepeatedInventory(
   ownerEmail: string,
   requestedRepeateds: Array<{ stickerCode: string; quantity: number }>,
 ): Promise<{ ok: true; inventory: RepeatedInventory } | { ok: false; stickerCode: string }> {
-  const inventories = await readInventories();
-  const previous = inventories.find((entry) => entry.ownerEmail === ownerEmail);
-  const baseItems = { ...(previous?.items ?? {}) };
+  const existing = await prisma.repeatedInventory.findUnique({ where: { ownerEmail } });
+  const baseItems: Record<string, number> = {
+    ...((existing?.items as Record<string, number>) ?? {}),
+  };
 
   for (const item of requestedRepeateds) {
     const available = baseItems[item.stickerCode] ?? 0;
@@ -108,15 +97,18 @@ export async function decrementRepeatedInventory(
     }
   }
 
-  const saved = {
-    ownerEmail,
-    updatedAt: new Date().toISOString(),
-    items: baseItems,
-  };
+  const row = await prisma.repeatedInventory.upsert({
+    where: { ownerEmail },
+    create: {
+      ownerEmail,
+      updatedAt: new Date(),
+      items: baseItems,
+    },
+    update: {
+      updatedAt: new Date(),
+      items: baseItems,
+    },
+  });
 
-  const next = inventories.filter((entry) => entry.ownerEmail !== ownerEmail);
-  next.push(saved);
-  await writeInventories(next);
-
-  return { ok: true, inventory: saved };
+  return { ok: true, inventory: toInventory(row) };
 }
