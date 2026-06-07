@@ -50,12 +50,6 @@ docker compose ps
 ### Ver logs de un servicio
 ```bash
 docker compose logs -f app
-docker compose logs -f postgres
-```
-
-### Acceder a PostgreSQL
-```bash
-docker compose exec postgres psql -U username -d nextjs
 ```
 
 ### Ver redes y volúmenes
@@ -64,21 +58,30 @@ docker network ls | grep nextjs
 docker volume ls | grep nextjs
 ```
 
+## Comandos del proyecto
+
+```bash
+pnpm dev              # Iniciar servidor de desarrollo
+pnpm build            # Build de producción
+pnpm lint             # ESLint
+pnpm check            # Biome check (format + lint)
+pnpm format           # Biome format (aplica correcciones)
+pnpm commit           # Commit con gitmoji
+pnpm test             # Ejecutar tests con tsx
+```
+
 ## Prisma
 
-### Generar cliente
 ```bash
-docker compose exec app npx prisma generate
+pnpm prisma:generate   # Generar cliente Prisma
+pnpm prisma:studio     # Abrir Prisma Studio (GUI)
+pnpm prisma migrate dev   # Crear/ejecutar migraciones
+pnpm prisma db seed       # Ejecutar seed
 ```
 
-### Migraciones
+### Acceder a PostgreSQL
 ```bash
-docker compose exec app npx prisma migrate dev
-```
-
-### Studio (GUI)
-```bash
-docker compose exec app npx prisma studio
+docker compose exec postgres psql -U username -d nextjs
 ```
 
 ## Build de imágenes individuales

@@ -2,50 +2,65 @@
 
 ## Qué es
 
-Plataforma web para gestionar e intercambiar cromos del Mundial 2026. Permite al coleccionista registrar sus cromos repetidos y faltantes, generar un QR personalizado, y que otra persona pueda ver qué cromos le faltan y ofrecer un cambio.
+Template para proyectos Next.js 16 con App Router, TypeScript, Tailwind CSS v4 y tooling de desarrollo completo preconfigurado.
 
-## Por qué
+## Qué incluye
 
-Los intercambios de cromos se coordinan hoy de forma manual: por mensaje, de memoria, o con listas en papel. Esta app elimina esa fricción — cada coleccionista tiene un link/QR que muestra exactamente qué necesita, en tiempo real.
+- **Next.js 16** con App Router y TypeScript
+- **Tailwind CSS v4** con configuración CSS-first
+- **shadcn/ui** listo para usar (`components.json` incluido)
+- **Biome** para format y lint (reemplaza Prettier + ESLint estilístico)
+- **ESLint 9** con flat config y reglas de Next.js
+- **Lefthook** para git hooks (pre-commit con Biome, commit-msg con commitlint)
+- **Commitlint + Gitmoji** para mensajes de commit estandarizados
+- **Dev Containers** con VS Code — todo listo en Docker
+- **Playwright** para tests end-to-end
+- **tsx** como test runner nativo de Node.js
+- **PostgreSQL 18 + Prisma 7** con singleton preconfigurado y migraciones
 
-## Usuarios
+## Estructura del proyecto
 
-- **Coleccionista**: administra su álbum, marca repetidos y faltantes, genera QR
-- **Cambiador**: escanea el QR, ve qué le falta al coleccionista, ofrece sus cromos
+```
+├── .agent/                  # Configuración MCP (fuente de verdad)
+├── .devcontainer/           # VS Code Dev Container
+├── .github/                 # GitHub Actions
+├── .vscode/                 # VS Code debug config
+├── docs/                    # Documentación
+├── scripts/                 # Scripts de setup
+├── src/
+│   ├── app/
+│   │   ├── globals.css      # Tailwind v4 + CSS tokens
+│   │   ├── layout.tsx       # Root layout
+│   │   └── page.tsx         # Página principal
+│   ├── components/          # Componentes React
+│   └── lib/
+│       ├── utils.ts         # Utilidad cn() para clases
+│       └── prisma.ts        # Prisma client singleton
+├── prisma/
+│   ├── schema.prisma        # Schema de base de datos
+│   ├── seed.ts              # Seed de datos iniciales
+│   └── migrations/          # Historial de migraciones
+├── prisma.config.ts          # Prisma CLI config
+├── biome.json               # Biome config
+├── commitlint.config.mjs    # Commitlint + gitmoji
+├── components.json           # shadcn/ui CLI config
+├── docker-compose.yml        # Entorno Docker multi-contenedor
+├── eslint.config.mjs         # ESLint 9 flat config
+├── lefthook.yml              # Git hooks
+├── next.config.ts            # Next.js config
+├── package.json              # Dependencias y scripts
+├── pnpm-lock.yaml            # Lockfile
+├── pnpm-workspace.yaml       # pnpm workspace
+├── postcss.config.mjs        # PostCSS + Tailwind
+└── tsconfig.json             # TypeScript config
+```
 
-## Flujo principal (visión)
+## Cómo usar este template
 
-1. Coleccionista marca sus repetidos y faltantes en `/admin`
-2. Genera un QR con token único
-3. Cambiador escanea el QR
-4. Cambiador ve los cromos que le faltan al coleccionista
-5. Cambiador ofrece sus cromos para el cambio
-6. Coleccionista recibe la oferta y coordina el intercambio
-
-## Estado actual
-
-- Admin autenticado con generación de QR y listado de sesiones
-- Botón "Generar QR" en `/admin` crea un token único y muestra el código en un dialog
-- Sesiones abiertas muestran botón "Ver QR" para reabrir el código original
-- `/admin/cromos` permite gestionar repetidos por selección o FWC
-- Persistencia temporal en JSON (runtime) con seeds vacíos
-- Vista pública `/cambio/[token]` aún pendiente
-- Protección de rutas privadas mediante `src/proxy.ts` (convención Next.js 16)
-
-## Rutas actuales
-
-| Ruta | Descripción |
-|------|-------------|
-| `/` | Página raíz |
-| `/admin` | Panel del admin con sesiones y QR |
-| `/admin/cromos` | Gestión de cromos repetidos |
-| `/admin/login` | Acceso admin |
-| `/design-system` | Galería de componentes |
-
-## Rutas planeadas
-
-| Ruta | Descripción |
-|------|-------------|
-| `/(colección)` | Panel principal del coleccionista — gestión del álbum |
-| `/admin` | Configuración, generación de QR, gestión de cuenta |
-| `/cambio/[token]` | Vista pública para el cambiador (sin auth) |
+1. Clonar el repositorio
+2. Copiar `.env.example` a `.env` y configurar `DATABASE_URL`
+3. Ejecutar `bash scripts/setup-agent.sh` para generar config MCP
+4. Ejecutar `pnpm install` (ejecuta setup-agent.sh y lefthook install automáticamente)
+5. Ejecutar `pnpm prisma:generate` para generar el cliente Prisma
+6. Ejecutar `pnpm prisma migrate dev` para crear la base de datos
+7. Iniciar desarrollo con `pnpm dev`

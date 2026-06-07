@@ -4,61 +4,43 @@
 - **Framework**: Next.js 16 (App Router)
 - **Lenguaje**: TypeScript
 - **Package Manager**: pnpm
-- **Network boundary**: `src/proxy.ts` (Next.js 16; reemplaza `middleware.ts`)
 
 ## Design System
 - **Estilos**: Tailwind CSS v4 — configuración CSS-first, sin `tailwind.config.*`
-- **UI Components**: shadcn/ui (`style: base-nova`, `baseColor: neutral`, `iconLibrary: lucide`, `cssVariables: true`)
-- **Flags**: react-world-flags (banderas de selecciones)
-- **Config**: `components.json` + tokens en `src/app/globals.css`
-- **Dark mode**: next-themes (`attribute="class"`, `defaultTheme="system"`)
+- **UI Components**: shadcn/ui (config en `components.json`, listo para CLI)
+- **Dark mode**: clase `.dark` en `<html>` via `@custom-variant`
 
-### Identidad visual — tokens oklch
+### Componentes base
 
-| Token CSS | Valor (light) | Semántica |
-|-----------|---------------|-----------|
-| `--primary` | `oklch(0.349 0.072 251)` | Azul FIFA #1A3C5E — color principal |
-| `--brand` | `oklch(0.612 0.208 22)` | Rojo del Mundial #E63946 — CTAs activos |
-| `--background` | `oklch(0.969 0.006 106)` | Crema #F5F5F0 — fondo light |
-| `--destructive` | `oklch(0.577 0.245 27.3)` | Rojo error #DC2626 |
+Usar shadcn/ui CLI para agregar componentes:
 
-Regla: usar siempre `bg-primary`, `text-brand`, etc. — nunca valores literales en componentes.
+```bash
+pnpm dlx shadcn@latest add button
+```
 
-### Tipografía
+## Herramientas de desarrollo
 
-| Variable | Fuente | Uso |
-|----------|--------|-----|
-| `--font-display` | Sora | Titulares y headings (`h1`–`h6`), tracking `-0.02em` |
-| `--font-sans` | Inter | Texto de cuerpo general |
-| `--font-mono` | Geist Mono | Código |
-
-Clase especial: `.label-stadium` — display, `text-transform: uppercase`, `letter-spacing: 0.12em`, `font-weight: 600`. Para etiquetas de estadio / categoría.
-
-### Componentes base instalados (shadcn/ui)
-
-`button` · `card` · `input` · `label` · `badge` · `tabs` · `dialog` · `dropdown-menu` · `switch` · `separator` · `avatar` · `tooltip` · `sonner`
+| Herramienta | Propósito |
+|-------------|-----------|
+| **Biome** | Format + lint (reemplaza Prettier) |
+| **ESLint 9** | Lint de reglas Next.js + TypeScript |
+| **Lefthook** | Git hooks (pre-commit, commit-msg) |
+| **Commitlint + Gitmoji** | Mensajes de commit estandarizados |
+| **Playwright** | Tests end-to-end |
+| **tsx** | Test runner Node.js nativo |
 
 ## Backend / Database
 - **Base de datos**: PostgreSQL 18 (via Docker)
-- **ORM**: Prisma
-- **Auth**: Supabase Auth (futuro)
+- **ORM**: Prisma 7
+- **Cliente**: `src/lib/prisma.ts` — singleton con pg adapter y sanitización de connection string
 
 ## Infrastructure
 - **Container Runtime**: Docker + Docker Compose
 - **Desarrollo**: Dev Containers (VS Code)
-- **Deployment**: Vercel (frontend), Supabase (database)
-
-## Herramientas de desarrollo
-- **IDE**: VS Code con Dev Containers
-- **Debugger**: Node.js inspector (attach mode)
-- **CLI Tools**: gh, git, fzf, ripgrep, lazygit
-- **Shell**: zsh + oh-my-zsh
 
 ## Extensiones VS Code recomendadas
 - Tailwind CSS IntelliSense
-- Supabase VS Code
-- Prisma
 - ESLint
-- Prettier
-- GitHub Copilot
+- Biome
+- Prisma
 - GitLens

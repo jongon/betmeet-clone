@@ -1,6 +1,6 @@
-# Next.js Dev Container
+# Next.js Template
 
-Entorno de desarrollo local para Next.js con Docker multi-contenedor.
+Next.js 16 + TypeScript + Tailwind CSS v4 + PostgreSQL + Prisma con tooling de desarrollo Docker multi-contenedor.
 
 ## Requisitos
 
@@ -12,7 +12,7 @@ Entorno de desarrollo local para Next.js con Docker multi-contenedor.
 ### Opción B: Node.js local
 - Node.js 24+
 - pnpm
-- PostgreSQL 18 (o usar DATABASE_URL pointing a PostgreSQL)
+- PostgreSQL 18 (o usar DATABASE_URL apuntando a PostgreSQL)
 
 ---
 
@@ -32,19 +32,26 @@ docker compose logs -f pnpm
 
 Cuando veas `done` o el proceso termine, las dependencias están listas.
 
-### 3. Abrir VS Code en Dev Container
+### 3. Generar cliente Prisma y ejecutar migraciones
+
+```bash
+docker compose exec app pnpm prisma:generate
+docker compose exec app pnpm prisma migrate dev
+```
+
+### 4. Abrir VS Code en Dev Container
 
 ```
 View > Command Palette > "Dev Containers: Reopen in Container"
 ```
 
-### 4. Iniciar debugger
+### 5. Iniciar debugger
 
 ```
 F5 > "Next.js: debug (attach)"
 ```
 
-### 5. Abrir en el navegador
+### 6. Abrir en el navegador
 
 ```
 http://localhost:3000
@@ -59,6 +66,9 @@ docker compose ps
 # Ver logs
 docker compose logs -f app
 docker compose logs -f postgres
+
+# Acceder a PostgreSQL
+docker compose exec postgres psql -U username -d nextjs
 
 # Detener
 docker compose down
@@ -82,81 +92,43 @@ pnpm install
 
 ### 2. Configurar variables de entorno
 
-Crea `.env.local` o copia y ajusta `.env`:
+Copia `.env.example` a `.env`:
 
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/nextjs
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
 ```
 
 ### 3. Iniciar PostgreSQL
 
 ```bash
-# macOS (brew)
-brew services start postgresql@18
-
-# Linux
-sudo systemctl start postgresql
-
 # Docker
 docker run -d -p 5432:5432 -v postgres_data:/var/lib/postgresql \
   -e POSTGRES_DB=nextjs -e POSTGRES_USER=username \
   -e POSTGRES_PASSWORD=password postgres:18-alpine
 ```
 
-### 4. Crear base de datos
+### 4. Generar cliente Prisma y migraciones
 
 ```bash
-psql -h localhost -U username -d postgres -c "CREATE DATABASE nextjs;"
+pnpm prisma:generate
+pnpm prisma migrate dev
 ```
 
-### 5. Generar cliente Prisma (si usas Prisma)
-
-```bash
-npx prisma generate
-```
-
-### 6. Iniciar servidor
+### 5. Iniciar servidor
 
 ```bash
 pnpm dev
 ```
 
-### 7. Abrir en el navegador
+### 6. Abrir en el navegador
 
 ```
 http://localhost:3000
 ```
 
-### Debug local con VS Code
-
-```json
-{
-  "name": "Next.js: debug local",
-  "type": "node",
-  "request": "launch",
-  "program": "${workspaceFolder}/node_modules/.bin/next",
-  "runtimeArgs": ["--inspect"],
-  "skipFiles": ["<node_internals>/**"],
-  "serverReadyAction": {
-    "action": "openExternally",
-    "pattern": "- Local:.+(https?://.+)",
-    "uriFormat": "%s"
-  }
-}
-```
-
 ---
 
 ## Troubleshooting
-
-### `pnpm install` falla en Docker
-
-```bash
-docker compose down -v
-docker compose up -d
-```
 
 ### Puerto 3000 ya está en uso
 

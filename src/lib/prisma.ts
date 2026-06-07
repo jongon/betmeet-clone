@@ -40,9 +40,11 @@ const createPrismaClient = () => {
   return new PrismaClient({ adapter });
 };
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined };
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
 
-export const prisma: PrismaClient = (() => {
+export const prisma = (() => {
   if (globalForPrisma.prisma) return globalForPrisma.prisma;
   const client = createPrismaClient();
   globalForPrisma.prisma = client;

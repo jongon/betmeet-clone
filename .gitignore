@@ -49,11 +49,5 @@ coverage/
 .vercel
 .tmp/
 
-# Runtime data (seed example is committed; runtime file is gitignored)
-data/sessions.json
-data/qr-tokens.json
-data/repeateds.json
-data/exchange-settings.json
-data/missing.json
-
+# Prisma generated client
 /src/generated/prisma

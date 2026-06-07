@@ -2,13 +2,7 @@
 
 ## Overview
 
-Multi-container Docker setup para desarrollo local con Next.js.
-
-## Nota Next.js 16
-
-- Next.js 16 depreca la convención `middleware.ts`.
-- Este proyecto usa `src/proxy.ts` con export `proxy` y `config.matcher`.
-- El helper de Supabase para cookies de request/response permanece en `src/lib/supabase/middleware.ts` (nombre de helper interno), pero el punto de entrada del framework es `src/proxy.ts`.
+Multi-container Docker setup para desarrollo local con Next.js + PostgreSQL + Prisma.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -24,9 +18,8 @@ Multi-container Docker setup para desarrollo local con Next.js.
 │                                        │                │
 │  ┌─────────────────┐  ┌───────────────▼─────────────┐  │
 │  │      pnpm       │  │          postgres            │  │
-│  │  :3001 (http)    │  │                             │  │
-│  │                  │  │  Puerto 5432                │  │
-│  │  pnpm install    │  │  Data: /var/lib/postgresql  │  │
+│  │                  │  │                             │  │
+│  │  pnpm install    │  │  Puerto 5432                │  │
 │  └─────────────────┘  └─────────────────────────────┘  │
 │                                                         │
 └─────────────────────────────────────────────────────────┘
@@ -86,8 +79,7 @@ FORWARD_DB_PORT=5432
 DB_DATABASE=nextjs
 DB_USERNAME=username
 DB_PASSWORD=password
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
+DATABASE_URL="postgresql://username:password@postgres:5432/nextjs"
 ```
 
 ## Debugging
@@ -117,23 +109,5 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 | Volumen | Descripción |
 |---------|-------------|
 | `nextjs-postgres` | Datos persistentes de PostgreSQL |
-| `nextjs-pnpm-store` | Cache de paquetes pnpm |
+| `node-home` | Home del usuario node (cache, config) |
 | `.:/var/www/html` | Código fuente (compartido) |
-
-## Estructura de src/
-
-```
-src/
-├── app/
-│   ├── globals.css             # Design system: tokens oklch, fuentes, .label-stadium
-│   ├── layout.tsx              # Root layout: fuentes, ThemeProvider, Toaster
-│   ├── page.tsx                # Página raíz
-│   └── design-system/
-│       └── page.tsx            # Galería de componentes y tokens (dev only)
-├── components/
-│   ├── theme-provider.tsx      # Wrapper next-themes
-│   ├── theme-toggle.tsx        # Toggle light / dark / system
-│   └── ui/                     # Componentes shadcn/ui instalados
-└── lib/
-    └── utils.ts                # Helper cn() (clsx + tailwind-merge)
-```

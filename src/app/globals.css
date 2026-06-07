@@ -1,184 +1,31 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
-/* Dark mode driven by a `.dark` class on <html> */
 @custom-variant dark (&:is(.dark *));
-
-/*
-  Design System — Mundial 2026
-  Paleta de marca (hex -> oklch):
-    Azul FIFA   #1A3C5E -> oklch(0.349 0.072 251)  (--primary)
-    Rojo marca  #E63946 -> oklch(0.612 0.208 22)   (--brand)
-    Crema       #F5F5F0 -> oklch(0.969 0.006 106)  (--background light)
-    Rojo error  #DC2626 -> oklch(0.577 0.245 27.3) (--destructive)
-*/
-
-:root {
-  --radius: 0.625rem;
-
-  /* Surfaces */
-  --background: oklch(0.969 0.006 106);
-  --foreground: oklch(0.27 0.04 250);
-  --card: oklch(0.985 0.004 106);
-  --card-foreground: oklch(0.27 0.04 250);
-  --popover: oklch(0.985 0.004 106);
-  --popover-foreground: oklch(0.27 0.04 250);
-
-  /* Primary — Azul FIFA */
-  --primary: oklch(0.349 0.072 251);
-  --primary-foreground: oklch(0.985 0.005 106);
-
-  /* Secondary / muted / accent — superficies sutiles azuladas */
-  --secondary: oklch(0.92 0.018 250);
-  --secondary-foreground: oklch(0.32 0.05 250);
-  --muted: oklch(0.93 0.008 106);
-  --muted-foreground: oklch(0.5 0.03 250);
-  --accent: oklch(0.93 0.025 250);
-  --accent-foreground: oklch(0.32 0.05 250);
-
-  /* Brand — Rojo del Mundial (CTAs / estados activos destacados) */
-  --brand: oklch(0.612 0.208 22);
-  --brand-foreground: oklch(0.985 0.005 106);
-
-  /* Destructive — rojo de error (#DC2626), separado del rojo de marca */
-  --destructive: oklch(0.577 0.245 27.3);
-  --destructive-foreground: oklch(0.985 0.005 106);
-
-  /* Lines / focus */
-  --border: oklch(0.88 0.015 250);
-  --input: oklch(0.88 0.015 250);
-  --ring: oklch(0.349 0.072 251);
-
-  /* Charts (paleta temática: azul, rojo, dorado, verde césped, cielo) */
-  --chart-1: oklch(0.349 0.072 251);
-  --chart-2: oklch(0.612 0.208 22);
-  --chart-3: oklch(0.78 0.15 85);
-  --chart-4: oklch(0.62 0.14 150);
-  --chart-5: oklch(0.7 0.11 230);
-
-  /* Sidebar */
-  --sidebar: oklch(0.985 0.004 106);
-  --sidebar-foreground: oklch(0.27 0.04 250);
-  --sidebar-primary: oklch(0.349 0.072 251);
-  --sidebar-primary-foreground: oklch(0.985 0.005 106);
-  --sidebar-accent: oklch(0.93 0.025 250);
-  --sidebar-accent-foreground: oklch(0.32 0.05 250);
-  --sidebar-border: oklch(0.88 0.015 250);
-  --sidebar-ring: oklch(0.349 0.072 251);
-}
-
-.dark {
-  /* Surfaces — azul noche derivado del FIFA blue */
-  --background: oklch(0.22 0.03 250);
-  --foreground: oklch(0.96 0.005 106);
-  --card: oklch(0.26 0.035 250);
-  --card-foreground: oklch(0.96 0.005 106);
-  --popover: oklch(0.26 0.035 250);
-  --popover-foreground: oklch(0.96 0.005 106);
-
-  /* Primary aclarado para contraste sobre fondo oscuro */
-  --primary: oklch(0.78 0.08 245);
-  --primary-foreground: oklch(0.18 0.03 250);
-
-  --secondary: oklch(0.32 0.04 250);
-  --secondary-foreground: oklch(0.96 0.005 106);
-  --muted: oklch(0.3 0.035 250);
-  --muted-foreground: oklch(0.82 0.02 250);
-  --accent: oklch(0.34 0.045 250);
-  --accent-foreground: oklch(0.96 0.005 106);
-
-  /* Brand — rojo más saturado para cumplir AA sobre fg claro */
-  --brand: oklch(0.58 0.21 22);
-  --brand-foreground: oklch(0.98 0.005 106);
-
-  --destructive: oklch(0.62 0.2 25);
-  --destructive-foreground: oklch(0.98 0.005 106);
-
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.78 0.08 245);
-
-  --chart-1: oklch(0.78 0.08 245);
-  --chart-2: oklch(0.58 0.21 22);
-  --chart-3: oklch(0.8 0.15 85);
-  --chart-4: oklch(0.68 0.14 150);
-  --chart-5: oklch(0.72 0.11 230);
-
-  --sidebar: oklch(0.26 0.035 250);
-  --sidebar-foreground: oklch(0.96 0.005 106);
-  --sidebar-primary: oklch(0.78 0.08 245);
-  --sidebar-primary-foreground: oklch(0.18 0.03 250);
-  --sidebar-accent: oklch(0.34 0.045 250);
-  --sidebar-accent-foreground: oklch(0.96 0.005 106);
-  --sidebar-border: oklch(1 0 0 / 12%);
-  --sidebar-ring: oklch(0.78 0.08 245);
-}
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-brand: var(--brand);
-  --color-brand-foreground: var(--brand-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  /* Tipografía — geométrica moderna: Sora (display) + Inter (cuerpo) */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-sora), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-[var(--foreground)]/10;
   }
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
-  }
-  /* Identidad de fútbol: titulares con la display, tracking ajustado */
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    letter-spacing: -0.02em;
-  }
-  /* Etiquetas tipo "estadio": mayúsculas espaciadas */
-  .label-stadium {
-    font-family: var(--font-display);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    font-weight: 600;
   }
 }
