@@ -25,7 +25,10 @@ build/
 # AI tools (each tool generates its own config)
 .cursor/
 .kiro/
+.kilocode/
 .claude/
+.codex/
+.copilot/
 .opencode/
 .antigravity/
 
