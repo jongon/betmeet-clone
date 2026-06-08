@@ -33,6 +33,17 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      pnpm:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000']
+      interval: 5s
+      timeout: 20s
+      retries: 10
+    restart: on-failure
+    networks:
+      - nextjs
+
   postgres:
     container_name: nextjs-postgres
     image: postgres:18-alpine
@@ -49,17 +60,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    restart: on-failure
-    networks:
-      - nextjs
-
-  pnpm:
-        condition: service_completed_successfully
-    healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3000']
-      interval: 5s
-      timeout: 20s
-      retries: 10
     restart: on-failure
     networks:
       - nextjs
