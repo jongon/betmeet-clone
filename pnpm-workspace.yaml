@@ -5,6 +5,8 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+minimumReleaseAgeExclude:
+  - opencode-aidlc@0.1.0
 supportedArchitectures:
   os:
     - linux
