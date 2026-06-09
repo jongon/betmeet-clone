@@ -199,3 +199,61 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **Context**: User approved adding UX/UI screen contract planning to the execution plan before continuing.
 
 ---
+
+## Workflow Planning - Approval
+**Timestamp**: 2026-06-09T23:12:01Z
+**User Input**: "Ahora sí, sigue con el resto"
+**AI Response**: "Accepted the Workflow Planning approval and started Application Design. Per the Application Design workflow, creating `aidlc-docs/inception/plans/application-design-plan.md` with design questions before generating design artifacts."
+**Context**: User approved moving from Workflow Planning to Application Design.
+
+---
+
+## Application Design - Answer Check
+**Timestamp**: 2026-06-09T23:18:28Z
+**User Input**: "La preguntas están respondidas"
+**AI Response**: "Read `aidlc-docs/inception/plans/application-design-plan.md`; all 10 `[Answer]:` fields are still empty, so Application Design cannot proceed until the answers are saved in the file."
+**Context**: Application Design gate blocked due to missing answers.
+
+---
+
+## Application Design - Answers Received
+**Timestamp**: 2026-06-09T23:19:21Z
+**User Input**: "Ahora sí."
+**AI Response**: "Read completed answers in `application-design-plan.md`: Supabase SSR helpers + Prisma, API-Football default provider, Supabase Edge scheduled jobs, Supabase Storage avatars, classic `nickname#1234`, summary-public/full-private Rules Center, public pool directory with search/filter, auth emails only plus UI cues, global-admin-only manual overrides, and no wallet fields in v1. Proceeding to generate Application Design artifacts."
+**Context**: Application Design question gate passed.
+
+---
+
+## Application Design - Approval Prompt
+**Timestamp**: 2026-06-09T23:19:21Z
+**AI Prompt**: "Please examine the application design artifacts at `aidlc-docs/inception/application-design/`. You may request changes or approve and continue to Units Generation."
+**User Response**: "Pending"
+**Status**: Awaiting Approval
+**Context**: Application Design artifacts generated and ready for review.
+
+---
+
+## Application Design - Approval
+**Timestamp**: 2026-06-09T23:24:12Z
+**User Input**: "Continúa"
+**AI Response**: "Accepted Application Design approval and started Units Generation Part 1: planning. Creating `aidlc-docs/inception/plans/unit-of-work-plan.md` with decomposition questions before generating unit artifacts."
+**Context**: User approved Application Design and requested continuation.
+
+---
+
+## Units Planning - Answers Received
+**Timestamp**: 2026-06-09T23:38:41Z
+**User Input**: "Ahora si respondí a las preguntas"
+**AI Response**: "Read completed answers in `unit-of-work-plan.md`: UX Education standalone; Admin full unit late but must include visibility into public/private pools; first milestone is sign-up/profile/create-or-join pool; hybrid code organization; API sync and admin override separate; seed World Cup-like data included; scoring engine before leaderboard UI. No blocking ambiguity detected. Proceeding to generate unit artifacts."
+**Context**: Units Generation Part 1 question gate passed.
+
+---
+
+## Units Generation - Approval Prompt
+**Timestamp**: 2026-06-09T23:38:41Z
+**AI Prompt**: "Please examine the units generation artifacts at `aidlc-docs/inception/application-design/`. You may request changes or approve and continue to CONSTRUCTION PHASE."
+**User Response**: "Pending"
+**Status**: Awaiting Approval
+**Context**: Units Generation artifacts created and ready for review.
+
+---
