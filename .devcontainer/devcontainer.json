@@ -84,5 +84,5 @@
     }
   },
   "remoteUser": "node",
-  "postCreateCommand": "pnpm add -g @fission-ai/openspec@latest --allow-build=@fission-ai/openspec --store-dir /home/node/.local/share/pnpm/store && pnpm add -g @johnlindquist/worktree --store-dir /home/node/.local/share/pnpm/store && pnpm add -g @kilocode/cli --yes --allow-build=@kilocode/cli --reporter=silent --store-dir /home/node/.local/share/pnpm/store && (command -v kiro-cli >/dev/null 2>&1 || curl -fsSL https://cli.kiro.dev/install | bash) && sudo chown -R node:node /home/node 2>/dev/null; [ -f \"$HOME/.zshrc\" ] && sed -i 's/^ZSH_THEME=.*/ZSH_THEME=norm/' \"$HOME/.zshrc\" || true"
+  "postCreateCommand": "pnpm add -g @fission-ai/openspec@latest --allow-build=@fission-ai/openspec --store-dir /home/node/.local/share/pnpm/store && pnpm add -g @johnlindquist/worktree --store-dir /home/node/.local/share/pnpm/store && pnpm add -g cline --allow-build=cline --allow-build=protobufjs --store-dir /home/node/.local/share/pnpm/store && pnpm add -g @kilocode/cli --yes --allow-build=@kilocode/cli --reporter=silent --store-dir /home/node/.local/share/pnpm/store && (command -v kiro-cli >/dev/null 2>&1 || curl -fsSL https://cli.kiro.dev/install | bash) && sudo chown -R node:node /home/node 2>/dev/null; [ -f \"$HOME/.zshrc\" ] && sed -i 's/^ZSH_THEME=.*/ZSH_THEME=norm/' \"$HOME/.zshrc\" || true"
 }
