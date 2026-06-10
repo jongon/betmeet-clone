@@ -7,10 +7,45 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+// Verification tiers for platform access control
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  ADMIN
+}
+
+// Source of the currently active avatar image
+enum AvatarSource {
+  GOOGLE_PHOTO
+  DEFAULT_SET
+  CUSTOM_UPLOAD
+}
+
+// User public identity — extends Supabase auth.users (shared UUID primary key)
+model Profile {
+  id                    String             @id @db.Uuid
+  nicknameBase          String?            @map("nickname_base") @db.VarChar(20)
+  nicknameDiscriminator String?            @map("nickname_discriminator") @db.Char(4)
+  avatarUrl             String             @map("avatar_url")
+  avatarSource          AvatarSource       @default(DEFAULT_SET) @map("avatar_source")
+  verificationStatus    VerificationStatus @default(UNVERIFIED) @map("verification_status")
+  mfaEnabled            Boolean            @default(false) @map("mfa_enabled")
+  deletedAt             DateTime?          @map("deleted_at")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
+
+  @@unique([nicknameBase, nicknameDiscriminator])
+  @@map("profiles")
+}
+
+// Default avatar set — seeded via scripts/seed-avatars.ts
+model AvatarAsset {
+  id           String   @id @default(uuid()) @db.Uuid
+  name         String   @db.VarChar(80)
+  storagePath  String   @map("storage_path")
+  storageUrl   String   @map("storage_url")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("avatar_assets")
 }

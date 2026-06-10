@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: INCEPTION - Units Generation Review
+- **Current Stage**: CONSTRUCTION - Unit 2 UX Education and Onboarding - Functional Design (Next)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -38,11 +38,44 @@
 - [x] Units Generation - EXECUTE
 
 ### 🟢 CONSTRUCTION PHASE
+**Unit 1: Foundation - Auth, Profile, Nickname, Avatar**
+- [x] Functional Design - COMPLETE
+- [x] NFR Requirements - COMPLETE
+- [x] NFR Design - COMPLETE
+- [x] Infrastructure Design - COMPLETE
+- [x] Code Generation - COMPLETE (27 tests passing, 0 TS errors)
+
+**Unit 2: UX Education and Onboarding**
 - [ ] Functional Design - EXECUTE
 - [ ] NFR Requirements - EXECUTE
 - [ ] NFR Design - EXECUTE
 - [ ] Infrastructure Design - EXECUTE
 - [ ] Code Generation - EXECUTE
+
+**Unit 3: Pools and Membership**
+- [ ] Functional Design - EXECUTE
+- [ ] Code Generation - EXECUTE
+
+**Unit 4: Competition Data and API Sync**
+- [ ] Functional Design - EXECUTE
+- [ ] NFR Requirements - EXECUTE
+- [ ] NFR Design - EXECUTE
+- [ ] Infrastructure Design - EXECUTE
+- [ ] Code Generation - EXECUTE
+
+**Unit 5: Predictions and Match Locking**
+- [ ] Functional Design - EXECUTE
+- [ ] Code Generation - EXECUTE
+
+**Unit 6: Scoring and Pool Rankings**
+- [ ] Functional Design - EXECUTE
+- [ ] Code Generation - EXECUTE
+
+**Unit 7: Admin and Observability**
+- [ ] Functional Design - EXECUTE
+- [ ] Code Generation - EXECUTE
+
+**All Units**
 - [ ] Build and Test - EXECUTE
 
 ### 🟡 OPERATIONS PHASE

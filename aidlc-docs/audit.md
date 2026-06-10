@@ -257,3 +257,100 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **Context**: Units Generation artifacts created and ready for review.
 
 ---
+
+## Units Generation - Approval
+**Timestamp**: 2026-06-09T00:00:00Z
+**User Input**: "Sigue a la etapa de construcción"
+**AI Response**: "Accepted Units Generation approval. Starting CONSTRUCTION PHASE with Unit 1: Foundation - Auth, Profile, Nickname, Avatar. Creating functional design plan with clarification questions."
+**Context**: User approved Units Generation and requested to proceed to Construction Phase.
+
+---
+
+## Construction Phase - Start
+**Timestamp**: 2026-06-09T00:00:00Z
+**User Input**: "Sigue a la etapa de construcción"
+**AI Response**: "Beginning per-unit loop. Unit 1 is Foundation (Auth, Profile, Nickname, Avatar). Executing Functional Design Step 1: creating plan file with questions."
+**Context**: Construction Phase started. First unit is Unit 1: Foundation.
+
+---
+
+## Unit 1 Functional Design - Answers Received
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Las respuestas estás listas"
+**AI Response**: "Read all 11 answers from unit-1-foundation-functional-design-plan.md. No contradictions detected. Q3 adds random nickname generator to hard gate (option A) — additive clarification. Q7 describes two-step email change via Supabase confirmation flow — user stays VERIFIED throughout. Generated 4 functional design artifacts: domain-entities.md, business-logic-model.md, business-rules.md, frontend-components.md."
+**Context**: Unit 1 Functional Design artifacts generated and ready for review.
+
+---
+
+## Unit 1 Functional Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua"
+**AI Response**: "Accepted Functional Design approval for Unit 1. Proceeding to NFR Requirements. Creating plan file with questions."
+**Context**: Unit 1 Functional Design approved. Starting NFR Requirements stage.
+
+---
+
+## Unit 1 NFR Requirements - Answers Received
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya he respondido las preguntas"
+**AI Response**: "Read all 7 answers. No contradictions detected. Q3 adds 'Remember me' option to extend session to 30 days (additive to option A). Generated nfr-requirements.md and tech-stack-decisions.md."
+**Context**: Unit 1 NFR Requirements artifacts generated and ready for review.
+
+---
+
+## Unit 1 NFR Requirements - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua"
+**AI Response**: "Accepted NFR Requirements approval for Unit 1. Proceeding to NFR Design. Creating plan file with questions."
+**Context**: Unit 1 NFR Requirements approved. Starting NFR Design stage.
+
+---
+
+## Unit 1 NFR Design - Answers Received
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Están respondidas"
+**AI Response**: "Read all 4 answers. No ambiguities. CSP: moderate/report-only. Session failure: toast + redirect 2s. Avatar cache: unstable_cache 24h. Auth logging: minimal (failed sign-ins + deletions). Generated nfr-design-patterns.md (10 patterns) and logical-components.md (10 components)."
+**Context**: Unit 1 NFR Design artifacts generated and ready for review.
+
+---
+
+## Unit 1 NFR Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continuar"
+**AI Response**: "Accepted NFR Design approval for Unit 1. Proceeding to Infrastructure Design. Creating plan file with questions."
+**Context**: Unit 1 NFR Design approved. Starting Infrastructure Design stage.
+
+---
+
+## Unit 1 Infrastructure Design - Answers Received
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya están respondidas"
+**AI Response**: "Read all 5 answers. Two environments (dev+prod). Vercel default URL. Supabase Free tier (adjusted thumbnail strategy from Supabase image transforms to next/image). Resend + Mailpit for local dev email. Minimal monitoring. Generated 3 artifacts: infrastructure-design.md, deployment-architecture.md, shared-infrastructure.md."
+**Context**: Unit 1 Infrastructure Design artifacts generated and ready for review.
+
+---
+
+## Unit 1 Infrastructure Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua"
+**AI Response**: "Accepted Infrastructure Design approval for Unit 1. Proceeding to Code Generation Part 1 (Planning)."
+**Context**: Unit 1 Infrastructure Design approved. Starting Code Generation planning stage.
+
+---
+
+## Unit 1 Code Generation - Plan Created
+**Timestamp**: 2026-06-10T00:00:00Z
+**AI Response**: "Created unit-1-foundation-code-generation-plan.md with 26 steps covering all 7 stories. Awaiting user approval before generation begins."
+**Context**: Code Generation Part 1 (Planning) complete. Awaiting approval to start Part 2.
+
+---
+
+## Unit 1 Code Generation - Plan Approved
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Aprobar y generar"
+**AI Response**: "Plan approved. Starting Code Generation Part 2. Executing all 26 steps."
+**Context**: Code Generation Part 2 started for Unit 1: Foundation.
+
+---
+
+---
