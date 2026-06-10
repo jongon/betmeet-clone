@@ -1,4 +1,9 @@
-type AuthEvent = "auth.sign_in_failed" | "auth.account_deleted";
+type AuthEvent =
+  | "auth.sign_in_failed"
+  | "auth.account_deleted"
+  | "admin.match_overridden"
+  | "admin.override_reverted"
+  | "admin.sync_triggered";
 
 export function redactEmail(email: string): string {
   const atIndex = email.indexOf("@");

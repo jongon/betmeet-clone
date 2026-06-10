@@ -90,6 +90,19 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Admin area: only ADMIN profiles may enter /admin/* (BR-7.1)
+  if (user && pathname.startsWith("/admin")) {
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("verification_status")
+      .eq("id", user.id)
+      .single();
+
+    if (adminProfile?.verification_status !== "ADMIN") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+  }
+
   return supabaseResponse;
 }
 

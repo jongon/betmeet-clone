@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: CONSTRUCTION - Unit 6 Scoring and Pool Rankings - Code Generation COMPLETE (103 tests passing, 0 TS errors, Biome clean, build passing)
+- **Current Stage**: CONSTRUCTION - Unit 7 Admin and Observability - Code Generation COMPLETE (111 tests passing, 0 TS errors, Biome clean, build passing). All 7 units done; pending final Build & Test stage.
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -72,8 +72,8 @@
 - [x] Code Generation - COMPLETE (103 tests passing, 0 TS errors, Biome clean, build passing)
 
 **Unit 7: Admin and Observability**
-- [ ] Functional Design - EXECUTE
-- [ ] Code Generation - EXECUTE
+- [x] Functional Design - COMPLETE (approved)
+- [x] Code Generation - COMPLETE (111 tests passing, 0 TS errors, Biome clean, build passing)
 
 **All Units**
 - [ ] Build and Test - EXECUTE

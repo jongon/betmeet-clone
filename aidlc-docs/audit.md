@@ -655,3 +655,19 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **Timestamp**: 2026-06-10T00:00:00Z
 **AI Response**: "Ejecuté los 9 pasos. Tabla PredictionScore (1:1 con Prediction) + migración RLS; módulo scoring-rankings (adaptador teamId→side reutilizando computeScore de Unit 2, scoreMatch idempotente, sweeper, dense ranking '1,1,2', queries de leaderboard, resolvePoints). Integraciones: read model de Unit 5 conectado (quita el stub points:null, añade breakdown), ScoreBreakdownExplainer en PredictionVsResult, sección de leaderboard en el detalle de pool (Unit 3) + página /pools/[id]/leaderboard. Disparo = sweeper post-sync (documentado en el composition root). Añadí vitest.config.ts con alias @/ (mejora transversal para tests de integración). Validación: 0 errores TS, 103/103 tests (24 archivos), Biome limpio, pnpm build passing."
 **Context**: Unit 6 Scoring and Pool Rankings Code Generation complete. Solo queda Unit 7 (Admin and Observability) + Build & Test final.
+
+---
+
+## Unit 7 Functional Design - Answers (selection) & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Seguimos con el Unit 7" + respuestas por selección (AskUserQuestion): Q1=re-score síncrono, Q2=la API gana (override transitorio), Q3=dashboard + "Sincronizar ahora", Q4=sí revertir override.
+**AI Response**: "Functional Design de Unit 7 (Admin and Observability). Sin tablas nuevas (reutiliza campos de override de Match + ProviderSyncRun). Q2=B implica NO modificar upsertMatch (la API sobrescribe naturalmente). Generé los 4 artefactos: domain-entities (read models SyncStatusView/AdminMatchRow/ForceResultInput), business-rules (BR-7.1..BR-7.13), business-logic-model (BL-1 requireAdmin, BL-2 forceMatchResult + scoreMatch síncrono, BL-3 revertMatchOverride, BL-4 getSyncDashboard, BL-5 triggerSyncNow + sweeper, BL-6 getAdminMatches), frontend-components (/admin dashboard + /admin/matches override; gating /admin en proxy + requireAdmin)."
+**Context**: Unit 7 Functional Design artifacts complete. Awaiting approval to proceed to Code Generation.
+
+---
+
+## Unit 7 Code Generation - Complete
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Apruebo, genera"
+**AI Response**: "Ejecuté los 8 pasos de Unit 7 (Admin and Observability). Feature admin: getAdminUserId (gating), resolveWinner, queries (getSyncDashboard, getAdminMatches), actions (forceMatchResult + scoreMatch síncrono, revertMatchOverride, triggerSync + sweeper post-sync), UI /admin (dashboard de sync + Sincronizar ahora) y /admin/matches (forzar/revertir, selector de ganador de penales en knockout empatado). Modificaciones: proxy.ts (gating /admin por verification_status ADMIN), auth-logger.ts (+ eventos admin). Q2=B → upsertMatch NO modificado. Sin tablas nuevas. Validación: 0 errores TS, 111/111 tests (26 archivos), Biome limpio, build passing."
+**Context**: Unit 7 complete. Todas las 7 units construidas. Pendiente: Build & Test final.
