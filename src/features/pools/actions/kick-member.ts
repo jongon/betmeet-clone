@@ -11,7 +11,7 @@ export async function kickMember(poolId: string, targetUserId: string) {
   if (!userId) return { error: "No autenticado" };
 
   const pool = await prisma.pool.findUnique({ where: { id: poolId } });
-  if (!pool) return { error: "Pool no encontrado." };
+  if (!pool) return { error: "Liga no encontrada." };
   if (pool.ownerId !== userId) return { error: "Solo el administrador puede expulsar." };
   if (await isFrozen()) return { error: "Las listas están congeladas." };
   if (targetUserId === pool.ownerId) return { error: "El administrador no puede expulsarse." };

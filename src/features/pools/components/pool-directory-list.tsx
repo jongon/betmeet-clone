@@ -8,7 +8,7 @@ export function PoolDirectoryList({ pools }: { pools: PoolPreviewItem[] }) {
         className="rounded-xl border p-8 text-center text-sm text-muted-foreground"
         data-testid="pool-directory-empty"
       >
-        No hay pools públicos con esos filtros.
+        No hay ligas públicas con esos filtros.
       </div>
     );
   }

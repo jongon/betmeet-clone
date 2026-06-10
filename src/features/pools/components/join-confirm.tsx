@@ -25,7 +25,7 @@ export function JoinConfirm({ token }: { token: string }) {
       </div>
       <FormError messages={error ? [error] : undefined} />
       <Button onClick={join} disabled={pending}>
-        {pending ? "Uniendo..." : "Unirme al pool"}
+        {pending ? "Uniendo..." : "Unirme a la liga"}
       </Button>
     </div>
   );

@@ -15,8 +15,8 @@ export function PoolSearchBar({
       data-testid="pool-search-bar"
     >
       <div className="space-y-2">
-        <Label htmlFor="pool-query">Buscar pools públicos</Label>
-        <Input id="pool-query" name="q" defaultValue={query} placeholder="Nombre del pool" />
+        <Label htmlFor="pool-query">Buscar ligas públicas</Label>
+        <Input id="pool-query" name="q" defaultValue={query} placeholder="Nombre de la liga" />
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="withCapacity" value="1" defaultChecked={onlyWithCapacity} />

@@ -1,14 +1,14 @@
-# Quiniela World Cup 2026
+# Liga Mundial 2026
 
-Plataforma de predicciones deportivas para el FIFA World Cup 2026. Los usuarios se registran, crean o se unen a pools, predicen resultados de partidos y compiten en rankings con puntuación determinística.
+Plataforma de predicciones deportivas para el FIFA World Cup 2026. Los usuarios se registran, crean o se unen a ligas, predicen resultados de partidos y compiten en rankings con puntuación determinística.
 
 ## ¿Cómo funciona?
 
 1. **Registro** con email, Google, passkeys o MFA. Perfil con nickname `usuario#1234` y avatar.
-2. **Pools** públicos o privados (hasta 100 miembros). Cada pool tiene su propio ranking.
-3. **Predicciones** de resultado exacto por partido, editables hasta el kickoff. En fases knockout se predice también el ganador en penales.
+2. **Ligas** públicas o privadas (hasta 100 miembros). Cada liga tiene su propio ranking.
+3. **Predicciones** de resultado exacto por partido, editables hasta el inicio del partido. En fases knockout se predice también el ganador en penales.
 4. **Puntuación**: 5 pts (resultado exacto), 2 pts (ganador correcto), 1 pt (acertaste un equipo), +1 bonus penales.
-5. **Rankings** por pool con posiciones empatadas en tiempo real.
+5. **Rankings** por liga con posiciones empatadas en tiempo real.
 
 ## Tech Stack
 

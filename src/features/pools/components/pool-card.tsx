@@ -23,7 +23,7 @@ export function PoolCard({ pool }: { pool: MyPoolSummary }) {
           {pool.isFrozen && <p>Lista congelada por inicio del torneo.</p>}
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href={`/pools/${pool.id}`}>
-          Ver pool
+          Ver liga
         </Link>
       </CardContent>
     </Card>

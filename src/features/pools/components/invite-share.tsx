@@ -10,7 +10,7 @@ export function InviteShare({ token }: { token: string }) {
     if (typeof window === "undefined") return `/pools/join/${token}`;
     return `${window.location.origin}/pools/join/${token}`;
   }, [token]);
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Únete a mi pool de quiniela: ${link}`)}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Únete a mi liga del Mundial: ${link}`)}`;
 
   async function copy() {
     await navigator.clipboard.writeText(link);

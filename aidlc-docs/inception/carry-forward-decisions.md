@@ -51,6 +51,22 @@
 
 ---
 
+## CF-5 — Glosario de copy en español internacional
+**Origen**: Decisión de producto/copy del usuario (2026-06-10).
+**Destino**: Transversal — UI, contenido educativo, documentación de producto y futuros copy changes.
+**Requisito**: La experiencia debe usar español neutro internacional y evitar regionalismos como **quiniela**. El término de producto para los grupos de competencia es **Liga**.
+**Glosario aprobado**:
+- **Quiniela / pool** → **Liga** en copy visible.
+- **Leaderboard / tabla de posiciones** → **Ranking**.
+- **Pick** → **Predicción**; no usar `pick` en mensajes al usuario.
+- **Kickoff** → **Inicio del partido**.
+- **Invite** → **Invitación**.
+**Notas**:
+- Los identificadores técnicos existentes (`Pool`, rutas `/pools`, slugs, modelos Prisma y nombres de componentes) se conservan para evitar un refactor funcional innecesario.
+- En documentación técnica, `Pool` puede mantenerse como nombre de entidad, pero su descripción visible debe explicar que representa una **liga**.
+
+---
+
 ## Estado
 | ID | Tema | Destino | Estado |
 |---|---|---|---|
@@ -58,3 +74,4 @@
 | CF-2 | Banderas SVG | Unit 4 | Registrado, pendiente Unit 4 |
 | CF-3 | Seed países + código 3 chars | Unit 4 | Registrado, pendiente Unit 4 |
 | CF-4 | Competition extensible | Unit 4 | Registrado, pendiente Unit 4 |
+| CF-5 | Glosario copy español internacional | Transversal | Aplicado a UI/contenido/docs; mantener en futuros cambios |

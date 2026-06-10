@@ -16,7 +16,7 @@ export default async function JoinPoolPage({ params }: JoinPoolPageProps) {
       </Link>
       <header>
         <p className="text-sm font-medium text-primary">Invitación</p>
-        <h1 className="text-3xl font-semibold tracking-tight">Unirse a un pool</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Unirse a una liga</h1>
         <p className="text-muted-foreground">Confirma el código compartido antes de entrar.</p>
       </header>
       <JoinConfirm token={token} />

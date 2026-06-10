@@ -11,7 +11,7 @@ export default function NewPoolPage() {
       </Link>
       <Card>
         <CardHeader>
-          <CardTitle>Crear pool</CardTitle>
+          <CardTitle>Crear liga</CardTitle>
         </CardHeader>
         <CardContent>
           <CreatePoolForm />

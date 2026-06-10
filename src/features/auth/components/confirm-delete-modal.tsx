@@ -73,7 +73,7 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
 
           {poolsNeedingOwner.length > 0 && (
             <div className="space-y-3 rounded-md border p-3">
-              <p className="text-sm font-medium">Transfiere la administración de tus pools</p>
+              <p className="text-sm font-medium">Transfiere la administración de tus ligas</p>
               {poolsNeedingOwner.map((pool) => (
                 <div key={pool.poolId} className="space-y-1">
                   <Label htmlFor={`transfer-${pool.poolId}`}>{pool.poolName}</Label>
@@ -102,7 +102,7 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
 
           {poolsToDelete.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              Estos pools se eliminarán por no tener otros miembros:{" "}
+              Estas ligas se eliminarán por no tener otros miembros:{" "}
               {poolsToDelete.map((p) => p.poolName).join(", ")}.
             </p>
           )}

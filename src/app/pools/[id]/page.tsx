@@ -47,7 +47,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
           {leaderboard && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Tabla de posiciones</h2>
+                <h2 className="text-xl font-semibold">Ranking</h2>
                 {leaderboard.length > 5 && (
                   <Link
                     className={buttonVariants({ variant: "ghost", size: "sm" })}

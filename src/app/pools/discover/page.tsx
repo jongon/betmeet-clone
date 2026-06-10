@@ -20,13 +20,13 @@ export default async function DiscoverPoolsPage({ searchParams }: DiscoverPoolsP
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-medium text-primary">Directorio</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Pools públicos</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">Ligas públicas</h1>
           <p className="text-muted-foreground">
-            Busca quinielas abiertas y únete antes del kickoff.
+            Busca ligas abiertas y únete antes del inicio del partido.
           </p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href="/pools">
-          Mis pools
+          Mis ligas
         </Link>
       </header>
       <PoolSearchBar query={query} onlyWithCapacity={onlyWithCapacity} />

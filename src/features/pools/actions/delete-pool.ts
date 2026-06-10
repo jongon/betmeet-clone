@@ -12,9 +12,9 @@ export async function deletePool(poolId: string) {
   if (!userId) return { error: "No autenticado" };
 
   const pool = await prisma.pool.findUnique({ where: { id: poolId } });
-  if (!pool) return { error: "Pool no encontrado." };
-  if (pool.ownerId !== userId) return { error: "Solo el administrador puede eliminar el pool." };
-  if (await isFrozen()) return { error: "El pool no puede eliminarse una vez iniciado el torneo." };
+  if (!pool) return { error: "Liga no encontrada." };
+  if (pool.ownerId !== userId) return { error: "Solo el administrador puede eliminar la liga." };
+  if (await isFrozen()) return { error: "La liga no puede eliminarse una vez iniciado el torneo." };
 
   await prisma.pool.delete({ where: { id: poolId } });
 

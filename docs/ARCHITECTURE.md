@@ -54,8 +54,8 @@ Aplicación full-stack Next.js 16 con Supabase como backend (auth, base de datos
 |--------|-----------|
 | `Profile` | Identidad pública del usuario (extiende Supabase `auth.users`) |
 | `AvatarAsset` | Avatares por defecto (seeded) |
-| `Pool` | Grupo de competición (público/privado, token de invitación) |
-| `PoolMembership` | Membresía de usuario en un pool |
+| `Pool` | Liga de competición (pública/privada, token de invitación) |
+| `PoolMembership` | Membresía de usuario en una liga |
 | `Competition` | Torneo (slug único, temporada, proveedor) |
 | `CompetitionPhase` | Fase del torneo (grupos, knockout, liga) |
 | `Team` | Selección nacional (fifaCode único, bandera) |
@@ -76,7 +76,7 @@ Aplicación full-stack Next.js 16 con Supabase como backend (auth, base de datos
 
 ### Seguridad (Row Level Security)
 
-Todas las tablas tienen RLS policies definidas en `supabase/migrations/`. Los usuarios solo acceden a sus propios datos. Pools públicos son legibles; pools privados requieren membresía.
+Todas las tablas tienen RLS policies definidas en `supabase/migrations/`. Los usuarios solo acceden a sus propios datos. Las ligas públicas son legibles; las ligas privadas requieren membresía.
 
 ## Capa de presentación
 
@@ -90,8 +90,8 @@ Todas las tablas tienen RLS policies definidas en `supabase/migrations/`. Los us
 | `/auth/callback` | OAuth callback | No |
 | `/auth/forgot-password` | Recuperar contraseña | No |
 | `/auth/reset-password` | Resetear contraseña | No |
-| `/pools` | Lista de pools del usuario | Sí |
-| `/pools/[id]` | Detalle de un pool | Sí (miembro) |
+| `/pools` | Lista de ligas del usuario | Sí |
+| `/pools/[id]` | Detalle de una liga | Sí (miembro) |
 | `/predictions` | Fixture con predicciones | Sí |
 | `/profile` | Perfil de usuario | Sí |
 | `/rules` | Centro de reglas (MDX) | No |

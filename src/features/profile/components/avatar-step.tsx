@@ -26,7 +26,7 @@ export function AvatarStep({
       <div>
         <h2 className="text-xl font-semibold">Choose your avatar</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Pick an image that represents you in the Quiniela.
+          Elige una imagen que te represente en tu liga.
         </p>
       </div>
 

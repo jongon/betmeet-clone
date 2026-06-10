@@ -22,7 +22,7 @@ export async function createPool(input: { name: string; type: string; capacity: 
   // final guard, this is the friendly pre-check.
   if (type === "PUBLIC") {
     const clash = await prisma.pool.findFirst({ where: { type: "PUBLIC", name } });
-    if (clash) return { error: "Ya existe un pool público con ese nombre" };
+    if (clash) return { error: "Ya existe una liga pública con ese nombre" };
   }
 
   const inviteToken = await generateUniqueInviteToken(async (token) => {
@@ -41,7 +41,7 @@ export async function createPool(input: { name: string; type: string; capacity: 
     });
     poolId = pool.id;
   } catch {
-    return { error: "No se pudo crear el pool. Inténtalo de nuevo." };
+    return { error: "No se pudo crear la liga. Inténtalo de nuevo." };
   }
 
   revalidatePath("/pools");

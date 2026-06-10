@@ -2,7 +2,7 @@
 
 ## Qué es
 
-Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios se registran, se unen a pools, predicen resultados de partidos y compiten por puntos según la precisión de sus predicciones.
+Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios se registran, se unen a ligas, predicen resultados de partidos y compiten por puntos según la precisión de sus predicciones.
 
 ## Funcionalidades
 
@@ -10,10 +10,10 @@ Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios 
 |---------|-------------|
 | **Auth** | Registro/login con email/password, Google OAuth, MFA (TOTP), passkeys (WebAuthn), recuperación de contraseña, cambio de email, eliminación de cuenta |
 | **Profile** | Nickname (`base#discriminator`), avatar (Google photo / default set / custom upload), estado de verificación |
-| **Pools** | Grupos públicos/privados con token de invitación, capacidad máxima, membresías |
+| **Ligas** | Grupos públicos/privados con token de invitación, capacidad máxima, membresías |
 | **Competition** | Sincronización de datos desde API-Football (equipos, fases, partidos), fixture con fases (grupos/knockout), estado de partidos |
 | **Predictions** | Predicción de resultado exacto por partido, selector de ganador en penales para knockout, bloqueo al inicio del partido |
-| **Scoring** | Cálculo de puntos (exacto, resultado parcial, fallo), rankings por pool, desempate por orden de predicción |
+| **Scoring** | Cálculo de puntos (exacto, resultado parcial, fallo), rankings por liga, desempate por orden de predicción |
 | **Admin** | Panel de administración, overrides manuales de resultados, trigger de sincronización, verificación de usuarios |
 | **Education** | Centro de reglas (MDX via Content Collections) que explica el sistema de puntuación |
 
@@ -43,7 +43,7 @@ Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios 
 │   │   ├── auth/            # Autenticación (sign-in/up, MFA, passkeys)
 │   │   ├── competition/     # Competición (fixture, equipos, sync)
 │   │   ├── education/       # Centro de reglas y scoring teaser
-│   │   ├── pools/           # Pools (creación, membresía, invitaciones)
+│   │   ├── pools/           # Ligas (creación, membresía, invitaciones)
 │   │   ├── predictions/     # Predicciones (formulario, queries, elegibilidad)
 │   │   ├── profile/         # Perfil de usuario
 │   │   └── scoring/         # Puntajes y rankings

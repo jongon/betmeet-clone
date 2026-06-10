@@ -11,9 +11,9 @@ export async function leavePool(poolId: string) {
   if (!userId) return { error: "No autenticado" };
 
   const pool = await prisma.pool.findUnique({ where: { id: poolId } });
-  if (!pool) return { error: "Pool no encontrado." };
+  if (!pool) return { error: "Liga no encontrada." };
   if (pool.ownerId === userId) {
-    return { error: "El administrador no puede salir; debe eliminar o transferir el pool." };
+    return { error: "El administrador no puede salir; debe eliminar o transferir la liga." };
   }
   if (await isFrozen()) return { error: "Las listas están congeladas." };
 

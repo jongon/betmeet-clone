@@ -20,9 +20,9 @@ export default async function PoolLeaderboardPage({ params }: PoolLeaderboardPag
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
       <Link className={buttonVariants({ variant: "ghost" })} href={`/pools/${id}`}>
-        Volver al pool
+        Volver a la liga
       </Link>
-      <h1 className="text-2xl font-semibold tracking-tight">Tabla de posiciones</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Ranking</h1>
       <PoolLeaderboard rows={rows} />
     </main>
   );

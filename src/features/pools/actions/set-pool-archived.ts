@@ -13,7 +13,7 @@ export async function setPoolArchived(poolId: string, archived: boolean) {
     where: { poolId, userId },
     data: { archivedAt: archived ? new Date() : null },
   });
-  if (result.count === 0) return { error: "No eres miembro de este pool." };
+  if (result.count === 0) return { error: "No eres miembro de esta liga." };
 
   revalidatePath("/pools");
   return { success: true };

@@ -37,7 +37,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
             disabled={pending}
             onClick={() => run(() => leavePool(pool.id))}
           >
-            Salir del pool
+            Salir de la liga
           </Button>
         )}
         {pool.isOwner && !pool.isFrozen && (
@@ -46,7 +46,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
             disabled={pending}
             onClick={() => run(() => deletePool(pool.id))}
           >
-            Eliminar pool
+            Eliminar liga
           </Button>
         )}
       </div>

@@ -37,7 +37,7 @@ export function CreatePoolForm() {
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="La quiniela de la oficina"
+          placeholder="La liga de la oficina"
         />
       </div>
 
@@ -71,7 +71,7 @@ export function CreatePoolForm() {
       </div>
 
       <Button type="submit" disabled={pending} data-testid="create-pool-submit">
-        {pending ? "Creando..." : "Crear pool"}
+        {pending ? "Creando..." : "Crear liga"}
       </Button>
     </form>
   );

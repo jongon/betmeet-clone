@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Quiniela 2026", template: "%s · Quiniela 2026" },
-  description: "Predice el Mundial 2026 con tus amigos. Crea tu quiniela y compite por tu pool.",
+  title: { default: "Liga Mundial 2026", template: "%s · Liga Mundial 2026" },
+  description: "Predice el Mundial 2026 con tus amigos. Crea tu liga y compite en el ranking.",
 };
 
 export default function RootLayout({

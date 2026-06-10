@@ -5,7 +5,7 @@
  */
 export const es = {
   common: {
-    appName: "Quiniela 2026",
+    appName: "Liga Mundial 2026",
     signIn: "Iniciar sesión",
     continue: "Continuar",
     skipForNow: "Saltar por ahora",
@@ -19,12 +19,11 @@ export const es = {
   },
   landing: {
     heroTitle: "Predice el Mundial 2026 con tus amigos",
-    heroSubtitle:
-      "Crea tu quiniela, pronostica los partidos y compite por el primer lugar de tu pool.",
-    primaryCta: "Crear mi quiniela",
-    explorePools: "Explorar pools públicos",
-    poolsTitle: "Pools públicos",
-    poolsEmpty: "Pools públicos próximamente.",
+    heroSubtitle: "Crea tu liga, haz tus predicciones y compite por el primer lugar del ranking.",
+    primaryCta: "Crear mi liga",
+    explorePools: "Explorar ligas públicas",
+    poolsTitle: "Ligas públicas",
+    poolsEmpty: "Ligas públicas próximamente.",
     poolsError: "",
     scoringTeaserTitle: "Cómo se puntúa",
   },
@@ -79,7 +78,7 @@ export const es = {
   cues: {
     nicknameDiscriminator:
       "Si tu nickname ya existe, le añadimos un número único (como en Discord).",
-    rankingPoolOnly: "El ranking es por pool, no global. Compites contra tu grupo.",
+    rankingPoolOnly: "El ranking es por liga, no global. Compites contra tu grupo.",
     scoringHint: "Los puntos dependen de qué tan cerca esté tu predicción del marcador real.",
     matchLockCountdown: "Puedes editar tu predicción hasta el inicio del partido.",
   },

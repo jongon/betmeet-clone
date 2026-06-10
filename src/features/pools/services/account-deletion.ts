@@ -57,9 +57,9 @@ export async function transferOwnedPoolsForAccountDeletion(
     });
   } catch (err) {
     if (err instanceof Error && err.message.startsWith("MISSING_ASSIGNMENT")) {
-      return { error: "Elige un nuevo administrador para cada pool antes de eliminar la cuenta." };
+      return { error: "Elige un nuevo administrador para cada liga antes de eliminar la cuenta." };
     }
-    return { error: "No se pudo transferir la propiedad de los pools." };
+    return { error: "No se pudo transferir la propiedad de las ligas." };
   }
 
   return {};

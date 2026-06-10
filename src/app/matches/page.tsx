@@ -21,7 +21,7 @@ export default async function MatchesPage() {
           <p className="text-muted-foreground">Horarios mostrados en tu hora local.</p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href="/pools">
-          Mis pools
+          Mis ligas
         </Link>
       </header>
 

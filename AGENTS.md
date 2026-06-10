@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Quiniela SaaS para el FIFA World Cup 2026 — los usuarios se registran, se unen a pools, predicen resultados de partidos y compiten en rankings con puntuación determinística.
+Liga Mundial SaaS para el FIFA World Cup 2026 — los usuarios se registran, se unen a ligas, predicen resultados de partidos y compiten en rankings con puntuación determinística.
 
 ## Funcionalidades
 
@@ -9,10 +9,10 @@ Quiniela SaaS para el FIFA World Cup 2026 — los usuarios se registran, se unen
 | **Auth** | Email/password, Google OAuth, MFA (TOTP), passkeys (WebAuthn), account linking automático email+Google |
 | **Profile** | Nickname `base#discriminator`, avatar (Google photo / default set / custom upload), verificación |
 | **Competition** | Fixture por fases (grupos/knockout), datos desde API-Football, estado de partidos (SCHEDULED→LIVE→FINISHED) |
-| **Predictions** | Predicción de resultado exacto, editable hasta kickoff, selector de ganador en penales para knockout |
-| **Pools** | Grupos públicos/privados (hasta 100 miembros), token de invitación, directorio público, expulsión pre-partido |
+| **Predictions** | Predicción de resultado exacto, editable hasta el inicio del partido, selector de ganador en penales para knockout |
+| **Ligas** | Grupos públicos/privados (hasta 100 miembros), token de invitación, directorio público, expulsión pre-partido |
 | **Scoring** | Puntaje determinístico: exacto 5pts, resultado 2pts, un equipo 1pt, fallo 0pt; +1 bonus penales |
-| **Rankings** | Leaderboards por pool, posiciones empatadas, desempate por orden de predicción |
+| **Rankings** | Rankings por liga, posiciones empatadas, desempate por orden de predicción |
 | **Admin** | Dashboard de sync, override manual de resultados, recálculo de puntajes, visibilidad de errores |
 | **Education** | Centro de reglas (MDX via Content Collections), hints contextuales de puntuación |
 

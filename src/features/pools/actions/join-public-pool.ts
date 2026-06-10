@@ -30,10 +30,10 @@ export async function joinPublicPool(poolId: string) {
     });
   } catch (err) {
     const code = err instanceof Error ? err.message : "";
-    if (code === "FULL") return { error: "El pool está lleno." };
-    if (code === "ALREADY_MEMBER") return { error: "Ya eres miembro de este pool." };
-    if (code === "NOT_FOUND") return { error: "Pool no encontrado." };
-    return { error: "No se pudo unir al pool." };
+    if (code === "FULL") return { error: "La liga está llena." };
+    if (code === "ALREADY_MEMBER") return { error: "Ya eres miembro de esta liga." };
+    if (code === "NOT_FOUND") return { error: "Liga no encontrada." };
+    return { error: "No se pudo unir a la liga." };
   }
 
   revalidatePath("/pools");

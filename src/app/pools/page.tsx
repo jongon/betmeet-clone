@@ -10,10 +10,10 @@ export default async function PoolsPage() {
     <main className="mx-auto max-w-4xl space-y-8 px-4 py-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary">Pools</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Mis quinielas</h1>
+          <p className="text-sm font-medium text-primary">Ligas</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Mis ligas</h1>
           <p className="text-muted-foreground">
-            Administra tus pools, invitaciones y participantes.
+            Administra tus ligas, invitaciones y participantes.
           </p>
         </div>
         <div className="flex gap-2">
@@ -21,16 +21,16 @@ export default async function PoolsPage() {
             Descubrir
           </Link>
           <Link className={buttonVariants()} href="/pools/new">
-            Crear pool
+            Crear liga
           </Link>
         </div>
       </header>
 
       {pools.length === 0 ? (
         <section className="rounded-xl border p-8 text-center" data-testid="my-pools-empty">
-          <h2 className="font-semibold">Aún no estás en ningún pool</h2>
+          <h2 className="font-semibold">Aún no estás en ninguna liga</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Crea uno privado para tus amigos o únete a un pool público.
+            Crea una liga privada para tus amigos o únete a una liga pública.
           </p>
         </section>
       ) : (

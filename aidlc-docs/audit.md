@@ -14,6 +14,22 @@ Intent: Quiero empezar ideación"
 
 ---
 
+## Post-Construction Copy Glossary Update
+**Timestamp**: 2026-06-10
+**User Input**: "Me quedo con liga. Modifica los copies según la decisión que hemos tomado. Estoy usando AI-DLC pero no se como seguir para agregar estos cambios sin romper la metodología, revisa ./aidlc y ./aidlc-docs"
+**AI Response**: "Reviewed `.aidlc` workflow rules and existing `aidlc-docs` state. Classified the request as a low-risk post-construction copy/glossary update, preserving technical identifiers (`Pool`, `/pools`) while changing user-facing Spanish copy to the approved glossary: Liga, Ranking, Predicción, Inicio del partido, Invitación. Added CF-5 to carry-forward decisions so future changes keep the terminology."
+**Context**: Adaptive workflow after construction complete; no new feature, schema change, or user-story stage required.
+
+---
+
+## Post-Construction Copy Glossary Verification
+**Timestamp**: 2026-06-10
+**User Input**: N/A (implementation verification)
+**AI Response**: "Verified the copy/glossary update with `pnpm exec tsc --noEmit`, `pnpm check`, `pnpm test` (111/111), and `pnpm build`. Updated `aidlc-state.md` to reflect passing verification and readiness for Operations/deploy."
+**Context**: Verification gate for low-risk post-construction copy update.
+
+---
+
 ## Workspace Detection
 **Timestamp**: 2026-06-09T21:37:50Z
 **User Input**: "Treat this as a \"Using AI-DLC, ...\" message. Read and follow

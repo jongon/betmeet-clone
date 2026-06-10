@@ -37,9 +37,9 @@ export async function joinPoolByToken(token: string) {
     });
   } catch (err) {
     const code = err instanceof Error ? err.message : "";
-    if (code === "FULL") return { error: "El pool está lleno." };
+    if (code === "FULL") return { error: "La liga está llena." };
     if (code === "NOT_FOUND") return { error: "Código de invitación inválido." };
-    return { error: "No se pudo unir al pool." };
+    return { error: "No se pudo unir a la liga." };
   }
 
   revalidatePath("/pools");
