@@ -44,6 +44,8 @@ All units share these variables. Each environment has its own values set in the 
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (browser + server) | Supabase anon key for RLS-protected operations |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only (never exposed) | Supabase admin key for privileged server operations |
 | `RESEND_API_KEY` | Server only | Resend API key (used by Supabase Auth SMTP config) |
+| `API_FOOTBALL_KEY` | Supabase Edge Function secret / server only | API-Football provider key for competition sync; never `NEXT_PUBLIC` |
+| `SYNC_TRIGGER_SECRET` | Server only (optional) | Protects system/manual sync triggers if implemented outside admin session auth |
 
 ---
 
@@ -114,6 +116,7 @@ The CSP stays report-only in v1, ready to switch to enforce without rewrites.
 |---|---|---|
 | Vercel Dashboard | vercel.com/dashboard | Deployments, function logs, error rates |
 | Supabase Dashboard | app.supabase.com | Auth logs, DB metrics, Storage usage |
+| `provider_sync_runs` table | Supabase SQL / future Unit 7 dashboard | Competition sync status, failures, rate limits, last successful sync |
 
 No external error tracking tool in v1. No RUM/Speed Insights in v1 (Unit 2 Infra Q3=B); performance targets validated pre-deploy via Lighthouse.
 
@@ -127,5 +130,18 @@ Seed scripts are located in `scripts/` and run with `pnpm tsx scripts/<name>.ts`
 |---|---|---|
 | `scripts/seed-avatars.ts` | Upload default avatar images to Supabase Storage and populate `avatar_assets` | After first deploy / `supabase db reset` |
 | `scripts/seed-admin.ts` | Set `verification_status = 'ADMIN'` for a configured email | After the admin user registers |
+| `scripts/seed-competition.ts` | Upsert World Cup 2026 competition, teams, phases, known fixtures and flag paths | After Unit 4 migrations / before enabling predictions |
+| `scripts/sync-flags.ts` / flag validation script | Copy/validate required SVG flags into `public/flags/` | Before deploy when team seed changes |
 
 Both scripts use `SUPABASE_SERVICE_ROLE_KEY` and require it to be set in the environment.
+
+---
+
+## Scheduled Jobs
+
+| Job | Runtime | Purpose |
+|---|---|---|
+| `competition-sync` | Supabase Edge Function scheduled/cron | Sync API-Football teams, fixtures, live status and results; write `provider_sync_runs` |
+| `competition-sync cleanup` | Supabase Edge Function scope or script/admin task | Remove/archive sync runs older than 90 days |
+
+Preview deployments use seed/mock competition data by default and only call API-Football when `API_FOOTBALL_KEY` is explicitly configured for that environment.

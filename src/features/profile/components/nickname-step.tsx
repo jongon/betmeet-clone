@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { checkNicknameAvailability } from "../actions/check-nickname-availability";
 import { setNickname } from "../actions/set-nickname";
-import { generateNicknameSuggestions } from "../services/nickname";
+import { generateNicknameSuggestions } from "../services/nickname-suggestions";
 
 interface NicknameStepProps {
   onComplete: (nickname: string) => void;
@@ -19,7 +19,6 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [suggestions] = useState(() => generateNicknameSuggestions(5));
-  const [isPending, startTransition] = useTransition();
 
   async function handleAvailabilityCheck() {
     if (!value) return;
@@ -65,9 +64,7 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
               maxLength={20}
               aria-describedby="nickname-hint"
             />
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Continue"}
-            </Button>
+            <Button type="submit">Continue</Button>
           </div>
           <p id="nickname-hint" className="text-xs text-muted-foreground">
             3–20 characters. Letters, numbers, _ and - only.

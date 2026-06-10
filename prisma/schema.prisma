@@ -34,6 +34,9 @@ model Profile {
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
 
+  ownedPools      Pool[]           @relation("PoolOwner")
+  poolMemberships PoolMembership[]
+
   @@unique([nicknameBase, nicknameDiscriminator])
   @@map("profiles")
 }
@@ -48,4 +51,195 @@ model AvatarAsset {
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@map("avatar_assets")
+}
+
+// Pool visibility (Unit 3)
+enum PoolType {
+  PUBLIC
+  PRIVATE
+}
+
+enum CompetitionPhaseType {
+  GROUP
+  KNOCKOUT
+  LEAGUE
+}
+
+enum MatchStatus {
+  SCHEDULED
+  LOCKED
+  LIVE
+  FINISHED
+  POSTPONED
+  CANCELLED
+}
+
+enum ProviderSyncStatus {
+  STARTED
+  SUCCESS
+  PARTIAL_SUCCESS
+  FAILED
+  RATE_LIMITED
+  SKIPPED_LOCKED
+}
+
+enum ProviderSyncScope {
+  TEAMS
+  FIXTURES
+  LIVE_STATUS
+  RESULTS
+  FULL
+  CLEANUP
+}
+
+// A competition group where users compete (US-4.1)
+model Pool {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String   @db.VarChar(60)
+  type        PoolType
+  capacity    Int
+  inviteToken String   @unique @map("invite_token") @db.VarChar(12)
+  ownerId     String   @map("owner_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  owner       Profile          @relation("PoolOwner", fields: [ownerId], references: [id])
+  memberships PoolMembership[]
+
+  @@index([ownerId])
+  @@index([type])
+  @@map("pools")
+}
+
+// Membership of a user in a pool, incl. per-member personal archive (F1)
+model PoolMembership {
+  id         String    @id @default(uuid()) @db.Uuid
+  poolId     String    @map("pool_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  joinedAt   DateTime  @default(now()) @map("joined_at")
+  archivedAt DateTime? @map("archived_at")
+
+  pool Pool    @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, userId])
+  @@index([userId])
+  @@map("pool_memberships")
+}
+
+model Competition {
+  id                    String   @id @default(uuid()) @db.Uuid
+  slug                  String   @unique @db.VarChar(80)
+  name                  String   @db.VarChar(120)
+  season                String   @db.VarChar(20)
+  startsAt              DateTime? @map("starts_at")
+  endsAt                DateTime? @map("ends_at")
+  timezone              String   @default("UTC") @db.VarChar(80)
+  provider              String?  @db.VarChar(40)
+  providerCompetitionId String?  @map("provider_competition_id") @db.VarChar(80)
+  isActive              Boolean  @default(false) @map("is_active")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  phases CompetitionPhase[]
+  matches Match[]
+
+  @@index([isActive])
+  @@map("competitions")
+}
+
+model CompetitionPhase {
+  id              String               @id @default(uuid()) @db.Uuid
+  competitionId   String               @map("competition_id") @db.Uuid
+  name            String               @db.VarChar(120)
+  type            CompetitionPhaseType
+  groupCode       String?              @map("group_code") @db.VarChar(8)
+  displayOrder    Int                  @map("display_order")
+  startsAt        DateTime?            @map("starts_at")
+  endsAt          DateTime?            @map("ends_at")
+  providerPhaseId String?              @map("provider_phase_id") @db.VarChar(80)
+
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  matches     Match[]
+
+  @@unique([competitionId, displayOrder])
+  @@index([competitionId, type])
+  @@map("competition_phases")
+}
+
+model Team {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String   @db.VarChar(120)
+  fifaCode       String   @unique @map("fifa_code") @db.Char(3)
+  isoAlpha2      String?  @map("iso_alpha2") @db.VarChar(12)
+  flagKey        String   @map("flag_key") @db.VarChar(24)
+  flagPath       String   @map("flag_path") @db.VarChar(120)
+  providerTeamId String?  @unique @map("provider_team_id") @db.VarChar(80)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  homeMatches   Match[] @relation("MatchHomeTeam")
+  awayMatches   Match[] @relation("MatchAwayTeam")
+  winnerMatches Match[] @relation("MatchWinnerTeam")
+
+  @@map("teams")
+}
+
+model Match {
+  id                   String      @id @default(uuid()) @db.Uuid
+  competitionId        String      @map("competition_id") @db.Uuid
+  phaseId              String      @map("phase_id") @db.Uuid
+  providerMatchId      String?     @unique @map("provider_match_id") @db.VarChar(80)
+  matchNumber          Int?        @map("match_number")
+  kickoffAt            DateTime?   @map("kickoff_at")
+  status               MatchStatus @default(SCHEDULED)
+  rawStatus            String?     @map("raw_status") @db.VarChar(80)
+  homeTeamId           String?     @map("home_team_id") @db.Uuid
+  awayTeamId           String?     @map("away_team_id") @db.Uuid
+  homePlaceholder      String?     @map("home_placeholder") @db.VarChar(120)
+  awayPlaceholder      String?     @map("away_placeholder") @db.VarChar(120)
+  homeScore            Int?        @map("home_score")
+  awayScore            Int?        @map("away_score")
+  homePenaltyScore     Int?        @map("home_penalty_score")
+  awayPenaltyScore     Int?        @map("away_penalty_score")
+  winnerTeamId         String?     @map("winner_team_id") @db.Uuid
+  manualOverride       Boolean     @default(false) @map("manual_override")
+  manualOverrideReason String?     @map("manual_override_reason") @db.VarChar(500)
+  overriddenByUserId   String?     @map("overridden_by_user_id") @db.Uuid
+  overriddenAt         DateTime?   @map("overridden_at")
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  competition Competition      @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  phase       CompetitionPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+  homeTeam    Team?            @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam    Team?            @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
+  winnerTeam  Team?            @relation("MatchWinnerTeam", fields: [winnerTeamId], references: [id])
+
+  @@unique([competitionId, matchNumber])
+  @@index([competitionId])
+  @@index([phaseId])
+  @@index([status])
+  @@index([kickoffAt])
+  @@map("matches")
+}
+
+model ProviderSyncRun {
+  id                String             @id @default(uuid()) @db.Uuid
+  provider          String             @db.VarChar(40)
+  scope             ProviderSyncScope
+  windowKey         String             @map("window_key") @db.VarChar(120)
+  status            ProviderSyncStatus
+  startedAt         DateTime           @default(now()) @map("started_at")
+  finishedAt        DateTime?          @map("finished_at")
+  lockExpiresAt     DateTime?          @map("lock_expires_at")
+  itemsFetched      Int                @default(0) @map("items_fetched")
+  itemsUpdated      Int                @default(0) @map("items_updated")
+  errorMessage      String?            @map("error_message") @db.VarChar(1000)
+  providerRequestId String?            @map("provider_request_id") @db.VarChar(120)
+  metadata          Json?
+
+  @@unique([provider, scope, windowKey])
+  @@index([provider, scope, status])
+  @@index([startedAt])
+  @@map("provider_sync_runs")
 }

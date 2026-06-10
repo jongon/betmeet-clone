@@ -7,6 +7,9 @@ vi.mock("@/lib/auth-logger", () => ({
   logAuthEvent: vi.fn(),
   redactEmail: vi.fn((e: string) => e),
 }));
+vi.mock("@/features/pools/services/account-deletion", () => ({
+  transferOwnedPoolsForAccountDeletion: vi.fn().mockResolvedValue({}),
+}));
 vi.mock("@/lib/prisma", () => ({
   prisma: { profile: { update: vi.fn() } },
 }));

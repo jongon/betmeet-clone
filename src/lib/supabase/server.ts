@@ -4,26 +4,28 @@ import { cookies } from "next/headers";
 
 export async function createClient(cookieOptions?: Partial<CookieOptions>) {
   const cookieStore = await cookies();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            for (const { name, value, options } of cookiesToSet) {
-              cookieStore.set(name, value, { ...options, ...cookieOptions });
-            }
-          } catch {
-            // setAll called from a Server Component — cookies can't be set.
-            // Middleware handles session refresh in this case.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase public environment variables");
+  }
+
+  return createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return cookieStore.getAll();
+      },
+      setAll(cookiesToSet) {
+        try {
+          for (const { name, value, options } of cookiesToSet) {
+            cookieStore.set(name, value, { ...options, ...cookieOptions });
           }
-        },
+        } catch {
+          // setAll called from a Server Component — cookies can't be set.
+          // Middleware handles session refresh in this case.
+        }
       },
     },
-  );
+  });
 }

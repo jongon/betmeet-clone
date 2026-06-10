@@ -25,12 +25,14 @@ export function AvatarSourceTabs({
   currentAvatarUrl,
   onAvatarChange,
 }: AvatarSourceTabsProps) {
-  const [selectedDefaultId, setSelectedDefaultId] = useState<string | null>(null);
+  const [selectedDefaultId, setSelectedDefaultId] = useState<string | null>(
+    defaultAvatars.find((avatar) => avatar.storageUrl === currentAvatarUrl)?.id ?? null,
+  );
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleDefaultSelect(id: string, url: string) {
+  async function handleDefaultSelect(id: string, _url: string) {
     setSelectedDefaultId(id);
     const result = await setAvatarFromDefaultSet(id);
     if (result.success && result.avatarUrl) onAvatarChange?.(result.avatarUrl);
@@ -55,7 +57,7 @@ export function AvatarSourceTabs({
       return;
     }
 
-    if (!urlResult.signedUrl) {
+    if (!urlResult.signedUrl || !urlResult.storagePath) {
       setUploadError("Failed to get upload URL");
       setUploadPending(false);
       return;
@@ -74,7 +76,7 @@ export function AvatarSourceTabs({
       return;
     }
 
-    const result = await setAvatarFromUpload(urlResult.storagePath!);
+    const result = await setAvatarFromUpload(urlResult.storagePath);
     if (result.error) {
       setUploadError(result.error);
     } else if (result.avatarUrl) {

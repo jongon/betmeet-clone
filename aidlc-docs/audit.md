@@ -473,3 +473,146 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **Context**: Proyecto compila limpio tras Unit 2. Listo para Build & Test / commit / Unit 3.
 
 ---
+
+## Unit 2 Committed + Unit 3 Functional Design Start
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Si logras corregirlo, haz commit y pasemos a la unit 3"
+**AI Response**: "Corregí los 3 biome-ignore de raíz (form-error → key por mensaje; label → htmlFor+children explícitos; auth-provider → CookieStore API). Validación: 0 errores TS, 41/41 tests, Biome sin errores. Commit de Unit 2 creado: a195ac4 (hooks biome+commitlint OK). Inicio CONSTRUCTION de Unit 3 (Pools and Membership): Functional Design. Stories US-4.1/4.2/4.3. Creando plan con preguntas; nota: la expulsión se congela al iniciar el primer partido (dependencia hacia Unit 4 / Competition Data)."
+**Context**: Unit 2 complete & committed. Unit 3 Functional Design started.
+
+---
+
+## Unit 3 Functional Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya he contestado las preguntas" (10 preguntas + 3 follow-ups). Respuestas: Q1=A (token código+link, copiar/WhatsApp), Q2=A (2–100 elegible), Q3=C (nombre único solo entre públicos), Q4=A, Q5=A (admin único no transferible), Q6=A (getCompetitionLockTime + config), Q7=A (+archivo personal), Q8=A, Q9 (transferencia de ownership solo al borrar cuenta; pool vive hasta fin del torneo), Q10=A; F1=A (archivo personal por miembro), F2=A (admin elige, lista más antiguo→nuevo), F3=A (único miembro → borrar cuenta elimina el pool).
+**AI Response**: "Resolví las ambigüedades de Q7/Q9 vía follow-ups F1/F2/F3 y reconcilié Q5↔Q9 (no transferible salvo borrado de cuenta). Generé los 4 artefactos: domain-entities (Pool, PoolMembership con archivedAt, interfaz CompetitionLock), business-rules (BR-3.1..BR-3.29), business-logic-model (BL-0..BL-9 incl. transferencia por borrado de cuenta), frontend-components (pantallas pools + integración con borrado de cuenta de Unit 1). Documentado punto de integración cross-unit: delete-account de Unit 1 invoca BL-9."
+**Context**: Unit 3 Functional Design artifacts complete. Awaiting approval to proceed to Code Generation.
+
+---
+
+## Unit 3 Functional Design - Approval + Code Gen Plan
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continuamos."
+**AI Response**: "Accepted Functional Design approval for Unit 3 (mantengo default: crear pool no congelado, unirse sí). Started Code Generation Part 1. Revisé prisma/schema.prisma, migraciones de Unit 1 y delete-account/confirm-delete-modal para la integración BL-9. Creé unit-3-pools-membership-code-generation-plan.md con 13 pasos y trazabilidad. Incluye tablas nuevas (Pool, PoolMembership), RLS, servicios (invite-token, competition-lock), actions, páginas, y 4 modificaciones de integración (delete-account, confirm-delete-modal, landing page/pool-preview, proxy)."
+**Status**: Awaiting Approval
+**Context**: Unit 3 Code Generation Part 1 (Planning) complete. Awaiting approval + to start Part 2.
+
+---
+
+## Unit 3 Code Generation - Plan Approved
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continuamos"
+**AI Response**: "Plan approved. Starting Code Generation Part 2 — executing the 13 steps."
+**Context**: Code Generation Part 2 started for Unit 3.
+
+---
+
+## Unit 3 Code Generation - Part 2 Complete
+**Timestamp**: 2026-06-10T12:45:00Z
+**User Input**: "Tenia una sesión abierta en claude pero se me acabaron los tokens en plena sesión. Puedes continuar tú con la siguiente etapa?"
+**AI Response**: "Reconstructed the interrupted Claude session from `aidlc-state.md`, `audit.md`, the Unit 3 code-generation plan, and the dirty worktree. Continued Unit 3 Code Generation Part 2 from the partially implemented backend layer. Added missing App Router routes, pools UI components, landing data integration, tests, docs, and verification. Also fixed a build-blocking client/server boundary issue by moving nickname suggestions out of the Prisma-backed nickname service. Validation: `pnpm prisma:generate` passed, `pnpm exec tsc --noEmit` passed, `pnpm test` passed (47/47), `pnpm check` passed, `pnpm build` passed."
+**Context**: Unit 3 Code Generation complete. Summary written to `aidlc-docs/construction/unit-3-pools-membership/code/generation-summary.md`. Awaiting approval to proceed to Unit 4 Functional Design.
+
+---
+
+## Unit 4 Functional Design - Start + Questions
+**Timestamp**: 2026-06-10T12:55:00Z
+**User Input**: "Ahora sí, continuemos."
+**AI Response**: "Accepted approval to continue after Unit 3 completion. Started Unit 4 Functional Design Part 1 for Competition Data and API Sync. Reviewed Unit of Work, story map, user stories, requirements, and carry-forward decisions CF-2/CF-3/CF-4. Created `aidlc-docs/construction/plans/unit-4-competition-data-functional-design-plan.md` with 10 clarification questions covering fixture seed/sync, FIFA vs ISO codes, local flag assets, extensible competition model, match statuses, knockout placeholders, first kickoff lookup, API-Football sync scope, cron cadence, and manual override boundary."
+**Context**: Unit 4 Functional Design requires user answers before generating domain entities, business logic, business rules, and frontend components.
+
+---
+
+## Unit 4 Functional Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T13:05:00Z
+**User Input**: "He respondido todas las preguntas."
+**AI Response**: "Read all 10 Unit 4 Functional Design answers. User selected option A for every question: seed demo/real editable reconciled by API-Football; FIFA trigram display codes; local SVG flags under `public/flags/`; extensible competition model with v1 UI limited to World Cup 2026; simple domain match statuses; nullable knockout team slots with placeholders; competition first-kickoff service with env fallback; API-Football adapter/logs/manual or scheduled jobs; two sync cadences; manual override fields only until Unit 7. No contradictions or follow-up questions required. Generated `domain-entities.md`, `business-logic-model.md`, `business-rules.md`, and `frontend-components.md` under `aidlc-docs/construction/unit-4-competition-data/functional-design/`."
+**Context**: Unit 4 Functional Design complete. Awaiting user approval to proceed to Unit 4 NFR Requirements.
+
+---
+
+## Unit 4 Functional Design - Approval + NFR Requirements Start
+**Timestamp**: 2026-06-10T13:10:00Z
+**User Input**: "Apruebo."
+**AI Response**: "Accepted Unit 4 Functional Design approval. Started Unit 4 NFR Requirements Part 1. Reviewed prior NFR Requirements format and Unit 4 business rules. Created `aidlc-docs/construction/plans/unit-4-competition-data-nfr-requirements-plan.md` with 10 clarification questions covering fixture read scale, live freshness, API-Football failure degradation, provider payload persistence, secret handling, caching, fixture performance targets, sync log retention, operational alerts, and cron infrastructure preference."
+**Context**: Unit 4 NFR Requirements requires user answers before generating `nfr-requirements.md` and `tech-stack-decisions.md`.
+
+---
+
+## Unit 4 NFR Requirements - Answers & Artifacts
+**Timestamp**: 2026-06-10T13:20:00Z
+**User Input**: "He respondido todas las preguntas" followed by clarification "Vamos con MVP pequeño" for Q1.
+**AI Response**: "Analyzed Unit 4 NFR answers: Q1 clarified as MVP pequeño (B); Q2=A near-real-time 1–5 min; Q3=A last known good + stale marker, with admin override expectation for persistent failure in Unit 7; Q4=A no raw payload persistence by default; Q5=A server-side API key only; Q6=A DB source + short/revalidable cache; Q7=A mobile-first performance targets; Q8=A 90-day logs; Q9=A minimum useful alerts; Q10=A Supabase Edge Functions + scheduled/cron baseline. Generated `nfr-requirements.md` and `tech-stack-decisions.md` under `aidlc-docs/construction/unit-4-competition-data/nfr-requirements/`."
+**Context**: Unit 4 NFR Requirements complete. Awaiting user approval to proceed to Unit 4 NFR Design.
+
+---
+
+## Unit 4 NFR Requirements - Approval + NFR Design Start
+**Timestamp**: 2026-06-10T13:30:00Z
+**User Input**: "Aprobar"
+**AI Response**: "Accepted Unit 4 NFR Requirements approval. Started Unit 4 NFR Design Part 1. Reviewed Unit 2 NFR Design patterns/components and Unit 4 NFR requirements. Created `aidlc-docs/construction/plans/unit-4-competition-data-nfr-design-plan.md` with 10 design questions covering fixture cache by status/window, stale marker service, DB sync locks, bounded retry/backoff, normalization/upsert pipeline, MVP alerting, post-sync cache revalidation, flag asset validation, protected manual sync triggers, and testable provider interfaces."
+**Context**: Unit 4 NFR Design requires user answers before generating `nfr-design-patterns.md` and `logical-components.md`.
+
+---
+
+## Unit 4 NFR Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T13:40:00Z
+**User Input**: "He respondido a las preguntas." Follow-up: "Vamos con tu recomendación." for Q2.
+**AI Response**: "Read Unit 4 NFR Design answers: Q1=A cache by status/window; Q2 clarified as A server-side `fixtureFreshness`; Q3=A DB sync lock; Q4=A bounded retry/backoff; Q5=A fetch-normalize-validate-upsert pipeline; Q6=A DB signals + structured logs; Q7=A revalidation tags/path with TTL fallback; Q8=A flag asset validation script; Q9=A protected admin/system sync trigger; Q10=A injectable provider interface + test fixtures. Generated `nfr-design-patterns.md` and `logical-components.md` under `aidlc-docs/construction/unit-4-competition-data/nfr-design/`."
+**Context**: Unit 4 NFR Design complete. Awaiting user approval to proceed to Unit 4 Infrastructure Design.
+
+---
+
+## Unit 4 NFR Design - Approval + Infrastructure Design Start
+**Timestamp**: 2026-06-10T13:50:00Z
+**User Input**: "Continuar"
+**AI Response**: "Accepted continuation as approval of Unit 4 NFR Design. Started Unit 4 Infrastructure Design Part 1. Reviewed prior infrastructure design style, shared infrastructure, and Unit 4 functional/NFR artifacts. Created `aidlc-docs/construction/plans/unit-4-competition-data-infrastructure-design-plan.md` with 10 questions covering scheduled sync location, manual sync trigger, secret management, sync lock/log table design, RLS read policy, flag SVG storage, competition seed strategy, sync log cleanup, observability, and preview environment API quota behavior."
+**Context**: Unit 4 Infrastructure Design requires user answers before generating `infrastructure-design.md`, `deployment-architecture.md`, and shared infrastructure updates.
+
+---
+
+## Unit 4 Infrastructure Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T14:00:00Z
+**User Input**: "He contestado las preguntas"
+**AI Response**: "Read Unit 4 Infrastructure Design answers: Q1=A Supabase Edge Function scheduled; Q2=A protected manual/dev trigger; Q3=A Supabase per-environment secrets for API_FOOTBALL_KEY; Q4=A unified `provider_sync_runs` lock/log table; Q5=A authenticated reads + blocked client writes; Q6=A committed local SVG flags copied by script; Q7=A idempotent `seed-competition` script, with requirement to obtain/load initial World Cup data and show user-local match times; Q8=A cleanup job/script; Q9=A structured logs + queryable sync runs; Q10=A previews use seed/mock unless API key explicitly configured. Generated `infrastructure-design.md` and `deployment-architecture.md`, and updated `shared-infrastructure.md` with API_FOOTBALL_KEY, optional SYNC_TRIGGER_SECRET, seed/flag scripts, and scheduled job notes."
+**Context**: Unit 4 Infrastructure Design complete. Awaiting approval to proceed to Unit 4 Code Generation planning.
+
+---
+
+## Unit 4 Infrastructure Design - Approval + Code Generation Plan
+**Timestamp**: 2026-06-10T14:10:00Z
+**User Input**: "Aprobar"
+**AI Response**: "Accepted Unit 4 Infrastructure Design approval. Started Code Generation Part 1. Reviewed current `prisma/schema.prisma`, existing feature modules, Supabase migrations, package scripts, and Unit 3 `competition-lock` fallback. Created `aidlc-docs/construction/plans/unit-4-competition-data-code-generation-plan.md` with 16 generation steps covering Prisma models, Supabase migration/RLS, types/schemas, real World Cup seed data, local flags, API-Football adapter, status mapping, sync orchestration/locks/logs, idempotent upserts, fixture queries/freshness, Unit 3 lock integration, Edge Function scaffold, `/matches` UI, navigation, tests, and documentation."
+**Context**: Unit 4 Code Generation Part 1 complete. Awaiting approval to execute Part 2.
+
+---
+
+## Unit 4 Code Generation - Complete
+**Timestamp**: 2026-06-10T13:45:58Z
+**User Input**: "Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed."
+**AI Response**: "Completed Unit 4 Code Generation Part 2. Implemented competition Prisma models/enums, Supabase migration/RLS, competition feature services, seed data/scripts, local flags, API-Football provider foundation, sync orchestration, fixture freshness, Unit 3 lock integration, `/matches` dynamic route, Supabase Edge Function scaffold, and tests. Fixed TypeScript async test errors, Deno type declarations for the Edge Function scaffold, Vitest alias resolution in the pool lock wrapper, and `/matches` build-time DB prerendering by marking it `force-dynamic`. Verification passed: `pnpm exec tsc --noEmit`, `pnpm test` (17 files, 56 tests), `pnpm check`, `pnpm check:flags`, and `pnpm build`. Created `generation-summary.md` and updated AI-DLC state/plan tracking."
+**Context**: Unit 4 Competition Data and API Sync Code Generation complete. Ready for next approved construction unit or final Build and Test stage.
+
+---
+
+## Unit 5 Functional Design - Start
+**Timestamp**: 2026-06-10T13:50:02Z
+**User Input**: "Vamos al siguiente stage"
+**AI Response**: "Advanced to the next AI-DLC construction stage: Unit 5 Predictions and Match Locking Functional Design Part 1. Reviewed Unit 5 responsibilities, Unit 5 story map, user stories US-3.1 through US-3.4, the Match Prediction screen contract reference, carry-forward immutability/auditability note, and Unit 4 prediction eligibility business rules. Created `aidlc-docs/construction/plans/unit-5-predictions-match-locking-functional-design-plan.md` with 10 clarification questions covering prediction scope, edit model, future auditability, goal validation, match eligibility, knockout penalties, UI location, prediction visibility, Unit 6 scoring handoff, and server-authoritative lock errors."
+**Context**: Unit 5 Functional Design requires user answers before generating domain entities, business logic, business rules, and frontend components.
+
+---
+
+## Unit 5 Functional Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T14:03:55Z
+**User Input**: "Ya respondí las preguntas"
+**AI Response**: "Read all 10 Unit 5 Functional Design answers. User selected A for all questions with clarifications: v1 uses one global prediction per user/match while future per-pool editing can remain an extension; predictions become viewable after match start in later pool/social contexts; and missing pre-kickoff predictions must not default to 0-0 or earn points. No blocking contradictions detected. Generated `domain-entities.md`, `business-logic-model.md`, `business-rules.md`, and `frontend-components.md` under `aidlc-docs/construction/unit-5-predictions-match-locking/functional-design/`. Updated the Unit 5 plan checklist and AI-DLC state."
+**Context**: Unit 5 Functional Design complete. Awaiting user approval to proceed to the next Unit 5 stage.
+
+---
+
+## Unit 5 Functional Design - Approval + Code Generation Plan
+**Timestamp**: 2026-06-10T14:08:16Z
+**User Input**: "Continuar"
+**AI Response**: "Accepted continuation as approval of Unit 5 Functional Design. Started Unit 5 Code Generation Part 1. Reviewed Unit 5 functional design artifacts, current Prisma schema, Unit 4 fixture query/components, `/matches` page, existing pool server action/session patterns, and package verification scripts. Created `aidlc-docs/construction/plans/unit-5-predictions-match-locking-code-generation-plan.md` with 12 implementation steps covering Prisma model/enums, Supabase migration/RLS, predictions feature module, eligibility/validation/lock services, save server action, prediction-aware fixture queries, `/matches` UI integration, errors/states, tests, and generation summary."
+**Context**: Unit 5 Code Generation Part 1 complete. Awaiting approval to execute Part 2.

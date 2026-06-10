@@ -5,6 +5,7 @@ import { LandingHero } from "@/features/education/components/landing-hero";
 import { LandingSecondaryCtas } from "@/features/education/components/landing-secondary-ctas";
 import { PoolPreview } from "@/features/education/components/pool-preview";
 import { ScoringTeaser } from "@/features/education/components/scoring-teaser";
+import { listPublicPools } from "@/features/pools/queries";
 import { es } from "@/i18n/dictionaries/es";
 
 export const metadata: Metadata = {
@@ -17,7 +18,9 @@ export const metadata: Metadata = {
   },
 };
 
-export default function Home() {
+export default async function Home() {
+  const pools = await listPublicPools({ onlyWithCapacity: true }).catch(() => null);
+
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
       <div className="flex justify-end pt-4">
@@ -29,9 +32,12 @@ export default function Home() {
       <div className="space-y-12">
         <ScoringTeaser />
 
-        {/* PoolPreview hides itself on error (BR-2.26); data arrives in Unit 3. */}
+        {/* PoolPreview hides itself on error (BR-2.26). */}
         <IslandBoundary>
-          <PoolPreview state="empty" />
+          <PoolPreview
+            pools={pools?.slice(0, 4)}
+            state={pools === null ? "error" : pools.length > 0 ? "ready" : "empty"}
+          />
         </IslandBoundary>
 
         <LandingSecondaryCtas />

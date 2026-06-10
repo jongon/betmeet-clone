@@ -80,9 +80,14 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
           <div className="space-y-4">
             <FormError messages={error ? [error] : undefined} />
             <div className="flex justify-center">
-              {/* QR code is a data URL from Supabase */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrCode} alt="TOTP QR code" className="h-48 w-48" />
+              <Image
+                src={qrCode}
+                alt="TOTP QR code"
+                width={192}
+                height={192}
+                className="h-48 w-48"
+                unoptimized
+              />
             </div>
             <p className="text-center text-xs text-muted-foreground break-all">
               Manual entry: <span className="font-mono">{secret}</span>

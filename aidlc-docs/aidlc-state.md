@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: CONSTRUCTION - Unit 2 UX Education and Onboarding - Code Generation COMPLETE (Option A, awaiting approval)
+- **Current Stage**: CONSTRUCTION - Unit 5 Predictions and Match Locking - Code Generation Part 1 (plan complete, awaiting approval)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -50,22 +50,22 @@
 - [x] NFR Requirements - COMPLETE (approved)
 - [x] NFR Design - COMPLETE (approved)
 - [x] Infrastructure Design - COMPLETE (approved)
-- [x] Code Generation - COMPLETE (Option A; 14 steps; 14 tests passing; Unit 2 TS clean; awaiting approval)
+- [x] Code Generation - COMPLETE (Option A; committed a195ac4; 41 tests passing; 0 TS errors; 3 biome-ignore removed)
 
 **Unit 3: Pools and Membership**
-- [ ] Functional Design - EXECUTE
-- [ ] Code Generation - EXECUTE
+- [x] Functional Design - COMPLETE (approved)
+- [x] Code Generation - COMPLETE (47 tests passing via vitest, 0 TS errors, build passing)
 
 **Unit 4: Competition Data and API Sync**
-- [ ] Functional Design - EXECUTE
-- [ ] NFR Requirements - EXECUTE
-- [ ] NFR Design - EXECUTE
-- [ ] Infrastructure Design - EXECUTE
-- [ ] Code Generation - EXECUTE
+- [x] Functional Design - COMPLETE (approved)
+- [x] NFR Requirements - COMPLETE (approved)
+- [x] NFR Design - COMPLETE (approved)
+- [x] Infrastructure Design - COMPLETE (approved)
+- [x] Code Generation - COMPLETE (56 tests passing, 0 TS errors, Biome clean, build passing)
 
 **Unit 5: Predictions and Match Locking**
-- [ ] Functional Design - EXECUTE
-- [ ] Code Generation - EXECUTE
+- [x] Functional Design - COMPLETE (approved)
+- [ ] Code Generation - Part 1 COMPLETE (plan created), awaiting approval
 
 **Unit 6: Scoring and Pool Rankings**
 - [ ] Functional Design - EXECUTE

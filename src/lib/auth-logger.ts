@@ -1,13 +1,5 @@
 type AuthEvent = "auth.sign_in_failed" | "auth.account_deleted";
 
-interface AuthLogEntry {
-  event: AuthEvent;
-  userId: string | null;
-  email: string;
-  timestamp: string;
-  reason?: string;
-}
-
 export function redactEmail(email: string): string {
   const atIndex = email.indexOf("@");
   if (atIndex < 0) return "***";

@@ -1,0 +1,158 @@
+# Unit 3: Pools and Membership — Frontend Components
+
+> Pantallas y componentes (Q10=A). Construido sobre los patrones de Unit 1/2 (App Router, Server/Client Components, shadcn/ui + base-ui, Server Actions, i18n tipado). Toda copy vía diccionario.
+
+---
+
+## Mapa de rutas
+
+| Ruta | Acceso | Componente raíz | Estado |
+|---|---|---|---|
+| `/pools` | Autenticado | `MyPoolsPage` | Nuevo — "mis pools" (activos + archivados) |
+| `/pools/new` | Autenticado | `CreatePoolPage` | Nuevo — formulario de creación |
+| `/pools/discover` | Autenticado | `PoolDirectoryPage` | Nuevo — directorio público (búsqueda) |
+| `/pools/[id]` | Autenticado (miembro) | `PoolDetailPage` | Nuevo — detalle + miembros |
+| `/pools/join/[token]` | Autenticado | `JoinByTokenPage` | Nuevo — confirmación de ingreso |
+
+> Todas requieren sesión y perfil completo (gating heredado de Unit 1 vía `proxy.ts`). Hay que añadir `/pools` a las rutas protegidas (no públicas).
+
+---
+
+## 1. MyPoolsPage (`/pools`)
+
+**Tipo**: Server Component (carga `getMyPools(userId)`), con islas cliente para acciones.
+
+```
+MyPoolsPage
+├── PoolsHeader            (CTA "Crear pool" → /pools/new, "Descubrir" → /pools/discover)
+├── PoolList (activos)     (PoolCard[])
+└── ArchivedSection        (colapsable; PoolCard[] archivados) — F1
+```
+
+### PoolCard
+| Prop | Tipo | Descripción |
+|---|---|---|
+| `pool` | `MyPoolSummary` | id, name, type, memberCount, capacity, isOwner, isArchived, isFrozen |
+
+- Muestra nombre, tipo, `memberCount/capacity`, badge "Admin" si `isOwner`.
+- Menú de acciones según rol/estado: **Archivar/Desarchivar** (siempre), **Salir** (no-owner, no congelado), **Eliminar** (owner, no congelado), **Compartir invitación**.
+- `data-testid="pool-card-{id}"`.
+
+---
+
+## 2. CreatePoolPage (`/pools/new`)
+
+**Tipo**: Client Component con Server Action `createPool`.
+
+### CreatePoolForm
+| Campo | Validación (Zod, cliente+servidor) |
+|---|---|
+| `name` | 3–60 chars; si público, unicidad se valida en servidor (BR-3.2) |
+| `type` | `PUBLIC` \| `PRIVATE` (toggle/segmented) |
+| `capacity` | entero 2–100 (slider/stepper; sugerencia 20) — BR-3.1 |
+
+- Al crear, redirige a `/pools/[id]` y muestra el `InviteShare`.
+- `data-testid`: `create-pool-name`, `create-pool-type`, `create-pool-capacity`, `create-pool-submit`.
+
+---
+
+## 3. PoolDirectoryPage (`/pools/discover`)
+
+**Tipo**: Server Component (lista inicial) + isla cliente de búsqueda.
+
+```
+PoolDirectoryPage
+├── PoolSearchBar          (input nombre + toggle "con cupo disponible")  — Q4=A
+└── PoolDirectoryList      (PoolPreviewCard[] → join)
+```
+
+### PoolSearchBar (cliente)
+- Input de texto con debounce (≈400ms) → `listPublicPools({ query, onlyWithCapacity })` (BL-8).
+- `data-testid="pool-search-input"`, `pool-search-capacity-toggle`.
+
+### PoolPreviewCard
+- Reusa/concuerda con `PoolPreviewItem` (Unit 2). Botón **Unirse** (deshabilitado si lleno/congelado).
+- `data-testid="pool-join-{id}"`.
+
+---
+
+## 4. PoolDetailPage (`/pools/[id]`)
+
+**Tipo**: Server Component (`getPoolDetail`), con islas cliente para acciones de admin.
+
+```
+PoolDetailPage   (solo miembros; 403/redirect si no lo es)
+├── PoolDetailHeader   (nombre, tipo, memberCount/capacity, estado congelado)
+├── InviteShare        (token: copiar link, copiar código, compartir WhatsApp) — Q1=A
+├── MemberList         (MemberRow[] con nickname/avatar de Unit 1)
+│   └── KickButton      (solo owner, solo no congelado, no a sí mismo) — US-4.3
+└── PoolActions        (Archivar/Desarchivar; Salir; Eliminar según rol/estado)
+```
+
+### InviteShare (cliente)
+| Acción | Comportamiento |
+|---|---|
+| Copiar link | `/pools/join/{token}` al portapapeles (`navigator.clipboard`) |
+| Copiar código | `{token}` al portapapeles |
+| Compartir WhatsApp | `https://wa.me/?text=...` con link + nombre del pool |
+
+- `data-testid`: `invite-copy-link`, `invite-copy-code`, `invite-share-whatsapp`.
+
+### MemberList / MemberRow
+- Muestra avatar + nickname (datos de Unit 1). Badge "Admin" para el owner.
+- `KickButton` por fila (solo visible para el owner, oculto en congelado y en la fila propia). Confirmación modal.
+- `data-testid="member-row-{userId}"`, `member-kick-{userId}"`.
+
+---
+
+## 5. JoinByTokenPage (`/pools/join/[token]`)
+
+**Tipo**: Server Component que resuelve el token + confirmación cliente.
+
+- Muestra nombre/tipo/cupo del pool y botón **Unirse** (`joinPoolByToken`).
+- Estados de error: token inválido (404), pool lleno (BR-3.7), congelado (BR-3.8), ya miembro (redirige a `/pools/[id]`).
+- `data-testid="join-confirm"`.
+
+---
+
+## 6. Integración con Unit 1 — Borrado de cuenta (BL-9)
+
+La pantalla de **borrado de cuenta** (Unit 1, `security` settings / `ConfirmDeleteModal`) se **extiende**:
+- Antes de confirmar, llama a `getOwnedPoolsNeedingTransfer(userId)`.
+- Por cada pool con otros miembros, muestra un **selector de nuevo owner** con los miembros **ordenados de más antiguo a más nuevo** (F2=A).
+- Pools unipersonales se informan como "se eliminarán" (F3=A).
+- Al confirmar, invoca `transferOwnershipOnAccountDeletion(userId, assignments)` (Unit 3) dentro del flujo de borrado.
+- `data-testid="delete-account-pool-transfer-{poolId}"`.
+
+> Este es el único archivo de **Unit 1 que Unit 3 modifica**; se hará en sitio durante code generation.
+
+---
+
+## Server Actions / Queries (contratos)
+
+| Acción/Query | Origen | Regla |
+|---|---|---|
+| `createPool(input)` | CreatePoolForm | BL-1 |
+| `listPublicPools({query, onlyWithCapacity, page})` | Directorio / landing | BL-8 |
+| `joinPublicPool(poolId)` | PoolPreviewCard | BL-2 |
+| `joinPoolByToken(token)` | JoinByTokenPage | BL-3 |
+| `kickMember(poolId, userId)` | KickButton | BL-4 |
+| `leavePool(poolId)` | PoolActions | BL-5 |
+| `setPoolArchived(poolId, archived)` | PoolCard/PoolActions | BL-6 |
+| `deletePool(poolId)` | PoolActions | BL-7 |
+| `getMyPools(userId)` | MyPoolsPage | — |
+| `getPoolDetail(poolId, userId)` | PoolDetailPage | autorización BR-3.28 |
+| `getOwnedPoolsNeedingTransfer(userId)` / `transferOwnershipOnAccountDeletion(userId, assignments)` | Unit 1 delete-account | BL-9 |
+
+## Componentes nuevos (orientativo para code generation)
+
+```
+src/app/pools/page.tsx, new/page.tsx, discover/page.tsx, [id]/page.tsx, join/[token]/page.tsx
+src/features/pools/components/{pool-card,create-pool-form,pool-search-bar,pool-directory-list,
+  pool-preview-card,member-list,kick-button,invite-share,pool-actions,join-confirm}.tsx
+src/features/pools/actions/*.ts        (server actions de la tabla anterior)
+src/features/pools/queries.ts          (getMyPools, getPoolDetail, listPublicPools)
+src/features/pools/schemas.ts          (Zod: CreatePoolSchema, etc.)
+src/features/pools/services/{invite-token,competition-lock}.ts
+src/features/pools/types.ts            (ya existe PoolPreviewItem; se amplía con MyPoolSummary, PoolDetail)
+```

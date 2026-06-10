@@ -14,3 +14,48 @@ export interface PoolPreviewItem {
 }
 
 export type PoolPreviewState = "loading" | "empty" | "error" | "ready";
+
+export type PoolType = "PUBLIC" | "PRIVATE";
+
+/** A pool as shown in the current user's "my pools" list. */
+export interface MyPoolSummary {
+  id: string;
+  name: string;
+  type: PoolType;
+  memberCount: number;
+  capacity: number;
+  isOwner: boolean;
+  isArchived: boolean;
+  isFrozen: boolean;
+}
+
+/** A member row in the pool detail view (identity from Unit 1 Profile). */
+export interface PoolMemberSummary {
+  userId: string;
+  nickname: string;
+  avatarUrl: string;
+  isOwner: boolean;
+  joinedAt: string;
+}
+
+/** Full pool detail for the pool page. */
+export interface PoolDetail {
+  id: string;
+  name: string;
+  type: PoolType;
+  capacity: number;
+  memberCount: number;
+  inviteToken: string;
+  isOwner: boolean;
+  isFrozen: boolean;
+  isArchived: boolean;
+  members: PoolMemberSummary[];
+}
+
+/** Pools the departing owner must reassign during account deletion (BL-9). */
+export interface OwnedPoolTransfer {
+  poolId: string;
+  poolName: string;
+  /** Other members, ordered oldest → newest (F2). Empty means the pool will be deleted (F3). */
+  candidates: { userId: string; nickname: string }[];
+}

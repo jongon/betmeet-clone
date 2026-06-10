@@ -5,7 +5,8 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { prisma } from "@/lib/prisma";
-import { assignDiscriminator, generateNicknameSuggestions } from "../nickname";
+import { assignDiscriminator } from "../nickname";
+import { generateNicknameSuggestions } from "../nickname-suggestions";
 
 describe("generateNicknameSuggestions", () => {
   it("returns the requested number of unique suggestions", () => {
