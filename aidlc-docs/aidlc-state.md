@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: CONSTRUCTION COMPLETE - Post-construction copy glossary update verified (0 TS errors, 111 tests, Biome clean, build passing). Ready for OPERATIONS / deploy.
+- **Current Stage**: REFINE COMPLETE (2026-06-10) - Unit 8 Design System & UI Polish (FR-DS-01, Épica 7) implemented & verified (0 TS, 111 tests, ESLint 0, Biome clean, build passing). Themeable tokens (deportivo/moderno/premium × light/dark) with green+gold default identity. Units 1–7 untouched. Optional: live UX audit. Ready for OPERATIONS / deploy.
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -75,8 +75,14 @@
 - [x] Functional Design - COMPLETE (approved)
 - [x] Code Generation - COMPLETE (111 tests passing, 0 TS errors, Biome clean, build passing)
 
+**Unit 8: Design System and UI Polish** (added via `/aidlc-refine`, 2026-06-10)
+- [x] Functional Design - Token architecture & theming axes defined (see construction/unit-8-design-system/design-system.md)
+- [x] Identity / Visual Direction - deportivo palette (green + gold) + Barlow display, user-approved
+- [x] Code Generation - globals.css 6-theme tokens, brand provider + selector, badge variants, anchor-screen polish
+- [x] UX Audit - live Playwright review of /, /rules, /sign-in, /pools across 6 theme combos + mobile (see design-system.md). 1 medium finding (sign-in English copy, pre-existing Unit 1), 2 low. No defects from Unit 8.
+
 **All Units**
-- [x] Build and Test - COMPLETE (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
+- [x] Build and Test - COMPLETE — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations

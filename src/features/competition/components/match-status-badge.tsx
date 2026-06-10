@@ -11,5 +11,13 @@ const LABELS: Record<MatchStatus, string> = {
 };
 
 export function MatchStatusBadge({ status }: { status: MatchStatus }) {
-  return <Badge variant={status === "LIVE" ? "default" : "secondary"}>{LABELS[status]}</Badge>;
+  if (status === "LIVE") {
+    return (
+      <Badge variant="live">
+        <span className="size-1.5 animate-pulse rounded-full bg-live" aria-hidden="true" />
+        {LABELS[status]}
+      </Badge>
+    );
+  }
+  return <Badge variant="secondary">{LABELS[status]}</Badge>;
 }

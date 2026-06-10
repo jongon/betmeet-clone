@@ -22,13 +22,16 @@ export function PoolLeaderboard({ rows, limit }: PoolLeaderboardProps) {
           key={row.userId}
           data-testid={`leaderboard-row-${row.userId}`}
           className={cn(
-            "flex items-center justify-between gap-3 p-3",
-            row.isViewer && "bg-muted/50",
+            "flex items-center justify-between gap-3 border-l-2 border-transparent p-3",
+            row.isViewer && "border-l-primary bg-muted/50",
           )}
         >
           <div className="flex min-w-0 items-center gap-3">
             <span
-              className="w-6 shrink-0 text-center font-semibold tabular-nums"
+              className={cn(
+                "tabular-nums-display w-7 shrink-0 text-center text-lg font-bold",
+                row.position === 1 && "text-brand",
+              )}
               data-testid={`leaderboard-position-${row.userId}`}
             >
               {row.position}
@@ -42,7 +45,10 @@ export function PoolLeaderboard({ rows, limit }: PoolLeaderboardProps) {
               {row.isViewer && <span className="ml-2 text-xs text-muted-foreground">(tú)</span>}
             </span>
           </div>
-          <span className="shrink-0 font-semibold tabular-nums">{row.totalPoints} pts</span>
+          <span className="shrink-0 font-semibold">
+            <span className="tabular-nums-display text-base">{row.totalPoints}</span>{" "}
+            <span className="text-xs text-muted-foreground">pts</span>
+          </span>
         </li>
       ))}
     </ol>

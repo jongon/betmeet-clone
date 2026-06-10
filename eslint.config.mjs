@@ -15,6 +15,10 @@ const config = [
       ".content-collections/**",
       "src/generated/**",
       "next-env.d.ts",
+      // Vendored tooling/skill packages — not application source.
+      ".opencode/**",
+      ".claude/**",
+      ".aidlc/**",
     ],
   },
   {

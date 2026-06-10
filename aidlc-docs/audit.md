@@ -695,3 +695,27 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **User Input**: "Sí, avancemos" + "ejecuta todos los comandos bash sin preguntarme"
 **AI Response**: "Build & Test final de todas las units. ESLint no se había corrido en las units (solo Biome): aparecieron 3 errores react-hooks/set-state-in-effect. Corregidos de raíz: theme-toggle y dismissible-callout (Unit 2) con useSyncExternalStore; prediction-form (Unit 5) con reset-en-render; eslint.config.mjs (ignora generados + convención _-prefix). Validación integral PASSING: tsc 0, vitest 111/111 (26 archivos), biome limpio, eslint 0 problemas, pnpm build passing. Generé docs build-and-test (build-instructions, unit-test-instructions, integration-test-instructions, build-and-test-report). 8 migraciones en orden. CONSTRUCTION completa."
 **Context**: Build & Test PASSING. Las 7 units construidas, integradas y verificadas. Pendientes de hardening documentados (sweeper post-sync real, provider real, CSP enforce, e2e). Listo para OPERATIONS.
+
+---
+
+## Refine - Unit 8: Design System and UI Polish
+**Timestamp**: 2026-06-10
+**User Input**: "/aidlc-refine" + "quiero mejorar la ui e implementar un design system... cuál de esas skills me pueden ayudar" → decisiones por selección (AskUserQuestion): alcance = Plan completo end-to-end; dirección visual = deportiva/enérgica, debe soportar dark+light y poder cambiar luego a moderna o premium.
+**AI Response**: "Recomendé combinar skills en secuencia (ui-ux-pro-max/design-system → frontend-design → ui-styling → ux-audit-route). Registré el nuevo requerimiento sin reiniciar etapas aprobadas: añadí Unit 8 a unit-of-work.md, FR-DS-01 a requirements.md (+ backlog), Épica 7 (US-7.1/US-7.2) a stories.md, y actualicé aidlc-state.md (REFINE; Unit 8 en progreso, Units 1–7 intactas). Arquitectura definida: tokens 3 capas en globals.css + 2 ejes ortogonales (data-theme: deportivo/moderno/premium × .dark: light/dark), reutilizando @theme inline, next-themes y el patrón anti-FOUC de theme-toggle. Los componentes ya consumen tokens semánticos → la apariencia cambia sin reescribirlos. Pendiente: sign-off del usuario sobre la paleta/tipografía deportiva antes de reescribir globals.css y pulir pantallas."
+**Context**: Post-construction refine (adaptive workflow). No schema change. Cross-cutting UI unit; code generation pending palette sign-off.
+
+---
+
+## Refine - Unit 8 Code Generation - Complete
+**Timestamp**: 2026-06-10
+**User Input**: Selección (AskUserQuestion): paleta = Verde + Oro; avanzar = "Implementar todo".
+**AI Response**: "Implementé el design system multi-tema. globals.css: arquitectura de tokens con 6 bloques (deportivo/moderno/premium × light/dark) + tokens semánticos nuevos (brand, success, warning, live) y --font-display. layout.tsx: fuente Barlow Semi Condensed, script anti-FOUC del eje data-theme y BrandThemeProvider. Nuevos: brand-theme-provider.tsx (useSyncExternalStore, sin set-state-in-effect) y brand-toggle.tsx (popover selector junto a ThemeToggle en / y /rules). badge.tsx: variantes brand y live. Polish de pantallas ancla: landing-hero (eyebrow dorado), pool-card (título display + badge Admin brand), match-card (marcador display tabular), match-status-badge (badge LIVE con punto pulsante), pool-leaderboard (líder en oro, fila propia con borde primary, numerales display). i18n: claves brand.* y landing.heroEyebrow. eslint.config.mjs: ignora .opencode/.claude/.aidlc (scripts vendados de skills). Doc: construction/unit-8-design-system/design-system.md. Verificación PASSING: tsc 0, biome limpio, eslint 0, vitest 111/111, next build OK. Units 1–7 intactas."
+**Context**: Unit 8 implemented & verified. Identidad por defecto deportiva (verde+oro), conmutable a moderno/premium y dark/light sin tocar componentes. Pendiente opcional: UX audit en vivo por ruta. Listo para OPERATIONS.
+
+---
+
+## Refine - Unit 8 Live UX Audit - Complete
+**Timestamp**: 2026-06-10
+**User Input**: "Sí, tienes que entrar a http://app:3000"
+**AI Response**: "Instalé Chromium para Playwright (+ deps de sistema vía sudo) y, como Chromium forzaba HTTPS sobre el hostname de una etiqueta `app`, navegué por la IP 172.18.0.2:3000. Capturé /, /rules, /sign-in y /pools en deportivo·light, deportivo·dark, moderno·light, premium·dark y un landing móvil 390px. Verificado: conmutación de las 3 marcas vía tokens sin tocar componentes; light/dark limpios; landing/rules/pools(empty state) y móvil correctos; contraste AA aparente; CTAs primarios verdes y prominentes. Hallazgos: (1) [Medium] /sign-in en inglés mientras el resto está en español — preexistente de Unit 1, fuera de alcance de Unit 8; (2) [Low] banda vacía sobre el hero en desktop; (3) [Low] controles tema/marca solo-icono (con aria-label/title). Sin defectos introducidos por Unit 8. Limpié scripts temporales del repo."
+**Context**: Unit 8 cerrada (diseño + código + verificación + UX audit). Listo para OPERATIONS. Sugerencia abierta: i18n del sign-in (hallazgo #1).

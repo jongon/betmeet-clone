@@ -17,7 +17,18 @@ export const es = {
     system: "Sistema",
     toggle: "Cambiar tema",
   },
+  brand: {
+    label: "Estilo",
+    select: "Elegir estilo visual",
+    deportivo: "Deportivo",
+    moderno: "Moderno",
+    premium: "Premium",
+    deportivoDesc: "Verde y oro, enérgico",
+    modernoDesc: "Limpio y minimalista",
+    premiumDesc: "Oscuro y elegante",
+  },
   landing: {
+    heroEyebrow: "Mundial 2026",
     heroTitle: "Predice el Mundial 2026 con tus amigos",
     heroSubtitle: "Crea tu liga, haz tus predicciones y compite por el primer lugar del ranking.",
     primaryCta: "Crear mi liga",

@@ -8,8 +8,9 @@ export function PoolCard({ pool }: { pool: MyPoolSummary }) {
   return (
     <Card data-testid={`pool-card-${pool.id}`}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 font-display text-lg">
           {pool.name}
+          {pool.isOwner && !pool.isArchived && <Badge variant="brand">Admin</Badge>}
           {pool.isArchived && <Badge variant="secondary">Archivado</Badge>}
         </CardTitle>
       </CardHeader>

@@ -31,7 +31,9 @@ export function MatchCard({ match }: { match: PredictionMatchView | MatchView })
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
         <TeamBadge team={match.homeTeam} placeholder={match.homePlaceholder} />
-        <p className="text-center text-lg font-semibold">{score(match)}</p>
+        <p className="tabular-nums-display text-center text-2xl font-bold sm:px-3">
+          {score(match)}
+        </p>
         <div className="sm:justify-self-end">
           <TeamBadge team={match.awayTeam} placeholder={match.awayPlaceholder} />
         </div>

@@ -307,6 +307,7 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - [ ] Deploy en Vercel + Supabase
 
 ### Debería Tener (Post-MVP temprano)
+- [ ] Design System multi-tema + mejora de UI (ver FR-DS-01) — añadido vía `/aidlc-refine` (Unit 8)
 - [ ] Notificaciones push (web push)
 - [ ] Integraciones con APIs de terceros
 - [ ] Jobs programados (si la fase funcional los requiere)
@@ -318,6 +319,30 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - [ ] Auditoría avanzada de cambios
 - [ ] Dashboard analítico
 - [ ] API pública para integraciones de terceros
+
+---
+
+## FR-DS-01: Design System y Mejora de UI (Post-construcción — Unit 8)
+
+Añadido vía `/aidlc-refine` tras completar la construcción. Cross-cutting: no
+altera el comportamiento de las Units 1–7, solo su presentación.
+
+- **FR-DS-01.1 — Arquitectura de tokens**: tokens en 3 capas (primitiva →
+  semántica → componente) en `src/app/globals.css`, sobre el `@theme inline` y
+  las variables CSS ya existentes. Los componentes siguen consumiendo tokens
+  semánticos (`bg-primary`, etc.) sin reescritura.
+- **FR-DS-01.2 — Dos ejes de tema ortogonales**: marca/personalidad
+  (`data-theme`: `deportivo` por defecto | `moderno` | `premium`) y esquema de
+  color (`.dark`: light | dark). Las 6 combinaciones deben ser válidas.
+- **FR-DS-01.3 — Identidad por defecto "deportiva/enérgica"**: paleta vibrante
+  y tipografía display acordes al dominio de fútbol, conservando Geist como body.
+- **FR-DS-01.4 — Selección de marca en runtime**: contexto + `data-theme` en
+  `<html>` persistido en localStorage, con script anti-FOUC, junto al toggle
+  light/dark de `next-themes` ya existente.
+- **FR-DS-01.5 — Accesibilidad**: contraste AA en todas las combinaciones,
+  foco visible, controles de tema/marca navegables por teclado.
+- **FR-DS-01.6 — Sin regresión**: mantener 0 errores TS, Biome/ESLint limpios,
+  build OK y los 111 tests verdes.
 
 ---
 

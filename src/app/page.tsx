@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { IslandBoundary } from "@/features/education/components/island-boundary";
 import { LandingHero } from "@/features/education/components/landing-hero";
@@ -23,7 +24,8 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-end gap-1 pt-4">
+        <BrandToggle />
         <ThemeToggle />
       </div>
 

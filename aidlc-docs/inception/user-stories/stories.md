@@ -205,3 +205,24 @@
 - **Criterios de Aceptación**:
   - Opción de sobrescribir el marcador "oficial" del sistema.
   - Al cambiarlo manualmente, se debe disparar el recálculo de puntos (US-5.1) para todos los usuarios.
+
+---
+
+## Épica 7: Design System y Experiencia Visual (Unit 8 — añadida vía `/aidlc-refine`)
+
+### US-7.1: Identidad visual deportiva
+**Como** usuario
+**Quiero** una interfaz moderna con una identidad deportiva y enérgica
+**Para** que la app se sienta profesional y propia del mundo del fútbol, no una plantilla genérica.
+- **Criterios de Aceptación**:
+  - Paleta y tipografía con personalidad propia (no la gris neutra por defecto).
+  - Aplicada de forma consistente vía tokens semánticos, sin reescribir componentes.
+
+### US-7.2: Cambio de tema claro/oscuro y de personalidad
+**Como** usuario
+**Quiero** poder elegir entre claro/oscuro y entre variantes visuales (deportiva, moderna, premium)
+**Para** adaptar la apariencia a mi gusto.
+- **Criterios de Aceptación**:
+  - Las 6 combinaciones (marca × claro/oscuro) son válidas y legibles.
+  - La preferencia persiste tras recargar y no produce flash (FOUC) al cargar.
+  - Contraste AA, foco visible y controles navegables por teclado.

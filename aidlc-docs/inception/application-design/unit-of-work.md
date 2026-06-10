@@ -123,6 +123,21 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Admin can inspect system state and safely correct match result issues.
 
+## Unit 8: Design System and UI Polish
+
+**Goal**: Give the product a distinctive, modern, accessible visual identity backed by a robust, themeable design system — without rewriting feature components.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc-refine` (cross-cutting; does not change Units 1–7 behavior).
+- Three-layer token architecture (primitive → semantic → component) in `src/app/globals.css`, building on the existing `@theme inline` + CSS-variable setup.
+- Two orthogonal theming axes: brand/personality (`data-theme`: `deportivo` default | `moderno` | `premium`) and color scheme (`.dark`: light | dark), so the visual personality is switchable without touching components.
+- Default brand: "deportivo/enérgico" identity (energetic palette + display typography aligned to the football domain).
+- Brand selector (context + `data-theme` on `<html>` + anti-FOUC script) alongside the existing `next-themes` light/dark toggle.
+- Component variant refinements (`src/components/ui/*`) only where new tokens require it; polish of anchor screens (landing, pools, matches/predictions, rankings).
+- Accessibility: AA contrast across all brand × scheme combinations, visible focus, keyboard-navigable theme/brand controls.
+
+**Primary Deliverable**: A coherent, themeable UI where the brand personality and light/dark scheme can switch at runtime, with no regression to the 111 passing tests.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -132,6 +147,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 5. Unit 5: Predictions and Match Locking
 6. Unit 6: Scoring and Pool Rankings
 7. Unit 7: Admin and Observability
+8. Unit 8: Design System and UI Polish (post-construction refine; cross-cutting)
 
 ## Security Notes
 
