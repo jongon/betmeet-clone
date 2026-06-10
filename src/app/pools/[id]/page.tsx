@@ -6,6 +6,9 @@ import { InviteShare } from "@/features/pools/components/invite-share";
 import { MemberList } from "@/features/pools/components/member-list";
 import { PoolActions } from "@/features/pools/components/pool-actions";
 import { getPoolDetail } from "@/features/pools/queries";
+import { getCurrentUserId } from "@/features/pools/services/session";
+import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
+import { getPoolLeaderboard } from "@/features/scoring-rankings/queries";
 
 interface PoolDetailPageProps {
   params: Promise<{ id: string }>;
@@ -15,6 +18,9 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   const { id } = await params;
   const pool = await getPoolDetail(id);
   if (!pool) notFound();
+
+  const userId = await getCurrentUserId();
+  const leaderboard = userId ? await getPoolLeaderboard(id, userId) : null;
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -37,10 +43,28 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
       </header>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <section className="space-y-3">
-          <h2 className="text-xl font-semibold">Miembros</h2>
-          <MemberList pool={pool} />
-        </section>
+        <div className="space-y-6">
+          {leaderboard && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Tabla de posiciones</h2>
+                {leaderboard.length > 5 && (
+                  <Link
+                    className={buttonVariants({ variant: "ghost", size: "sm" })}
+                    href={`/pools/${id}/leaderboard`}
+                  >
+                    Ver completa
+                  </Link>
+                )}
+              </div>
+              <PoolLeaderboard rows={leaderboard} limit={5} />
+            </section>
+          )}
+          <section className="space-y-3">
+            <h2 className="text-xl font-semibold">Miembros</h2>
+            <MemberList pool={pool} />
+          </section>
+        </div>
         <aside className="space-y-4">
           <InviteShare token={pool.inviteToken} />
           <PoolActions pool={pool} />

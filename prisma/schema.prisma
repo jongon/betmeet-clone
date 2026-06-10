@@ -34,9 +34,10 @@ model Profile {
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
 
-  ownedPools      Pool[]           @relation("PoolOwner")
-  poolMemberships PoolMembership[]
-  predictions     Prediction[]
+  ownedPools       Pool[]            @relation("PoolOwner")
+  poolMemberships  PoolMembership[]
+  predictions      Prediction[]
+  predictionScores PredictionScore[]
 
   @@unique([nicknameBase, nicknameDiscriminator])
   @@map("profiles")
@@ -217,6 +218,7 @@ model Match {
   awayTeam    Team?            @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
   winnerTeam  Team?            @relation("MatchWinnerTeam", fields: [winnerTeamId], references: [id])
   predictions Prediction[]
+  predictionScores PredictionScore[]
 
   @@unique([competitionId, matchNumber])
   @@index([competitionId])
@@ -270,10 +272,41 @@ model Prediction {
   user         Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   match        Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
   penaltyTeam  Team?   @relation("PredictionPenaltyTeam", fields: [penaltyWinnerTeamId], references: [id])
+  score        PredictionScore?
 
   @@unique([userId, matchId])
   @@index([userId])
   @@index([matchId])
   @@index([lockedAt])
   @@map("predictions")
+}
+
+// Outcome of scoring one prediction against its match result (Unit 6)
+enum ScoreMatchedCase {
+  EXACT
+  RESULT
+  PARTIAL
+  MISS
+}
+
+// Per-prediction computed score + breakdown (1:1 with Prediction, US-5.1)
+model PredictionScore {
+  id             String           @id @default(uuid()) @db.Uuid
+  predictionId   String           @unique @map("prediction_id") @db.Uuid
+  matchId        String           @map("match_id") @db.Uuid
+  userId         String           @map("user_id") @db.Uuid
+  matchedCase    ScoreMatchedCase @map("matched_case")
+  basePoints     Int              @map("base_points")
+  penaltyApplied Boolean          @default(false) @map("penalty_applied")
+  penaltyPoints  Int              @default(0) @map("penalty_points")
+  totalPoints    Int              @map("total_points")
+  scoredAt       DateTime         @default(now()) @map("scored_at")
+
+  prediction Prediction @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  match      Match      @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user       Profile    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([userId])
+  @@map("prediction_scores")
 }

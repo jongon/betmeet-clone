@@ -640,3 +640,18 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **User Input**: "Ya contesté" / "He contestado" — Q1=A (tabla PredictionScore 1:1), Q2=A (scoreMatch idempotente + barredor), Q3=A (upsert/recálculo), Q4=B (dense "1,1,2", confirmado en F2), Q5=A (cancelados excluidos), Q6=A (leaderboard por pool + breakdown), Q7=A (conectar read model de Unit 5), Q8=A (total global, aclarado con ejemplo en F1).
 **AI Response**: "Resolví F1 (Q8 con ejemplo → A global) y F2 (Q4=B dense confirmado, documentada la desviación del ejemplo del AC en BR-6.13). Generé los 4 artefactos: domain-entities (PredictionScore 1:1 + read models), business-rules (BR-6.1..BR-6.17), business-logic-model (BL-1 adaptador teamId→side, BL-2 scoreMatch reutilizando computeScore, BL-3 barredor, BL-4/5 leaderboard, BL-6 dense ranking, BL-7 resolvePoints para Unit 5), frontend-components (PoolLeaderboard + integración del breakdown en Unit 5; módulo scoring-rankings para no colisionar con el motor scoring de Unit 2)."
 **Context**: Unit 6 Functional Design artifacts complete. Awaiting approval to proceed to Code Generation.
+
+---
+
+## Unit 6 Code Generation - Plan Approved (via selection)
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: Commit de lo pendiente (Unit 5 + FD Unit 6 → commit 6433228). Luego aprobó el plan de Code Generation de Unit 6 vía AskUserQuestion: disparo del scoring = "Sweeper post-sync"; "Aprobar y generar". El usuario pidió responder las preguntas por selección (AskUserQuestion) en vez de editar los MD.
+**AI Response**: "Committed pending Unit 5 code + Unit 6 functional design (6433228, tsc 0 errores, hooks OK). Creé unit-6-scoring-rankings-code-generation-plan.md (9 pasos). Decisión Step 4 = sweeper post-sync (scoreFinishedUnscoredMatches al final de competition-sync). Iniciando Parte 2."
+**Context**: Unit 6 Code Generation Part 2 started.
+
+---
+
+## Unit 6 Code Generation - Complete
+**Timestamp**: 2026-06-10T00:00:00Z
+**AI Response**: "Ejecuté los 9 pasos. Tabla PredictionScore (1:1 con Prediction) + migración RLS; módulo scoring-rankings (adaptador teamId→side reutilizando computeScore de Unit 2, scoreMatch idempotente, sweeper, dense ranking '1,1,2', queries de leaderboard, resolvePoints). Integraciones: read model de Unit 5 conectado (quita el stub points:null, añade breakdown), ScoreBreakdownExplainer en PredictionVsResult, sección de leaderboard en el detalle de pool (Unit 3) + página /pools/[id]/leaderboard. Disparo = sweeper post-sync (documentado en el composition root). Añadí vitest.config.ts con alias @/ (mejora transversal para tests de integración). Validación: 0 errores TS, 103/103 tests (24 archivos), Biome limpio, pnpm build passing."
+**Context**: Unit 6 Scoring and Pool Rankings Code Generation complete. Solo queda Unit 7 (Admin and Observability) + Build & Test final.

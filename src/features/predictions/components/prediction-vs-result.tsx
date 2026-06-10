@@ -1,3 +1,4 @@
+import { ScoreBreakdownExplainer } from "@/features/education/components/score-breakdown-explainer";
 import type { PredictionMatchView } from "../types";
 
 export function PredictionVsResult({ match }: { match: PredictionMatchView }) {
@@ -36,10 +37,24 @@ export function PredictionVsResult({ match }: { match: PredictionMatchView }) {
           </span>
         </div>
       )}
-      {isFinished && (
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Puntos</span>
-          <span className="font-mono text-xs text-muted-foreground">Pendiente de cálculo</span>
+      {isFinished && hasPrediction && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Puntos</span>
+            {match.pointsStatus === "SCORED" ? (
+              <span
+                className="font-semibold tabular-nums"
+                data-testid={`prediction-points-${match.id}`}
+              >
+                {match.points} pts
+              </span>
+            ) : (
+              <span className="font-mono text-xs text-muted-foreground">Pendiente de cálculo</span>
+            )}
+          </div>
+          {match.pointsStatus === "SCORED" && match.breakdown && (
+            <ScoreBreakdownExplainer breakdown={match.breakdown} />
+          )}
         </div>
       )}
     </div>

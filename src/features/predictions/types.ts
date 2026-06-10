@@ -1,4 +1,5 @@
 import type { MatchView, TeamView } from "@/features/competition/types";
+import type { ScoreBreakdown } from "@/features/scoring/compute-score";
 import type { MatchStatus, PredictionLockReason } from "@/generated/prisma/enums";
 
 export type PredictionEligibility =
@@ -29,6 +30,8 @@ export interface PredictionMatchView extends MatchView {
   showPenaltySelector: boolean;
   points: number | null;
   pointsStatus: PredictionPointsStatus;
+  /** Per-match score breakdown, present only when pointsStatus === "SCORED" (Unit 6). */
+  breakdown?: ScoreBreakdown;
   homeTeam: TeamView | null;
   awayTeam: TeamView | null;
   phaseType: string;

@@ -1,4 +1,5 @@
 import type { MatchView, TeamView } from "@/features/competition/types";
+import { resolvePoints, type ScoreRow } from "@/features/scoring-rankings/services/resolve-points";
 import type { PredictionLockReason } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { getPredictionEligibility } from "./services/eligibility";
@@ -43,6 +44,7 @@ interface MatchWithPhase {
     penaltyWinnerTeamId: string | null;
     lockedAt: Date | null;
     lockReason: PredictionLockReason | null;
+    score: ScoreRow | null;
   }[];
 }
 
@@ -85,9 +87,17 @@ export function toPredictionMatchView(
     now,
   );
 
-  const prediction = m.predictions[0] ? toPredictionView(m.predictions[0]) : null;
+  const predictionRow = m.predictions[0] ?? null;
+  const prediction = predictionRow ? toPredictionView(predictionRow) : null;
 
   const isKnockout = m.phase.type === "KNOCKOUT";
+
+  // Unit 6: resolve real points/status/breakdown from the persisted score (BL-7).
+  const resolved = resolvePoints({
+    hasPrediction: predictionRow !== null,
+    matchStatus: m.status,
+    score: predictionRow?.score ?? null,
+  });
 
   return {
     ...toMatchView(m),
@@ -99,8 +109,9 @@ export function toPredictionMatchView(
         ? null
         : eligibility.reason,
     showPenaltySelector: isKnockout && !prediction?.lockedAt,
-    points: null,
-    pointsStatus: prediction ? "PENDING_SCORING" : "NOT_SCORED",
+    points: resolved.points,
+    pointsStatus: resolved.status,
+    breakdown: resolved.breakdown,
     homeTeam: toTeamView(m.homeTeam),
     awayTeam: toTeamView(m.awayTeam),
     phaseType: m.phase.type,
@@ -133,7 +144,9 @@ export async function getFixtureWithMyPredictions(userId: string | null): Promis
               homeTeam: true,
               awayTeam: true,
               phase: true,
-              predictions: userId ? { where: { userId } } : { where: { id: "__none__" } },
+              predictions: userId
+                ? { where: { userId }, include: { score: true } }
+                : { where: { id: "__none__" }, include: { score: true } },
             },
             orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
           },
