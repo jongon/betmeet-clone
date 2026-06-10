@@ -6,7 +6,9 @@ allowBuilds:
   sharp: true
   unrs-resolver: true
 minimumReleaseAgeExclude:
-  - opencode-aidlc@0.1.0
+  - codex-aidlc-plugin@0.1.0
+  - claudecode-aidlc@0.2.0
+  - opencode-aidlc@0.2.0
 supportedArchitectures:
   os:
     - linux

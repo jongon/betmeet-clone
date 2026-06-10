@@ -17,7 +17,7 @@
     "prisma:studio": "prisma studio",
     "seed:competition": "tsx scripts/seed-competition.ts",
     "check:flags": "tsx scripts/check-flags.ts",
-    "postinstall": "node scripts/generate-mcp.mjs && opencode-aidlc setup",
+    "postinstall": "node scripts/generate-mcp.mjs && opencode-aidlc setup --nested && claudecode-aidlc setup --copy-commands",
     "prepare": "lefthook install"
   },
   "dependencies": {
@@ -26,7 +26,6 @@
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@simplewebauthn/browser": "^13.3.0",
-
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.108.1",
     "class-variance-authority": "^0.7.1",
@@ -54,8 +53,8 @@
     "@types/node": "25.9.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-
     "@vitejs/plugin-react": "^6.0.2",
+    "claudecode-aidlc": "^0.2.0",
     "commitlint-config-gitmoji": "^2.3.1",
     "dotenv": "^17.4.2",
     "eslint": "9.39.4",
@@ -63,7 +62,7 @@
     "gitmoji-cli": "^9.7.0",
     "jsdom": "^29.1.1",
     "lefthook": "^2.1.9",
-    "opencode-aidlc": "^0.1.0",
+    "opencode-aidlc": "^0.2.0",
     "playwright": "^1.60.0",
     "prisma": "^7.8.0",
     "tailwindcss": "4.3.0",
