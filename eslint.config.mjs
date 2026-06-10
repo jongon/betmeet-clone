@@ -7,7 +7,28 @@ const config = [
   ...nextCoreWebVitalsConfig,
   ...nextTypescriptConfig,
   {
-    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      ".content-collections/**",
+      "src/generated/**",
+      "next-env.d.ts",
+    ],
+  },
+  {
+    // Honour the `_`-prefix convention for intentionally unused params/vars.
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+    },
   },
 ];
 

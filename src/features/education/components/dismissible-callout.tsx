@@ -1,10 +1,12 @@
 "use client";
 
 import { Info, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { dismissCallout, shouldShowCallout } from "@/features/education/services/cue-store";
 import { cn } from "@/lib/utils";
+
+const noopSubscribe = () => () => {};
 
 interface DismissibleCalloutProps {
   cueId: string;
@@ -18,17 +20,21 @@ interface DismissibleCalloutProps {
  * mounted to avoid a hydration flash, then re-checks localStorage.
  */
 export function DismissibleCallout({ cueId, children, className }: DismissibleCalloutProps) {
-  const [visible, setVisible] = useState(true);
-
-  useEffect(() => {
-    setVisible(shouldShowCallout(cueId));
-  }, [cueId]);
+  // Read localStorage on the client without a hydration mismatch: show by
+  // default on the server snapshot, then honour the dismissal on the client.
+  const notPreviouslyDismissed = useSyncExternalStore(
+    noopSubscribe,
+    () => shouldShowCallout(cueId),
+    () => true,
+  );
+  const [justDismissed, setJustDismissed] = useState(false);
+  const visible = notPreviouslyDismissed && !justDismissed;
 
   if (!visible) return null;
 
   function handleDismiss() {
     dismissCallout(cueId);
-    setVisible(false);
+    setJustDismissed(true);
   }
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { savePrediction } from "../actions/save-prediction";
 import type { PredictionMatchView } from "../types";
@@ -25,8 +25,11 @@ export function PredictionForm({ match }: PredictionFormProps) {
   const [savedPrediction, setSavedPrediction] = useState(match.prediction);
   const [canEdit, setCanEdit] = useState(match.canEdit);
 
-  // Sync when match prop changes (e.g., page refresh)
-  useEffect(() => {
+  // Reset form state when navigating to a different match (React's "adjust
+  // state during render" pattern — avoids setState inside an effect).
+  const [prevMatchId, setPrevMatchId] = useState(match.id);
+  if (match.id !== prevMatchId) {
+    setPrevMatchId(match.id);
     setHomeScore(match.prediction?.homeScore ?? 0);
     setAwayScore(match.prediction?.awayScore ?? 0);
     setPenaltyWinner(match.prediction?.penaltyWinnerTeamId ?? null);
@@ -34,7 +37,7 @@ export function PredictionForm({ match }: PredictionFormProps) {
     setCanEdit(match.canEdit);
     setLockedConflict(false);
     setError(null);
-  }, [match]);
+  }
 
   const hasExisting = savedPrediction !== null;
   const showPenaltySelector =

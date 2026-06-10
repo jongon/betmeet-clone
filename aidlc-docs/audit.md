@@ -671,3 +671,11 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **User Input**: "Apruebo, genera"
 **AI Response**: "Ejecuté los 8 pasos de Unit 7 (Admin and Observability). Feature admin: getAdminUserId (gating), resolveWinner, queries (getSyncDashboard, getAdminMatches), actions (forceMatchResult + scoreMatch síncrono, revertMatchOverride, triggerSync + sweeper post-sync), UI /admin (dashboard de sync + Sincronizar ahora) y /admin/matches (forzar/revertir, selector de ganador de penales en knockout empatado). Modificaciones: proxy.ts (gating /admin por verification_status ADMIN), auth-logger.ts (+ eventos admin). Q2=B → upsertMatch NO modificado. Sin tablas nuevas. Validación: 0 errores TS, 111/111 tests (26 archivos), Biome limpio, build passing."
 **Context**: Unit 7 complete. Todas las 7 units construidas. Pendiente: Build & Test final.
+
+---
+
+## Build & Test (All Units) - Complete
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Sí, avancemos" + "ejecuta todos los comandos bash sin preguntarme"
+**AI Response**: "Build & Test final de todas las units. ESLint no se había corrido en las units (solo Biome): aparecieron 3 errores react-hooks/set-state-in-effect. Corregidos de raíz: theme-toggle y dismissible-callout (Unit 2) con useSyncExternalStore; prediction-form (Unit 5) con reset-en-render; eslint.config.mjs (ignora generados + convención _-prefix). Validación integral PASSING: tsc 0, vitest 111/111 (26 archivos), biome limpio, eslint 0 problemas, pnpm build passing. Generé docs build-and-test (build-instructions, unit-test-instructions, integration-test-instructions, build-and-test-report). 8 migraciones en orden. CONSTRUCTION completa."
+**Context**: Build & Test PASSING. Las 7 units construidas, integradas y verificadas. Pendientes de hardening documentados (sweeper post-sync real, provider real, CSP enforce, e2e). Listo para OPERATIONS.
