@@ -9,6 +9,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# content-collections generated output
+.content-collections/
+
 # Environment
 .env
 .env.local

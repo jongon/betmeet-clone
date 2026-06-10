@@ -1,9 +1,15 @@
+import { withContentCollections } from "@content-collections/next";
 import type { NextConfig } from "next";
 
 const supabaseHostname = process.env.NEXT_PUBLIC_SUPABASE_URL
   ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
   : "*.supabase.co";
 
+// Unit 2 theming uses next-themes, which injects a small inline bootstrap
+// script to prevent a theme flash (FOUC). It is permitted by the existing
+// `'unsafe-inline'` below while the CSP is report-only. Hardening path (NFR
+// Design Pattern 2 / Infra Q1=A): drop `'unsafe-inline'` and allow the theme
+// script by its `'sha256-<hash>'` before switching the CSP to enforce.
 const cspHeader = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com",
@@ -34,4 +40,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withContentCollections(nextConfig);

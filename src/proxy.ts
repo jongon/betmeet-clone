@@ -1,15 +1,39 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_ROUTES = ["/", "/auth", "/onboarding"];
-const AUTH_ROUTES = ["/auth"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+  "/auth/callback",
+  "/onboarding",
+  // "/rules" is intentionally NOT public: the Rules Center requires a session
+  // (BR-2.10). An unauthenticated visit to /rules redirects to /sign-in via the
+  // unauthenticated-user guard below.
+];
+
+const AUTH_ONLY_ROUTES = [
+  "/sign-in",
+  "/sign-up",
+  "/forgot-password",
+  "/reset-password",
+  "/verify-email",
+];
+
 const ONBOARDING_ROUTE = "/onboarding/profile";
 
 function isPublic(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 }
 
-export async function middleware(request: NextRequest) {
+function isAuthOnly(pathname: string) {
+  return AUTH_ONLY_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -39,14 +63,14 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Redirect authenticated users away from auth pages
-  if (user && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+  // Redirect authenticated users away from auth-only pages
+  if (user && isAuthOnly(pathname)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
   // Unauthenticated users can only access public routes
   if (!user && !isPublic(pathname)) {
-    const response = NextResponse.redirect(new URL("/auth/sign-in", request.url));
+    const response = NextResponse.redirect(new URL("/sign-in", request.url));
     response.cookies.set("session_expired", "1", { maxAge: 10, path: "/" });
     return response;
   }

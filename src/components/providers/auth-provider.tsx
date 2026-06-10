@@ -16,9 +16,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (hasExpired) {
       handledRef.current = true;
-      // Clear the cookie immediately so toast only shows once
-      // biome-ignore lint/suspicious/noDocumentCookie: CookieStore API is not yet universally supported; this is the only deletion in the app
-      document.cookie = "session_expired=; Max-Age=0; path=/";
+      // Clear the cookie so the toast only shows once. Use the CookieStore API
+      // where available; otherwise the short-lived cookie (Max-Age 10s, set in
+      // proxy.ts) expires on its own.
+      window.cookieStore?.delete("session_expired");
       toast.error("Session expired", {
         description: "Please sign in again to continue.",
         duration: 5000,

@@ -6,7 +6,19 @@ import { logAuthEvent, redactEmail } from "@/lib/auth-logger";
 import { createClient } from "@/lib/supabase/server";
 import { SignInSchema } from "../schemas";
 
-export async function signIn(formData: FormData) {
+type SignInState =
+  | {
+      error?: {
+        email?: string[];
+        password?: string[];
+        rememberMe?: string[];
+        _form?: string[];
+      };
+      requiresMfa?: boolean;
+    }
+  | undefined;
+
+export async function signIn(formData: FormData): Promise<SignInState> {
   const raw = {
     email: formData.get("email") as string,
     password: formData.get("password") as string,

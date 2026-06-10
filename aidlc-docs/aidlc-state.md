@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: CONSTRUCTION - Unit 2 UX Education and Onboarding - Functional Design (Next)
+- **Current Stage**: CONSTRUCTION - Unit 2 UX Education and Onboarding - Code Generation COMPLETE (Option A, awaiting approval)
 
 ## Workspace State
 - **Existing Code**: Yes
@@ -46,11 +46,11 @@
 - [x] Code Generation - COMPLETE (27 tests passing, 0 TS errors)
 
 **Unit 2: UX Education and Onboarding**
-- [ ] Functional Design - EXECUTE
-- [ ] NFR Requirements - EXECUTE
-- [ ] NFR Design - EXECUTE
-- [ ] Infrastructure Design - EXECUTE
-- [ ] Code Generation - EXECUTE
+- [x] Functional Design - COMPLETE (approved)
+- [x] NFR Requirements - COMPLETE (approved)
+- [x] NFR Design - COMPLETE (approved)
+- [x] Infrastructure Design - COMPLETE (approved)
+- [x] Code Generation - COMPLETE (Option A; 14 steps; 14 tests passing; Unit 2 TS clean; awaiting approval)
 
 **Unit 3: Pools and Membership**
 - [ ] Functional Design - EXECUTE

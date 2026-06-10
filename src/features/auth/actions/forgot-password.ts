@@ -3,7 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { ForgotPasswordSchema } from "../schemas";
 
-export async function forgotPassword(formData: FormData) {
+type ForgotPasswordState =
+  | {
+      error?: { email?: string[]; _form?: string[] };
+      success?: boolean;
+    }
+  | undefined;
+
+export async function forgotPassword(formData: FormData): Promise<ForgotPasswordState> {
   const raw = { email: formData.get("email") as string };
 
   const parsed = ForgotPasswordSchema.safeParse(raw);

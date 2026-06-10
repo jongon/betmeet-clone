@@ -95,6 +95,19 @@ images: {
 
 ---
 
+## Content Security Policy
+
+CSP headers are configured in `proxy.ts` (introduced in Unit 1, **report-only** mode in v1).
+
+| Unit | CSP contribution |
+|---|---|
+| Unit 1 | Base moderate CSP (allowlist Supabase, Google, Vercel; report-only) |
+| Unit 2 | Adds `script-src 'sha256-<theme-bootstrap-script-hash>'` for the inline theme script — **hash-based, not nonce**, to keep landing/rules statically rendered (Infra Q1=A). Hash recomputed at build if the script changes. |
+
+The CSP stays report-only in v1, ready to switch to enforce without rewrites.
+
+---
+
 ## Monitoring
 
 | Tool | Access | What to watch |
@@ -102,7 +115,7 @@ images: {
 | Vercel Dashboard | vercel.com/dashboard | Deployments, function logs, error rates |
 | Supabase Dashboard | app.supabase.com | Auth logs, DB metrics, Storage usage |
 
-No external error tracking tool in v1.
+No external error tracking tool in v1. No RUM/Speed Insights in v1 (Unit 2 Infra Q3=B); performance targets validated pre-deploy via Lighthouse.
 
 ---
 

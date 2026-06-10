@@ -354,3 +354,122 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 ---
 
 ---
+
+## Unit 1 Code Generation - Committed
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Haz commit de ese unit"
+**AI Response**: "Committed all Unit 1 changes as cdc6b57 (110 files). Resolved commitlint footer-leading-blank error caused by a parenthetical in the commit body."
+**Context**: Unit 1: Foundation complete and committed.
+
+---
+
+## Unit 2 Functional Design - Plan Created
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua con el unit 2"
+**AI Response**: "Created unit-2-ux-education-functional-design-plan.md with 11 clarification questions covering landing, onboarding extension, rules content, education cues, and forward dependencies on Units 3/5/6."
+**Context**: Unit 2: UX Education and Onboarding — Functional Design started.
+
+---
+
+## Unit 2 Functional Design - Artifacts Generated
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Las respuestas están contestadas" (+ follow-up on Q4 resolved via AskUserQuestion: teaser en landing + Rules Center privado)
+**AI Response**: "Collected and analyzed all 11 answers, resolved the Q4 ambiguity. Generated domain-entities.md, business-logic-model.md, business-rules.md, and frontend-components.md for Unit 2."
+**Context**: Unit 2 Functional Design artifacts complete. Awaiting user approval to proceed to NFR Requirements.
+
+---
+
+## Unit 2 Functional Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua donde estabas"
+**AI Response**: "Accepted Functional Design approval for Unit 2. Proceeding to NFR Requirements. Analyzed the four functional artifacts and created unit-2-ux-education-nfr-requirements-plan.md with 8 clarification questions covering landing performance/rendering, MDX tooling, accessibility, the shared scoring module boundary, popover library, i18n locale strategy, rules-content caching, and client bundle budget."
+**Context**: Unit 2 Functional Design approved. Starting NFR Requirements stage.
+
+---
+
+## Carry-Forward Decisions Captured
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Consideraste esto? Light/Dark mode o detección de sistema; banderas SVG de país desde repo de GitHub; seed de países del Mundial 2026 con código de 3 caracteres; el Mundial es una entidad de competición con estructura, soportar agregar otras competiciones a futuro."
+**AI Response**: "Verifiqué los artefactos: el dark mode NO estaba considerado; banderas/seed/ISO-3 no estaban modelados; la multi-competición estaba reconocida a nivel de componente (components.md) pero no modelada. Creé aidlc-docs/inception/carry-forward-decisions.md con CF-1..CF-4. Añadí CF-1 (tema claro/oscuro/sistema) como Question 9 del plan NFR de Unit 2. CF-2 (banderas SVG), CF-3 (seed países + código 3 chars, con aclaración FIFA trigramme vs ISO alpha-3) y CF-4 (Competition extensible) quedan registrados como entradas obligatorias para Unit 4."
+**Context**: Requisitos de dominio adicionales del usuario incorporados sin perder trazabilidad.
+
+---
+
+## Unit 2 NFR Requirements - Answers & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Voy con todas tus recomendaciones" (+ pregunta sobre invalidación de caché en Q7).
+**AI Response**: "Respuestas finales: Q1=A (SSG), Q2=C (content-collections), Q3=A (WCAG AA), Q4=A (módulo scoring compartido en ruta neutral), Q5=A (shadcn/base-ui), Q6=B (routing [locale]), Q7=A (estático en build — invalidación vía deploy atómico, sin caché runtime), Q8=A (presupuesto <150KB/ruta), Q9=B (tema system+toggle localStorage). Expliqué que con contenido estático no hay caché que invalidar: el deploy atómico de Vercel es el mecanismo (consistente con BR-2.8). Generé nfr-requirements.md y tech-stack-decisions.md para Unit 2."
+**Context**: Unit 2 NFR Requirements artifacts complete. Awaiting approval to proceed to NFR Design.
+
+---
+
+## Unit 2 NFR Requirements - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua al next stage"
+**AI Response**: "Accepted NFR Requirements approval for Unit 2. Proceeding to NFR Design. Created unit-2-ux-education-nfr-design-plan.md with 6 clarification questions covering resilience (FOUC/theme, error boundaries de islas cliente), security (CSP para el script inline de tema), performance/scalability (prerender de locales, OG básico) y logical components (cueStore)."
+**Context**: Unit 2 NFR Requirements approved. Starting NFR Design stage.
+
+---
+
+## Unit 2 NFR Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya respondí las preguntas" (+ pidió que respondiera la Q4 sobre prerender de locales). Respuestas: Q1=A, Q2=A, Q3=A, Q4=A, Q5=A, Q6=A (todas las recomendadas).
+**AI Response**: "Expliqué la Q4 (generateStaticParams vs ISR vs SSR) y recomendé A. Sin ambigüedades. Generé nfr-design-patterns.md (6 patrones: No-Flash Theme Bootstrap, Nonce-based CSP, Per-Island Error Boundary, Build-Time Static Localization, SSR-Safe Cue Persistence, Static Open Graph) y logical-components.md (11 componentes lógicos con mapa componente→patrón→NFR)."
+**Context**: Unit 2 NFR Design artifacts complete. Awaiting approval to proceed to Infrastructure Design.
+
+---
+
+## Unit 2 NFR Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continue al next stage"
+**AI Response**: "Accepted NFR Design approval for Unit 2. Proceeding to Infrastructure Design. Creé unit-2-ux-education-infrastructure-design-plan.md con 4 preguntas. Detecté una tensión entre el nonce CSP por request (NFR-Design Q2=A) y el render estático (Q1/Q4=A): un nonce por request fuerza render dinámico; lo surfaceo como decisión de infra (hash-based CSP recomendado para preservar SSG). Resto de categorías (compute/storage/messaging/networking) heredadas o N/A respecto a Unit 1."
+**Context**: Unit 2 NFR Design approved. Starting Infrastructure Design stage.
+
+---
+
+## Unit 2 Infrastructure Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya respondí todas las preguntas" — Q1=A (CSP por hash), Q2=A (OG estática), Q3=B (monitoreo mínimo, sin Speed Insights), Q4=A (caché por defecto de Vercel).
+**AI Response**: "Sin ambigüedades. Refiné NFR Design Pattern 2 y Component 2 de nonce → hash (decisión Q1=A) para preservar el render estático, y actualicé el resumen/diagrama correspondiente. Generé infrastructure-design.md y deployment-architecture.md (Unit 2 monta sobre la infra de Unit 1; sin backend nuevo). Actualicé shared-infrastructure.md con la sección CSP (hash del script de tema) y nota de monitoreo mínimo."
+**Context**: Unit 2 Infrastructure Design artifacts complete. Awaiting approval to proceed to Code Generation.
+
+---
+
+## Unit 2 Infrastructure Design - Approval
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Continua al next stage"
+**AI Response**: "Accepted Infrastructure Design approval for Unit 2. Started Code Generation Part 1 (Planning). Inspeccioné el código real de Unit 1 (rutas planas, root layout lang=en, proxy.ts con /rules público, globals.css con .dark). Creé unit-2-ux-education-code-generation-plan.md con 14 pasos y trazabilidad. Surfaceé una decisión de alcance: Q6=B (routing [locale]) implica migrar rutas de Unit 1; recomendé Opción A (i18n sin prefijo de URL ahora, sin mover rutas) vs Opción B (refactor [locale] completo)."
+**Context**: Unit 2 Infrastructure Design approved. Code Generation planning started.
+
+---
+
+## Unit 2 Code Generation - Plan Created (Approval Prompt)
+**Timestamp**: 2026-06-10T00:00:00Z
+**AI Prompt**: "Ready to approve the Unit 2 code generation plan (14 steps)? Confirm scope Option A (i18n sin prefijo, recomendada) or Option B (refactor [locale] completo) before generation begins."
+**Status**: Awaiting Approval
+**Context**: Code Generation Part 1 (Planning) complete for Unit 2. Plan en aidlc-docs/construction/plans/unit-2-ux-education-code-generation-plan.md. Awaiting approval + scope confirmation to start Part 2.
+
+---
+
+## Unit 2 Code Generation - Plan Approved (Option A)
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Vamos con la opción A, la recomendada. Aprobar y generar"
+**AI Response**: "Plan approved with scope Option A (i18n sin prefijo de URL, sin mover rutas de Unit 1). Starting Code Generation Part 2 — executing the 14 steps."
+**Context**: Code Generation Part 2 started for Unit 2.
+
+---
+
+## Unit 2 Code Generation - Part 2 Complete
+**Timestamp**: 2026-06-10T00:00:00Z
+**AI Response**: "Ejecuté los 14 pasos (Opción A). Creados: módulo scoring compartido + tests, i18n (es), contenido MDX (content-collections), theming con next-themes + tokens completos en globals.css, feature education (cues, calculadora, explainer, demo, error boundaries), Rules Center /rules (gated), landing nueva con PoolPreviewItem (contrato Unit 3), primitivas base-ui (accordion/popover/switch). Modificados Unit 1 in situ: onboarding-client (+paso rules), progress-indicator (4 pasos), proxy.ts (/rules gated), layout (lang=es + ThemeProvider), globals.css, page.tsx. Validación: 14/14 tests verdes (scoring+cue-store), archivos de Unit 2 sin errores TS, Biome aplicado, content-collections build OK. Desviaciones documentadas: next-themes en vez de script propio; import directo de la calculadora (route-split) en vez de dynamic import; OG como metadata (asset PNG pendiente). Preexistente fuera de alcance: errores TS en auth forms + profile/schemas.ts de Unit 1."
+**Context**: Unit 2 Code Generation complete. Resumen en aidlc-docs/construction/unit-2-ux-education/code/generation-summary.md. Awaiting approval.
+
+---
+
+## Unit 1 Pre-existing TS Errors - Fixed (user request)
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Sí, quiero arreglarlo"
+**AI Response**: "Arreglé los errores de tipos preexistentes de Unit 1 (no eran de Unit 2): (1) acciones sign-in/sign-up/reset-password/forgot-password — anoté el retorno con un objeto `error` plano que incluye `_form` y `| undefined`, resolviendo el narrowing de la unión en `useActionState` y el estado inicial undefined; tipos sin `export` por la regla de módulos 'use server'. (2) `profile/schemas.ts` — migré `z.enum(..., { errorMap })` (zod v3) a `{ error }` (zod v4). Resultado: `tsc --noEmit` con 0 errores; 41/41 tests verdes; Biome sin errores."
+**Context**: Proyecto compila limpio tras Unit 2. Listo para Build & Test / commit / Unit 3.
+
+---

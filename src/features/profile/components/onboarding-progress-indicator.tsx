@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 const STEPS = [
   { label: "Nickname", key: "nickname" },
   { label: "Avatar", key: "avatar" },
+  { label: "Reglas", key: "rules" },
   { label: "Passkey", key: "passkey" },
 ] as const;
 

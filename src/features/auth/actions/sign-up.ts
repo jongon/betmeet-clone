@@ -4,7 +4,18 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SignUpSchema } from "../schemas";
 
-export async function signUp(formData: FormData) {
+type SignUpState =
+  | {
+      error?: {
+        email?: string[];
+        password?: string[];
+        confirmPassword?: string[];
+        _form?: string[];
+      };
+    }
+  | undefined;
+
+export async function signUp(formData: FormData): Promise<SignUpState> {
   const raw = {
     email: formData.get("email") as string,
     password: formData.get("password") as string,

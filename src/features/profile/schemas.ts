@@ -8,7 +8,7 @@ export const NicknameBaseSchema = z
 
 export const AvatarUploadMetaSchema = z.object({
   mimeType: z.enum(["image/jpeg", "image/png", "image/webp"], {
-    errorMap: () => ({ message: "Only JPEG, PNG, or WebP files are allowed" }),
+    error: "Only JPEG, PNG, or WebP files are allowed",
   }),
   sizeBytes: z.number().max(5 * 1024 * 1024, "File must be smaller than 5 MB"),
 });

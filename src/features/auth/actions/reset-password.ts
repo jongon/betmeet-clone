@@ -4,7 +4,17 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ResetPasswordSchema } from "../schemas";
 
-export async function resetPassword(formData: FormData) {
+type ResetPasswordState =
+  | {
+      error?: {
+        password?: string[];
+        confirmPassword?: string[];
+        _form?: string[];
+      };
+    }
+  | undefined;
+
+export async function resetPassword(formData: FormData): Promise<ResetPasswordState> {
   const raw = {
     password: formData.get("password") as string,
     confirmPassword: formData.get("confirmPassword") as string,

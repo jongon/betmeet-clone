@@ -1,19 +1,41 @@
+import type { Metadata } from "next";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { IslandBoundary } from "@/features/education/components/island-boundary";
+import { LandingHero } from "@/features/education/components/landing-hero";
+import { LandingSecondaryCtas } from "@/features/education/components/landing-secondary-ctas";
+import { PoolPreview } from "@/features/education/components/pool-preview";
+import { ScoringTeaser } from "@/features/education/components/scoring-teaser";
+import { es } from "@/i18n/dictionaries/es";
+
+export const metadata: Metadata = {
+  title: es.common.appName,
+  description: es.landing.heroSubtitle,
+  openGraph: {
+    title: es.common.appName,
+    description: es.landing.heroSubtitle,
+    type: "website",
+  },
+};
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-      <h1 className="text-3xl font-bold">Next.js Template</h1>
-      <p className="text-muted-foreground max-w-md text-center text-balance">
-        Next.js 16 + TypeScript + Tailwind CSS v4. Configurado con Biome, ESLint, Lefthook,
-        Commitlint + Gitmoji, y Dev Containers.
-      </p>
-      <a
-        href="https://nextjs.org/docs"
-        className="rounded-full bg-foreground px-6 py-3 text-sm font-medium text-background transition-opacity hover:opacity-90"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Next.js Docs →
-      </a>
+    <main className="mx-auto max-w-4xl px-4 pb-16">
+      <div className="flex justify-end pt-4">
+        <ThemeToggle />
+      </div>
+
+      <LandingHero />
+
+      <div className="space-y-12">
+        <ScoringTeaser />
+
+        {/* PoolPreview hides itself on error (BR-2.26); data arrives in Unit 3. */}
+        <IslandBoundary>
+          <PoolPreview state="empty" />
+        </IslandBoundary>
+
+        <LandingSecondaryCtas />
+      </div>
     </main>
   );
 }

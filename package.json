@@ -42,6 +42,10 @@
   "devDependencies": {
     "@biomejs/biome": "^2.4.16",
     "@commitlint/cli": "^21.0.2",
+    "@content-collections/cli": "^0.1.9",
+    "@content-collections/core": "^0.15.1",
+    "@content-collections/mdx": "^0.2.2",
+    "@content-collections/next": "^0.2.11",
     "@tailwindcss/postcss": "4.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
