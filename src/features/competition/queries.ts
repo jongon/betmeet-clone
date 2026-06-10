@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getFixtureFreshness } from "./services/fixture-freshness";
 import type { FixtureView, MatchView, PhaseView, TeamView } from "./types";
 
-function toTeamView(
+export function toTeamView(
   team: { id: string; name: string; fifaCode: string; flagPath: string } | null,
 ): TeamView | null {
   if (!team) return null;

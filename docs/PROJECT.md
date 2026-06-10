@@ -1,65 +1,80 @@
-# PROJECT.md
+# Project
 
 ## Qué es
 
-Template para proyectos Next.js 16 con App Router, TypeScript, Tailwind CSS v4 y tooling de desarrollo completo preconfigurado.
+Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios se registran, se unen a pools, predicen resultados de partidos y compiten por puntos según la precisión de sus predicciones.
 
-## Qué incluye
+## Funcionalidades
 
-- **Next.js 16** con App Router y TypeScript
-- **Tailwind CSS v4** con configuración CSS-first
-- **shadcn/ui** listo para usar (`components.json` incluido)
-- **Biome** para format y lint (reemplaza Prettier + ESLint estilístico)
-- **ESLint 9** con flat config y reglas de Next.js
-- **Lefthook** para git hooks (pre-commit con Biome, commit-msg con commitlint)
-- **Commitlint + Gitmoji** para mensajes de commit estandarizados
-- **Dev Containers** con VS Code — todo listo en Docker
-- **Playwright** para tests end-to-end
-- **tsx** como test runner nativo de Node.js
-- **PostgreSQL 18 + Prisma 7** con singleton preconfigurado y migraciones
+| Feature | Descripción |
+|---------|-------------|
+| **Auth** | Registro/login con email/password, Google OAuth, MFA (TOTP), passkeys (WebAuthn), recuperación de contraseña, cambio de email, eliminación de cuenta |
+| **Profile** | Nickname (`base#discriminator`), avatar (Google photo / default set / custom upload), estado de verificación |
+| **Pools** | Grupos públicos/privados con token de invitación, capacidad máxima, membresías |
+| **Competition** | Sincronización de datos desde API-Football (equipos, fases, partidos), fixture con fases (grupos/knockout), estado de partidos |
+| **Predictions** | Predicción de resultado exacto por partido, selector de ganador en penales para knockout, bloqueo al inicio del partido |
+| **Scoring** | Cálculo de puntos (exacto, resultado parcial, fallo), rankings por pool, desempate por orden de predicción |
+| **Admin** | Panel de administración, overrides manuales de resultados, trigger de sincronización, verificación de usuarios |
+| **Education** | Centro de reglas (MDX via Content Collections) que explica el sistema de puntuación |
 
 ## Estructura del proyecto
 
 ```
 ├── .agent/                  # Configuración MCP (fuente de verdad)
+├── .aidlc/                  # Reglas AI-DLC para desarrollo asistido
+├── aidlc-docs/              # Documentación generada por AI-DLC
 ├── .devcontainer/           # VS Code Dev Container
 ├── .github/                 # GitHub Actions
-├── .vscode/                 # VS Code debug config
-├── docs/                    # Documentación
-├── scripts/                 # Scripts de setup
-├── src/
-│   ├── app/
-│   │   ├── globals.css      # Tailwind v4 + CSS tokens
-│   │   ├── layout.tsx       # Root layout
-│   │   └── page.tsx         # Página principal
-│   ├── components/          # Componentes React
-│   └── lib/
-│       ├── utils.ts         # Utilidad cn() para clases
-│       └── prisma.ts        # Prisma client singleton
+├── content/
+│   └── rules/es/            # Reglas en MDX (Content Collections)
+├── docs/                    # Documentación del proyecto
 ├── prisma/
-│   ├── schema.prisma        # Schema de base de datos
-│   ├── seed.ts              # Seed de datos iniciales
-│   └── migrations/          # Historial de migraciones
-├── prisma.config.ts          # Prisma CLI config
+│   └── schema.prisma        # Schema de base de datos
+├── public/
+│   └── flags/               # Banderas SVG de equipos
+├── scripts/                 # Scripts (seed, MCP generation, flag check)
+├── src/
+│   ├── app/                 # App Router (pages, layouts, API routes)
+│   │   ├── globals.css      # Tailwind v4 + CSS tokens
+│   │   └── api/csp-report/  # CSP violation reporting
+│   ├── components/          # Componentes compartidos (providers, ui, theme)
+│   ├── features/
+│   │   ├── admin/           # Panel admin (acciones, queries, tipos)
+│   │   ├── auth/            # Autenticación (sign-in/up, MFA, passkeys)
+│   │   ├── competition/     # Competición (fixture, equipos, sync)
+│   │   ├── education/       # Centro de reglas y scoring teaser
+│   │   ├── pools/           # Pools (creación, membresía, invitaciones)
+│   │   ├── predictions/     # Predicciones (formulario, queries, elegibilidad)
+│   │   ├── profile/         # Perfil de usuario
+│   │   └── scoring/         # Puntajes y rankings
+│   ├── generated/prisma/    # Prisma Client generado
+│   ├── i18n/                # Internacionalización
+│   ├── lib/                 # Utilidades (prisma, supabase, auth-logger)
+│   └── types/               # Tipos globales
+├── supabase/
+│   ├── functions/           # Edge Functions (competition-sync)
+│   └── migrations/          # Migraciones SQL (RLS, triggers, índices)
 ├── biome.json               # Biome config
 ├── commitlint.config.mjs    # Commitlint + gitmoji
 ├── components.json           # shadcn/ui CLI config
 ├── docker-compose.yml        # Entorno Docker multi-contenedor
 ├── eslint.config.mjs         # ESLint 9 flat config
 ├── lefthook.yml              # Git hooks
-├── next.config.ts            # Next.js config
+├── next.config.ts            # Next.js config (CSP, imágenes remotas)
 ├── package.json              # Dependencias y scripts
-├── pnpm-lock.yaml            # Lockfile
-├── pnpm-workspace.yaml       # pnpm workspace
-├── postcss.config.mjs        # PostCSS + Tailwind
-└── tsconfig.json             # TypeScript config
+├── prisma.config.ts          # Prisma CLI config
+├── tsconfig.json             # TypeScript config
+└── vitest.config.ts          # Vitest config
 ```
 
-## Cómo usar este template
+## Setup inicial
 
 1. Clonar el repositorio
-2. Copiar `.env.example` a `.env` y configurar `DATABASE_URL`
-3. Ejecutar `pnpm install` (ejecuta `node scripts/generate-mcp.mjs` y `lefthook install` automáticamente)
-4. Ejecutar `pnpm prisma:generate` para generar el cliente Prisma
-5. Ejecutar `pnpm prisma migrate dev` para crear la base de datos
-6. Iniciar desarrollo con `pnpm dev`
+2. Copiar `.env.example` a `.env` y configurar todas las variables
+3. Ejecutar `pnpm install` (ejecuta `generate-mcp.mjs` y `opencode-aidlc setup`)
+4. Ejecutar migraciones Supabase: `supabase migration up` (o aplicar manualmente en Supabase Dashboard)
+5. Ejecutar `pnpm prisma:generate` para generar el cliente Prisma
+6. Ejecutar seed de datos: `pnpm seed:competition`
+7. Ejecutar seed de admin: `npx tsx scripts/seed-admin.ts <user-id>`
+8. Ejecutar seed de avatars: `npx tsx scripts/seed-avatars.ts`
+9. Iniciar desarrollo con `pnpm dev`

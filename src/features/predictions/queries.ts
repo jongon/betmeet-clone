@@ -1,4 +1,5 @@
-import type { MatchView, TeamView } from "@/features/competition/types";
+import { toTeamView } from "@/features/competition/queries";
+import type { MatchView } from "@/features/competition/types";
 import { resolvePoints, type ScoreRow } from "@/features/scoring-rankings/services/resolve-points";
 import type { PredictionLockReason } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
@@ -46,13 +47,6 @@ interface MatchWithPhase {
     lockReason: PredictionLockReason | null;
     score: ScoreRow | null;
   }[];
-}
-
-function toTeamView(
-  team: { id: string; name: string; fifaCode: string; flagPath: string } | null,
-): TeamView | null {
-  if (!team) return null;
-  return { id: team.id, name: team.name, fifaCode: team.fifaCode, flagPath: team.flagPath };
 }
 
 export function toMatchView(m: MatchWithPhase): MatchView {

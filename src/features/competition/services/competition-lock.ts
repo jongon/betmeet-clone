@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 
-export function getEnvCompetitionLockTime(): Date | null {
+function getEnvCompetitionLockTime(): Date | null {
   const raw = process.env.WORLD_CUP_KICKOFF;
   if (!raw) return null;
   const date = new Date(raw);
@@ -26,9 +26,4 @@ export async function getCompetitionLockTime(): Promise<Date | null> {
   }
 
   return getEnvCompetitionLockTime();
-}
-
-export async function isCompetitionFrozen(now = new Date()): Promise<boolean> {
-  const lockTime = await getCompetitionLockTime();
-  return lockTime !== null && now.getTime() >= lockTime.getTime();
 }

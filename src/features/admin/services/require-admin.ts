@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 /**
  * Returns the current user's id only if they are an ADMIN (BR-7.1, BR-7.13),
  * otherwise null. Pages call notFound() and actions return an error on null.
- * Defense-in-depth: `/admin/*` is also gated at proxy.ts.
+ * Defense-in-depth: `/admin/*` is also gated by page-level checks.
  */
 export async function getAdminUserId(): Promise<string | null> {
   const userId = await getCurrentUserId();

@@ -3,7 +3,7 @@ import type { PredictionMatchView } from "../types";
 
 export function PredictionStatusSummary({ match }: { match: PredictionMatchView }) {
   const hasPrediction = match.prediction !== null;
-  const isLocked = match.prediction?.lockedAt !== null || (!match.canEdit && !match.canEdit);
+  const isLocked = match.prediction?.lockedAt !== null || !match.canEdit;
 
   if (match.status === "CANCELLED") {
     return (

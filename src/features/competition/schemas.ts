@@ -1,18 +1,5 @@
 import { z } from "zod";
 
-export const SyncScopeSchema = z.enum([
-  "TEAMS",
-  "FIXTURES",
-  "LIVE_STATUS",
-  "RESULTS",
-  "FULL",
-  "CLEANUP",
-]);
-
-export const SyncWindowSchema = z.object({
-  windowKey: z.string().trim().min(1).max(120),
-});
-
 export const NormalizedTeamSchema = z.object({
   name: z.string().min(1),
   fifaCode: z.string().length(3),

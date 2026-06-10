@@ -1,80 +1,116 @@
 # AGENTS.md
 
-Template Next.js 16 + TypeScript + Tailwind CSS v4 con tooling de desarrollo completo.
+Quiniela SaaS para el FIFA World Cup 2026 — los usuarios se registran, se unen a pools, predicen resultados de partidos y compiten en rankings con puntuación determinística.
+
+## Funcionalidades
+
+| Feature | Descripción |
+|---------|-------------|
+| **Auth** | Email/password, Google OAuth, MFA (TOTP), passkeys (WebAuthn), account linking automático email+Google |
+| **Profile** | Nickname `base#discriminator`, avatar (Google photo / default set / custom upload), verificación |
+| **Competition** | Fixture por fases (grupos/knockout), datos desde API-Football, estado de partidos (SCHEDULED→LIVE→FINISHED) |
+| **Predictions** | Predicción de resultado exacto, editable hasta kickoff, selector de ganador en penales para knockout |
+| **Pools** | Grupos públicos/privados (hasta 100 miembros), token de invitación, directorio público, expulsión pre-partido |
+| **Scoring** | Puntaje determinístico: exacto 5pts, resultado 2pts, un equipo 1pt, fallo 0pt; +1 bonus penales |
+| **Rankings** | Leaderboards por pool, posiciones empatadas, desempate por orden de predicción |
+| **Admin** | Dashboard de sync, override manual de resultados, recálculo de puntajes, visibilidad de errores |
+| **Education** | Centro de reglas (MDX via Content Collections), hints contextuales de puntuación |
+
+## Stack técnico
+
+| Capa | Tecnología |
+|------|------------|
+| Framework | Next.js 16 App Router + TypeScript 6 |
+| Estilos | Tailwind CSS v4 (CSS-first) |
+| UI | shadcn/ui (base-ui) + lucide-react + sonner |
+| Auth | Supabase Auth (email, Google OAuth, MFA, passkeys) |
+| DB | PostgreSQL 18 (Supabase) + Prisma 7 ORM |
+| Storage | Supabase Storage (avatars, banderas) |
+| Forms | react-hook-form + zod |
+| Content | Content Collections (MDX) |
+| Sync | API-Football (adapter pattern) |
+
+## Herramientas
+
+| Herramienta | Uso |
+|-------------|-----|
+| Biome | Format + lint estilístico |
+| ESLint 9 | Reglas Next.js + TypeScript |
+| Vitest | Tests unitarios |
+| Playwright | Tests e2e |
+| Lefthook | Git hooks (pre-commit, commit-msg) |
+| Commitlint + Gitmoji | Convención de commits |
+
+## Convenciones
+
+- **App Router únicamente** — Server Components + Server Actions, nunca Pages Router
+- **Feature-based** en `src/features/<name>/` con estructura `actions/`, `components/`, `queries.ts`, `services/`, `types.ts`, `schemas.ts`, `__tests__/`
+- **Tailwind v4 CSS-first** — sin `tailwind.config.*`; tokens en `src/app/globals.css`
+- **Server Actions** para mutaciones; **Prisma** para DB; **Supabase** para auth/storage
+- **Migraciones SQL** en `supabase/migrations/` (no se usa `prisma migrate`)
+- **Context7** — consultar documentación antes de usar cualquier librería externa
+- **Alias** `@/*` → `src/`
 
 ## Setup
 
-`.agent/` es la **fuente de verdad** para configuración MCP de herramientas AI. `scripts/generate-mcp.mjs` genera los archivos de configuración MCP para cada herramienta:
-
-| Herramienta | Archivo generado |
-|-------------|-----------------|
-| Claude Code | `.claude/settings.json` |
-| opencode | `.opencode/opencode.json` |
-| Cursor | `.cursor/mcp.json` |
-| Kiro | `.kiro/mcp.json` |
-| Kilocode | `.kilocode/mcp.json` |
-| GitHub Copilot | `.copilot/mcp.json` |
-| Codex | `.codex/mcp.json` |
-| Antigravity | `.antigravity/mcp.json` |
-
-Cada herramienta AI (Claude, opencode, Cursor, Kiro) genera sus propios directorios `commands/` y `skills/` automáticamente.
-
-**Ejecutar tras clonar** para generar la configuración MCP:
+### Requisitos previos
 
 ```bash
-node scripts/generate-mcp.mjs
+# Variables de entorno (copiar y completar)
+cp .env.example .env
 ```
 
-### Configuración de opencode
-
-opencode busca su configuración en `opencode.json` en la raíz del proyecto. Para usar `.opencode/opencode.json`, configura la variable de entorno:
+### Instalación
 
 ```bash
-export OPENCODE_CONFIG=/var/www/html/.opencode/opencode.json
+pnpm install          # Instala deps + genera MCP configs + opencode-aidlc setup
+pnpm prisma:generate  # Genera cliente Prisma en src/generated/prisma
 ```
 
-El devcontainer ya tiene esta variable configurada en `remoteEnv`.
+### Seed de datos
 
-### Añadir un MCP server
+```bash
+pnpm seed:competition                        # World Cup 2026: equipos, fases, partidos
+npx tsx scripts/seed-admin.ts <user-id>      # Promover usuario a ADMIN
+npx tsx scripts/seed-avatars.ts              # Avatares default en Supabase Storage
+pnpm check:flags                             # Verificar banderas SVG
+```
 
-1. Editar `.agent/config/mcp/source.json` (entrada nueva en `servers`)
-2. Si el cliente lo necesita en formato distinto a remote, añadir un case en `to_claude_entry()` dentro del script
-3. Correr `node scripts/generate-mcp.mjs`
+### Desarrollo
+
+```bash
+pnpm dev      # Next.js dev server en :3000
+pnpm build    # Build de producción
+pnpm test     # Vitest
+```
+
+## Verificaciones
+
+| Comando | Qué valida |
+|---------|------------|
+| `pnpm lint` | ESLint 9 + flat config |
+| `pnpm check` | Biome check (formato + lint) |
+| `pnpm format` | Biome format (auto-fix) |
+| `pnpm build` | Next build (incluye TypeScript) |
+
+## MCP (AI Tools)
+
+`.agent/config/mcp/source.json` es la fuente de verdad. `scripts/generate-mcp.mjs` genera configs para 8 herramientas:
+
+Claude Code, opencode, Cursor, Kiro, Kilocode, GitHub Copilot, Codex, Antigravity.
+
+```bash
+node scripts/generate-mcp.mjs   # Se ejecuta en postinstall
+```
+
+Para añadir un MCP server: editar `.agent/config/mcp/source.json` → correr `generate-mcp.mjs`.
 
 ## Documentación
 
 | Archivo | Contenido |
 |---------|-----------|
-| `docs/PROJECT.md` | Qué es este template, estructura, convenciones |
-| `docs/STACK.md` | Stack técnico, herramientas, dependencias |
-| `docs/ARCHITECTURE.md` | Arquitectura Docker, servicios, puertos, volúmenes |
-| `docs/WORKFLOWS.md` | Comandos para iniciar, detener y operar el entorno |
-
-## Stack
-
-| Capa | Tecnología |
-|------|------------|
-| Framework | Next.js 16 (App Router) |
-| Lenguaje | TypeScript |
-| Estilos | Tailwind CSS v4 |
-| UI Components | shadcn/ui (via CLI — `components.json` incluido) |
-| Base de datos | PostgreSQL 18 + Prisma |
-| Package Manager | pnpm |
-
-## Convenciones
-
-- **App Router únicamente** — nunca Pages Router
-- **Tailwind v4 CSS-first** — sin `tailwind.config.*`; tokens en `src/app/globals.css`
-- **shadcn/ui CLI** para agregar componentes; iconos via `lucide-react`
-- **Context7** — consultar siempre antes de usar cualquier librería externa
-- **Server Actions** para lógica de servidor; **Prisma** para DB y migraciones
-- Componentes en `src/components`; alias `@/*` apunta a `src/`
-
-## Verificaciones automatizadas
-
-| Script | Qué valida |
-|--------|------------|
-| `pnpm lint` | ESLint 9 + flat config + tipado |
-| `pnpm build` | Next build (TypeScript incluido) |
-| `pnpm check` | Biome check (formato + lint) |
-| `pnpm format` | Biome format (aplica correcciones) |
+| `docs/PROJECT.md` | Funcionalidades, estructura, setup completo |
+| `docs/STACK.md` | Stack técnico detallado |
+| `docs/ARCHITECTURE.md` | Arquitectura, capas, rutas, RLS, modelo de datos |
+| `docs/WORKFLOWS.md` | Comandos, seed, Supabase, migraciones, deploy |
+| `README.md` | Descripción del proyecto y quickstart |
