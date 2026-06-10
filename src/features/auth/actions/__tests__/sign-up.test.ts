@@ -45,7 +45,7 @@ describe("signUp", () => {
     await signUp(
       makeFormData({ email: "a@b.com", password: "password123", confirmPassword: "password123" }),
     );
-    expect(redirect).toHaveBeenCalledWith("/auth/verify-email");
+    expect(redirect).toHaveBeenCalledWith("/verify-email");
   });
 
   it("returns _form error on supabase error", async () => {

@@ -38,5 +38,5 @@ export async function deleteAccount(
 
   await supabase.auth.signOut();
 
-  redirect("/auth/sign-in?deleted=true");
+  redirect("/sign-in?deleted=true");
 }

@@ -50,6 +50,6 @@ describe("deleteAccount", () => {
       }),
     );
     expect(mockSignOut).toHaveBeenCalled();
-    expect(redirect).toHaveBeenCalledWith("/auth/sign-in?deleted=true");
+    expect(redirect).toHaveBeenCalledWith("/sign-in?deleted=true");
   });
 });

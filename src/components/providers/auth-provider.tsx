@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         description: "Please sign in again to continue.",
         duration: 5000,
       });
-      router.push("/auth/sign-in");
+      router.push("/sign-in");
     }
   }, [router]);
 

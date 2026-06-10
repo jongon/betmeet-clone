@@ -11,5 +11,5 @@ export async function signOut() {
   const cookieStore = await cookies();
   cookieStore.delete("remember_me");
 
-  redirect("/auth/sign-in");
+  redirect("/sign-in");
 }

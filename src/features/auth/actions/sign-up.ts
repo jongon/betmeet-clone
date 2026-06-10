@@ -38,5 +38,5 @@ export async function signUp(formData: FormData): Promise<SignUpState> {
     return { error: { _form: [error.message] } };
   }
 
-  redirect("/auth/verify-email");
+  redirect("/verify-email");
 }

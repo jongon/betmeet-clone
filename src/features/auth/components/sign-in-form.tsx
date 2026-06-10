@@ -48,7 +48,7 @@ export function SignInForm() {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
             <Link
-              href="/auth/forgot-password"
+              href="/forgot-password"
               className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
               Forgot password?
@@ -87,7 +87,7 @@ export function SignInForm() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/sign-up" className="underline underline-offset-4 hover:text-foreground">
+          <Link href="/sign-up" className="underline underline-offset-4 hover:text-foreground">
             Sign up
           </Link>
         </p>

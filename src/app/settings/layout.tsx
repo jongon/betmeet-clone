@@ -11,7 +11,7 @@ const NAV_LINKS = [
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const profile = await getProfile();
-  if (!profile) redirect("/auth/sign-in");
+  if (!profile) redirect("/sign-in");
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">

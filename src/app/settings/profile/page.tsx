@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Profile settings" };
 
 export default async function ProfileSettingsPage() {
   const [profile, defaultAvatars] = await Promise.all([getProfile(), getDefaultAvatars()]);
-  if (!profile) redirect("/auth/sign-in");
+  if (!profile) redirect("/sign-in");
 
   return (
     <div className="space-y-6">

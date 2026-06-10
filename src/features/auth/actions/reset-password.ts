@@ -32,5 +32,5 @@ export async function resetPassword(formData: FormData): Promise<ResetPasswordSt
     return { error: { _form: [error.message] } };
   }
 
-  redirect("/auth/sign-in?reset=success");
+  redirect("/sign-in?reset=success");
 }

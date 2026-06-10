@@ -21,7 +21,7 @@ export async function forgotPassword(formData: FormData): Promise<ForgotPassword
   const supabase = await createClient();
   // Always return success to prevent email enumeration
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/reset-password`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
   });
 
   return { success: true };

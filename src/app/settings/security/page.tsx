@@ -13,7 +13,7 @@ export default async function SecuritySettingsPage() {
     supabase.auth.mfa.listFactors(),
   ]);
 
-  if (!profile) redirect("/auth/sign-in");
+  if (!profile) redirect("/sign-in");
 
   const totpFactors = factorsData?.totp ?? [];
 

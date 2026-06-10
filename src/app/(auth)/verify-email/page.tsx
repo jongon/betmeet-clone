@@ -17,7 +17,7 @@ export default function VerifyEmailPage() {
       </div>
       <p className="text-sm text-muted-foreground">
         Already confirmed?{" "}
-        <Link href="/auth/sign-in" className="underline underline-offset-4 hover:text-foreground">
+        <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground">
           Sign in
         </Link>
       </p>

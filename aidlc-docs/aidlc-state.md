@@ -3,7 +3,8 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: REFINE COMPLETE (2026-06-10) - Unit 8 Design System & UI Polish (FR-DS-01, Épica 7) implemented & verified (0 TS, 111 tests, ESLint 0, Biome clean, build passing). Themeable tokens (deportivo/moderno/premium × light/dark) with green+gold default identity. Units 1–7 untouched. Optional: live UX audit. Ready for OPERATIONS / deploy.
+- **Current Stage**: REFINE COMPLETE (2026-06-10) - Unit 8 Design System & UI Polish (FR-DS-01, Épica 7) implemented & verified (0 TS, 111 tests, ESLint 0, Biome clean, build passing). Themeable tokens (deportivo/moderno/premium × light/dark) with green+gold default identity. Units 1–7 untouched. Ready for OPERATIONS / deploy.
+- **Last Bug Fix (2026-06-10)**: Auth routing 404 (Unit 1) — `(auth)` route-group prefix `/auth/` was wrongly used in 15 references (links + redirects + reset email). Fixed root cause; verified live (/sign-up → 200, /auth/sign-up → 404). See audit.md.
 
 ## Workspace State
 - **Existing Code**: Yes
