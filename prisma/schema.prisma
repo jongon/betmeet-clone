@@ -36,6 +36,7 @@ model Profile {
 
   ownedPools      Pool[]           @relation("PoolOwner")
   poolMemberships PoolMembership[]
+  predictions     Prediction[]
 
   @@unique([nicknameBase, nicknameDiscriminator])
   @@map("profiles")
@@ -180,6 +181,7 @@ model Team {
   homeMatches   Match[] @relation("MatchHomeTeam")
   awayMatches   Match[] @relation("MatchAwayTeam")
   winnerMatches Match[] @relation("MatchWinnerTeam")
+  penaltyPredictions Prediction[] @relation("PredictionPenaltyTeam")
 
   @@map("teams")
 }
@@ -214,6 +216,7 @@ model Match {
   homeTeam    Team?            @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
   awayTeam    Team?            @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
   winnerTeam  Team?            @relation("MatchWinnerTeam", fields: [winnerTeamId], references: [id])
+  predictions Prediction[]
 
   @@unique([competitionId, matchNumber])
   @@index([competitionId])
@@ -242,4 +245,35 @@ model ProviderSyncRun {
   @@index([provider, scope, status])
   @@index([startedAt])
   @@map("provider_sync_runs")
+}
+
+enum PredictionLockReason {
+  KICKOFF_REACHED
+  MATCH_STATUS_LOCKED
+  MATCH_NOT_EDITABLE
+  POSTPONED
+  CANCELLED
+}
+
+model Prediction {
+  id                   String                @id @default(uuid()) @db.Uuid
+  userId               String                @map("user_id") @db.Uuid
+  matchId              String                @map("match_id") @db.Uuid
+  homeScore            Int                   @map("home_score")
+  awayScore            Int                   @map("away_score")
+  penaltyWinnerTeamId  String?               @map("penalty_winner_team_id") @db.Uuid
+  lockedAt             DateTime?             @map("locked_at")
+  lockReason           PredictionLockReason? @map("lock_reason")
+  createdAt            DateTime              @default(now()) @map("created_at")
+  updatedAt            DateTime              @updatedAt @map("updated_at")
+
+  user         Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match        Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  penaltyTeam  Team?   @relation("PredictionPenaltyTeam", fields: [penaltyWinnerTeamId], references: [id])
+
+  @@unique([userId, matchId])
+  @@index([userId])
+  @@index([matchId])
+  @@index([lockedAt])
+  @@map("predictions")
 }

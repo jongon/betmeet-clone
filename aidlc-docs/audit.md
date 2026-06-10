@@ -616,3 +616,27 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **User Input**: "Continuar"
 **AI Response**: "Accepted continuation as approval of Unit 5 Functional Design. Started Unit 5 Code Generation Part 1. Reviewed Unit 5 functional design artifacts, current Prisma schema, Unit 4 fixture query/components, `/matches` page, existing pool server action/session patterns, and package verification scripts. Created `aidlc-docs/construction/plans/unit-5-predictions-match-locking-code-generation-plan.md` with 12 implementation steps covering Prisma model/enums, Supabase migration/RLS, predictions feature module, eligibility/validation/lock services, save server action, prediction-aware fixture queries, `/matches` UI integration, errors/states, tests, and generation summary."
 **Context**: Unit 5 Code Generation Part 1 complete. Awaiting approval to execute Part 2.
+
+---
+
+## Unit 5 Code Generation - Complete
+**Timestamp**: 2026-06-10T14:25:00Z
+**User Input**: "Continual la implementación aidlc-docs/construction/plans/unit-5-predictions-match-locking-code-generation-plan.md"
+**AI Response**: "Completed Unit 5 Code Generation Part 2. Implemented PredictionLockReason enum + Prediction model in Prisma, Supabase migration with RL policies and immutability trigger, predictions feature module (types, schemas, eligibility/validation/lock services, queries, save-prediction server action), 6 UI components (PredictionForm, PredictionScoreControls, PenaltyWinnerSelector, PredictionStatusSummary, PredictionVsResult), updated MatchCard/PhaseSection/matches page for prediction integration, and 32 tests across 3 test files. Verification passed: `pnpm exec tsc --noEmit` (0 errors), `pnpm test` (20 files, 88 tests), `pnpm check` (0 fixes needed), `pnpm build` (passing). Generated `generation-summary.md` and updated AI-DLC state."
+**Context**: Unit 5 Predictions and Match Locking Code Generation complete. Ready for Unit 6 Scoring and Pool Rankings.
+
+---
+
+## Unit 6 Functional Design - Started
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Puedes continuar a la unit-6"
+**AI Response**: "Orienté el estado real (Units 1-5 completas). Analicé el modelo existente de Units 4/5 (Match con scores/penaltyScores/winnerTeamId/phase.type; Prediction con homeScore/awayScore/penaltyWinnerTeamId; hook points/pointsStatus stubeado en Unit 5; módulo compartido scoring de Unit 2). Inicié Functional Design de Unit 6 (Scoring and Pool Rankings): creé unit-6-scoring-rankings-functional-design-plan.md con 8 preguntas (persistencia PredictionScore, disparo del scoring, idempotencia/override, empates standard ranking, partidos cancelados, pantalla leaderboard, integración con read model de Unit 5, alcance global del total)."
+**Context**: Unit 6 Functional Design started. Awaiting question answers.
+
+---
+
+## Unit 6 Functional Design - Answers & Artifacts
+**Timestamp**: 2026-06-10T00:00:00Z
+**User Input**: "Ya contesté" / "He contestado" — Q1=A (tabla PredictionScore 1:1), Q2=A (scoreMatch idempotente + barredor), Q3=A (upsert/recálculo), Q4=B (dense "1,1,2", confirmado en F2), Q5=A (cancelados excluidos), Q6=A (leaderboard por pool + breakdown), Q7=A (conectar read model de Unit 5), Q8=A (total global, aclarado con ejemplo en F1).
+**AI Response**: "Resolví F1 (Q8 con ejemplo → A global) y F2 (Q4=B dense confirmado, documentada la desviación del ejemplo del AC en BR-6.13). Generé los 4 artefactos: domain-entities (PredictionScore 1:1 + read models), business-rules (BR-6.1..BR-6.17), business-logic-model (BL-1 adaptador teamId→side, BL-2 scoreMatch reutilizando computeScore, BL-3 barredor, BL-4/5 leaderboard, BL-6 dense ranking, BL-7 resolvePoints para Unit 5), frontend-components (PoolLeaderboard + integración del breakdown en Unit 5; módulo scoring-rankings para no colisionar con el motor scoring de Unit 2)."
+**Context**: Unit 6 Functional Design artifacts complete. Awaiting approval to proceed to Code Generation.

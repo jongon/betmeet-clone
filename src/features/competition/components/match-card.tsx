@@ -1,3 +1,5 @@
+import { PredictionForm } from "@/features/predictions/components/prediction-form";
+import type { PredictionMatchView } from "@/features/predictions/types";
 import type { MatchView } from "../types";
 import { MatchStatusBadge } from "./match-status-badge";
 import { TeamBadge } from "./team-badge";
@@ -15,7 +17,9 @@ function score(match: MatchView) {
   return `${match.homeScore} - ${match.awayScore}`;
 }
 
-export function MatchCard({ match }: { match: MatchView }) {
+export function MatchCard({ match }: { match: PredictionMatchView | MatchView }) {
+  const isPredictionMatch = "canEdit" in match;
+
   return (
     <article className="rounded-xl border p-4" data-testid={`match-card-${match.id}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
@@ -32,6 +36,11 @@ export function MatchCard({ match }: { match: MatchView }) {
           <TeamBadge team={match.awayTeam} placeholder={match.awayPlaceholder} />
         </div>
       </div>
+      {isPredictionMatch && (
+        <div className="mt-4 border-t pt-3">
+          <PredictionForm match={match as PredictionMatchView} />
+        </div>
+      )}
     </article>
   );
 }

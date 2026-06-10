@@ -3,11 +3,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { FixtureStaleBanner } from "@/features/competition/components/fixture-stale-banner";
 import { PhaseSection } from "@/features/competition/components/phase-section";
 import { getFixture } from "@/features/competition/queries";
+import { getCurrentUserId } from "@/features/pools/services/session";
+import { getFixtureWithMyPredictions } from "@/features/predictions/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
-  const fixture = await getFixture();
+  const userId = await getCurrentUserId();
+  const fixture = userId ? await getFixtureWithMyPredictions(userId) : await getFixture();
 
   return (
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
@@ -31,10 +34,31 @@ export default async function MatchesPage() {
         </section>
       ) : (
         <>
-          <FixtureStaleBanner freshness={fixture.freshness} />
+          {"freshness" in fixture && (
+            <FixtureStaleBanner
+              freshness={
+                fixture.freshness as {
+                  isStale: boolean;
+                  lastSyncedAt: string | null;
+                  reason: "NO_SUCCESSFUL_SYNC" | "LIVE_WINDOW_MISSED" | "RATE_LIMITED" | null;
+                }
+              }
+            />
+          )}
           <div className="space-y-8" data-testid="fixture-ready">
             {fixture.phases.map((phase) => (
-              <PhaseSection key={phase.id} phase={phase} />
+              <PhaseSection
+                key={phase.id}
+                phase={
+                  phase as {
+                    id: string;
+                    name: string;
+                    type: string;
+                    groupCode: string | null;
+                    matches: import("@/features/predictions/types").PredictionMatchView[];
+                  }
+                }
+              />
             ))}
           </div>
         </>

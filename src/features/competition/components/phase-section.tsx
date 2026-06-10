@@ -1,7 +1,20 @@
+import type { PredictionMatchView } from "@/features/predictions/types";
 import type { PhaseView } from "../types";
 import { MatchCard } from "./match-card";
 
-export function PhaseSection({ phase }: { phase: PhaseView }) {
+export function PhaseSection({
+  phase,
+}: {
+  phase:
+    | PhaseView
+    | {
+        id: string;
+        name: string;
+        type: string;
+        groupCode: string | null;
+        matches: PredictionMatchView[];
+      };
+}) {
   if (phase.matches.length === 0) return null;
 
   return (
@@ -9,7 +22,7 @@ export function PhaseSection({ phase }: { phase: PhaseView }) {
       <h2 className="text-xl font-semibold">{phase.name}</h2>
       <div className="space-y-3">
         {phase.matches.map((match) => (
-          <MatchCard key={match.id} match={match} />
+          <MatchCard key={match.id} match={match as unknown as PredictionMatchView} />
         ))}
       </div>
     </section>
