@@ -130,6 +130,7 @@ RulesStep:
 - A diferencia de `nickname` (gate duro de Unit 1), `rules` **no** bloquea la finalización del onboarding.
 - No persiste estado de "reglas vistas" en DB. El usuario siempre puede volver al Rules Center.
 - El `OnboardingProgressIndicator` se actualiza para incluir el paso `rules` (4 pasos en total).
+- Al completar/saltar el paso `passkey` (fin del onboarding), el `OnboardingClient` navega a `/matches` (home autenticada; ver CF-7), no a `/`.
 
 **Integración**: extiende `OnboardingClient` (Unit 1) añadiendo el estado de paso `"rules"` entre `"avatar"` y `"passkey"`. No se reescribe la máquina de pasos existente; se inserta el nuevo estado.
 

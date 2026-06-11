@@ -100,6 +100,20 @@ Detalle del enfoque:
 
 ---
 
+## CF-7 — Middleware de auth (`proxy.ts`) y destino post-autenticación
+**Origen**: Bug fix en producción (2026-06-11) — confirmación de email daba 404 y el login "no llevaba a ningún lado".
+**Destino**: Unit 1 (Foundation, auth gate) + Unit 2 (fin de onboarding). Transversal a las rutas autenticadas.
+**Decisión / restricción**:
+- En **Next.js 16** el archivo de middleware se llama **`src/proxy.ts`** (el framework reconoce `proxy` y `middleware` como nombres válidos; este proyecto usa `proxy` con `export async function proxy`). Toda la documentación que diga `src/middleware.ts` se refiere a este archivo.
+- `src/proxy.ts` es el **gate de auth activo** (refresco de sesión Supabase SSR, redirección de páginas auth-only, gate de onboarding por `nickname_base`, gate `/admin/*` por rol ADMIN). **No es código muerto**: sin él la sesión no se propaga en navegación (los Server Components no pueden reescribir cookies) y nadie enruta al usuario.
+- La **home autenticada** del producto es **`/matches`** (fixture). Tras login (`sign-in`), tras completar/saltar onboarding, tras confirmar email (callback) y al redirigir a un usuario autenticado fuera de una página auth-only, el destino es `/matches` — **no** la landing pública `/` (que no tiene entrada a la app para usuarios logueados).
+**Contexto / hallazgo de metodología**:
+- El commit `683d707` ("clean codebase") **eliminó `src/proxy.ts`** etiquetándolo como *"dead code: unwired auth middleware"* **sin un refine AI-DLC** — desviando el código de los artefactos de Unit 1 (que seguían describiendo el middleware como presente). Restaurado en `fa43333`, lo que re-alinea código y documentación.
+- El 404 de confirmación de email se debía a redirecciones a `/auth/sign-in` (ruta inexistente; el login vive en el route-group `(auth)` → `/sign-in`). Corregido.
+**Pendiente (no aprobado por el usuario, 2026-06-11)**: migrar la confirmación de email del flujo PKCE a `token_hash` + `verifyOtp` para resistir Outlook SafeLinks / cross-device.
+
+---
+
 ## Estado
 | ID | Tema | Destino | Estado |
 |---|---|---|---|
@@ -109,3 +123,4 @@ Detalle del enfoque:
 | CF-4 | Competition extensible | Unit 4 | Aplicado en modelo `Competition`/`CompetitionPhase`/`Match` |
 | CF-5 | Glosario copy español internacional | Transversal | Aplicado a UI/contenido/docs; mantener en futuros cambios |
 | CF-6 | Estrategia de migraciones (Prisma vs supabase/migrations) | Operations | **Aprobada + implementada**; falta `migrate deploy` en prod |
+| CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. Pendiente opcional: `token_hash`/`verifyOtp` |

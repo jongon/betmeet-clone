@@ -31,7 +31,7 @@ Unit 1 implements the complete authentication and profile foundation for the Qui
 
 | File | Purpose |
 |------|---------|
-| `src/middleware.ts` | Fail-closed session refresh, onboarding gate, auth redirect |
+| `src/proxy.ts` | Fail-closed session refresh, onboarding gate, auth redirect, `/admin/*` gate. **Next.js 16 middleware** (filename `proxy`; ver CF-7). Tras login/onboarding/auth-only → `/matches` |
 | `src/app/api/csp-report/route.ts` | CSP violation logger (POST → 204) |
 | `src/app/auth/callback/route.ts` | OAuth code exchange + Google avatar sync |
 

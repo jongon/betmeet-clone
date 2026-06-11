@@ -53,27 +53,28 @@
 
 ## Component 1: Auth Middleware
 
-**File**: `src/middleware.ts`
+**File**: `src/proxy.ts` (Next.js 16 middleware convention — el framework reconoce tanto `proxy` como `middleware` como nombre de archivo; este proyecto usa `proxy`. Ver CF-7).
 
-**Responsibility**: Intercepts every HTTP request to a protected route, validates and refreshes the Supabase Auth session, enforces the onboarding gate, and redirects unauthenticated or incomplete users.
+**Responsibility**: Intercepts every HTTP request to a protected route, validates and refreshes the Supabase Auth session, enforces the onboarding gate, gates `/admin/*` by ADMIN role, and redirects unauthenticated or incomplete users.
 
 **Inputs**:
 - Incoming `NextRequest` (includes session cookies)
 
 **Outputs**:
 - `NextResponse` with refreshed session cookies attached (on valid session)
-- Redirect to `/auth/sign-in` (on missing or expired session)
+- Redirect to `/sign-in` (on missing or expired session; sets `session_expired` cookie 10s)
 - Redirect to `/onboarding/profile` (on valid session but `nickname_base IS NULL`)
+- Redirect to `/matches` (authenticated user hitting an auth-only page; ver CF-7)
 
 **Routing logic**:
 
 | Route pattern | Auth required | Gate checked |
 |---|---|---|
-| `/`, `/auth/*` | No | No |
+| `/`, `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`, `/verify-email`, `/auth/callback` | No | No |
 | `/onboarding/*` | Yes (session only) | No |
-| All other routes | Yes | Yes |
+| All other routes | Yes | Yes (onboarding + `/admin/*` role) |
 
-**Failure behavior**: Any error during session validation is treated as "no valid session" — redirect to `/auth/sign-in` (fail-closed).
+**Failure behavior**: Any error during session validation is treated as "no valid session" — redirect to `/sign-in` (fail-closed).
 
 ---
 

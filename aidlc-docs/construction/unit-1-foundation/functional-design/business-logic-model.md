@@ -101,7 +101,7 @@
 1. Write `nickname_base` and `nickname_discriminator` to the `Profile` row.
 2. Write `avatar_url` and `avatar_source` to the `Profile` row.
 3. Hard gate condition (`nickname_base IS NULL`) is now false.
-4. Redirect user to the application home.
+4. Redirect user to the authenticated application home (`/matches`; ver CF-7).
 
 ---
 

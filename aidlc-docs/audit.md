@@ -1,5 +1,15 @@
 # AI-DLC Audit Log
 
+## Refine — Auth gate (proxy.ts) + destino post-autenticación (Unit 1 + Unit 2)
+**Timestamp**: 2026-06-11
+**User Input**: "Cuando me llega el email de confirmar email y hacer click, me aparece un error 404 … todo esto en producción" → "me lleva a la pantalla de inicio de sesión … cuando inicio sesión no me lleva a ningún lado de la app pero no me da ningún error" → `/aidlc-refine`: "De lo anterior hecho no deberían modificar algo para mantener la metodología ai-dlc?"
+**AI Response**: "Diagnostiqué dos defectos en producción y los corregí en código (commits `2356eac` y `fa43333`), luego alineé los artefactos AI-DLC sin reiniciar etapas aprobadas. (1) El 404 de confirmación de email venía de redirecciones a `/auth/sign-in`, ruta inexistente porque el login vive en el route-group `(auth)` → `/sign-in`; corregido en `src/app/auth/callback/route.ts`. (2) El login 'no llevaba a ningún lado' por dos causas: `src/proxy.ts` (middleware de Next.js 16) había sido **eliminado por error** en `683d707` etiquetado como 'dead code: unwired auth middleware' —sin un refine AI-DLC y dejando los artefactos de Unit 1 describiendo un componente ausente—, y el destino post-login era `/` (landing pública sin entrada a la app). Restauré `src/proxy.ts` (gate de sesión SSR + onboarding + `/admin/*`) y fijé la home autenticada en `/matches` (login, callback de verificación, fin de onboarding, redirección auth-only), decisión consultada y aprobada por el usuario. Capturé todo como **CF-7**. Actualicé `aidlc-state.md` (Current Stage + Last Bug Fix), Unit 1 (`logical-components.md` Component 1, `code-summary.md`, `business-logic-model.md` WF-04), Unit 2 (`business-logic-model.md` BL-4) y `carry-forward-decisions.md`. Validado: `tsc --noEmit` 0 errores, Biome limpio."
+**Code change**: `src/proxy.ts` (restaurado), `src/app/auth/callback/route.ts`, `src/features/auth/actions/sign-in.ts`, `src/app/onboarding/profile/page.tsx`, `src/app/onboarding/profile/onboarding-client.tsx` (commits `2356eac`, `fa43333`).
+**Methodology finding**: El refactor `683d707` violó la metodología al borrar un componente documentado de Unit 1 sin refine; este refine re-alinea código y artefactos. Decisión del usuario: mantener PKCE por ahora (no implementar `token_hash`/`verifyOtp`).
+**Context**: Bug fix en producción reclasificado como refine adaptativo de Construction/Operations; sin restart de stages; Units 1–10 intactas.
+
+---
+
 ## Operations Refine — Descarga de banderas SVG del Mundial 2026
 **Timestamp**: 2026-06-11
 **User Input**: "en otra sesión estaba apunto de descargar las banderas de los equipos que van al mundial en formato svg que tienen que estar en la aplicación puedes continuar con esa descarga"
