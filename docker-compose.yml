@@ -64,6 +64,22 @@ services:
     networks:
       - nextjs
 
+  pgadmin:
+    container_name: nextjs-pgadmin
+    image: dpage/pgadmin4
+    ports:
+      - '8082:80'
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'admin@nextjs.dev'
+      PGADMIN_DEFAULT_PASSWORD: 'password'
+    depends_on:
+      - postgres
+    volumes:
+      - 'pgadmin-data:/var/lib/pgadmin'
+    restart: on-failure
+    networks:
+      - nextjs
+
   pnpm:
     container_name: nextjs-pnpm
     build:
@@ -97,4 +113,6 @@ volumes:
   nextjs-postgres:
     driver: local
   node-home:
+    driver: local
+  pgadmin-data:
     driver: local

@@ -45,6 +45,7 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "biomejs.biome",
+        "ms-ossdata.vscode-pgsql",
         "seatonjiang.gitmoji-vscode",
         "GitHub.copilot",
         "GitHub.copilot-chat",
