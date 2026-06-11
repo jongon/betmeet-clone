@@ -23,3 +23,14 @@ export const JoinByTokenSchema = z.object({
 });
 
 export type JoinByTokenInput = z.infer<typeof JoinByTokenSchema>;
+
+export const CreateDirectedInviteSchema = z.object({
+  poolId: z.string().uuid(),
+  target: z
+    .string()
+    .trim()
+    .min(3, "Ingresa un nickname o email válido")
+    .max(120, "El destinatario es demasiado largo"),
+});
+
+export type CreateDirectedInviteInput = z.infer<typeof CreateDirectedInviteSchema>;

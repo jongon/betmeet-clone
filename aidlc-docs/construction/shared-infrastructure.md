@@ -12,6 +12,7 @@ Infrastructure shared across all units of the application.
 | File storage | Supabase Storage | Free tier (1 GB) | Avatars, future assets |
 | Transactional email | Resend | Free tier (3k/month) | Auth emails (verification, reset, change) |
 | Local email trap | Mailpit | Self-hosted (Docker) | Catches auth emails in local development |
+| Web Push | Browser Push Services + VAPID | Free baseline | Match/pool/ranking web push without OneSignal dependency |
 
 ---
 
@@ -46,6 +47,9 @@ All units share these variables. Each environment has its own values set in the 
 | `RESEND_API_KEY` | Server only | Resend API key (used by Supabase Auth SMTP config) |
 | `API_FOOTBALL_KEY` | Supabase Edge Function secret / server only | API-Football provider key for competition sync; never `NEXT_PUBLIC` |
 | `SYNC_TRIGGER_SECRET` | Server only (optional) | Protects system/manual sync triggers if implemented outside admin session auth |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public (browser + server) | Public VAPID key used by the browser to create Web Push subscriptions |
+| `VAPID_PRIVATE_KEY` | Server only | Private VAPID key used to sign Web Push send requests; never exposed to client |
+| `VAPID_SUBJECT` | Server only | Contact subject for VAPID, e.g. `mailto:admin@example.com` or app URL |
 
 ---
 
@@ -143,5 +147,21 @@ Both scripts use `SUPABASE_SERVICE_ROLE_KEY` and require it to be set in the env
 |---|---|---|
 | `competition-sync` | Supabase Edge Function scheduled/cron | Sync API-Football teams, fixtures, live status and results; write `provider_sync_runs` |
 | `competition-sync cleanup` | Supabase Edge Function scope or script/admin task | Remove/archive sync runs older than 90 days |
+| `notification-dispatch` | Server-side job or Supabase Edge Function | Drain pending notification events/outbox and send Web Push with retries/deduplication |
 
 Preview deployments use seed/mock competition data by default and only call API-Football when `API_FOOTBALL_KEY` is explicitly configured for that environment.
+
+---
+
+## Web Push Provider Decision
+
+The Unit 10 baseline is **standard Web Push with VAPID**, not OneSignal.
+
+| Option | Cost fit | Tradeoff | Decision |
+|---|---|---|---|
+| Standard Web Push + VAPID | Free at MVP scale; uses browser push services | Requires owning subscription storage, retries, preferences and service worker | **Chosen for Unit 10** |
+| OneSignal | Generous free/start tiers, mature dashboard | Third-party SDK, vendor lock-in, possible plan/branding/limit changes, extra data processor | Future adapter if marketing/analytics needs justify it |
+| Firebase Cloud Messaging Web | Free, mature Google infra | Adds Firebase project/vendor and is unnecessary for basic cross-browser Web Push | Future adapter only if Firebase is already adopted |
+| Novu / ntfy self-hosted | Can be low-cost/self-hosted | More infrastructure to operate than the current Vercel + Supabase stack | Not v1 baseline |
+
+Push payloads must stay minimal: title/body/url/event id only. Private details are loaded after the user opens the authenticated route.

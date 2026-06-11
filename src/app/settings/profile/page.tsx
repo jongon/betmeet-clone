@@ -3,6 +3,8 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { NotificationSettingsPanel } from "@/features/notifications/components/notification-settings-panel";
+import { getNotificationSettings } from "@/features/notifications/queries";
 import { AvatarSourceTabs } from "@/features/profile/components/avatar-source-tabs";
 import { getDefaultAvatars, getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
@@ -10,7 +12,11 @@ import { getDisplayNickname } from "@/features/profile/types";
 export const metadata: Metadata = { title: "Profile settings" };
 
 export default async function ProfileSettingsPage() {
-  const [profile, defaultAvatars] = await Promise.all([getProfile(), getDefaultAvatars()]);
+  const [profile, defaultAvatars, notificationSettings] = await Promise.all([
+    getProfile(),
+    getDefaultAvatars(),
+    getNotificationSettings(),
+  ]);
   if (!profile) redirect("/sign-in");
 
   return (
@@ -40,6 +46,16 @@ export default async function ProfileSettingsPage() {
           <AvatarSourceTabs defaultAvatars={defaultAvatars} currentAvatarUrl={profile.avatarUrl} />
         </CardContent>
       </Card>
+      {notificationSettings && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Notificaciones web push</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <NotificationSettingsPanel {...notificationSettings} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

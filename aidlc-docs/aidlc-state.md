@@ -3,7 +3,9 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: REFINE COMPLETE (2026-06-10) - Unit 8 Design System & UI Polish (FR-DS-01, Épica 7) implemented & verified (0 TS, 111 tests, ESLint 0, Biome clean, build passing). Themeable tokens (deportivo/moderno/premium × light/dark) with green+gold default identity. Units 1–7 untouched. Ready for OPERATIONS / deploy.
+- **Current Stage**: REFINE DOCS UPDATED (2026-06-11) - Unit 10 Web Push Notifications added as post-construction refine artifacts. Unit 9 remains Transactional Email (FR-EMAIL-01) and is not restarted. Unit 10 baseline = standard Web Push + VAPID for free MVP scale; OneSignal/FCM/Novu remain future adapters. Units 1–8 approved/verified stages are not restarted.
+- **Prev Stage (Unit 9 active)**: REFINE (2026-06-11) - Unit 9 Transactional Email (FR-EMAIL-01, Épica 8). Canal = Resend como Custom SMTP de Supabase ("solo lo necesario": cero deps npm nuevas). Plantillas de auth versionadas en `supabase/templates/*.html` + `supabase/config.toml` (content_path); Supabase las hospeda/envía. Alcance construido = Grupo A (confirmation/recovery/email_change, ya disparados por las server actions de auth). Grupo B (negocio: invitación a pool, resultados, recordatorios, expulsión, alertas sync) = catálogo propuesto en backlog (requiere SDK Resend). Prod requerirá dominio verificado en Resend (DKIM/SPF/DMARC). Units 1–8 intactas; sin cambio de runtime. Ver construction/unit-9-email/email-design.md.
+- **Prev Stage**: REFINE COMPLETE (2026-06-10) - Unit 8 Design System & UI Polish (FR-DS-01, Épica 7) implemented & verified (0 TS, 111 tests, ESLint 0, Biome clean, build passing). Themeable tokens (deportivo/moderno/premium × light/dark) with green+gold default identity. Units 1–7 untouched. Ready for OPERATIONS / deploy.
 - **Last Bug Fix (2026-06-10)**: Auth routing 404 (Unit 1) — `(auth)` route-group prefix `/auth/` was wrongly used in 15 references (links + redirects + reset email). Fixed root cause; verified live (/sign-up → 200, /auth/sign-up → 404). See audit.md.
 
 ## Workspace State
@@ -82,8 +84,21 @@
 - [x] Code Generation - globals.css 6-theme tokens, brand provider + selector, badge variants, anchor-screen polish
 - [x] UX Audit - live Playwright review of /, /rules, /sign-in, /pools across 6 theme combos + mobile (see design-system.md). 1 medium finding (sign-in English copy, pre-existing Unit 1), 2 low. No defects from Unit 8.
 
+**Unit 9: Transactional Email** (added via `/aidlc-refine`, 2026-06-11)
+- [x] Requirements/User Stories/Application Design artifacts present for Supabase Auth + Resend SMTP and repo-versioned auth templates.
+- [ ] Code Generation / verification status owned by active Unit 9 workflow; not restarted by Unit 10 change.
+
+**Unit 10: Web Push Notifications** (added via post-construction change, 2026-06-11)
+- [x] Requirements updated: FR-PUSH-01 with Web Push + VAPID free baseline and OneSignal as future adapter.
+- [x] User stories added: configurable notifications for match start, match finish, pool invite, global rank improvement, and goal scored.
+- [x] Application design updated: unit map, dependencies, story map, components, services, shared infrastructure.
+- [x] Functional/NFR/Infrastructure design artifacts created under `construction/unit-10-web-push-notifications/`.
+- [x] User clarification captured: keep current invite link/code and add directed pool invites by nickname/email; only directed invites with resolved users trigger push.
+- [x] Code Generation - COMPLETE (Web Push + VAPID, preferences/devices UI, directed invites, outbox dispatcher, event hooks, 115 tests passing, 0 TS errors, ESLint/Biome/build passing).
+
 **All Units**
-- [x] Build and Test - COMPLETE — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
+- [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
+- [x] Build and Test - COMPLETE through Unit 10 implementation (0 TS errors, 115 tests, ESLint 0, Biome clean, build passing).
 
 ### 🟡 OPERATIONS PHASE
 - [ ] Operations
@@ -98,11 +113,11 @@
 - [x] Generate `aidlc-docs/inception/requirements/requirements.md`
 - [x] Complete User Stories
 - [x] Generate `aidlc-docs/inception/plans/execution-plan.md`
-- [ ] Wait for explicit approval to continue to Application Design
+- [x] Preserve approved inception/Application Design stages; do not restart them for Unit 10 refine
 
 ## Execution Plan Summary
-- **Total Remaining Stages**: 8
-- **Stages to Execute**: Application Design, Units Generation, Functional Design, NFR Requirements, NFR Design, Infrastructure Design, Code Generation, Build and Test
+- **Total Remaining Stages**: 0 for Unit 10 implementation
+- **Stages to Execute**: None for Unit 10; do not restart approved inception or Units 1–9 stages
 - **Stages to Skip**: Operations placeholder only
-- **Next Stage**: Application Design
-- **Status**: Awaiting explicit user approval of Units Generation
+- **Next Stage**: Operations/deploy or continue active Unit 9 workflow if still pending
+- **Status**: Unit 10 implemented and verified

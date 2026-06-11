@@ -1,5 +1,29 @@
 # AI-DLC Audit Log
 
+## Post-Construction Refinement — Unit 10 Web Push Notifications
+**Timestamp**: 2026-06-11
+**User Input**: "Quiero implementar web push notifications. Los usuarios tienen que ser capaces de configurar cuales notificaciones quiero o no recibir. Las notificaciones: Cuando empieza un partido; Cuando termina un partido; Cuando me invitan a un pool; Cuando subo en el ranking global; Cuando se anota un gol. Anteriormente he usado OneSignal para eso, pero no se si ese stack eslo recomendado para este stack. Busco alternativas gratis por la escala" followed by clarification: "Hay un unit 9 ahora creandose. tu debes ser el unit 10"
+**AI Response**: "Updated existing AI-DLC artifacts without restarting approved stages. Preserved Unit 9 as Transactional Email and added Unit 10 Web Push Notifications. Chose standard Web Push + VAPID as the free MVP baseline, with OneSignal/FCM/Novu as future provider adapters. Updated requirements, user stories, unit maps/dependencies, components, services, shared infrastructure, dependent Unit 3/4/6 rules, aidlc-state, and created Unit 10 functional/NFR/infrastructure design plus code-generation plan."
+**Context**: Post-construction refine documentation update. No application code implementation performed; Unit 10 code generation remains pending explicit approval.
+
+---
+
+## Unit 10 Web Push — Directed Pool Invite Clarification
+**Timestamp**: 2026-06-11
+**User Input**: "1. Agregar invitaciones nickname/email. También manteniendo el link actaul"
+**AI Response**: "Captured the decision for Unit 10: keep the existing Unit 3 invite link/code flow and add directed pool invitations by nickname/email. Push notifications for pool invites are emitted only when a recipient user is resolved; generic links remain supported but do not generate push. Updated Unit 10 requirements/stories/design/code plan and Unit 3 dependent rules."
+**Context**: Clarification for how `POOL_INVITE` web push events are triggered.
+
+---
+
+## Unit 10 Web Push — Implementation Complete
+**Timestamp**: 2026-06-11
+**User Input**: "Implementalo"
+**AI Response**: "Implemented Unit 10 Web Push Notifications. Added Web Push + VAPID dependency, Prisma schema and Supabase migration, notification preferences/subscriptions/events/deliveries, directed pool invites by nickname/email, profile settings UI, service worker, outbox dispatcher endpoint, match/scoring/invite event producers, tests, and generation summary. Verified with prisma generate, TypeScript, tests, Biome, ESLint, and production build."
+**Context**: Unit 10 code generation and build/test completed without restarting approved stages.
+
+---
+
 ## Workflow Start
 **Timestamp**: 2026-06-09T21:37:50Z
 **User Input**: "Treat this as a \"Using AI-DLC, ...\" message. Read and follow
@@ -727,3 +751,11 @@ Con el CI/CD esto se desplegará en Vercel la app y supabase la base de datos"
 **User Input**: "/aidlc-refine — Bug: en la pantalla sign-in, el link de sign up da 404"
 **AI Response**: "Diagnóstico: causa raíz sistémica. Las páginas de auth viven en el route group `(auth)`, cuyos paréntesis NO se incluyen en la URL, así que las rutas reales son /sign-in, /sign-up, /forgot-password, /verify-email, /reset-password (sin prefijo /auth/). Múltiples referencias usaban /auth/<ruta> → 404. El link de sign-up reportado era un síntoma. Corregí TODAS las ocurrencias (15): 5 links (sign-in-form ×2, verify-email page, sign-up-form, forgot-password-form), 9 redirects servidor/cliente (settings layout + security/profile pages, onboarding page, sign-out, reset-password, delete-account, sign-up→verify-email, auth-provider router.push) y 1 redirectTo del email de recuperación (forgot-password.ts → /reset-password). Actualicé 2 tests que afirmaban las rutas erróneas (sign-up.test, delete-account.test). /auth/callback se mantiene (ruta real). No cambia requisitos ni diseño (la implementación estaba mal, no el requisito). Verificación: tsc 0, Biome limpio, ESLint 0, 111/111 tests, next build OK. Verificación en vivo: /sign-in renderiza href=\"/sign-up\"; /sign-up → 200; /auth/sign-up → 404."
 **Context**: Defecto de código (Unit 1, auth routing). Reportado vía /aidlc-refine como bug. Sin cambios de schema ni de etapas aprobadas. Recomendación de mejora futura: centralizar las rutas en un módulo de constantes para evitar strings mágicos.
+
+---
+
+## Refine - Unit 9: Transactional Email
+**Timestamp**: 2026-06-11
+**User Input**: "/aidlc-refine — Quiero poder tener los templates de los emails que la aplicación envíe en este proyecto/repositorio; los templates van a estar almacenados en otro lado pero el código lo quiero aquí. Adicionalmente quiero las propuestas de todos los correos que sepas que se envían." Seguido de: "¿En Vercel puedo enviar correos? ¿Necesito un dominio propio para Vercel o Supabase?" y la decisión: "Usaré resend.dev a través de supabase así que necesito solo lo necesario para el stack". Selección (AskUserQuestion): alcance = "Docs + plantillas reales".
+**AI Response**: "Aclaré que Vercel no envía correos (se llama a una API por HTTPS); que Supabase Auth trae emisor propio rate-limited y en prod exige Custom SMTP; y que el dominio se verifica en el proveedor de email (Resend), no en Vercel/Supabase — dev con sandbox resend.dev, prod con dominio propio (DKIM/SPF/DMARC). Diseño elegido minimalista: Resend como Custom SMTP de Supabase, CERO dependencias npm nuevas. 'Plantillas en otro lado, código aquí' = HTML versionado en supabase/templates/*.html referenciado desde supabase/config.toml (content_path); Supabase las hospeda/envía. Catálogo completo propuesto: Grupo A (confirmation/recovery/email_change — ya disparados por las server actions de auth, EN ALCANCE) y Grupo B (negocio: bienvenida, invitación a pool, alta/expulsión de miembro, recordatorio pre-kickoff, resumen de puntos, cambio de ranking, recálculo por override, alerta de sync — BACKLOG, requiere SDK Resend; los de cron deben enviarse desde un job). Artefactos actualizados sin reiniciar etapas aprobadas: requirements.md (FR-03 reescrito + nueva sección FR-EMAIL-01 con catálogo A+B + MVP 'Debe Tener' afinado + decisiones registradas), stories.md (Épica 8: US-8.1/8.2/8.3), unit-of-work.md (Unit 9 + secuencia), construction/unit-9-email/email-design.md (nuevo, diseño completo), aidlc-state.md (REFINE 2026-06-11). Código: creadas supabase/templates/{confirmation,recovery,email_change}.html (estilos inline, identidad de marca Unit 8, placeholders Supabase) + supabase/config.toml ([auth.email.template.*] con content_path) + nota de SMTP en .env.example."
+**Context**: Refine post-construcción (workflow adaptativo). Sin cambio de schema ni de runtime de la app (los redirectTo siguen usando NEXT_PUBLIC_SITE_URL). Units 1–8 intactas. Prerequisito de Operaciones: verificar dominio en Resend antes de salir del sandbox. Pendiente futuro: Grupo B requiere SDK Resend + módulo src/lib/email + preferencias de notificación por usuario.

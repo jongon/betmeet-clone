@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { DirectedInviteForm } from "@/features/pools/components/directed-invite-form";
 import { InviteShare } from "@/features/pools/components/invite-share";
 import { MemberList } from "@/features/pools/components/member-list";
 import { PoolActions } from "@/features/pools/components/pool-actions";
@@ -67,6 +68,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
         </div>
         <aside className="space-y-4">
           <InviteShare token={pool.inviteToken} />
+          {pool.isOwner && <DirectedInviteForm poolId={pool.id} />}
           <PoolActions pool={pool} />
         </aside>
       </div>

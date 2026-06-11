@@ -98,18 +98,24 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - Datos de negocio adicionales según el dominio del SaaS
 
 ### FR-03: Notificaciones por Email
-- Integración con servicio de email transaccional
-- Tipos de email:
-  - Verificación de email al registro
-  - Restablecimiento de contraseña
-  - Notificaciones de cuenta (bienvenida, cambios de seguridad, vinculación de proveedores)
-  - Notificaciones de negocio según el dominio del SaaS
-- Supabase Auth gestiona emails de autenticación; emails de negocio requieren integración adicional
+- **Canal**: Supabase Auth con **Resend como Custom SMTP** (decidido en refine 2026-06-11). Sin dependencias npm nuevas; Supabase es el emisor.
+- **Plantillas**: versionadas en el repo (`supabase/templates/*.html`) y referenciadas desde `supabase/config.toml` con `content_path`; Supabase las hospeda y envía ("plantillas en otro lado, código aquí").
+- **Tipos de email activos** (transaccionales de auth): verificación de email al registro, restablecimiento de contraseña, confirmación de cambio de email.
+- **Emails de negocio** (bienvenida, invitación a pool, resultados/puntos, recordatorios, expulsión, alertas de sync): catálogo propuesto como backlog — requieren el SDK de Resend en código, fuera del alcance "solo lo necesario" del MVP.
+- Detalle completo y catálogo en **FR-EMAIL-01** (refine — Unit 9).
 
 ### FR-04: Notificaciones Push
-- Integración con servicio de push notifications (web push y/o mobile push)
-- Preferencias de notificación configurables por usuario
-- Gestión de suscripciones y dispositivos
+- Integración con **Web Push estándar** para navegadores, usando Push API + Service Worker + VAPID como baseline gratuito para escala MVP.
+- Preferencias de notificación configurables por usuario, con opt-in explícito por tipo de evento.
+- Gestión de suscripciones y dispositivos, incluyendo revocación y limpieza de endpoints inválidos.
+- Tipos de notificación v1:
+  - Cuando empieza un partido.
+  - Cuando termina un partido.
+  - Cuando me invitan a una liga/pool.
+  - Cuando subo en el ranking global.
+  - Cuando se anota un gol.
+- El sistema debe respetar permisos del navegador, preferencias del usuario y autorización de datos antes de enviar.
+- Decisión técnica v1: priorizar Web Push auto-gestionado sobre OneSignal para mantener coste cero en el MVP; conservar interfaz de proveedor para migrar a OneSignal, FCM, Novu u otro servicio si crecen necesidades de segmentación, analytics o mobile push nativo.
 
 ### FR-05: Integraciones con APIs de Terceros
 - Diseño modular para integraciones externas
@@ -265,10 +271,12 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - MFA y Passkeys son opcionales para todos los niveles, incluyendo administradores
 - Account linking/resilience: Supabase gestiona la fusión de cuentas por email
 - Jobs programados: Pendiente de definición funcional
+- **Email transaccional (refine 2026-06-11)**: Resend como Custom SMTP de Supabase; "solo lo necesario para el stack" → sin SDK propio, plantillas de auth versionadas en el repo; emails de negocio en backlog (ver FR-EMAIL-01)
+- **Web Push (refine 2026-06-11)**: Unit 10 usará Web Push estándar + VAPID como baseline gratuito; OneSignal queda como alternativa futura mediante adapter si el producto requiere dashboard, campañas, analytics o mobile push nativo.
 
 ### Decisiones Pendientes
-- Proveedor de email transaccional para notificaciones de negocio (Supabase incluye emails de auth; emails de negocio pueden usar Resend, SendGrid, etc.)
-- Proveedor de push notifications
+- ~~Proveedor de email transaccional~~ → **resuelto (refine 2026-06-11)**: Resend como Custom SMTP de Supabase para auth; emails de negocio (SDK Resend) en backlog (FR-EMAIL-01)
+- ~~Proveedor de push notifications~~ → **resuelto para MVP (refine 2026-06-11)**: Web Push estándar + VAPID auto-gestionado; proveedor externo gestionado queda como decisión futura si escala/operación lo justifica.
 - Estrategia de crons (si son necesarios): Supabase pg_cron, Edge Functions, o servicio externo
 - Esquema de base de datos específico del dominio del SaaS
 - Dominio de negocio específico del SaaS (a definir en User Stories / Application Design)
@@ -297,7 +305,7 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - [ ] MFA (TOTP) como opción para todos los niveles
 - [ ] Gestión de perfil (nombre, avatar, preferencias)
 - [ ] Gestión de métodos de autenticación vinculados
-- [ ] Notificaciones por email transaccional (verificación, reset, bienvenida)
+- [ ] Notificaciones por email transaccional (verificación, reset, cambio de email) vía Supabase + Resend SMTP; plantillas versionadas en `supabase/templates/` (ver FR-EMAIL-01)
 - [ ] Seguridad: todas las reglas SECURITY applicables implementadas
 - [ ] HTTP security headers configurados (Vercel middleware)
 - [ ] Input validation en todos los endpoints (Zod/schemas)
@@ -308,7 +316,7 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 
 ### Debería Tener (Post-MVP temprano)
 - [ ] Design System multi-tema + mejora de UI (ver FR-DS-01) — añadido vía `/aidlc-refine` (Unit 8)
-- [ ] Notificaciones push (web push)
+- [ ] Notificaciones web push configurables (ver FR-PUSH-01 / Unit 10) — añadido vía cambio post-construction (2026-06-11)
 - [ ] Integraciones con APIs de terceros
 - [ ] Jobs programados (si la fase funcional los requiere)
 - [ ] Rate limiting en endpoints públicos
@@ -343,6 +351,94 @@ altera el comportamiento de las Units 1–7, solo su presentación.
   foco visible, controles de tema/marca navegables por teclado.
 - **FR-DS-01.6 — Sin regresión**: mantener 0 errores TS, Biome/ESLint limpios,
   build OK y los 111 tests verdes.
+
+---
+
+## FR-EMAIL-01: Emails Transaccionales (Post-construcción — Unit 9)
+
+Añadido vía `/aidlc-refine` (2026-06-11). Concreta FR-03. Cross-cutting: no
+altera el comportamiento de las Units 1–8; formaliza el canal de correo y
+versiona las plantillas de auth en el repo.
+
+### Arquitectura del canal
+- **FR-EMAIL-01.1 — Emisor**: Supabase Auth con **Resend configurado como Custom
+  SMTP**. La app NO incorpora un mailer propio ni dependencias npm de email
+  ("solo lo necesario para el stack"). El código que dispara los correos ya
+  existe (Supabase SDK en las server actions de auth).
+- **FR-EMAIL-01.2 — Plantillas "en otro lado, código aquí"**: el HTML fuente se
+  versiona en `supabase/templates/*.html` y se referencia desde
+  `supabase/config.toml` con `[auth.email.template.<tipo>] → content_path` y
+  `subject`. Supabase las hospeda y envía; la fuente vive en el repo y entra en
+  code review. HTML autocontenido (estilos inline) y alineado a la identidad de
+  marca de Unit 8.
+- **FR-EMAIL-01.3 — Entornos**: dev usa el sandbox `resend.dev`. Producción
+  requiere un **dominio propio verificado en Resend** (DKIM + SPF + DMARC en
+  DNS) antes de salir del sandbox — prerequisito de la fase de Operaciones, no
+  bloquea el desarrollo.
+- **FR-EMAIL-01.4 — Sin regresión**: no cambia runtime de la app (los
+  `redirectTo`/`emailRedirectTo` siguen usando `NEXT_PUBLIC_SITE_URL`); mantener
+  build, tests, Biome y ESLint en verde.
+
+### Catálogo de correos del proyecto
+
+**Grupo A — Auth / transaccional (EN ALCANCE; Supabase + Resend SMTP):**
+
+| # | Email | Disparador (código) | Estado |
+|---|-------|---------------------|--------|
+| 1 | Confirmar registro / verificar email | `auth/actions/sign-up.ts` (`signUp`) | Activo |
+| 2 | Restablecer contraseña | `auth/actions/forgot-password.ts` (`resetPasswordForEmail`) | Activo |
+| 3 | Confirmar cambio de email (dir. antigua + nueva) | `auth/actions/change-email.ts` (`updateUser({email})`) | Activo |
+
+> Supabase gestiona además plantillas de *Magic Link*, *Invite* y
+> *Reauthentication*; la app no las usa hoy → quedan en su default.
+
+**Grupo B — Negocio / notificación (PROPUESTA — backlog; requiere SDK Resend):**
+
+| # | Email | Punto de envío natural |
+|---|-------|------------------------|
+| 4 | Bienvenida (post-verificación / fin de onboarding) | onboarding |
+| 5 | Invitación a un pool (enlace por token) | `pools/services/invite-token.ts`, `join-pool-by-token.ts` |
+| 6 | Alguien se unió a tu pool (al owner) | `pools/actions/join-pool-by-token.ts`, `join-public-pool.ts` |
+| 7 | Te expulsaron de un pool (al miembro) | `pools/actions/kick-member.ts` |
+| 8 | Recordatorio "el partido empieza pronto, completa tu predicción" | `predictions/services/lock.ts` |
+| 9 | Resumen de jornada: predicciones puntuadas + puntos | `scoring-rankings/services/score-sweeper.ts` |
+| 10 | Cambio de ranking / nuevo líder en tu pool | `scoring-rankings/services/ranking.ts` |
+| 11 | Recálculo por override de resultado (admin) | `admin/actions/force-result.ts`, `revert-override.ts` |
+| 12 | [Ops] Alerta de fallo de sincronización (a admins) | `competition/services/sync-orchestrator.ts` |
+
+> Nota técnica (backlog): los correos 8–10 y 12 no tienen un request HTTP de
+> usuario asociado (corren en sweeper/cron), así que su envío debe diseñarse
+> desde un job, no inline.
+
+---
+
+## FR-PUSH-01: Web Push Notifications Configurables (Post-construcción — Unit 10)
+
+Añadido como cambio post-construction tras completar Units 1–8 y mientras Unit 9
+queda reservada para emails transaccionales. Es una unidad aditiva: consume
+eventos de Units 3, 4 y 6, pero no reabre reglas ya aprobadas.
+
+- **FR-PUSH-01.1 — Opt-in explícito**: el usuario debe activar web push desde
+  configuración. Sin permiso del navegador o sin suscripción activa no se envía
+  push.
+- **FR-PUSH-01.2 — Preferencias por evento**: el usuario puede activar/desactivar
+  individualmente: inicio de partido, final de partido, invitación a liga/pool,
+  subida en ranking global y gol anotado.
+- **FR-PUSH-01.3 — Suscripciones por dispositivo**: una cuenta puede tener varias
+  suscripciones Web Push; endpoints inválidos se desactivan tras fallo `410/404`.
+- **FR-PUSH-01.4 — Eventos autorizados**: las notificaciones solo se envían a
+  usuarios que tienen derecho a conocer el evento. No se filtran datos de pools
+  privados, predicciones o ranking a usuarios no autorizados.
+- **FR-PUSH-01.4a — Invitaciones dirigidas**: Unit 10 debe añadir invitaciones a
+  liga/pool dirigidas por nickname o email para poder notificar al destinatario.
+  El link/código actual se mantiene y no genera push por sí mismo al no tener
+  receptor conocido.
+- **FR-PUSH-01.5 — Bajo coste MVP**: baseline con Web Push estándar + VAPID +
+  tabla de suscripciones en Supabase + job/server action de envío. No depende de
+  OneSignal para el MVP.
+- **FR-PUSH-01.6 — Adapter futuro**: definir una interfaz de proveedor para poder
+  migrar a OneSignal/FCM/Novu/self-hosted si se requieren campañas, analytics,
+  mobile push nativo o segmentación avanzada.
 
 ---
 

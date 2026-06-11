@@ -55,9 +55,29 @@
 - Admin Sync Dashboard screen contract
 - Public/private pool progress visibility
 
+## Unit 8: Design System and UI Polish
+
+- US-7.1: Identidad visual deportiva
+- US-7.2: Cambio de tema claro/oscuro y de personalidad
+
+## Unit 9: Transactional Email
+
+- US-8.1: Envío fiable de correos de auth
+- US-8.2: Plantillas de auth con identidad de marca, versionadas en el repo
+- US-8.3: Catálogo de notificaciones de negocio (backlog)
+
+## Unit 10: Web Push Notifications
+
+- US-9.1: Activar web push por dispositivo
+- US-9.2: Configurar preferencias por tipo de notificación
+- US-9.3: Avisos de estado del partido
+- US-9.4: Aviso de invitación a liga/pool
+- US-9.5: Aviso de subida en ranking global
+
 ## Coverage Validation
 
 - All explicit user stories from `stories.md` are mapped.
 - Screen contracts from Application Design are mapped to implementation units.
 - Admin override is separated from API sync per user answer.
 - UX Education is standalone per user answer.
+- Units 8–10 are post-construction refine units; Unit 10 is additive and does not reopen approved Units 1–9.

@@ -60,3 +60,10 @@
 |---|---|
 | **BR-6.16** | El leaderboard de un pool solo es visible para **miembros** del pool (consistente con la autorización de Unit 3, BR-3.28). |
 | **BR-6.17** | `scoreMatch`/barredor son operaciones **server-side**; no se exponen como acción directa al cliente (las dispara el sync/cron/override). |
+
+## Integración futura con Unit 10 Web Push
+
+| ID | Regla |
+|---|---|
+| **BR-6.18** | Tras recalcular scoring/rankings, Unit 6 puede emitir eventos deduplicados de `GLOBAL_RANK_IMPROVED` para Unit 10 cuando exista un read model de ranking global anterior/nuevo. |
+| **BR-6.19** | La emisión de notificaciones es best-effort y no debe bloquear `scoreMatch`, el barredor ni el recálculo por override. |

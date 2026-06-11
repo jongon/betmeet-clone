@@ -38,6 +38,11 @@ model Profile {
   poolMemberships  PoolMembership[]
   predictions      Prediction[]
   predictionScores PredictionScore[]
+  notificationPreference NotificationPreference?
+  pushSubscriptions      PushSubscription[]
+  notificationEvents     NotificationEvent[]
+  poolDirectedInvites    PoolDirectedInvite[] @relation("PoolDirectedInviteRecipient")
+  createdPoolInvites     PoolDirectedInvite[] @relation("PoolDirectedInviteCreator")
 
   @@unique([nicknameBase, nicknameDiscriminator])
   @@map("profiles")
@@ -106,10 +111,44 @@ model Pool {
 
   owner       Profile          @relation("PoolOwner", fields: [ownerId], references: [id])
   memberships PoolMembership[]
+  directedInvites PoolDirectedInvite[]
 
   @@index([ownerId])
   @@index([type])
   @@map("pools")
+}
+
+enum PoolDirectedInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+
+  @@map("pool_directed_invite_status")
+}
+
+model PoolDirectedInvite {
+  id               String                   @id @default(uuid()) @db.Uuid
+  poolId           String                   @map("pool_id") @db.Uuid
+  invitedUserId    String?                  @map("invited_user_id") @db.Uuid
+  invitedEmailHash String?                  @map("invited_email_hash") @db.VarChar(128)
+  invitedNickname  String?                  @map("invited_nickname") @db.VarChar(32)
+  inviteToken      String                   @map("invite_token") @db.VarChar(12)
+  createdByUserId  String                   @map("created_by_user_id") @db.Uuid
+  status           PoolDirectedInviteStatus @default(PENDING)
+  createdAt        DateTime                 @default(now()) @map("created_at")
+  acceptedAt       DateTime?                @map("accepted_at")
+
+  pool          Pool     @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  invitedUser   Profile? @relation("PoolDirectedInviteRecipient", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  createdByUser Profile  @relation("PoolDirectedInviteCreator", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([poolId, invitedUserId])
+  @@index([invitedUserId])
+  @@index([createdByUserId])
+  @@index([invitedEmailHash])
+  @@index([inviteToken])
+  @@map("pool_directed_invites")
 }
 
 // Membership of a user in a pool, incl. per-member personal archive (F1)
@@ -309,4 +348,101 @@ model PredictionScore {
   @@index([matchId])
   @@index([userId])
   @@map("prediction_scores")
+}
+
+enum NotificationEventType {
+  MATCH_STARTED
+  MATCH_FINISHED
+  POOL_INVITE
+  GLOBAL_RANK_IMPROVED
+  GOAL_SCORED
+
+  @@map("notification_event_type")
+}
+
+enum NotificationEventStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+
+  @@map("notification_event_status")
+}
+
+enum NotificationDeliveryStatus {
+  SENT
+  FAILED
+  SKIPPED
+
+  @@map("notification_delivery_status")
+}
+
+model NotificationPreference {
+  userId             String   @id @map("user_id") @db.Uuid
+  matchStarted       Boolean  @default(false) @map("match_started")
+  matchFinished      Boolean  @default(false) @map("match_finished")
+  poolInvite         Boolean  @default(false) @map("pool_invite")
+  globalRankImproved Boolean  @default(false) @map("global_rank_improved")
+  goalScored         Boolean  @default(false) @map("goal_scored")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?   @map("user_agent") @db.VarChar(500)
+  isActive      Boolean   @default(true) @map("is_active")
+  lastSuccessAt DateTime? @map("last_success_at")
+  lastFailureAt DateTime? @map("last_failure_at")
+  failureReason String?   @map("failure_reason") @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  user       Profile                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([userId, isActive])
+  @@map("push_subscriptions")
+}
+
+model NotificationEvent {
+  id              String                  @id @default(uuid()) @db.Uuid
+  type            NotificationEventType
+  dedupeKey       String                  @unique @map("dedupe_key") @db.VarChar(200)
+  recipientUserId String                  @map("recipient_user_id") @db.Uuid
+  payload         Json
+  status          NotificationEventStatus @default(PENDING)
+  createdAt       DateTime                @default(now()) @map("created_at")
+  processedAt     DateTime?               @map("processed_at")
+
+  recipient  Profile                @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+  deliveries NotificationDelivery[]
+
+  @@index([recipientUserId, status])
+  @@index([status, createdAt])
+  @@map("notification_events")
+}
+
+model NotificationDelivery {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  eventId            String                     @map("event_id") @db.Uuid
+  subscriptionId     String                     @map("subscription_id") @db.Uuid
+  status             NotificationDeliveryStatus
+  providerStatusCode Int?                       @map("provider_status_code")
+  errorMessage       String?                    @map("error_message") @db.VarChar(500)
+  attemptedAt        DateTime                   @default(now()) @map("attempted_at")
+
+  event        NotificationEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  subscription PushSubscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([subscriptionId])
+  @@map("notification_deliveries")
 }

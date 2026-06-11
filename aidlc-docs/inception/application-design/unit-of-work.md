@@ -138,6 +138,34 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: A coherent, themeable UI where the brand personality and light/dark scheme can switch at runtime, with no regression to the 111 passing tests.
 
+## Unit 9: Transactional Email
+
+**Goal**: Formalize how the application sends email — keep the sending code/configuration in the repo while the live templates are hosted "elsewhere" (Supabase) — without adding email infrastructure to the stack.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc-refine` (2026-06-11); cross-cutting; does not change Units 1–8 behavior.
+- Channel: Supabase Auth with **Resend configured as Custom SMTP**. No new npm dependencies; the send triggers are the existing Supabase SDK calls in `src/features/auth/actions/` (`sign-up`, `forgot-password`, `change-email`).
+- Auth email templates versioned in the repo at `supabase/templates/*.html`, wired via `supabase/config.toml` `[auth.email.template.<type>]` (`content_path` + `subject`). Supabase hosts/sends them; the source lives here and is reviewed in PRs.
+- Brand-aligned HTML (Unit 8 identity), self-contained inline styles for email-client compatibility.
+- Environments: dev uses the `resend.dev` sandbox; production requires a verified domain in Resend (DKIM/SPF/DMARC) — an Operations prerequisite.
+- Business/notification emails (pool invites, results/points, reminders, kick, sync alerts) are a documented **backlog catalog** (FR-EMAIL-01 Group B); they would require the Resend SDK and are out of the "only what's needed" MVP scope. Cron-triggered ones (reminders, digest, ranking, alerts) must send from a job, not inline.
+
+**Primary Deliverable**: Auth emails sent via Supabase + Resend SMTP with repo-versioned templates, plus a complete proposed catalog of all project emails — with no runtime change and no regression to the passing tests.
+
+## Unit 10: Web Push Notifications
+
+**Goal**: Let users opt into low-cost web push notifications and control which event types they receive.
+
+**Responsibilities**:
+- Added post-construction after Unit 9 was reserved for transactional email; additive and does not restart approved Units 1–9.
+- Web Push subscription lifecycle: request permission, register service worker, store VAPID subscription, revoke/deactivate devices.
+- User notification preferences for match start, match finish, pool invitation, global ranking improvement, and live goal events.
+- Notification event log/outbox to deduplicate sends from repeated sync/scoring runs.
+- Integrations with Unit 3 pool invitations, including new directed invitations by nickname/email while preserving existing link/code invites; Unit 4 match status/score changes; and Unit 6 global ranking movement.
+- Provider adapter with v1 baseline `standard-web-push`; OneSignal/FCM/Novu remain future adapters, not required for MVP.
+
+**Primary Deliverable**: A verified user can enable browser push, select notification types, and receive deduplicated event notifications without paid push infrastructure.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -148,9 +176,12 @@ Feature modules should own their server actions, schemas, services, and feature-
 6. Unit 6: Scoring and Pool Rankings
 7. Unit 7: Admin and Observability
 8. Unit 8: Design System and UI Polish (post-construction refine; cross-cutting)
+9. Unit 9: Transactional Email (post-construction refine; cross-cutting; no new deps)
+10. Unit 10: Web Push Notifications (post-construction refine; event-driven; free baseline)
 
 ## Security Notes
 
 - Units 1, 3, 5, 6, and 7 contain sensitive writes and must define validation, authorization, and RLS boundaries.
 - Unit 5 and Unit 6 must preserve immutable prediction/scoring data for future crypto betting.
 - Unit 7 must require audit reasons for manual result overrides.
+- Unit 10 must never expose private pool, prediction or ranking data through push payloads; payloads stay minimal and links re-authorize on open.

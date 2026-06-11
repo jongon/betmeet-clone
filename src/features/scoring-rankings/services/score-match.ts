@@ -1,3 +1,7 @@
+import {
+  emitGlobalRankImprovedEvents,
+  getGlobalRankSnapshot,
+} from "@/features/notifications/services/ranking-events";
 import { computeScore } from "@/features/scoring/compute-score";
 import type { ScoreMatchedCase } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
@@ -23,6 +27,8 @@ export async function scoreMatch(matchId: string): Promise<{ scored: number }> {
     await prisma.predictionScore.deleteMany({ where: { matchId } });
     return { scored: 0 };
   }
+
+  const previousGlobalRanks = await getGlobalRankSnapshot().catch(() => null);
 
   const scoreableMatch: ScoreableMatch = {
     homeTeamId: match.homeTeamId,
@@ -53,6 +59,14 @@ export async function scoreMatch(matchId: string): Promise<{ scored: number }> {
       });
     }),
   );
+
+  if (previousGlobalRanks) {
+    try {
+      await emitGlobalRankImprovedEvents(previousGlobalRanks, matchId);
+    } catch {
+      // Notification outbox is best-effort and must not block scoring.
+    }
+  }
 
   return { scored: match.predictions.length };
 }

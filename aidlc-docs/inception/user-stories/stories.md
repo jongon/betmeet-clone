@@ -226,3 +226,84 @@
   - Las 6 combinaciones (marca × claro/oscuro) son válidas y legibles.
   - La preferencia persiste tras recargar y no produce flash (FOUC) al cargar.
   - Contraste AA, foco visible y controles navegables por teclado.
+
+## Épica 8: Emails Transaccionales (Unit 9 — añadida vía `/aidlc-refine`)
+
+### US-8.1: Envío fiable de correos de auth
+**Como** equipo del producto
+**Quiero** que los correos de verificación, reset y cambio de email salgan por Resend (Custom SMTP de Supabase)
+**Para** tener entregabilidad de producción sin construir infraestructura de email propia.
+- **Criterios de Aceptación**:
+  - Resend configurado como Custom SMTP en Supabase; en dev se usa el sandbox `resend.dev`.
+  - En producción, dominio propio verificado en Resend (DKIM/SPF/DMARC) antes de salir del sandbox.
+  - Sin dependencias npm nuevas; el código de disparo sigue siendo el SDK de Supabase ya existente.
+
+### US-8.2: Plantillas de auth con identidad de marca, versionadas en el repo
+**Como** desarrollador
+**Quiero** que las plantillas HTML de los correos de auth vivan en el repositorio y se desplieguen a Supabase
+**Para** versionarlas, revisarlas en PR y alinearlas con la identidad visual (Unit 8), aunque Supabase las hospede.
+- **Criterios de Aceptación**:
+  - `supabase/templates/{confirmation,recovery,email_change}.html` con estilos inline y placeholders de Supabase (`{{ .ConfirmationURL }}`, etc.).
+  - `supabase/config.toml` referencia cada plantilla vía `content_path` y define su `subject`.
+  - No cambia el runtime de la app (los `redirectTo` siguen usando `NEXT_PUBLIC_SITE_URL`).
+
+### US-8.3: Catálogo de notificaciones de negocio (backlog)
+**Como** jugador
+**Quiero** recibir avisos relevantes (invitación a pool, recordatorio de partido, mis puntos de la jornada, cambios de ranking)
+**Para** mantenerme enganchado a mis quinielas.
+- **Criterios de Aceptación** (post-MVP, requiere SDK de Resend):
+  - Catálogo definido (Grupo B en FR-EMAIL-01): invitación a pool, alta/expulsión de miembro, recordatorio pre-kickoff, resumen de puntos, cambio de ranking, recálculo por override, alerta de sync a admins.
+  - Los correos sin request HTTP de usuario (recordatorios, resumen, ranking, alertas) se disparan desde un job/cron, no inline.
+  - Preferencias de notificación por usuario antes de activar envíos masivos.
+
+---
+
+## Épica 9: Notificaciones Web Push (Unit 10 — añadida post-construction)
+
+### US-9.1: Activar web push por dispositivo
+**Como** usuario verificado
+**Quiero** activar notificaciones web push en mi navegador
+**Para** recibir avisos importantes aunque no tenga la app abierta.
+- **Criterios de Aceptación**:
+  - El sistema solicita permiso del navegador solo por acción explícita del usuario.
+  - Si el permiso es denegado, la UI explica cómo reactivarlo sin bloquear la app.
+  - Una cuenta puede registrar más de un dispositivo/navegador.
+
+### US-9.2: Configurar preferencias por tipo de notificación
+**Como** usuario
+**Quiero** elegir qué notificaciones recibir
+**Para** evitar ruido y recibir solo avisos útiles.
+- **Criterios de Aceptación**:
+  - Puedo activar/desactivar: inicio de partido, final de partido, invitación a liga/pool, subida en ranking global y gol anotado.
+  - Las preferencias se guardan por usuario y aplican a todos sus dispositivos.
+  - Desactivar un tipo evita nuevos envíos de ese tipo sin borrar la suscripción del dispositivo.
+
+### US-9.3: Avisos de estado del partido
+**Como** jugador
+**Quiero** recibir notificaciones cuando empieza un partido, termina o se anota un gol
+**Para** seguir la competición y mis predicciones en tiempo real.
+- **Criterios de Aceptación**:
+  - Inicio de partido se emite cuando el estado cambia a `LIVE` o el kickoff se alcanza.
+  - Final de partido se emite cuando el estado cambia a `FINISHED`.
+  - Gol anotado se emite cuando el marcador cambia durante un partido `LIVE`.
+  - No se envían duplicados si el sync repite el mismo estado/marcador.
+
+### US-9.4: Aviso de invitación a liga/pool
+**Como** jugador
+**Quiero** recibir una notificación cuando me invitan a una liga/pool
+**Para** unirme antes de que empiece la competición.
+- **Criterios de Aceptación**:
+  - Se soportan invitaciones dirigidas por nickname o email, manteniendo el link/código actual de invitación.
+  - La notificación solo se envía al usuario invitado cuando la invitación es dirigida.
+  - Los links/códigos genéricos no generan push porque no tienen destinatario conocido.
+  - El contenido no expone datos de pools privados a usuarios no invitados.
+  - El click abre la pantalla de invitación/join correspondiente.
+
+### US-9.5: Aviso de subida en ranking global
+**Como** jugador competitivo
+**Quiero** recibir un aviso cuando subo en el ranking global
+**Para** saber que mejoré mi posición tras un partido.
+- **Criterios de Aceptación**:
+  - La subida se detecta comparando la posición global anterior y nueva tras scoring.
+  - Solo se notifica si la posición mejora; no se notifica al bajar o permanecer igual.
+  - El click abre la vista de ranking global o la mejor vista disponible si el ranking global aún no tiene UI dedicada.

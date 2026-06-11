@@ -72,3 +72,10 @@
 | BR-4.36 | Sync operations require server-side admin/system authorization. |
 | BR-4.37 | RLS must deny direct client writes to competition, team, match, and sync log tables. |
 | BR-4.38 | Errors shown to users must not expose provider internals or API secrets. |
+
+## Future Unit 10 Notification Events
+
+| ID | Rule |
+|---|---|
+| BR-4.39 | Match sync/status updates may emit deduplicated Unit 10 events for `MATCH_STARTED`, `MATCH_FINISHED`, and `GOAL_SCORED` after the core match update succeeds. |
+| BR-4.40 | Notification event production must be best-effort and must not block provider sync, fixture reads, or match result persistence. |

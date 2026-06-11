@@ -77,3 +77,11 @@
 |---|---|
 | **BR-3.28** | Toda mutación verifica ownership/membresía **server-side** (prevención IDOR): solo el owner expulsa/elimina/configura; solo un miembro archiva/sale de su propia membresía. |
 | **BR-3.29** | RLS en Supabase protege `pools` y `pool_memberships`; además se valida en Server Actions (consistente con la política de Unit 1). |
+
+## Integración futura con Unit 10 Web Push
+
+| ID | Regla |
+|---|---|
+| **BR-3.30** | Unit 10 puede agregar invitaciones dirigidas por nickname/email sobre el flujo existente de `inviteToken`. Si se resuelve un usuario destinatario, puede emitir `POOL_INVITE`; el evento es aditivo, deduplicable y no cambia la semántica de tokens/links de invitación aprobada en Unit 3. |
+| **BR-3.31** | Los links/códigos de invitación compartidos sin destinatario conocido se mantienen y no generan push, porque no hay receptor autorizado. |
+| **BR-3.32** | Invitar por email sin cuenta existente puede crear una invitación pendiente vinculada al email normalizado, pero no genera web push hasta que exista un usuario resuelto. |

@@ -1,3 +1,4 @@
+import { emitMatchNotificationEvents } from "@/features/notifications/services/match-events";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import type { NormalizedMatch, NormalizedTeam } from "../schemas";
@@ -120,11 +121,23 @@ export async function upsertMatch(
   };
 
   if (match.matchNumber !== null) {
-    return prisma.match.upsert({
+    const where = { competitionId_matchNumber: { competitionId, matchNumber: match.matchNumber } };
+    const previous = await prisma.match.findUnique({
+      where,
+      include: { homeTeam: true, awayTeam: true },
+    });
+    const saved = await prisma.match.upsert({
       where: { competitionId_matchNumber: { competitionId, matchNumber: match.matchNumber } },
       update: data,
       create: data,
+      include: { homeTeam: true, awayTeam: true },
     });
+    try {
+      await emitMatchNotificationEvents(previous, saved);
+    } catch {
+      // Notification outbox is best-effort and must not block competition sync.
+    }
+    return saved;
   }
 
   return prisma.match.create({ data });

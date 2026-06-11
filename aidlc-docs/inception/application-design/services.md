@@ -68,6 +68,16 @@ Builds pool-only leaderboards.
 - Supports shared tied winners with no tiebreakers.
 - Displays nickname and avatar only.
 
+## Notification Service
+
+Manages user notification preferences, browser subscriptions, and event delivery.
+
+- Stores per-user opt-in preferences for each notification type.
+- Stores Web Push subscriptions per device/browser using endpoint and browser public keys.
+- Emits deduplicated notification events from pool invitations, match status/score changes, and ranking recalculation.
+- Sends via v1 `standard-web-push` provider using VAPID keys; no paid SaaS required for MVP scale.
+- Deactivates invalid subscriptions after push service `404/410` responses and records sanitized send failures.
+
 ## Admin Service
 
 Provides global-admin-only operations.
@@ -101,4 +111,5 @@ Wraps Supabase Storage avatar operations.
 - Prisma performs domain database access.
 - Supabase SSR helpers handle auth/session.
 - Supabase Edge scheduled jobs handle background football sync.
+- Web Push sends run server-side only; VAPID private keys are never exposed to the browser.
 - RLS policies protect Supabase-exposed tables; application-level checks still run server-side.

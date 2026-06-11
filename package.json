@@ -17,7 +17,7 @@
     "prisma:studio": "prisma studio",
     "seed:competition": "tsx scripts/seed-competition.ts",
     "check:flags": "tsx scripts/check-flags.ts",
-    "postinstall": "node scripts/generate-mcp.mjs && opencode-aidlc setup --nested && claudecode-aidlc setup --copy-commands",
+    "postinstall": "if [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; then node scripts/generate-mcp.mjs && opencode-aidlc setup --nested && claudecode-aidlc setup --copy-commands; fi",
     "prepare": "lefthook install"
   },
   "dependencies": {
@@ -38,6 +38,7 @@
     "react-hook-form": "^7.78.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
+    "web-push": "^3.6.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -53,6 +54,7 @@
     "@types/node": "25.9.2",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "@types/web-push": "^3.6.4",
     "@vitejs/plugin-react": "^6.0.2",
     "claudecode-aidlc": "^0.2.0",
     "commitlint-config-gitmoji": "^2.3.1",

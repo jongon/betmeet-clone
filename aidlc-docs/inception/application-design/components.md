@@ -107,16 +107,22 @@
 
 ## 8. Notifications Component
 
-**Purpose**: Provide minimum v1 communication and UX cues.
+**Purpose**: Provide configurable notification channels and UX cues.
 
 **Responsibilities**:
 - Rely on Supabase Auth for verification and reset emails.
 - Provide in-app UI cues for upcoming matches, lock states, and score outcomes.
-- Defer email reminders and push notifications to a later iteration.
+- Manage browser push subscriptions, user notification preferences, event outbox, and delivery attempts in Unit 10.
+- Send v1 push events for match start, match finish, pool invitation, global ranking improvement, and live goal events.
+- Use standard Web Push + VAPID as the v1 provider, behind an adapter interface so OneSignal/FCM/Novu can be added later.
+- Deduplicate repeated events from sync/scoring retries and remove invalid subscriptions.
 
 **Interfaces**:
 - Auth & Session for auth emails.
 - UX Education Layer for in-app cues.
+- Pools & Membership for invitation events.
+- Competition Data for match lifecycle and goal events.
+- Scoring & Rankings for global ranking movement.
 
 ## 9. Admin Console Component
 
