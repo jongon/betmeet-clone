@@ -19,16 +19,10 @@ async function main() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const databaseUrl = process.env.DATABASE_URL;
 
-  const missing = [
-    ["NEXT_PUBLIC_SUPABASE_URL", supabaseUrl],
-    ["SUPABASE_SERVICE_ROLE_KEY", serviceRoleKey],
-    ["DATABASE_URL", databaseUrl],
-  ]
-    .filter(([, value]) => !value)
-    .map(([name]) => name);
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
+  if (!supabaseUrl || !serviceRoleKey || !databaseUrl) {
+    throw new Error(
+      "Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL",
+    );
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
