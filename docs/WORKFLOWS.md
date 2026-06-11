@@ -91,7 +91,25 @@ pnpm prisma:studio     # Abrir Prisma Studio (GUI)
 pnpm prisma db seed    # Ejecutar seed via prisma/seed.ts
 ```
 
-> **Nota**: Las migraciones de schema se gestionan en Supabase (`supabase/migrations/`). No se usa `prisma migrate dev`. El schema de Prisma (`prisma/schema.prisma`) es la fuente de verdad para el modelo de datos pero las migraciones se aplican via Supabase CLI o dashboard.
+### Migraciones (CF-6)
+
+El schema se gestiona con **migraciones Prisma versionadas** en `prisma/migrations/`:
+
+- `20260609000000_init/` — baseline (tablas/enums/índices/FKs desde `schema.prisma`).
+- `20260611120000_rls_constraints_triggers/` — RLS, policies, CHECK, índices
+  parciales/compuestos, triggers y policies de Storage (requiere los schemas
+  `auth`/`storage` de Supabase y el bucket `avatars`).
+
+```bash
+npx prisma migrate deploy   # aplica migraciones pendientes (usar direct connection :5432, no el pooler :6543)
+npx prisma migrate status   # estado del historial
+# Generar baseline tras cambiar schema.prisma:
+#   npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > .../migration.sql
+```
+
+> **Nota**: Las antiguas migraciones SQL de `supabase/migrations/` se portaron a Prisma
+> y se eliminaron del repo (su historial queda en git). El runbook de
+> inicialización completo está en `aidlc-docs/operations/operations-runbook.md`.
 
 ## Supabase
 

@@ -47,7 +47,7 @@ Liga Mundial SaaS para el FIFA World Cup 2026 — los usuarios se registran, se 
 - **Feature-based** en `src/features/<name>/` con estructura `actions/`, `components/`, `queries.ts`, `services/`, `types.ts`, `schemas.ts`, `__tests__/`
 - **Tailwind v4 CSS-first** — sin `tailwind.config.*`; tokens en `src/app/globals.css`
 - **Server Actions** para mutaciones; **Prisma** para DB; **Supabase** para auth/storage
-- **Migraciones SQL** en `supabase/migrations/` (no se usa `prisma migrate`)
+- **Migraciones Prisma** versionadas en `prisma/migrations/` (`prisma migrate deploy`); baseline + RLS/triggers/Storage. las antiguas SQL de `supabase/migrations/` se portaron a Prisma y se eliminaron del repo (historial en git) (CF-6)
 - **Context7** — consultar documentación antes de usar cualquier librería externa
 - **Alias** `@/*` → `src/`
 
