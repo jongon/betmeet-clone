@@ -63,12 +63,12 @@ describe("signIn", () => {
     expect(result).toHaveProperty("requiresMfa", true);
   });
 
-  it("redirects to / on success", async () => {
+  it("redirects to /matches on success", async () => {
     mockSignInWithPassword.mockResolvedValue({
       data: { user: { id: "1", email: "a@b.com" } },
       error: null,
     });
     await signIn(makeFormData({ email: "a@b.com", password: "password123" }));
-    expect(redirect).toHaveBeenCalledWith("/");
+    expect(redirect).toHaveBeenCalledWith("/matches");
   });
 });
