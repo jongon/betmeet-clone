@@ -46,7 +46,10 @@ export function OnboardingClient({
       )}
 
       {step === "passkey" && (
-        <PasskeyStep onComplete={() => router.push("/")} onSkip={() => router.push("/")} />
+        <PasskeyStep
+          onComplete={() => router.push("/matches")}
+          onSkip={() => router.push("/matches")}
+        />
       )}
     </div>
   );

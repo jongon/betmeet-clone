@@ -10,7 +10,7 @@ export default async function OnboardingProfilePage() {
 
   if (!profile) redirect("/sign-in");
   // Already completed onboarding
-  if (profile.nicknameBase) redirect("/");
+  if (profile.nicknameBase) redirect("/matches");
 
   return (
     <div className="flex min-h-svh items-center justify-center p-4">

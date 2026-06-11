@@ -68,5 +68,5 @@ export async function signIn(formData: FormData): Promise<SignInState> {
     return { error: { _form: ["Sign in failed. Please try again."] } };
   }
 
-  redirect("/");
+  redirect("/matches");
 }
