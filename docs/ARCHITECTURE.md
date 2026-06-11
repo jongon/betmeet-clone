@@ -133,7 +133,8 @@ Ver `.env.example` para la lista completa. Variables clave:
 
 | Variable | Descripción |
 |----------|-------------|
-| `DATABASE_URL` | Connection string de PostgreSQL (Supabase o local) |
+| `DATABASE_URL` | Connection string runtime de PostgreSQL; usar transaction pooler en Supabase/producción |
+| `DIRECT_URL` | Connection string directa de PostgreSQL para Prisma CLI/migraciones |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave service_role (solo server/scripts) |

@@ -20,7 +20,7 @@
 | H-3 | `NEXT_PUBLIC_SUPABASE_URL` estaba **comentada** y apuntaba a otro proyecto (`ghqbquxxqvryrjdcjdri`) distinto al del `SERVICE_ROLE_KEY`/`DATABASE_URL` (`ybilxazlmkhjisybdxub`). | `seed-admin`/`seed-avatars` (Admin API de Supabase) fallan con "Missing required environment variables" o apuntan al proyecto equivocado. |
 | H-4 | `scripts/seed-competition.ts` usaba **top-level await**; con `tsx` y sin `"type":"module"` se transpila a CJS y rompe. | Corregido: envuelto en `async function main()` (mismo patrón que `seed-admin.ts`/`seed-avatars.ts`). |
 | H-5 | El usuario admin se creó en `Authentication → Users` **antes** de existir la tabla `profiles` y el trigger `handle_new_user`. | El trigger solo dispara en *nuevos* inserts → **no hay fila en `profiles`** para ese usuario → `seed-admin` (que hace `UPDATE`) falla. |
-| H-6 | `DATABASE_URL` usa el **transaction pooler** (`...pooler.supabase.com:6543`). | Operaciones DDL (`prisma db push` / `migrate deploy`) pueden fallar ahí; usar la **direct connection** (`db.<ref>.supabase.co:5432`) solo para migrar. |
+| H-6 | `DATABASE_URL` usa el **transaction pooler** (`...pooler.supabase.com:6543`). | Correcto para runtime. Operaciones DDL (`prisma db push` / `migrate deploy`) deben usar `DIRECT_URL` con la **direct connection** (`db.<ref>.supabase.co:5432`). |
 | H-7 | `.env` contiene `SUPABASE_SERVICE_ROLE_KEY`, el password de la BD y `API_FOOTBALL_KEY` en texto plano. | Riesgo de credenciales. Confirmar `.env` en `.gitignore` y **rotar** secretos expuestos. |
 
 ---
@@ -31,7 +31,8 @@ Referencia: `.env.example`. Por entorno:
 
 | Variable | Runtime | Migraciones/seed | Notas |
 |---|---|---|---|
-| `DATABASE_URL` | pooler `:6543` | **direct** `:5432` recomendado (H-6) | Prisma resuelve esta var (`prisma.config.ts`). |
+| `DATABASE_URL` | pooler `:6543` | seeds runtime/idempotentes | Usada por Prisma Client en la app y scripts de seed. |
+| `DIRECT_URL` | — | direct `:5432` | Usada por `prisma.config.ts` para Prisma CLI/migraciones. |
 | `NEXT_PUBLIC_SUPABASE_URL` | ✓ | ✓ (`seed-admin`, `seed-avatars`) | Debe ser **del mismo proyecto** que el service role key (H-3). |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | ✓ | Solo servidor; nunca al cliente. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✓ | — | Del mismo proyecto. |
@@ -53,7 +54,7 @@ Pasos en una BD nueva/vacía:
 
 1. **Crear el bucket de Storage `avatars`** en Supabase (Dashboard/`config.toml`): la
    migración de RLS y `scripts/seed-avatars.ts` lo asumen existente.
-2. **Aplicar migraciones** con la *direct connection* (`:5432`, H-6), no el pooler:
+2. **Aplicar migraciones** con `DIRECT_URL` apuntando a la *direct connection* (`:5432`, H-6), no el pooler:
    ```bash
    npx prisma migrate deploy
    ```

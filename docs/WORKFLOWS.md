@@ -134,7 +134,8 @@ supabase functions deploy competition-sync
 Copiar `.env.example` y completar:
 
 ```env
-DATABASE_URL="postgresql://..."          # PostgreSQL connection string
+DATABASE_URL="postgresql://..."          # PostgreSQL runtime connection string (pooler en prod)
+DIRECT_URL="postgresql://..."            # PostgreSQL direct connection para Prisma CLI/migraciones
 NEXT_PUBLIC_SUPABASE_URL="https://..."   # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY="..."      # Supabase anon key
 SUPABASE_SERVICE_ROLE_KEY="..."          # Supabase service role (solo server)

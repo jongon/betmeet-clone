@@ -3,6 +3,7 @@
  * Usage: pnpm tsx scripts/seed-admin.ts <email>
  */
 
+import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { createClient } from "@supabase/supabase-js";
 import { PrismaClient } from "../src/generated/prisma/client";
@@ -18,8 +19,16 @@ async function main() {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const databaseUrl = process.env.DATABASE_URL;
 
-  if (!supabaseUrl || !serviceRoleKey || !databaseUrl) {
-    throw new Error("Missing required environment variables");
+  const missing = [
+    ["NEXT_PUBLIC_SUPABASE_URL", supabaseUrl],
+    ["SUPABASE_SERVICE_ROLE_KEY", serviceRoleKey],
+    ["DATABASE_URL", databaseUrl],
+  ]
+    .filter(([, value]) => !value)
+    .map(([name]) => name);
+
+  if (missing.length > 0) {
+    throw new Error(`Missing required environment variables: ${missing.join(", ")}`);
   }
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
@@ -36,9 +45,20 @@ async function main() {
   const adapter = new PrismaPg({ connectionString: databaseUrl });
   const prisma = new PrismaClient({ adapter });
 
-  await prisma.profile.update({
+  const defaultAvatar = await prisma.avatarAsset.findFirst({
+    orderBy: { displayOrder: "asc" },
+    select: { storageUrl: true },
+  });
+
+  await prisma.profile.upsert({
     where: { id: user.id },
-    data: { verificationStatus: "ADMIN" },
+    create: {
+      id: user.id,
+      avatarUrl: defaultAvatar?.storageUrl ?? "",
+      avatarSource: "DEFAULT_SET",
+      verificationStatus: "ADMIN",
+    },
+    update: { verificationStatus: "ADMIN" },
   });
 
   console.log(`✓ ${email} promoted to ADMIN`);
