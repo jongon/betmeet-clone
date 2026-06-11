@@ -33,6 +33,9 @@ const BRAND_BOOTSTRAP = `(function(){try{var b=localStorage.getItem("brand-theme
 export const metadata: Metadata = {
   title: { default: "Liga Mundial 2026", template: "%s · Liga Mundial 2026" },
   description: "Predice el Mundial 2026 con tus amigos. Crea tu liga y compite en el ranking.",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

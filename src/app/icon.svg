@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Balon de futbol">
+  <rect width="64" height="64" rx="14" fill="#0f172a" />
+  <circle cx="32" cy="32" r="24" fill="#f8fafc" />
+  <path
+    fill="#111827"
+    d="m32 16 9 6-3 10H26l-3-10 9-6Zm0 22 10 7-4 10H26l-4-10 10-7ZM14 31l7-7 3 10-7 7-3-10Zm36-7 7 7-3 10-7-7 3-10ZM20 47l5 9c-5-2-9-5-12-10l7 1Zm24 9 5-9 7-1c-3 5-7 8-12 10Z"
+  />
+  <path
+    fill="none"
+    stroke="#111827"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="3"
+    d="M23 22 15 18m26 4 8-4M26 32l-9 9m21-9 9 9M22 45l-9 1m29-1 9 1"
+  />
+</svg>

@@ -8,14 +8,14 @@ export async function GET(request: NextRequest) {
   const next = searchParams.get("next") ?? "/";
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/auth/sign-in?error=missing_code`);
+    return NextResponse.redirect(`${origin}/sign-in?error=missing_code`);
   }
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
   if (error || !data.session) {
-    return NextResponse.redirect(`${origin}/auth/sign-in?error=exchange_failed`);
+    return NextResponse.redirect(`${origin}/sign-in?error=exchange_failed`);
   }
 
   // Sync Google avatar if applicable
