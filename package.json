@@ -16,6 +16,7 @@
     "prisma:generate": "rm -rf src/generated/prisma && prisma generate",
     "prisma:studio": "prisma studio",
     "seed:competition": "tsx scripts/seed-competition.ts",
+    "sync:flags": "tsx scripts/sync-flags.ts",
     "check:flags": "tsx scripts/check-flags.ts",
     "postinstall": "if [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; then node scripts/generate-mcp.mjs && opencode-aidlc setup --nested && claudecode-aidlc setup --copy-commands; fi",
     "prepare": "lefthook install"
