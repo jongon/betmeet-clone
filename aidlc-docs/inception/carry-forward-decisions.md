@@ -110,6 +110,7 @@ Detalle del enfoque:
 **Contexto / hallazgo de metodología**:
 - El commit `683d707` ("clean codebase") **eliminó `src/proxy.ts`** etiquetándolo como *"dead code: unwired auth middleware"* **sin un refine AI-DLC** — desviando el código de los artefactos de Unit 1 (que seguían describiendo el middleware como presente). Restaurado en `fa43333`, lo que re-alinea código y documentación.
 - El 404 de confirmación de email se debía a redirecciones a `/auth/sign-in` (ruta inexistente; el login vive en el route-group `(auth)` → `/sign-in`). Corregido.
+**Resiliencia (loop de redirección, `9e22350`)**: con `/matches` como home gateada, un usuario autenticado **sin fila en `profiles`** (trigger `handle_new_user` no ejecutado: usuario previo al trigger o migraciones no desplegadas) provocaba `ERR_TOO_MANY_REDIRECTS` (proxy → `/onboarding/profile` → `redirect('/sign-in')` → proxy → `/matches`). Mitigado en código: `getOrCreateProfile()` auto-crea la fila (upsert idempotente) y la página de onboarding distingue "sin sesión" (→ `/sign-in`) de "fila ausente" (auto-sana). **Deuda de datos en prod** (ver CF-6 / Operations): ejecutar `prisma migrate deploy` (instala el trigger para futuros signups) y backfill de `profiles` para usuarios de `auth.users` sin fila.
 **Pendiente (no aprobado por el usuario, 2026-06-11)**: migrar la confirmación de email del flujo PKCE a `token_hash` + `verifyOtp` para resistir Outlook SafeLinks / cross-device.
 
 ---

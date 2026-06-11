@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Refine — Loop de redirección en onboarding sin perfil (Unit 1 + Unit 2)
+**Timestamp**: 2026-06-11
+**User Input**: "Ahora si trata de redirigirme pero primero a /matches y veo que justo después intenta redirigirme a /profile/on-boarding ahí se queda un rato hasta que me dice el navegador ERR_TOO_MANY_REDIRECTS"
+**AI Response**: "Diagnostiqué un loop de redirección destapado por el destino `/matches` gateado. Mecanismo: un usuario autenticado **sin fila en `profiles`** (el trigger `handle_new_user` no corrió — usuario anterior al trigger o migraciones no desplegadas en prod, ver CF-6) → el gate del proxy lo manda a `/onboarding/profile` → la página hacía `redirect('/sign-in')` al no encontrar perfil → el proxy rebota esa página auth-only de vuelta a `/matches` → loop. Fix de código resiliente (`9e22350`): añadí `getOrCreateProfile()` que auto-crea la fila (upsert idempotente con avatar por defecto) para el usuario autenticado y devuelve null solo si no hay sesión; la página de onboarding ahora distingue 'sin sesión' (→ `/sign-in`) de 'fila ausente' (auto-sana). Actualicé el test de sign-in al destino `/matches`. Verificado: tsc 0 errores, Biome limpio, 115/115 tests. Causa de datos en prod: falta `prisma migrate deploy` (trigger) + backfill de `profiles` para usuarios existentes (acción Operations / CF-6)."
+**Code change**: `src/features/profile/queries.ts` (`getOrCreateProfile` + `toProfile`), `src/app/onboarding/profile/page.tsx`, `src/features/auth/actions/__tests__/sign-in.test.ts` (commit `9e22350`).
+**Context**: Continuación del refine del auth gate; sin restart de stages; Units 1–10 intactas. El fix de código sana al usuario afectado al entrar a onboarding; la deuda de datos en prod queda anotada en CF-6/Operations.
+
+---
+
 ## Refine — Auth gate (proxy.ts) + destino post-autenticación (Unit 1 + Unit 2)
 **Timestamp**: 2026-06-11
 **User Input**: "Cuando me llega el email de confirmar email y hacer click, me aparece un error 404 … todo esto en producción" → "me lleva a la pantalla de inicio de sesión … cuando inicio sesión no me lleva a ningún lado de la app pero no me da ningún error" → `/aidlc-refine`: "De lo anterior hecho no deberían modificar algo para mantener la metodología ai-dlc?"
