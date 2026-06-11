@@ -1,5 +1,33 @@
 # AI-DLC Audit Log
 
+## Operations Refine — Descarga de banderas SVG del Mundial 2026
+**Timestamp**: 2026-06-11
+**User Input**: "en otra sesión estaba apunto de descargar las banderas de los equipos que van al mundial en formato svg que tienen que estar en la aplicación puedes continuar con esa descarga"
+**AI Response**: "Continué el refinamiento operativo de CF-2/CF-3 sin reiniciar stages aprobadas. Verifiqué que `public/flags/` solo contenía `us`, `ca`, `mx` y que `pnpm check:flags` fallaba por 45 assets faltantes. Descargué las banderas SVG restantes desde `lipis/flag-icons`, añadí `scripts/sync-flags.ts` y el script `pnpm sync:flags` para reproducibilidad, y validé `pnpm sync:flags && pnpm check:flags` con 48/48 assets. Actualicé `aidlc-state.md`, CF-2/CF-3, Unit 4 infrastructure/code summary, shared infrastructure y operations runbook. Units 1–10 aprobadas/verificadas no se reiniciaron."
+**Code change**: `public/flags/*.svg` completado para las 48 selecciones seeded; `scripts/sync-flags.ts`; `package.json` (`sync:flags`).
+**Context**: Refinamiento post-construction/Operations para assets locales requeridos por Unit 4; sin cambios de schema ni comportamiento de dominio.
+
+---
+
+## CF-6 Aprobada e Implementada — Migración a Prisma migrations
+**Timestamp**: 2026-06-11
+**User Input**: "Apruebo la migración"
+**AI Response**: "Implementé CF-6: consolidé el schema en migraciones Prisma versionadas. (1) Generé el baseline con `prisma migrate diff --from-empty --to-schema` → `prisma/migrations/20260609000000_init/` (16 tablas, 13 enums). (2) Porté RLS/CHECK/índices parciales/triggers/Storage de las 9 `supabase/migrations/*.sql` a `prisma/migrations/20260611120000_rls_constraints_triggers/`, omitiendo la FK duplicada `predictions_penalty_team_fk` (el baseline ya crea `predictions_penalty_winner_team_id_fkey`) y los `CREATE TABLE/TYPE/INDEX` de 0011 (cubiertos por el baseline; el unique completo equivale al parcial por la semántica de NULL en Postgres). (3) Validé en una BD temporal local con stubs `auth`/`storage`: ambas migraciones aplican, `migrate diff` = 0 drift vs schema.prisma, `seed:competition` OK, 16 tablas con RLS. (4) Archivé las SQL en `supabase/migrations-legacy/` con README. (5) Actualicé AGENTS.md, docs/WORKFLOWS.md, CF-6 (aprobada+implementada), operations-runbook §2 y aidlc-state."
+**Code change**: `prisma/migrations/` (2 migraciones nuevas), `supabase/migrations/*.sql` → `supabase/migrations-legacy/`, AGENTS.md, docs/WORKFLOWS.md.
+**Pendiente**: `prisma migrate deploy` contra prod (direct connection :5432) + seed + habilitar admin.
+**Context**: Implementación de CF-6 aprobada por el usuario; sin restart de stages; sin escritura a prod (validación en BD temporal local).
+
+---
+
+## Operations Refine — Runbook de inicialización, schema y seed
+**Timestamp**: 2026-06-11
+**User Input**: "Cómo inicializo este proyecto, cómo hago el seed inicial… mi .env está apuntando a la bd de producción" → "Quiero poblar la base de datos con los datos iniciales y habilitar mi usuario administrador" → `/aidlc-refine`: "recuerda que uso aidlc y todo esto debería estar documentando segun la metodología"
+**AI Response**: "Clasifiqué el trabajo de inicialización de entorno/datos como fase OPERATIONS (estaba como placeholder) y lo documenté en `aidlc-docs/operations/operations-runbook.md`: variables de entorno, creación de schema (gap Prisma vs supabase/migrations), seed de competición, bucket de Storage, y habilitación de admin. Registré 7 hallazgos (H-1..H-7), entre ellos: prod vacío de schema; las migraciones SQL solo aplican RLS/triggers sobre tablas que crea Prisma; `NEXT_PUBLIC_SUPABASE_URL` apuntaba a otro proyecto; el usuario admin no tiene fila `profiles` por haberse creado antes del trigger; pooler vs direct connection para DDL; secretos de prod en `.env`. Añadí CF-6 (estrategia de migraciones, propuesta pendiente). Actualicé `aidlc-state.md` (Operations en progreso). No se reiniciaron etapas aprobadas (Units 1–10 intactas)."
+**Code change**: Fix de `scripts/seed-competition.ts` — top-level await envuelto en `async function main()` (rompía bajo `tsx`/CJS). Edición local de `.env` (`NEXT_PUBLIC_SUPABASE_URL` al proyecto correcto). No se ejecutó DDL ni seed contra prod en esta sesión.
+**Context**: Refine adaptativo en fase Operations; documentación del procedimiento operativo sin restart de stages.
+
+---
+
 ## Post-Construction Refinement — Unit 10 Web Push Notifications
 **Timestamp**: 2026-06-11
 **User Input**: "Quiero implementar web push notifications. Los usuarios tienen que ser capaces de configurar cuales notificaciones quiero o no recibir. Las notificaciones: Cuando empieza un partido; Cuando termina un partido; Cuando me invitan a un pool; Cuando subo en el ranking global; Cuando se anota un gol. Anteriormente he usado OneSignal para eso, pero no se si ese stack eslo recomendado para este stack. Busco alternativas gratis por la escala" followed by clarification: "Hay un unit 9 ahora creandose. tu debes ser el unit 10"

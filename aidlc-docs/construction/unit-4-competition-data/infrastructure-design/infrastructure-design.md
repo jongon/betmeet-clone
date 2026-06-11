@@ -99,10 +99,11 @@ Local development documents `.env` setup. Preview environments use seed/mock by 
 
 ### Local SVGs (Q6=A)
 
-- Flags are copied into `public/flags/` by a reproducible script.
+- Flags are copied into `public/flags/` by the reproducible `pnpm sync:flags` script.
 - Required SVGs are committed to the repo.
 - `teams.flagKey` maps to `public/flags/{flagKey}.svg`.
 - UI falls back to FIFA code if an asset is missing, but validation should catch missing assets before deploy.
+- Operational refine 2026-06-11: `lipis/flag-icons` selected as source, 48/48 seeded team flags downloaded and validated with `pnpm check:flags`.
 
 ---
 

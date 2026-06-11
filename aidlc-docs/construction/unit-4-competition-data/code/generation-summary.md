@@ -9,8 +9,8 @@
 - Added Prisma domain models and enums for competitions, phases, teams, matches, and provider sync runs.
 - Added Supabase migration `20260610000006_create_competition_data.sql` with read-oriented competition tables, write restrictions for clients, and sync run support.
 - Added `src/features/competition/` with typed view models, Zod schemas, fixture queries, freshness calculation, seed data, provider abstractions, API-Football status mapping, sync orchestration, and idempotent upsert services.
-- Added idempotent seed script `pnpm seed:competition` and local flag validation script `pnpm check:flags`.
-- Added local SVG flags for seeded teams under `public/flags/`.
+- Added idempotent seed script `pnpm seed:competition`, reproducible flag download script `pnpm sync:flags`, and local flag validation script `pnpm check:flags`.
+- Added local SVG flags for all 48 seeded teams under `public/flags/` (completed/refreshed 2026-06-11 from `lipis/flag-icons`).
 - Added authenticated dynamic route `/matches` with fixture sections, status badges, stale banner, team badges, and empty/error-ready rendering.
 - Integrated Unit 3 pool freeze logic with Unit 4 competition kickoff lookup, preserving environment fallback behavior.
 - Added Supabase Edge Function scaffold at `supabase/functions/competition-sync/index.ts` for scheduled/manual sync runtime hardening.
@@ -23,5 +23,6 @@
 
 ## Commands
 - `pnpm seed:competition`: seed/update competition data after migrations.
+- `pnpm sync:flags`: download/update every seeded `flagKey` from `lipis/flag-icons` into `public/flags/`.
 - `pnpm check:flags`: validate every seeded `flagKey` has a local SVG asset.
 - `API_FOOTBALL_KEY`: server-side provider key only; previews remain seed/mock unless explicitly configured.

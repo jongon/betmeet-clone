@@ -135,9 +135,9 @@ Seed scripts are located in `scripts/` and run with `pnpm tsx scripts/<name>.ts`
 | `scripts/seed-avatars.ts` | Upload default avatar images to Supabase Storage and populate `avatar_assets` | After first deploy / `supabase db reset` |
 | `scripts/seed-admin.ts` | Set `verification_status = 'ADMIN'` for a configured email | After the admin user registers |
 | `scripts/seed-competition.ts` | Upsert World Cup 2026 competition, teams, phases, known fixtures and flag paths | After Unit 4 migrations / before enabling predictions |
-| `scripts/sync-flags.ts` / flag validation script | Copy/validate required SVG flags into `public/flags/` | Before deploy when team seed changes |
+| `scripts/sync-flags.ts` / `scripts/check-flags.ts` | Download/validate required SVG flags into `public/flags/` | Before deploy when team seed changes |
 
-Both scripts use `SUPABASE_SERVICE_ROLE_KEY` and require it to be set in the environment.
+Supabase seed scripts that call Admin APIs use `SUPABASE_SERVICE_ROLE_KEY`; `seed-competition`, `sync-flags`, and `check-flags` do not require it.
 
 ---
 
