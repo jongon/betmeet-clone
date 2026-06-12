@@ -30,6 +30,7 @@ model Profile {
   avatarSource          AvatarSource       @default(DEFAULT_SET) @map("avatar_source")
   verificationStatus    VerificationStatus @default(UNVERIFIED) @map("verification_status")
   mfaEnabled            Boolean            @default(false) @map("mfa_enabled")
+  nicknameUpdatedAt     DateTime?          @map("nickname_updated_at")
   deletedAt             DateTime?          @map("deleted_at")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
@@ -46,6 +47,20 @@ model Profile {
 
   @@unique([nicknameBase, nicknameDiscriminator])
   @@map("profiles")
+}
+
+// Server-side cooldown for email-bound actions (resend confirmation, change
+// unconfirmed email). Keyed by email because unconfirmed accounts may not have a
+// profile yet. Written/read only by server actions (Prisma privileged role); RLS
+// denies direct authenticated/anon access. See FR-REFINE-12.2 (Unit 12).
+model EmailActionThrottle {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @db.VarChar(255)
+  action     String   @db.VarChar(40)
+  lastSentAt DateTime @default(now()) @map("last_sent_at")
+
+  @@unique([email, action])
+  @@map("email_action_throttle")
 }
 
 // Default avatar set — seeded via scripts/seed-avatars.ts

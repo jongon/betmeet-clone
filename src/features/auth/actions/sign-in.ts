@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAuthEvent, redactEmail } from "@/lib/auth-logger";
+import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { SignInSchema } from "../schemas";
 
@@ -15,6 +16,10 @@ type SignInState =
         _form?: string[];
       };
       requiresMfa?: boolean;
+      /** Forwarded to the MFA step so it can return to the intended destination. */
+      next?: string;
+      /** Set when sign-in failed because the email is not yet confirmed (FR-REFINE-12.1). */
+      unconfirmedEmail?: string;
     }
   | undefined;
 
@@ -24,6 +29,9 @@ export async function signIn(formData: FormData): Promise<SignInState> {
     password: formData.get("password") as string,
     rememberMe: formData.get("rememberMe") === "true",
   };
+  // Destination to return to after sign-in (e.g. an invite link), guarded against
+  // open redirects (FR-REFINE-13.1).
+  const next = sanitizeNext(formData.get("next") as string | null);
 
   const parsed = SignInSchema.safeParse(raw);
   if (!parsed.success) {
@@ -42,13 +50,18 @@ export async function signIn(formData: FormData): Promise<SignInState> {
       email: redactEmail(parsed.data.email),
       reason: error.message,
     });
+    // Unconfirmed email: surface the resend / change-email recovery flow inline
+    // instead of a generic credential error (FR-REFINE-12.1).
+    if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+      return { unconfirmedEmail: parsed.data.email };
+    }
     return { error: { _form: ["Invalid email or password"] } };
   }
 
   // MFA check: if user has MFA enrolled, return challenge flow trigger
   const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (aalData?.nextLevel === "aal2" && aalData.nextLevel !== aalData.currentLevel) {
-    return { requiresMfa: true };
+    return { requiresMfa: true, next };
   }
 
   if (parsed.data.rememberMe) {
@@ -68,5 +81,5 @@ export async function signIn(formData: FormData): Promise<SignInState> {
     return { error: { _form: ["Sign in failed. Please try again."] } };
   }
 
-  redirect("/matches");
+  redirect(next);
 }

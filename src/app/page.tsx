@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
+import { buttonVariants } from "@/components/ui/button";
 import { IslandBoundary } from "@/features/education/components/island-boundary";
 import { LandingHero } from "@/features/education/components/landing-hero";
 import { LandingSecondaryCtas } from "@/features/education/components/landing-secondary-ctas";
@@ -24,10 +26,20 @@ export default async function Home() {
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
-      <div className="flex justify-end gap-1 pt-4">
-        <BrandToggle />
-        <ThemeToggle />
-      </div>
+      <header className="flex flex-wrap items-center justify-between gap-2 pt-4">
+        <div className="flex items-center gap-1">
+          <BrandToggle />
+          <ThemeToggle />
+        </div>
+        <nav className="flex items-center gap-2" aria-label={es.landing.headerSignIn}>
+          <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+            {es.landing.headerSignIn}
+          </Link>
+          <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
+            {es.landing.headerSignUp}
+          </Link>
+        </nav>
+      </header>
 
       <LandingHero />
 

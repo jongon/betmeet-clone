@@ -1,6 +1,9 @@
 type AuthEvent =
   | "auth.sign_in_failed"
   | "auth.account_deleted"
+  | "auth.resend_confirmation_failed"
+  | "auth.change_unconfirmed_email_failed"
+  | "auth.change_unconfirmed_email_succeeded"
   | "admin.match_overridden"
   | "admin.override_reverted"
   | "admin.sync_triggered";

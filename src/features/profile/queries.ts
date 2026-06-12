@@ -1,20 +1,31 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { LOCAL_FALLBACK_AVATARS } from "./default-avatars";
 import type { AvatarAsset, Profile } from "./types";
 
 export const getDefaultAvatars = unstable_cache(
   async (): Promise<AvatarAsset[]> => {
-    const assets = await prisma.avatarAsset.findMany({
-      orderBy: { displayOrder: "asc" },
-    });
-    return assets.map((a) => ({
-      id: a.id,
-      name: a.name,
-      storagePath: a.storagePath,
-      storageUrl: a.storageUrl,
-      displayOrder: a.displayOrder,
-    }));
+    try {
+      const assets = await prisma.avatarAsset.findMany({
+        orderBy: { displayOrder: "asc" },
+      });
+      // Fall back to bundled local avatars when the set was never seeded
+      // (FR-REFINE-12.6) so the picker never renders empty.
+      if (assets.length === 0) {
+        return LOCAL_FALLBACK_AVATARS;
+      }
+      return assets.map((a) => ({
+        id: a.id,
+        name: a.name,
+        storagePath: a.storagePath,
+        storageUrl: a.storageUrl,
+        displayOrder: a.displayOrder,
+      }));
+    } catch {
+      // DB/Storage unavailable — degrade to the bundled local set.
+      return LOCAL_FALLBACK_AVATARS;
+    }
   },
   ["default-avatars"],
   { revalidate: 60 * 60 * 24 }, // 24h TTL

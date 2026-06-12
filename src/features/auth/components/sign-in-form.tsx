@@ -6,18 +6,26 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { es } from "@/i18n/dictionaries/es";
 import { getMfaFactors } from "../actions/mfa-verify";
+import { resendConfirmation } from "../actions/resend-confirmation";
 import { signIn } from "../actions/sign-in";
 import { MFAPromptModal } from "./mfa-prompt-modal";
+import { UnconfirmedEmailDialog } from "./unconfirmed-email-dialog";
 
 type ActionState = Awaited<ReturnType<typeof signIn>>;
 
-export function SignInForm() {
+export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => signIn(formData),
     undefined,
   );
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(null);
+  const [changeEmailOpen, setChangeEmailOpen] = useState(false);
+  const [resendState, resendAction, resendPending] = useActionState<
+    Awaited<ReturnType<typeof resendConfirmation>> | undefined,
+    FormData
+  >(async (_prev, formData) => resendConfirmation(formData), undefined);
 
   // When server returns requiresMfa, load factors and open modal
   if (state?.requiresMfa && !mfaFactorId) {
@@ -26,9 +34,12 @@ export function SignInForm() {
     });
   }
 
+  const unconfirmedEmail = state?.unconfirmedEmail;
+
   return (
     <>
       <form action={action} className="space-y-4" noValidate>
+        {next ? <input type="hidden" name="next" value={next} /> : null}
         <FormError messages={state?.error?._form as string[] | undefined} />
 
         <div className="space-y-1.5">
@@ -93,10 +104,48 @@ export function SignInForm() {
         </p>
       </form>
 
+      {unconfirmedEmail && (
+        <div
+          role="status"
+          className="mt-4 space-y-3 rounded-md border border-border bg-muted/40 p-4"
+        >
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{es.auth.unconfirmedTitle}</p>
+            <p className="text-sm text-muted-foreground">{es.auth.unconfirmedDescription}</p>
+          </div>
+
+          {resendState?.success ? (
+            <p className="text-sm text-muted-foreground">{es.auth.resendSuccess}</p>
+          ) : null}
+          {resendState?.retryAfterSeconds ? <FormError messages={[es.auth.cooldown]} /> : null}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <form action={resendAction} className="flex-1">
+              <input type="hidden" name="email" value={unconfirmedEmail} />
+              <Button type="submit" variant="outline" className="w-full" disabled={resendPending}>
+                {resendPending ? es.auth.resending : es.auth.resend}
+              </Button>
+            </form>
+            <Button type="button" className="flex-1" onClick={() => setChangeEmailOpen(true)}>
+              {es.auth.changeEmail}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {unconfirmedEmail && (
+        <UnconfirmedEmailDialog
+          email={unconfirmedEmail}
+          open={changeEmailOpen}
+          onClose={() => setChangeEmailOpen(false)}
+        />
+      )}
+
       {mfaFactorId && (
         <MFAPromptModal
           factorId={mfaFactorId}
           open={!!mfaFactorId}
+          next={state?.next}
           onClose={() => setMfaFactorId(null)}
         />
       )}

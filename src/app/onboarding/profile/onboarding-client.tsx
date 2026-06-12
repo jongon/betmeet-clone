@@ -15,12 +15,15 @@ interface OnboardingClientProps {
   currentAvatarUrl: string;
   defaultAvatars: AvatarAsset[];
   googleAvatarUrl: string | null;
+  /** Destination to continue to once onboarding finishes (FR-REFINE-12.7). */
+  next?: string;
 }
 
 export function OnboardingClient({
   currentAvatarUrl,
   defaultAvatars,
   googleAvatarUrl,
+  next = "/matches",
 }: OnboardingClientProps) {
   const [step, setStep] = useState<Step>("nickname");
   const [avatarUrl] = useState(currentAvatarUrl);
@@ -46,10 +49,7 @@ export function OnboardingClient({
       )}
 
       {step === "passkey" && (
-        <PasskeyStep
-          onComplete={() => router.push("/matches")}
-          onSkip={() => router.push("/matches")}
-        />
+        <PasskeyStep onComplete={() => router.push(next)} onSkip={() => router.push(next)} />
       )}
     </div>
   );

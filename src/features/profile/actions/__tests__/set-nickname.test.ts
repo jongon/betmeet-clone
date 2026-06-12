@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({ prisma: { profile: { update: vi.fn() } } }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: { profile: { update: vi.fn(), findUnique: vi.fn() } },
+}));
 vi.mock("../../services/nickname", () => ({
   assignDiscriminator: vi.fn(),
 }));
@@ -23,6 +25,8 @@ describe("setNickname", () => {
     vi.mocked(createClient).mockResolvedValue({
       auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
     } as never);
+    // Default: no prior nickname change (onboarding case), so not rate-limited.
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({ nicknameUpdatedAt: null } as never);
   });
 
   it("returns error on invalid nickname", async () => {
@@ -45,8 +49,21 @@ describe("setNickname", () => {
     expect(prisma.profile.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "user-1" },
-        data: { nicknameBase: "ValidNick", nicknameDiscriminator: "0042" },
+        data: expect.objectContaining({
+          nicknameBase: "ValidNick",
+          nicknameDiscriminator: "0042",
+          nicknameUpdatedAt: expect.any(Date),
+        }),
       }),
     );
+  });
+
+  it("rate-limits a nickname change within the cooldown window", async () => {
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({
+      nicknameUpdatedAt: new Date(),
+    } as never);
+    const result = await setNickname(makeFormData({ nicknameBase: "ValidNick" }));
+    expect(result?.error).toBe("rate_limited");
+    expect(prisma.profile.update).not.toHaveBeenCalled();
   });
 });

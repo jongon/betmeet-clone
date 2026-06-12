@@ -5,9 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { NotificationSettingsPanel } from "@/features/notifications/components/notification-settings-panel";
 import { getNotificationSettings } from "@/features/notifications/queries";
+import { AccountSettings } from "@/features/profile/components/account-settings";
 import { AvatarSourceTabs } from "@/features/profile/components/avatar-source-tabs";
 import { getDefaultAvatars, getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
+import { es } from "@/i18n/dictionaries/es";
 
 export const metadata: Metadata = { title: "Profile settings" };
 
@@ -44,6 +46,14 @@ export default async function ProfileSettingsPage() {
           </div>
           <Separator />
           <AvatarSourceTabs defaultAvatars={defaultAvatars} currentAvatarUrl={profile.avatarUrl} />
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{es.profile.title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AccountSettings currentNicknameBase={profile.nicknameBase ?? ""} />
         </CardContent>
       </Card>
       {notificationSettings && (
