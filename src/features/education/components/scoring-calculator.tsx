@@ -6,11 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
   computeScore,
-  type PenaltyWinner,
+  derivePenaltyWinner,
   type ScoringExample,
 } from "@/features/scoring/compute-score";
 import { es } from "@/i18n/dictionaries/es";
-import { cn } from "@/lib/utils";
 import { ScoreBreakdownExplainer } from "./score-breakdown-explainer";
 
 function clampGoals(value: string): number {
@@ -61,21 +60,29 @@ export function ScoringCalculator() {
   const [actualHome, setActualHome] = useState(2);
   const [actualAway, setActualAway] = useState(1);
   const [isKnockout, setIsKnockout] = useState(false);
-  const [predictedPenaltyWinner, setPredictedPenaltyWinner] = useState<PenaltyWinner>(null);
+  // Penalty shootout score (FR-REFINE-14.4), e.g. 4-3. The winner is derived.
+  const [penaltyHome, setPenaltyHome] = useState(4);
+  const [penaltyAway, setPenaltyAway] = useState(3);
 
+  // Penalties are only available for a knockout tied at 90' (FR-REFINE-14.5).
   const showPenalty = isKnockout && actualHome === actualAway;
 
+  // Winner derived from the shootout score; a tie is invalid (no winner).
+  const derivedPenaltyWinner = derivePenaltyWinner(penaltyHome, penaltyAway);
+  const penaltyTie = showPenalty && derivedPenaltyWinner === null;
+
   const breakdown = useMemo(() => {
+    const winner = showPenalty ? derivedPenaltyWinner : null;
     const example: ScoringExample = {
       predictedHome,
       predictedAway,
       actualHome,
       actualAway,
       isKnockout,
-      predictedPenaltyWinner: showPenalty ? predictedPenaltyWinner : null,
+      predictedPenaltyWinner: winner,
       // Demo assumes the user's penalty pick is the actual outcome so the bonus
-      // is illustrated when selected.
-      actualPenaltyWinner: showPenalty ? predictedPenaltyWinner : null,
+      // is illustrated when a winner is set.
+      actualPenaltyWinner: winner,
     };
     return computeScore(example);
   }, [
@@ -84,7 +91,7 @@ export function ScoringCalculator() {
     actualHome,
     actualAway,
     isKnockout,
-    predictedPenaltyWinner,
+    derivedPenaltyWinner,
     showPenalty,
   ]);
 
@@ -146,25 +153,31 @@ export function ScoringCalculator() {
 
         {showPenalty && (
           <div className="space-y-2">
-            <span className="text-sm font-medium">{es.calculator.penaltyWinner}</span>
-            <div className="flex gap-2">
-              {(["home", "away"] as const).map((side) => (
-                <button
-                  key={side}
-                  type="button"
-                  onClick={() => setPredictedPenaltyWinner(side)}
-                  data-testid={`calculator-penalty-${side}`}
-                  className={cn(
-                    "rounded-md border px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                    predictedPenaltyWinner === side
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "text-muted-foreground",
-                  )}
-                >
-                  {side === "home" ? es.calculator.home : es.calculator.away}
-                </button>
-              ))}
+            <span className="text-sm font-medium">{es.calculator.penaltyScore}</span>
+            <div className="flex items-end gap-3">
+              <GoalInput
+                id="pen-home"
+                label={es.calculator.home}
+                value={penaltyHome}
+                onChange={setPenaltyHome}
+              />
+              <GoalInput
+                id="pen-away"
+                label={es.calculator.away}
+                value={penaltyAway}
+                onChange={setPenaltyAway}
+              />
             </div>
+            {penaltyTie ? (
+              <p role="alert" className="text-sm text-destructive">
+                {es.calculator.penaltyTie}
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground" data-testid="calculator-penalty-winner">
+                {es.calculator.penaltyDerivedWinner}{" "}
+                {derivedPenaltyWinner === "home" ? es.calculator.home : es.calculator.away}
+              </p>
+            )}
           </div>
         )}
 

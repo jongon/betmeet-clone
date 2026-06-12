@@ -29,6 +29,14 @@ function sign(n: number): -1 | 0 | 1 {
 }
 
 /**
+ * Derives the penalty-shootout winner from the shootout score (FR-REFINE-14.4).
+ * A tie is invalid (a shootout cannot end level), so it maps to `null`.
+ */
+export function derivePenaltyWinner(home: number, away: number): PenaltyWinner {
+  return home > away ? "home" : home < away ? "away" : null;
+}
+
+/**
  * Pure scoring function shared by Unit 2 (educational preview) and Unit 6
  * (authoritative scoring). Given a prediction + actual result, returns the
  * point breakdown using ScoringRuleSet (BL-1, BR-2.1..BR-2.6).

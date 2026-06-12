@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeScore, type ScoringExample } from "../compute-score";
+import { computeScore, derivePenaltyWinner, type ScoringExample } from "../compute-score";
 import { ScoringRuleSet } from "../scoring-rules";
 
 function example(overrides: Partial<ScoringExample> = {}): ScoringExample {
@@ -119,5 +119,16 @@ describe("computeScore — penalty bonus (BR-2.5, BR-2.6)", () => {
       }),
     );
     expect(b.penaltyApplied).toBe(false);
+  });
+});
+
+describe("derivePenaltyWinner (FR-REFINE-14.4)", () => {
+  it("derives the winner from the shootout score", () => {
+    expect(derivePenaltyWinner(4, 3)).toBe("home");
+    expect(derivePenaltyWinner(3, 5)).toBe("away");
+  });
+
+  it("returns null for an (invalid) tied shootout", () => {
+    expect(derivePenaltyWinner(3, 3)).toBeNull();
   });
 });

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/matches", label: es.nav.matches },
   { href: "/pools", label: es.nav.pools },
+  { href: "/rankings", label: es.nav.rankings },
   { href: "/rules", label: es.nav.rules },
 ] as const;
 
