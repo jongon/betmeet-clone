@@ -166,6 +166,22 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: A verified user can enable browser push, select notification types, and receive deduplicated event notifications without paid push infrastructure.
 
+## Unit 11: App Shell & Navigation
+
+**Goal**: Give authenticated users (and admins) a consistent global chrome that surfaces session identity, profile/security access, theme/brand switching, and sign-out — across the whole app.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc-plan`; UI-only and additive; does not restart approved Units 1–10.
+- Introduce a route-group layout (`src/app/(app)/layout.tsx`) or shared `AppHeader` mounted on authenticated routes (`/matches`, `/pools`, `/rules`, `/settings/*`) and admin (`/admin/*`). Not mounted on `(auth)` or `/onboarding/*`.
+- Session indicator (avatar + nickname) and a user menu: profile (`/settings/profile`), security (`/settings/security`), admin link gated by `verificationStatus === "ADMIN"`, and sign-out (existing `signOut()` action).
+- Primary navigation with active state (`aria-current`); responsive collapse on mobile.
+- Mount existing `ThemeToggle` and `BrandToggle` inside the app chrome (no duplicated theme/auth logic).
+- Admin context affordance + return-to-app; admin gate (`notFound()`) preserved.
+
+**Reuses (no new abstractions)**: `signOut()`, `ThemeToggle`, `BrandToggle`, `Avatar`, `getProfile()`/`getDisplayNickname()`, `verificationStatus`, Unit 8 brand tokens. No schema/API changes. `src/proxy.ts` untouched.
+
+**Primary Deliverable**: On every authenticated route (including admin), the user can see they are signed in and can switch theme/brand, open profile/security, and sign out from a consistent header.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -178,6 +194,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 8. Unit 8: Design System and UI Polish (post-construction refine; cross-cutting)
 9. Unit 9: Transactional Email (post-construction refine; cross-cutting; no new deps)
 10. Unit 10: Web Push Notifications (post-construction refine; event-driven; free baseline)
+11. Unit 11: App Shell & Navigation (post-construction refine; UI-only; reuses existing auth/theme/profile primitives)
 
 ## Security Notes
 

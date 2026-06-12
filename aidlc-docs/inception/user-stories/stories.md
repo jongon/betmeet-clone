@@ -307,3 +307,55 @@
   - La subida se detecta comparando la posición global anterior y nueva tras scoring.
   - Solo se notifica si la posición mejora; no se notifica al bajar o permanecer igual.
   - El click abre la vista de ranking global o la mejor vista disponible si el ranking global aún no tiene UI dedicada.
+
+## Épica 10: App Shell y Navegación Global (Unit 11 — añadida vía `/aidlc-plan`)
+
+### US-10.1: Saber que mi sesión está iniciada
+**Como** usuario autenticado
+**Quiero** ver mi avatar y nickname en un header presente en toda la app
+**Para** tener certeza de que mi sesión está activa y de quién soy.
+- **Criterios de Aceptación**:
+  - El header aparece en rutas autenticadas (`/matches`, `/pools`, `/rules`, `/settings/*`) y en admin (`/admin/*`).
+  - No aparece en las pantallas de auth (`(auth)`) ni en `/onboarding/*`.
+  - Muestra avatar + nickname obtenidos de `getProfile()` / `getDisplayNickname()`.
+
+### US-10.2: Cerrar sesión desde cualquier pantalla
+**Como** usuario autenticado
+**Quiero** un acceso visible a "Cerrar sesión" en el menú de usuario
+**Para** poder salir sin tener que adivinar dónde está la opción.
+- **Criterios de Aceptación**:
+  - El menú de usuario incluye "Cerrar sesión" y usa la server action `signOut()` existente.
+  - Tras cerrar sesión, redirige a `/sign-in`.
+
+### US-10.3: Entrar a mi perfil y seguridad
+**Como** usuario autenticado
+**Quiero** acceder a mi perfil y a la configuración de seguridad desde el header
+**Para** gestionar mi cuenta sin navegar a ciegas.
+- **Criterios de Aceptación**:
+  - El menú de usuario enlaza a `/settings/profile` y `/settings/security`.
+  - Si soy administrador (`verificationStatus === "ADMIN"`), aparece también un enlace a `/admin`.
+
+### US-10.4: Cambiar tema y personalidad dentro de la app
+**Como** usuario autenticado
+**Quiero** alternar claro/oscuro y la marca/personalidad desde el header
+**Para** ajustar la apariencia sin volver a la landing pública.
+- **Criterios de Aceptación**:
+  - El header monta `ThemeToggle` y `BrandToggle` (componentes existentes, sin duplicar lógica).
+  - El cambio aplica de inmediato y persiste como hoy (next-themes + `data-theme`).
+
+### US-10.5: Navegación primaria consistente
+**Como** usuario autenticado
+**Quiero** enlaces claros a Partidos, Ligas y Reglas con indicación de la sección activa
+**Para** moverme por la app con confianza.
+- **Criterios de Aceptación**:
+  - Marca/logo enlaza a `/matches`; hay enlaces a `/matches`, `/pools`, `/rules`.
+  - La sección activa se marca con `aria-current`.
+  - En móvil la navegación colapsa en un menú accesible por teclado.
+
+### US-10.6: Contexto de administración
+**Como** administrador
+**Quiero** que en el panel de admin se note el contexto "Admin" y un regreso a la app
+**Para** orientarme y volver a la experiencia de jugador fácilmente.
+- **Criterios de Aceptación**:
+  - El chrome en `/admin/*` refleja el contexto Admin y ofrece regreso a la app.
+  - El gate de admin se mantiene (`notFound()` si no es ADMIN).

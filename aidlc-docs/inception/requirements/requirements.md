@@ -442,6 +442,42 @@ eventos de Units 3, 4 y 6, pero no reabre reglas ya aprobadas.
 
 ---
 
+## FR-SHELL-01: App Shell y Navegación Global (Post-construcción — Unit 11)
+
+**Origen**: refine 2026-06-12. Hoy no existe chrome/navbar global: el root layout
+solo monta providers (Auth/Theme/Brand) y el Toaster, y los toggles de tema/marca
+solo se montan en `/` y `/rules`. En rutas autenticadas (`/matches`, `/pools`,
+`/settings/*`) y en admin (`/admin/*`) el usuario no tiene indicador de sesión,
+acceso a perfil, cambio de tema, ni forma de cerrar sesión.
+
+### Alcance
+- **FR-SHELL-01.1 — Chrome global autenticado**: un layout/header compartido se
+  monta en las rutas autenticadas y en admin. **No** se monta en el route-group
+  `(auth)` ni en `/onboarding/*` (flujos sin chrome). La sesión sigue protegida
+  por `src/proxy.ts` (no se modifica).
+- **FR-SHELL-01.2 — Indicador de sesión**: el header muestra que la sesión está
+  iniciada mediante avatar + nickname (`getProfile()` / `getDisplayNickname()`).
+- **FR-SHELL-01.3 — Menú de usuario**: avatar+nickname abre un menú con enlaces a
+  Perfil (`/settings/profile`), Seguridad (`/settings/security`), **Admin**
+  (`/admin`, visible solo si `verificationStatus === "ADMIN"`) y **Cerrar sesión**
+  (server action `signOut()` existente).
+- **FR-SHELL-01.4 — Navegación primaria**: marca/logo → `/matches`, y enlaces a
+  Partidos (`/matches`), Ligas (`/pools`), Reglas (`/rules`), con estado activo
+  (`aria-current`).
+- **FR-SHELL-01.5 — Control de tema en la app**: `ThemeToggle` (light/dark/system)
+  y `BrandToggle` (deportivo/moderno/premium) accesibles desde el header dentro de
+  la app, reutilizando los componentes existentes (sin duplicar lógica).
+- **FR-SHELL-01.6 — Contexto admin**: en `/admin/*` el chrome refleja el contexto
+  "Admin" y ofrece regreso a la app; el gate de admin (`notFound()` si no es
+  ADMIN) se mantiene.
+- **FR-SHELL-01.7 — Responsive y accesibilidad**: la navegación colapsa en móvil
+  (menú/sheet); navegación por teclado, foco visible, labels y `aria-current`;
+  contraste AA en las 6 combinaciones de tema (consistente con FR-DS-01).
+- **FR-SHELL-01.8 — Sin regresión**: copy en español; mantener 0 errores TS,
+  Biome/ESLint limpios, tests verdes y build OK. Cambio UI-only, sin schema/API.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.
