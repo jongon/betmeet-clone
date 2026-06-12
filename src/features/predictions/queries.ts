@@ -140,7 +140,12 @@ export async function getFixtureWithMyPredictions(userId: string | null): Promis
               phase: true,
               predictions: userId
                 ? { where: { userId }, include: { score: true } }
-                : { where: { id: "__none__" }, include: { score: true } },
+                : // No session: match nothing. `id` is @db.Uuid, so the sentinel must
+                  // be a valid (but impossible) UUID — a non-UUID string crashes Postgres.
+                  {
+                    where: { id: "00000000-0000-0000-0000-000000000000" },
+                    include: { score: true },
+                  },
             },
             orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
           },
