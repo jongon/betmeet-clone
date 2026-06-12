@@ -19,9 +19,12 @@ export async function forgotPassword(formData: FormData): Promise<ForgotPassword
   }
 
   const supabase = await createClient();
-  // Always return success to prevent email enumeration
+  // Always return success to prevent email enumeration.
+  // Route through /auth/callback so the PKCE `code` is exchanged for a (recovery)
+  // session before reaching the form — otherwise updateUser() throws
+  // "Auth session missing!".
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/reset-password`,
+    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/reset-password`,
   });
 
   return { success: true };

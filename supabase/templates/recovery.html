@@ -24,12 +24,12 @@
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                   <tr>
                     <td align="center" style="border-radius:10px;background-color:#0f9e58;">
-                      <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Restablecer contraseña</a>
+                      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password" target="_blank" style="display:inline-block;padding:14px 32px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">Restablecer contraseña</a>
                     </td>
                   </tr>
                 </table>
                 <p style="margin:28px 0 8px;font-size:13px;line-height:1.6;color:#64748b;">Si el botón no funciona, copia y pega este enlace en tu navegador:</p>
-                <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#0f9e58;">{{ .ConfirmationURL }}</a></p>
+                <p style="margin:0;font-size:13px;line-height:1.6;word-break:break-all;"><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password" style="color:#0f9e58;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password</a></p>
               </td>
             </tr>
             <tr>

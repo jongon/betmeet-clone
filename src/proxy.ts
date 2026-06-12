@@ -9,6 +9,7 @@ const PUBLIC_ROUTES = [
   "/reset-password",
   "/verify-email",
   "/auth/callback",
+  "/auth/confirm",
   "/onboarding",
   // "/rules" is intentionally NOT public: the Rules Center requires a session
   // (BR-2.10). An unauthenticated visit to /rules redirects to /sign-in via the
@@ -19,7 +20,10 @@ const AUTH_ONLY_ROUTES = [
   "/sign-in",
   "/sign-up",
   "/forgot-password",
-  "/reset-password",
+  // "/reset-password" is intentionally NOT auth-only: the password-recovery flow
+  // arrives here *with* an active (recovery) session after /auth/callback exchanges
+  // the code. Treating it as auth-only would bounce that session to /matches before
+  // the user can set a new password.
   "/verify-email",
 ];
 
