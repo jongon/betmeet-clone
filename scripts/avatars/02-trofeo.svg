@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Trofeo">
+  <circle cx="120" cy="120" r="120" fill="#f59e0b"/>
+  <g fill="#ffffff">
+    <path d="M86 64 h68 v22 a34 34 0 0 1 -68 0 z"/>
+    <path d="M86 76 h-18 a18 18 0 0 0 20 28 l-3 -12 a8 8 0 0 1 -8 -10 h9 z"/>
+    <path d="M154 76 h18 a18 18 0 0 1 -20 28 l3 -12 a8 8 0 0 0 8 -10 h-9 z"/>
+    <rect x="112" y="118" width="16" height="26"/>
+    <rect x="92" y="150" width="56" height="16" rx="4"/>
+    <rect x="100" y="166" width="40" height="14" rx="3"/>
+  </g>
+</svg>

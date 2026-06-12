@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Bota de fútbol">
+  <circle cx="120" cy="120" r="120" fill="#ea580c"/>
+  <path d="M58 116 q0 -18 20 -18 h40 l44 18 q26 6 26 26 v6 a6 6 0 0 1 -6 6 h-118 q-6 0 -6 -8 z" fill="#ffffff"/>
+  <path d="M84 104 l8 18 M104 102 l8 20 M124 104 l9 18" stroke="#ea580c" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <g fill="#ea580c">
+    <circle cx="74" cy="156" r="6"/>
+    <circle cx="100" cy="156" r="6"/>
+    <circle cx="126" cy="156" r="6"/>
+    <circle cx="152" cy="156" r="6"/>
+  </g>
+</svg>

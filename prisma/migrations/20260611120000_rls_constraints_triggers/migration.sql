@@ -8,20 +8,28 @@
 --
 -- Requires the Supabase-managed schemas `auth` and `storage`, and the `avatars`
 -- Storage bucket (create it before/after; the storage policies below reference it).
+--
+-- IDEMPOTENT: every CREATE POLICY is preceded by DROP POLICY IF EXISTS, CHECK
+-- constraints are dropped before being added, and indexes use IF NOT EXISTS. This
+-- lets the migration be re-applied safely when some objects already exist (e.g. a
+-- Storage policy created out-of-band via the Supabase dashboard).
 
 -- ===========================================================================
 -- profiles (from 20260610000001_create_profiles.sql)
 -- ===========================================================================
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
 CREATE POLICY "profiles_select_own"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "profiles_select_others" ON public.profiles;
 CREATE POLICY "profiles_select_others"
   ON public.profiles FOR SELECT
   USING (deleted_at IS NULL AND auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "profiles_update_own" ON public.profiles;
 CREATE POLICY "profiles_update_own"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id AND deleted_at IS NULL)
@@ -32,6 +40,7 @@ CREATE POLICY "profiles_update_own"
 -- ===========================================================================
 ALTER TABLE public.avatar_assets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "avatar_assets_select_public" ON public.avatar_assets;
 CREATE POLICY "avatar_assets_select_public"
   ON public.avatar_assets FOR SELECT
   USING (true);
@@ -49,12 +58,14 @@ BEGIN
   ORDER BY RANDOM()
   LIMIT 1;
 
-  INSERT INTO public.profiles (id, avatar_url, avatar_source, verification_status)
+  INSERT INTO public.profiles (id, avatar_url, avatar_source, verification_status, created_at, updated_at)
   VALUES (
     NEW.id,
     COALESCE(default_avatar_url, ''),
     'DEFAULT_SET',
-    'UNVERIFIED'
+    'UNVERIFIED',
+    now(),
+    now()
   );
   RETURN NEW;
 END;
@@ -69,6 +80,7 @@ CREATE TRIGGER on_auth_user_created
 -- ===========================================================================
 -- Storage policies for the 'avatars' bucket (from 20260610000004_storage_rls_policies.sql)
 -- ===========================================================================
+DROP POLICY IF EXISTS "avatars_defaults_public_read" ON storage.objects;
 CREATE POLICY "avatars_defaults_public_read"
   ON storage.objects FOR SELECT
   USING (
@@ -76,6 +88,7 @@ CREATE POLICY "avatars_defaults_public_read"
     AND (storage.foldername(name))[1] = 'defaults'
   );
 
+DROP POLICY IF EXISTS "avatars_custom_owner_read" ON storage.objects;
 CREATE POLICY "avatars_custom_owner_read"
   ON storage.objects FOR SELECT
   USING (
@@ -84,6 +97,7 @@ CREATE POLICY "avatars_custom_owner_read"
     AND auth.uid()::text = (storage.foldername(name))[2]
   );
 
+DROP POLICY IF EXISTS "avatars_custom_owner_insert" ON storage.objects;
 CREATE POLICY "avatars_custom_owner_insert"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -92,6 +106,7 @@ CREATE POLICY "avatars_custom_owner_insert"
     AND auth.uid()::text = (storage.foldername(name))[2]
   );
 
+DROP POLICY IF EXISTS "avatars_custom_owner_delete" ON storage.objects;
 CREATE POLICY "avatars_custom_owner_delete"
   ON storage.objects FOR DELETE
   USING (
@@ -105,19 +120,23 @@ CREATE POLICY "avatars_custom_owner_delete"
 -- ===========================================================================
 -- Capacity bounds (BR-3.1)
 ALTER TABLE public.pools
+  DROP CONSTRAINT IF EXISTS pools_capacity_range;
+ALTER TABLE public.pools
   ADD CONSTRAINT pools_capacity_range CHECK (capacity BETWEEN 2 AND 100);
 
 -- Pool name unique only among PUBLIC pools (BR-3.2)
-CREATE UNIQUE INDEX pools_public_name_unique
+CREATE UNIQUE INDEX IF NOT EXISTS pools_public_name_unique
   ON public.pools (name)
   WHERE type = 'PUBLIC';
 
 ALTER TABLE public.pools ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "pools_select_public" ON public.pools;
 CREATE POLICY "pools_select_public"
   ON public.pools FOR SELECT
   USING (type = 'PUBLIC' AND auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "pools_select_member" ON public.pools;
 CREATE POLICY "pools_select_member"
   ON public.pools FOR SELECT
   USING (
@@ -129,6 +148,7 @@ CREATE POLICY "pools_select_member"
 
 ALTER TABLE public.pool_memberships ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "pool_memberships_select_same_pool" ON public.pool_memberships;
 CREATE POLICY "pool_memberships_select_same_pool"
   ON public.pool_memberships FOR SELECT
   USING (
@@ -142,6 +162,8 @@ CREATE POLICY "pool_memberships_select_same_pool"
 -- competition data (from 20260610000006_create_competition_data.sql)
 -- ===========================================================================
 -- Score bounds (BR-4.18/19)
+ALTER TABLE public.matches
+  DROP CONSTRAINT IF EXISTS matches_scores_non_negative;
 ALTER TABLE public.matches
   ADD CONSTRAINT matches_scores_non_negative CHECK (
     (home_score IS NULL OR home_score >= 0) AND
@@ -166,18 +188,22 @@ ALTER TABLE public.teams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.matches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.provider_sync_runs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "competitions_select_authenticated" ON public.competitions;
 CREATE POLICY "competitions_select_authenticated"
   ON public.competitions FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "competition_phases_select_authenticated" ON public.competition_phases;
 CREATE POLICY "competition_phases_select_authenticated"
   ON public.competition_phases FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "teams_select_authenticated" ON public.teams;
 CREATE POLICY "teams_select_authenticated"
   ON public.teams FOR SELECT
   USING (auth.uid() IS NOT NULL);
 
+DROP POLICY IF EXISTS "matches_select_authenticated" ON public.matches;
 CREATE POLICY "matches_select_authenticated"
   ON public.matches FOR SELECT
   USING (auth.uid() IS NOT NULL);
@@ -190,6 +216,8 @@ CREATE POLICY "matches_select_authenticated"
 -- (predictions_penalty_winner_team_id_fkey, ON DELETE SET NULL) from the Prisma
 -- relation, so the duplicate predictions_penalty_team_fk is intentionally omitted.
 -- ===========================================================================
+ALTER TABLE public.predictions
+  DROP CONSTRAINT IF EXISTS predictions_scores_range;
 ALTER TABLE public.predictions
   ADD CONSTRAINT predictions_scores_range CHECK (
     home_score >= 0 AND home_score <= 20 AND
@@ -218,14 +246,17 @@ CREATE TRIGGER trg_prediction_lock_guard
 
 ALTER TABLE public.predictions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "predictions_select_own" ON public.predictions;
 CREATE POLICY "predictions_select_own"
   ON public.predictions FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "predictions_insert_own" ON public.predictions;
 CREATE POLICY "predictions_insert_own"
   ON public.predictions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "predictions_update_own_unlocked" ON public.predictions;
 CREATE POLICY "predictions_update_own_unlocked"
   ON public.predictions FOR UPDATE
   USING (auth.uid() = user_id AND locked_at IS NULL)
@@ -236,10 +267,12 @@ CREATE POLICY "predictions_update_own_unlocked"
 -- ===========================================================================
 ALTER TABLE public.prediction_scores ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "prediction_scores_select_own" ON public.prediction_scores;
 CREATE POLICY "prediction_scores_select_own"
   ON public.prediction_scores FOR SELECT
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "prediction_scores_select_pool_peers" ON public.prediction_scores;
 CREATE POLICY "prediction_scores_select_pool_peers"
   ON public.prediction_scores FOR SELECT
   USING (
@@ -263,23 +296,30 @@ ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notification_deliveries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "pool directed invites visible to participants" ON public.pool_directed_invites;
 CREATE POLICY "pool directed invites visible to participants"
   ON public.pool_directed_invites FOR SELECT
   USING (created_by_user_id = auth.uid() OR invited_user_id = auth.uid());
 
+DROP POLICY IF EXISTS "notification preferences own read" ON public.notification_preferences;
 CREATE POLICY "notification preferences own read"
   ON public.notification_preferences FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "notification preferences own write" ON public.notification_preferences;
 CREATE POLICY "notification preferences own write"
   ON public.notification_preferences FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "push subscriptions own read" ON public.push_subscriptions;
 CREATE POLICY "push subscriptions own read"
   ON public.push_subscriptions FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "push subscriptions own write" ON public.push_subscriptions;
 CREATE POLICY "push subscriptions own write"
   ON public.push_subscriptions FOR ALL USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "notification events own read" ON public.notification_events;
 CREATE POLICY "notification events own read"
   ON public.notification_events FOR SELECT USING (recipient_user_id = auth.uid());
 
+DROP POLICY IF EXISTS "notification deliveries own read" ON public.notification_deliveries;
 CREATE POLICY "notification deliveries own read"
   ON public.notification_deliveries FOR SELECT
   USING (EXISTS (

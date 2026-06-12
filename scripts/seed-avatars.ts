@@ -6,6 +6,8 @@
  * then inserts records into the avatar_assets table via Prisma.
  */
 
+import "dotenv/config";
+
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -14,6 +16,33 @@ import { PrismaClient } from "../src/generated/prisma/client";
 
 const AVATARS_DIR = path.join(process.cwd(), "scripts/avatars");
 const BUCKET = "avatars";
+
+const MIME_BY_EXT: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+};
+
+type StorageClient = ReturnType<typeof createClient>["storage"];
+
+/** Create the avatars Storage bucket (public, no size/MIME limits) if it does not already exist. */
+async function ensureBucket(storage: StorageClient) {
+  const { data: existing } = await storage.getBucket(BUCKET);
+  if (existing) return;
+
+  const { error } = await storage.createBucket(BUCKET, {
+    public: true,
+  });
+
+  // Tolerate a race where the bucket was created between getBucket and createBucket.
+  if (error && !/already exists/i.test(error.message)) {
+    throw new Error(`Failed to create bucket "${BUCKET}": ${error.message}`);
+  }
+
+  console.log(`Created storage bucket "${BUCKET}".`);
+}
 
 async function main() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -30,20 +59,24 @@ async function main() {
   const adapter = new PrismaPg({ connectionString: databaseUrl });
   const prisma = new PrismaClient({ adapter });
 
+  await ensureBucket(supabase.storage);
+
   if (!fs.existsSync(AVATARS_DIR)) {
-    console.error(`Avatars directory not found: ${AVATARS_DIR}`);
-    console.error("Create scripts/avatars/ and add PNG/JPEG avatar files there.");
-    process.exit(1);
+    console.warn(`Avatars directory not found: ${AVATARS_DIR}`);
+    console.warn("Nothing to seed. Add image files to scripts/avatars/ to seed default avatars.");
+    await prisma.$disconnect();
+    return;
   }
 
   const files = fs
     .readdirSync(AVATARS_DIR)
-    .filter((f) => /\.(png|jpg|jpeg|webp)$/i.test(f))
+    .filter((f) => /\.(png|jpg|jpeg|webp|svg)$/i.test(f))
     .sort();
 
   if (files.length === 0) {
-    console.error("No image files found in scripts/avatars/");
-    process.exit(1);
+    console.warn("No image files found in scripts/avatars/; nothing to seed.");
+    await prisma.$disconnect();
+    return;
   }
 
   console.log(`Seeding ${files.length} avatars…`);
@@ -54,7 +87,7 @@ async function main() {
     const storagePath = `defaults/${file}`;
     const filePath = path.join(AVATARS_DIR, file);
     const buffer = fs.readFileSync(filePath);
-    const mimeType = file.endsWith(".png") ? "image/png" : "image/jpeg";
+    const mimeType = MIME_BY_EXT[path.extname(file).toLowerCase()] ?? "application/octet-stream";
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
@@ -67,20 +100,17 @@ async function main() {
 
     const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
 
-    await prisma.avatarAsset.upsert({
-      where: { id: name },
-      create: {
-        id: name,
-        name,
-        storagePath,
-        storageUrl: urlData.publicUrl,
-        displayOrder: i,
-      },
-      update: {
-        storageUrl: urlData.publicUrl,
-        displayOrder: i,
-      },
-    });
+    const existing = await prisma.avatarAsset.findFirst({ where: { name } });
+    if (existing) {
+      await prisma.avatarAsset.update({
+        where: { id: existing.id },
+        data: { storagePath, storageUrl: urlData.publicUrl, displayOrder: i },
+      });
+    } else {
+      await prisma.avatarAsset.create({
+        data: { name, storagePath, storageUrl: urlData.publicUrl, displayOrder: i },
+      });
+    }
 
     console.log(`  ✓ ${name}`);
   }

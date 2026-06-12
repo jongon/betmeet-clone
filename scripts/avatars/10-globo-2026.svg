@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Mundial 2026">
+  <circle cx="120" cy="120" r="120" fill="#4f46e5"/>
+  <circle cx="120" cy="106" r="52" fill="#ffffff"/>
+  <g stroke="#4f46e5" stroke-width="5" fill="none">
+    <line x1="68" y1="106" x2="172" y2="106"/>
+    <ellipse cx="120" cy="106" rx="22" ry="52"/>
+    <path d="M76 84 q44 22 88 0"/>
+    <path d="M76 128 q44 22 88 0"/>
+  </g>
+  <text x="120" y="196" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="2">2026</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Camiseta número 10">
+  <circle cx="120" cy="120" r="120" fill="#2563eb"/>
+  <path d="M120 62 l28 -10 l42 26 l-20 28 l-16 -9 v77 h-68 v-77 l-16 9 l-20 -28 l42 -26 z" fill="#ffffff"/>
+  <text x="120" y="158" font-family="Arial, Helvetica, sans-serif" font-size="46" font-weight="700" fill="#2563eb" text-anchor="middle">10</text>
+</svg>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Balón de fútbol">
+  <circle cx="120" cy="120" r="120" fill="#16a34a"/>
+  <circle cx="120" cy="120" r="72" fill="#ffffff"/>
+  <polygon points="120,92 146,111 136,142 104,142 94,111" fill="#16a34a"/>
+  <g stroke="#16a34a" stroke-width="7" stroke-linecap="round" fill="none">
+    <line x1="120" y1="92" x2="120" y2="56"/>
+    <line x1="146" y1="111" x2="180" y2="99"/>
+    <line x1="136" y1="142" x2="160" y2="170"/>
+    <line x1="104" y1="142" x2="80" y2="170"/>
+    <line x1="94" y1="111" x2="60" y2="99"/>
+  </g>
+</svg>

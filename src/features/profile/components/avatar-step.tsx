@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
+import { UserRound } from "lucide-react";
 import { useState } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { AvatarAsset } from "../types";
 import { AvatarSourceTabs } from "./avatar-source-tabs";
@@ -31,14 +32,12 @@ export function AvatarStep({
       </div>
 
       <div className="flex justify-center">
-        <Image
-          src={previewUrl}
-          alt="Your current avatar"
-          width={96}
-          height={96}
-          className="h-24 w-24 rounded-full object-cover ring-2 ring-border"
-          unoptimized
-        />
+        <Avatar size="lg" className="size-24 ring-2 ring-border">
+          {previewUrl && <AvatarImage src={previewUrl} alt="Your current avatar" />}
+          <AvatarFallback>
+            <UserRound className="size-10 text-muted-foreground" />
+          </AvatarFallback>
+        </Avatar>
       </div>
 
       <AvatarSourceTabs

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Tarjetas amarilla y roja">
+  <circle cx="120" cy="120" r="120" fill="#6d28d9"/>
+  <rect x="86" y="72" width="58" height="86" rx="9" fill="#facc15" transform="rotate(-13 115 115)"/>
+  <rect x="100" y="84" width="58" height="86" rx="9" fill="#ef4444" transform="rotate(11 129 127)"/>
+</svg>

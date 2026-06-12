@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240" role="img" aria-label="Silbato de árbitro">
+  <circle cx="120" cy="120" r="120" fill="#0d9488"/>
+  <g fill="#ffffff">
+    <rect x="62" y="104" width="66" height="42" rx="8"/>
+    <circle cx="138" cy="140" r="32"/>
+    <rect x="118" y="88" width="11" height="18" rx="4"/>
+  </g>
+  <circle cx="138" cy="140" r="11" fill="#0d9488"/>
+</svg>

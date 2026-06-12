@@ -79,13 +79,17 @@ export async function proxy(request: NextRequest) {
 
   // Authenticated users without a completed profile are gated to onboarding
   if (user && !isPublic(pathname) && pathname !== ONBOARDING_ROUTE) {
-    const { data: profile } = await supabase
+    const { data: profile, error } = await supabase
       .from("profiles")
       .select("nickname_base")
       .eq("id", user.id)
       .single();
 
-    if (!profile?.nickname_base) {
+    // Only gate to onboarding when we positively know the profile has no
+    // nickname. If the read itself failed (e.g. PostgREST unavailable / schema
+    // cache reloading), fail open instead of trapping every authenticated user
+    // in an onboarding redirect loop.
+    if (!error && !profile?.nickname_base) {
       return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
     }
   }

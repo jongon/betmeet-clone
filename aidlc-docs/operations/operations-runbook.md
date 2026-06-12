@@ -22,6 +22,7 @@
 | H-5 | El usuario admin se creó en `Authentication → Users` **antes** de existir la tabla `profiles` y el trigger `handle_new_user`. | El trigger solo dispara en *nuevos* inserts → **no hay fila en `profiles`** para ese usuario → `seed-admin` (que hace `UPDATE`) falla. |
 | H-6 | `DATABASE_URL` usa el **transaction pooler** (`...pooler.supabase.com:6543`). | Correcto para runtime. Operaciones DDL (`prisma db push` / `migrate deploy`) deben usar `DIRECT_URL` con la **direct connection** (`db.<ref>.supabase.co:5432`). |
 | H-7 | `.env` contiene `SUPABASE_SERVICE_ROLE_KEY`, el password de la BD y `API_FOOTBALL_KEY` en texto plano. | Riesgo de credenciales. Confirmar `.env` en `.gitignore` y **rotar** secretos expuestos. |
+| H-8 | Con **PostgREST caído** (`PGRST002 – "Could not query the database for the schema cache"`), el gate de auth en `src/proxy.ts` —único punto que lee tablas vía REST de Supabase; el resto va por Prisma— recibía `{data:null}` y lo trataba como "sin nickname" → redirige a `/onboarding/profile`, que (vía Prisma sí ve el nickname) rebota a `/matches` → **loop infinito** (`Throttling navigation` + pantalla negra). Detectado 2026-06-12. | Mitigado en código: el middleware ahora hace *fail-open* ante error de lectura (`!error && !profile?.nickname_base`). La causa raíz (PostgREST degradado) se resuelve reiniciando el servicio en Supabase. Ver §6. |
 
 ---
 
@@ -112,6 +113,42 @@ Verificar: en `profiles`, `verification_status = 'ADMIN'`; y acceso a `/admin` e
 - [ ] `pnpm seed:competition` OK + `pnpm sync:flags` ejecutado si cambió el seed + `pnpm check:flags` sin faltantes.
 - [ ] Admin registrado (con trigger ya presente) y promovido a ADMIN.
 - [ ] Conexión de runtime por pooler; migraciones por direct connection.
+
+---
+
+## 6. Troubleshooting — loop de onboarding / PostgREST `PGRST002` (H-8)
+
+**Síntoma:** tras login/onboarding, la app intenta ir a `/matches` pero queda en
+pantalla negra; la consola del browser muestra `Throttling navigation to prevent the
+browser from hanging`. El usuario rebota indefinidamente entre `/matches` y
+`/onboarding/profile` aunque su `nickname_base` ya esté en la BD.
+
+**Causa:** el servicio **PostgREST** (REST API de Supabase) está degradado y devuelve
+`503 PGRST002`. La **BD en sí está sana** (Prisma por el pooler sigue leyendo/escribiendo);
+solo la capa REST falla. El único consumidor de REST sobre tablas es el gate del middleware
+(`src/proxy.ts`, lee `profiles.nickname_base`); todo lo demás usa Prisma.
+
+**Diagnóstico (confirmar antes de tocar nada):**
+```bash
+# ¿REST caída? (anon key); 503/PGRST002 = PostgREST degradado
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/profiles?select=id&limit=1" \
+  -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY" -H "Authorization: Bearer $NEXT_PUBLIC_SUPABASE_ANON_KEY"
+# ¿BD sana por Prisma? (debe responder OK aunque la REST falle)
+node --env-file=.env --import tsx -e 'import {prisma} from "@/lib/prisma"; \
+  console.log(await prisma.$queryRawUnsafe("select count(*) from public.profiles")); await prisma.$disconnect()'
+```
+
+**Solución:**
+1. **Reiniciar PostgREST** en el dashboard de Supabase: Settings → General → *Restart
+   project* (o *Pause/Resume*). `NOTIFY pgrst, 'reload schema'` / `'reload config'` por SQL
+   **no** lo recupera si el servicio está caído (probado, sin efecto).
+2. Si persiste, es incidente de plataforma de Supabase (revisar status.supabase.com / soporte).
+3. **No** confundir con la caché de Turbopack corrupta (otro origen de pantalla negra en
+   dev): esa se arregla con `rm -rf .next` y reiniciar `pnpm dev`.
+
+**Resiliencia ya en código:** el gate de `src/proxy.ts` solo redirige a onboarding cuando
+el read tuvo éxito y el nickname está realmente vacío. Ante error de lectura hace fail-open,
+de modo que un hipo de PostgREST ya no atrapa a todos los usuarios en el loop.
 
 ---
 
