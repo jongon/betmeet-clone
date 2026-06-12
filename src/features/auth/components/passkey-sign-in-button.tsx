@@ -3,10 +3,11 @@
 import { KeyRound } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/client";
 import { reportPasskeyFailure } from "../actions/passkey-sign-in";
 
-export function PasskeySignInButton() {
+export function PasskeySignInButton({ next }: { next?: string }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,7 +54,8 @@ export function PasskeySignInButton() {
         return;
       }
 
-      window.location.href = "/";
+      // Return to the intended destination preserved through sign-in (FR-REFINE-13.1).
+      window.location.href = sanitizeNext(next, "/");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Passkey sign-in failed";
       await reportPasskeyFailure(msg);

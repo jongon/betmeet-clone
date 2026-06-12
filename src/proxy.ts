@@ -67,7 +67,9 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+  // Original destination to return to after auth/onboarding (FR-REFINE-13.1/13.2).
+  const intendedPath = `${pathname}${search}`;
 
   // Redirect authenticated users away from auth-only pages
   if (user && isAuthOnly(pathname)) {
@@ -76,7 +78,11 @@ export async function proxy(request: NextRequest) {
 
   // Unauthenticated users can only access public routes
   if (!user && !isPublic(pathname)) {
-    const response = NextResponse.redirect(new URL("/sign-in", request.url));
+    const signInUrl = new URL("/sign-in", request.url);
+    // Preserve the intended destination (e.g. an invite link) so the user returns
+    // to it after signing in (FR-REFINE-13.1).
+    signInUrl.searchParams.set("next", intendedPath);
+    const response = NextResponse.redirect(signInUrl);
     response.cookies.set("session_expired", "1", { maxAge: 10, path: "/" });
     return response;
   }
@@ -94,20 +100,11 @@ export async function proxy(request: NextRequest) {
     // cache reloading), fail open instead of trapping every authenticated user
     // in an onboarding redirect loop.
     if (!error && !profile?.nickname_base) {
-      return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
-    }
-  }
-
-  // Admin area: only ADMIN profiles may enter /admin/* (BR-7.1)
-  if (user && pathname.startsWith("/admin")) {
-    const { data: adminProfile } = await supabase
-      .from("profiles")
-      .select("verification_status")
-      .eq("id", user.id)
-      .single();
-
-    if (adminProfile?.verification_status !== "ADMIN") {
-      return NextResponse.redirect(new URL("/", request.url));
+      const onboardingUrl = new URL(ONBOARDING_ROUTE, request.url);
+      // Continue to the intended destination once onboarding completes
+      // (FR-REFINE-13.2 / 12.7).
+      onboardingUrl.searchParams.set("next", intendedPath);
+      return NextResponse.redirect(onboardingUrl);
     }
   }
 

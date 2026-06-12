@@ -4,12 +4,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { initiateGoogleSignIn } from "../actions/google-callback";
 
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ next }: { next?: string }) {
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
     setPending(true);
-    await initiateGoogleSignIn();
+    await initiateGoogleSignIn(next);
     // redirect happens inside the action; no need to reset pending
   }
 

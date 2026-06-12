@@ -7,11 +7,12 @@ import { SignInForm } from "@/features/auth/components/sign-in-form";
 export const metadata: Metadata = { title: "Sign in" };
 
 interface Props {
-  searchParams: Promise<{ reset?: string; deleted?: string }>;
+  searchParams: Promise<{ reset?: string; deleted?: string; next?: string }>;
 }
 
 export default async function SignInPage({ searchParams }: Props) {
   const params = await searchParams;
+  const next = params.next;
 
   return (
     <div className="space-y-4">
@@ -26,8 +27,8 @@ export default async function SignInPage({ searchParams }: Props) {
         </div>
       )}
 
-      <GoogleSignInButton />
-      <PasskeySignInButton />
+      <GoogleSignInButton next={next} />
+      <PasskeySignInButton next={next} />
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
@@ -35,7 +36,7 @@ export default async function SignInPage({ searchParams }: Props) {
         <Separator className="flex-1" />
       </div>
 
-      <SignInForm />
+      <SignInForm next={next} />
     </div>
   );
 }

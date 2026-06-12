@@ -10,7 +10,7 @@ import { signUp } from "../actions/sign-up";
 
 type ActionState = Awaited<ReturnType<typeof signUp>>;
 
-export function SignUpForm() {
+export function SignUpForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => signUp(formData),
     undefined,
@@ -18,6 +18,7 @@ export function SignUpForm() {
 
   return (
     <form action={action} className="space-y-4" noValidate>
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <FormError messages={state?.error?._form as string[] | undefined} />
 
       <div className="space-y-1.5">

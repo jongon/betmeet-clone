@@ -17,10 +17,11 @@ import { verifyMfa } from "../actions/mfa-verify";
 interface MFAPromptModalProps {
   factorId: string;
   open: boolean;
+  next?: string;
   onClose: () => void;
 }
 
-export function MFAPromptModal({ factorId, open, onClose }: MFAPromptModalProps) {
+export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModalProps) {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -31,7 +32,7 @@ export function MFAPromptModal({ factorId, open, onClose }: MFAPromptModalProps)
       return;
     }
     setPending(true);
-    const result = await verifyMfa(factorId, code);
+    const result = await verifyMfa(factorId, code, next);
     if (result?.error) {
       setError(result.error);
       setPending(false);

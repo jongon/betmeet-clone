@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { SignUpSchema } from "../schemas";
 
@@ -27,11 +28,18 @@ export async function signUp(formData: FormData): Promise<SignUpState> {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
+  // Preserve the intended destination (e.g. an invite link) through email
+  // confirmation (FR-REFINE-13.1). Guarded against open redirects.
+  const next = sanitizeNext(formData.get("next") as string | null);
+  const baseCallback = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
+  const emailRedirectTo =
+    next !== "/matches" ? `${baseCallback}?next=${encodeURIComponent(next)}` : baseCallback;
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` },
+    options: { emailRedirectTo },
   });
 
   if (error) {

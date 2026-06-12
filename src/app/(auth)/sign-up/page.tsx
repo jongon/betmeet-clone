@@ -5,10 +5,16 @@ import { SignUpForm } from "@/features/auth/components/sign-up-form";
 
 export const metadata: Metadata = { title: "Create account" };
 
-export default function SignUpPage() {
+export default async function SignUpPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>;
+}) {
+  const { next } = await searchParams;
+
   return (
     <div className="space-y-4">
-      <GoogleSignInButton />
+      <GoogleSignInButton next={next} />
 
       <div className="flex items-center gap-3">
         <Separator className="flex-1" />
@@ -16,7 +22,7 @@ export default function SignUpPage() {
         <Separator className="flex-1" />
       </div>
 
-      <SignUpForm />
+      <SignUpForm next={next} />
     </div>
   );
 }

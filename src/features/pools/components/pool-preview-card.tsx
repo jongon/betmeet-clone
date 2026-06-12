@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
@@ -9,14 +10,29 @@ import type { PoolPreviewItem } from "../types";
 
 export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
   const hasCapacity = pool.memberCount < pool.capacity;
 
   function join() {
     setError(null);
+    setInfo(null);
     startTransition(async () => {
       const result = await joinPublicPool(pool.id);
-      if (result?.error) setError(result.error);
+      if ("error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      // Already a member: stay in the directory with an info message (FR-REFINE-13.6).
+      if ("alreadyMember" in result) {
+        setInfo("Ya eres miembro de esta liga.");
+        return;
+      }
+      // Successful join: go straight to the pool page (FR-REFINE-13.5).
+      if ("success" in result) {
+        router.push(`/pools/${result.poolId}`);
+      }
     });
   }
 
@@ -29,6 +45,18 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
             {pool.memberCount}/{pool.capacity} participantes
           </p>
           <FormError messages={error ? [error] : undefined} />
+          {info ? (
+            <p role="status" className="mt-1 text-sm text-muted-foreground">
+              {info}{" "}
+              <button
+                type="button"
+                className="underline underline-offset-4 hover:text-foreground"
+                onClick={() => router.push(`/pools/${pool.id}`)}
+              >
+                Ir a la liga
+              </button>
+            </p>
+          ) : null}
         </div>
         <Button
           onClick={join}
