@@ -25,9 +25,6 @@ services:
     ports:
       - '${APP_PORT:-3000}:3000'
       - '${DEBUG_PORT:-9229}:9229'
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: 'postgresql://${DB_USERNAME:-username}:${DB_PASSWORD:-password}@postgres:5432/${DB_DATABASE:-nextjs}'
     volumes:
       - .:/var/www/html
     depends_on:
