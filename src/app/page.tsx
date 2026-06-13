@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { UserMenu } from "@/components/layout/user-menu";
 import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { IslandBoundary } from "@/features/education/components/island-boundary";
 import { LandingHero } from "@/features/education/components/landing-hero";
-import { LandingSecondaryCtas } from "@/features/education/components/landing-secondary-ctas";
-import { PoolPreview } from "@/features/education/components/pool-preview";
 import { ScoringTeaser } from "@/features/education/components/scoring-teaser";
-import { listPublicPools } from "@/features/pools/queries";
+import { getProfile } from "@/features/profile/queries";
+import { getDisplayNickname } from "@/features/profile/types";
 import { es } from "@/i18n/dictionaries/es";
 
 export const metadata: Metadata = {
@@ -22,39 +21,43 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const pools = await listPublicPools({ onlyWithCapacity: true }).catch(() => null);
+  // Session-aware landing (FR-REFINE-15.3): logged-in visitors see their identity
+  // menu, anonymous visitors see the sign-in / sign-up actions.
+  const profile = await getProfile();
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
       <header className="flex flex-wrap items-center justify-between gap-2 pt-4">
+        <Link href="/" className="font-display text-lg font-bold tracking-tight">
+          {es.common.appName}
+        </Link>
+        {/* Toggles aligned to the right to match the authenticated app header (FR-REFINE-15.4). */}
         <div className="flex items-center gap-1">
           <BrandToggle />
           <ThemeToggle />
+          {profile ? (
+            <UserMenu
+              displayNickname={getDisplayNickname(profile)}
+              avatarUrl={profile.avatarUrl}
+              isAdmin={profile.verificationStatus === "ADMIN"}
+            />
+          ) : (
+            <nav className="flex items-center gap-2" aria-label={es.landing.headerSignIn}>
+              <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+                {es.landing.headerSignIn}
+              </Link>
+              <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
+                {es.landing.headerSignUp}
+              </Link>
+            </nav>
+          )}
         </div>
-        <nav className="flex items-center gap-2" aria-label={es.landing.headerSignIn}>
-          <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-            {es.landing.headerSignIn}
-          </Link>
-          <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
-            {es.landing.headerSignUp}
-          </Link>
-        </nav>
       </header>
 
       <LandingHero />
 
       <div className="space-y-12">
         <ScoringTeaser />
-
-        {/* PoolPreview hides itself on error (BR-2.26). */}
-        <IslandBoundary>
-          <PoolPreview
-            pools={pools?.slice(0, 4)}
-            state={pools === null ? "error" : pools.length > 0 ? "ready" : "empty"}
-          />
-        </IslandBoundary>
-
-        <LandingSecondaryCtas />
       </div>
     </main>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
@@ -31,16 +32,26 @@ export function AvatarSourceTabs({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadPending, setUploadPending] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  // After a successful change, refresh the route so the server components re-render
+  // with the new avatar: the "current avatar" preview above and the global header
+  // (AppHeader reads getProfile()). Without this the selection ring moves but the
+  // displayed avatar never updates, so the change looks like it didn't apply.
+  function applied(url: string) {
+    onAvatarChange?.(url);
+    router.refresh();
+  }
 
   async function handleDefaultSelect(id: string, _url: string) {
     setSelectedDefaultId(id);
     const result = await setAvatarFromDefaultSet(id);
-    if (result.success && result.avatarUrl) onAvatarChange?.(result.avatarUrl);
+    if (result.success && result.avatarUrl) applied(result.avatarUrl);
   }
 
   async function handleGoogleSelect() {
     const result = await setAvatarFromGoogle();
-    if (result.success && result.avatarUrl) onAvatarChange?.(result.avatarUrl);
+    if (result.success && result.avatarUrl) applied(result.avatarUrl);
   }
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -80,7 +91,7 @@ export function AvatarSourceTabs({
     if (result.error) {
       setUploadError(result.error);
     } else if (result.avatarUrl) {
-      onAvatarChange?.(result.avatarUrl);
+      applied(result.avatarUrl);
     }
     setUploadPending(false);
   }

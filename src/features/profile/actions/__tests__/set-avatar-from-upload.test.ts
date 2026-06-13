@@ -4,6 +4,8 @@ vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: { profile: { findUnique: vi.fn(), update: vi.fn() } },
 }));
+// revalidatePath needs a request scope; stub it for unit tests.
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";

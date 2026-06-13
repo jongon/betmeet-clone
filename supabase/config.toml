@@ -14,6 +14,15 @@ project_id = "liga-mundial"
 site_url = "env(NEXT_PUBLIC_SITE_URL)"
 
 [auth.email]
+# Confirmaciones de email obligatorias para registro (sin esto, Supabase entrega
+# sesión sin confirmar y el gate en src/proxy.ts no tendría qué exigir — FR-REFINE-15.14).
+enable_confirmations = true
+# "Secure email change": el cambio de correo se confirma desde la dirección actual
+# Y la nueva; el cambio solo se aplica cuando ambas se confirman (FR-REFINE-15.10).
+# La UI de Perfil avisa de esto. Si se quisiera confirmación única, poner = false
+# (debe coincidir con el toggle del dashboard en prod).
+secure_email_change_enabled = true
+
 # Confirmar email al registro. Trigger: src/features/auth/actions/sign-up.ts
 [auth.email.template.confirmation]
 subject = "Confirma tu cuenta — Quiniela Mundial 2026"

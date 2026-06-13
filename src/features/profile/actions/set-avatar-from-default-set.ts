@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { LOCAL_FALLBACK_AVATAR_PREFIX, resolveLocalAvatarUrl } from "../default-avatars";
@@ -22,6 +23,7 @@ export async function setAvatarFromDefaultSet(assetId: string) {
       where: { id: userData.user.id },
       data: { avatarUrl: localUrl, avatarSource: "DEFAULT_SET" },
     });
+    revalidatePath("/settings/profile");
     return { success: true, avatarUrl: localUrl };
   }
 
@@ -35,5 +37,6 @@ export async function setAvatarFromDefaultSet(assetId: string) {
     data: { avatarUrl: asset.storageUrl, avatarSource: "DEFAULT_SET" },
   });
 
+  revalidatePath("/settings/profile");
   return { success: true, avatarUrl: asset.storageUrl };
 }

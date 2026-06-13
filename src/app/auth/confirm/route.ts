@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleGoogleCallback } from "@/features/auth/actions/google-callback";
+import { prisma } from "@/lib/prisma";
+import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 
 // Email-link OTP types we accept. Mirrors Supabase's EmailOtpType union.
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/matches";
+  const next = sanitizeNext(searchParams.get("next"));
 
   if (!tokenHash || !isEmailOtpType(type)) {
     return NextResponse.redirect(`${origin}/sign-in?error=missing_token`);
@@ -47,5 +49,13 @@ export async function GET(request: NextRequest) {
     await handleGoogleCallback(data.session.user.id);
   }
 
-  return NextResponse.redirect(`${origin}${next}`);
+  const profile = await prisma.profile.findUnique({
+    where: { id: data.session.user.id },
+    select: { onboardingCompleted: true },
+  });
+  const destination = profile?.onboardingCompleted
+    ? next
+    : `/onboarding/profile?next=${encodeURIComponent(next)}`;
+
+  return NextResponse.redirect(`${origin}${destination}`);
 }

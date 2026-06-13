@@ -29,11 +29,15 @@ export async function signUp(formData: FormData): Promise<SignUpState> {
   }
 
   // Preserve the intended destination (e.g. an invite link) through email
-  // confirmation (FR-REFINE-13.1). Guarded against open redirects.
+  // confirmation (FR-REFINE-13.1). Guarded against open redirects. `flow` marks
+  // the account-confirmation flow so /auth/callback can tell a failed PKCE session
+  // exchange (email already confirmed) from a real OAuth failure (FR-REFINE-16.8).
+  // Only used if the default PKCE template is active; the token_hash template
+  // (`/auth/confirm`) ignores emailRedirectTo.
   const next = sanitizeNext(formData.get("next") as string | null);
-  const baseCallback = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
-  const emailRedirectTo =
-    next !== "/matches" ? `${baseCallback}?next=${encodeURIComponent(next)}` : baseCallback;
+  const callbackParams = new URLSearchParams({ flow: "email_confirm" });
+  if (next !== "/matches") callbackParams.set("next", next);
+  const emailRedirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?${callbackParams.toString()}`;
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({

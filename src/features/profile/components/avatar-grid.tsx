@@ -1,7 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { LOCAL_FALLBACK_AVATARS } from "../default-avatars";
 import type { AvatarAsset } from "../types";
 
 interface AvatarGridProps {
@@ -10,15 +12,27 @@ interface AvatarGridProps {
   onSelect: (id: string, url: string) => void;
 }
 
+/** Bundled placeholder used when a (remote) avatar image fails to load. */
+function localFallbackFor(index: number): string {
+  const fallback = LOCAL_FALLBACK_AVATARS[index % LOCAL_FALLBACK_AVATARS.length];
+  return fallback.storageUrl;
+}
+
 export function AvatarGrid({ avatars, selectedId, onSelect }: AvatarGridProps) {
+  // Track avatars whose remote image 404'd (e.g. Storage not seeded / wrong
+  // project) so the picker degrades to the bundled local set instead of showing
+  // blank slots (FR-REFINE-15.8, hardening FR-REFINE-12.6).
+  const [failedIds, setFailedIds] = useState<Record<string, boolean>>({});
+
   return (
     <div
       role="listbox"
       aria-label="Default avatars"
       className="grid grid-cols-4 gap-2 sm:grid-cols-6"
     >
-      {avatars.map((avatar) => {
+      {avatars.map((avatar, index) => {
         const selected = avatar.id === selectedId;
+        const src = failedIds[avatar.id] ? localFallbackFor(index) : avatar.storageUrl;
         return (
           <button
             key={avatar.id}
@@ -33,12 +47,13 @@ export function AvatarGrid({ avatars, selectedId, onSelect }: AvatarGridProps) {
             )}
           >
             <Image
-              src={avatar.storageUrl}
+              src={src}
               alt={avatar.name}
               width={64}
               height={64}
               className="h-12 w-12 rounded-full object-cover"
               unoptimized
+              onError={() => setFailedIds((prev) => ({ ...prev, [avatar.id]: true }))}
             />
           </button>
         );

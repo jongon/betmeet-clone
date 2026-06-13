@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { BrandToggle } from "@/components/theme/brand-toggle";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { CalculatorErrorBoundary } from "@/features/education/components/calculator-error-boundary";
-import { DismissibleCallout } from "@/features/education/components/dismissible-callout";
 import { RulesAccordion } from "@/features/education/components/rules-accordion";
 import { RulesHeader } from "@/features/education/components/rules-header";
 import { ScoreBreakdownDemo } from "@/features/education/components/score-breakdown-demo";
@@ -23,14 +20,7 @@ export default function RulesPage() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-4 py-8">
-      <div className="flex justify-end gap-1">
-        <BrandToggle />
-        <ThemeToggle />
-      </div>
-
       <RulesHeader />
-
-      <DismissibleCallout cueId="ranking-pool-only">{es.cues.rankingPoolOnly}</DismissibleCallout>
 
       <RulesAccordion sections={sections} />
 

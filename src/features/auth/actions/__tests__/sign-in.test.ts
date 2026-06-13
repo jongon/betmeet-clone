@@ -5,11 +5,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/lib/prisma", () => ({
+  prisma: { profile: { findUnique: vi.fn() } },
+}));
 vi.mock("@/lib/auth-logger", () => ({
   logAuthEvent: vi.fn(),
   redactEmail: vi.fn((e: string) => e),
 }));
 
+import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { signIn } from "../sign-in";
 
@@ -35,6 +39,7 @@ describe("signIn", () => {
     mockGetAuthenticatorAssuranceLevel.mockResolvedValue({
       data: { currentLevel: "aal1", nextLevel: "aal1" },
     });
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({ onboardingCompleted: true } as never);
   });
 
   it("returns field errors on invalid input", async () => {
@@ -70,5 +75,17 @@ describe("signIn", () => {
     });
     await signIn(makeFormData({ email: "a@b.com", password: "password123" }));
     expect(redirect).toHaveBeenCalledWith("/matches");
+  });
+
+  it("redirects incomplete profiles to onboarding on success", async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: { user: { id: "1", email: "a@b.com" } },
+      error: null,
+    });
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({ onboardingCompleted: false } as never);
+
+    await signIn(makeFormData({ email: "a@b.com", password: "password123" }));
+
+    expect(redirect).toHaveBeenCalledWith("/onboarding/profile?next=%2Fmatches");
   });
 });

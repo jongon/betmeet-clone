@@ -12,15 +12,23 @@ export async function changeEmail(formData: FormData) {
   }
 
   const supabase = await createClient();
+  // Confirmation links resolve through the token_hash flow (`/auth/confirm`,
+  // verifyOtp), not PKCE (`/auth/callback`, exchangeCodeForSession), so they
+  // survive cross-device / mail-scanner-rewritten links (see memory
+  // email-confirm-pkce-fragile). The email_change template already links to
+  // /auth/confirm; this keeps emailRedirectTo consistent (FR-REFINE-15.10).
   const { error } = await supabase.auth.updateUser(
     { email: parsed.data.newEmail },
-    { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?type=email_change` },
+    { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm?type=email_change` },
   );
 
   if (error) {
     return { error: { _form: [error.message] } };
   }
 
-  // Supabase sends confirmation email to both old and new addresses
+  // With Supabase "Secure email change" enabled, confirmation is sent to BOTH
+  // the current and the new address and the change applies only once BOTH are
+  // confirmed (surfaced in the UI copy). The setting is documented in
+  // supabase/config.toml and the operations runbook.
   return { success: true };
 }

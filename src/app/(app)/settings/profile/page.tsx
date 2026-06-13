@@ -10,16 +10,20 @@ import { AvatarSourceTabs } from "@/features/profile/components/avatar-source-ta
 import { getDefaultAvatars, getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
 import { es } from "@/i18n/dictionaries/es";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Profile settings" };
 
 export default async function ProfileSettingsPage() {
-  const [profile, defaultAvatars, notificationSettings] = await Promise.all([
+  const supabase = await createClient();
+  const [profile, defaultAvatars, notificationSettings, { data: userData }] = await Promise.all([
     getProfile(),
     getDefaultAvatars(),
     getNotificationSettings(),
+    supabase.auth.getUser(),
   ]);
   if (!profile) redirect("/sign-in");
+  const currentEmail = userData.user?.email ?? "";
 
   return (
     <div className="space-y-6">
@@ -53,7 +57,10 @@ export default async function ProfileSettingsPage() {
           <CardTitle>{es.profile.title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <AccountSettings currentNicknameBase={profile.nicknameBase ?? ""} />
+          <AccountSettings
+            currentNicknameBase={profile.nicknameBase ?? ""}
+            currentEmail={currentEmail}
+          />
         </CardContent>
       </Card>
       {notificationSettings && (

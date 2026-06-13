@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { logAuthEvent, redactEmail } from "@/lib/auth-logger";
+import { prisma } from "@/lib/prisma";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { SignInSchema } from "../schemas";
@@ -79,6 +80,15 @@ export async function signIn(formData: FormData): Promise<SignInState> {
   const profile = data.user;
   if (!profile) {
     return { error: { _form: ["Sign in failed. Please try again."] } };
+  }
+
+  const userProfile = await prisma.profile.findUnique({
+    where: { id: profile.id },
+    select: { onboardingCompleted: true },
+  });
+
+  if (!userProfile?.onboardingCompleted) {
+    redirect(`/onboarding/profile?next=${encodeURIComponent(next)}`);
   }
 
   redirect(next);

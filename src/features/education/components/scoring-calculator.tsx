@@ -51,38 +51,44 @@ function GoalInput({
 
 /**
  * Interactive educational calculator (BL-1). Pure client-side preview that
- * reuses computeScore — never defines its own rules (BR-2.7). The penalty
- * winner selector only appears for a tied knockout score.
+ * reuses computeScore — never defines its own rules (BR-2.7). When a knockout
+ * is tied at 90', the penalty shootout is captured for BOTH the prediction and
+ * the actual result, mirroring the main score layout (FR-REFINE-15.7); the
+ * winner of each shootout is derived and the bonus applies only when they match.
  */
 export function ScoringCalculator() {
   const [predictedHome, setPredictedHome] = useState(2);
-  const [predictedAway, setPredictedAway] = useState(1);
+  const [predictedAway, setPredictedAway] = useState(2);
   const [actualHome, setActualHome] = useState(2);
-  const [actualAway, setActualAway] = useState(1);
-  const [isKnockout, setIsKnockout] = useState(false);
-  // Penalty shootout score (FR-REFINE-14.4), e.g. 4-3. The winner is derived.
-  const [penaltyHome, setPenaltyHome] = useState(4);
-  const [penaltyAway, setPenaltyAway] = useState(3);
+  const [actualAway, setActualAway] = useState(2);
+  const [isKnockout, setIsKnockout] = useState(true);
+  // Penalty shootout scores (FR-REFINE-14.4 / 15.7), e.g. 4-3. Winners are derived.
+  const [predictedPenaltyHome, setPredictedPenaltyHome] = useState(4);
+  const [predictedPenaltyAway, setPredictedPenaltyAway] = useState(3);
+  const [actualPenaltyHome, setActualPenaltyHome] = useState(4);
+  const [actualPenaltyAway, setActualPenaltyAway] = useState(2);
 
   // Penalties are only available for a knockout tied at 90' (FR-REFINE-14.5).
   const showPenalty = isKnockout && actualHome === actualAway;
 
-  // Winner derived from the shootout score; a tie is invalid (no winner).
-  const derivedPenaltyWinner = derivePenaltyWinner(penaltyHome, penaltyAway);
-  const penaltyTie = showPenalty && derivedPenaltyWinner === null;
+  // Winner derived from each shootout score; a tie is invalid (no winner).
+  const derivedPredictedPenaltyWinner = derivePenaltyWinner(
+    predictedPenaltyHome,
+    predictedPenaltyAway,
+  );
+  const derivedActualPenaltyWinner = derivePenaltyWinner(actualPenaltyHome, actualPenaltyAway);
+  const predictedPenaltyTie = showPenalty && derivedPredictedPenaltyWinner === null;
+  const actualPenaltyTie = showPenalty && derivedActualPenaltyWinner === null;
 
   const breakdown = useMemo(() => {
-    const winner = showPenalty ? derivedPenaltyWinner : null;
     const example: ScoringExample = {
       predictedHome,
       predictedAway,
       actualHome,
       actualAway,
       isKnockout,
-      predictedPenaltyWinner: winner,
-      // Demo assumes the user's penalty pick is the actual outcome so the bonus
-      // is illustrated when a winner is set.
-      actualPenaltyWinner: winner,
+      predictedPenaltyWinner: showPenalty ? derivedPredictedPenaltyWinner : null,
+      actualPenaltyWinner: showPenalty ? derivedActualPenaltyWinner : null,
     };
     return computeScore(example);
   }, [
@@ -91,7 +97,8 @@ export function ScoringCalculator() {
     actualHome,
     actualAway,
     isKnockout,
-    derivedPenaltyWinner,
+    derivedPredictedPenaltyWinner,
+    derivedActualPenaltyWinner,
     showPenalty,
   ]);
 
@@ -152,33 +159,76 @@ export function ScoringCalculator() {
         </div>
 
         {showPenalty && (
-          <div className="space-y-2">
-            <span className="text-sm font-medium">{es.calculator.penaltyScore}</span>
-            <div className="flex items-end gap-3">
-              <GoalInput
-                id="pen-home"
-                label={es.calculator.home}
-                value={penaltyHome}
-                onChange={setPenaltyHome}
-              />
-              <GoalInput
-                id="pen-away"
-                label={es.calculator.away}
-                value={penaltyAway}
-                onChange={setPenaltyAway}
-              />
+          <fieldset className="space-y-3 rounded-md border border-dashed p-4">
+            <legend className="px-1 text-sm font-medium">{es.calculator.penaltyShootout}</legend>
+            <p className="text-sm text-muted-foreground">{es.calculator.penaltyBonusHint}</p>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <span className="text-sm font-medium">{es.calculator.prediction}</span>
+                <div className="flex gap-3">
+                  <GoalInput
+                    id="pred-pen-home"
+                    label={es.calculator.home}
+                    value={predictedPenaltyHome}
+                    onChange={setPredictedPenaltyHome}
+                  />
+                  <GoalInput
+                    id="pred-pen-away"
+                    label={es.calculator.away}
+                    value={predictedPenaltyAway}
+                    onChange={setPredictedPenaltyAway}
+                  />
+                </div>
+                {predictedPenaltyTie ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    {es.calculator.penaltyTie}
+                  </p>
+                ) : (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="calculator-predicted-penalty-winner"
+                  >
+                    {es.calculator.penaltyDerivedWinner}{" "}
+                    {derivedPredictedPenaltyWinner === "home"
+                      ? es.calculator.home
+                      : es.calculator.away}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <span className="text-sm font-medium">{es.calculator.actual}</span>
+                <div className="flex gap-3">
+                  <GoalInput
+                    id="act-pen-home"
+                    label={es.calculator.home}
+                    value={actualPenaltyHome}
+                    onChange={setActualPenaltyHome}
+                  />
+                  <GoalInput
+                    id="act-pen-away"
+                    label={es.calculator.away}
+                    value={actualPenaltyAway}
+                    onChange={setActualPenaltyAway}
+                  />
+                </div>
+                {actualPenaltyTie ? (
+                  <p role="alert" className="text-sm text-destructive">
+                    {es.calculator.penaltyTie}
+                  </p>
+                ) : (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="calculator-actual-penalty-winner"
+                  >
+                    {es.calculator.penaltyDerivedWinner}{" "}
+                    {derivedActualPenaltyWinner === "home"
+                      ? es.calculator.home
+                      : es.calculator.away}
+                  </p>
+                )}
+              </div>
             </div>
-            {penaltyTie ? (
-              <p role="alert" className="text-sm text-destructive">
-                {es.calculator.penaltyTie}
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground" data-testid="calculator-penalty-winner">
-                {es.calculator.penaltyDerivedWinner}{" "}
-                {derivedPenaltyWinner === "home" ? es.calculator.home : es.calculator.away}
-              </p>
-            )}
-          </div>
+          </fieldset>
         )}
 
         <div className="rounded-md border bg-muted/30 p-4">

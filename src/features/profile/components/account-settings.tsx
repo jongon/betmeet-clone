@@ -14,13 +14,14 @@ type EmailState = Awaited<ReturnType<typeof changeEmail>> | undefined;
 
 interface AccountSettingsProps {
   currentNicknameBase: string;
+  currentEmail: string;
 }
 
 /**
  * Profile account controls: change nickname (rate-limited) and email
  * (FR-REFINE-12.4 / 12.5). Both reuse existing server actions.
  */
-export function AccountSettings({ currentNicknameBase }: AccountSettingsProps) {
+export function AccountSettings({ currentNicknameBase, currentEmail }: AccountSettingsProps) {
   const t = es.profile;
 
   const [nickState, nickAction, nickPending] = useActionState<NicknameState, FormData>(
@@ -81,6 +82,19 @@ export function AccountSettings({ currentNicknameBase }: AccountSettingsProps) {
           {emailState?.success ? (
             <p className="text-sm text-muted-foreground">{t.emailSuccess}</p>
           ) : null}
+          <div className="space-y-1.5">
+            <Label htmlFor="currentEmail">{t.emailCurrentLabel}</Label>
+            <Input
+              id="currentEmail"
+              name="currentEmail"
+              type="email"
+              value={currentEmail}
+              readOnly
+              disabled
+              autoComplete="email"
+              className="text-muted-foreground"
+            />
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="newEmail">{t.emailLabel}</Label>
             <Input

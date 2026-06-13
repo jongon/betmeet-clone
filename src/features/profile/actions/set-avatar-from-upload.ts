@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,5 +44,6 @@ export async function setAvatarFromUpload(storagePath: string) {
     data: { avatarUrl, avatarSource: "CUSTOM_UPLOAD" },
   });
 
+  revalidatePath("/settings/profile");
   return { success: true, avatarUrl };
 }

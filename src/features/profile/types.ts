@@ -9,6 +9,7 @@ export interface Profile {
   avatarSource: AvatarSource;
   verificationStatus: VerificationStatus;
   mfaEnabled: boolean;
+  onboardingCompleted: boolean;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
