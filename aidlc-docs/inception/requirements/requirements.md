@@ -478,6 +478,161 @@ acceso a perfil, cambio de tema, ni forma de cerrar sesión.
 
 ---
 
+## FR-REFINE-15: Refine de Landing, Reglas, Perfil, Auth & Calculadora (Post-construcción — Unit 15)
+
+**Origen**: refine 2026-06-13 tras uso en vivo. Lote de bugs/ajustes que en su
+mayoría son **regresiones o extensiones** de Units ya entregadas (11 App Shell,
+12 Auth/Perfil, 14 Ranking/Reglas/Calculadora), más mejoras nuevas (validación
+cliente de formularios, enforcement de confirmación de email, limpieza del
+landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
+
+### Alcance
+- **FR-REFINE-15.1 — Landing sin ligas públicas**: se elimina la sección de
+  "Ligas públicas" (`PoolPreview`) del landing.
+- **FR-REFINE-15.2 — Landing sin enlaces redundantes**: se eliminan el enlace
+  "Explorar ligas públicas" y el botón de "Iniciar sesión" duplicado de los CTAs
+  secundarios.
+- **FR-REFINE-15.3 — Landing consciente de sesión** (extiende FR-REFINE-12.8): el
+  header del landing muestra el menú de usuario (avatar+nickname) cuando hay
+  sesión, y los enlaces Iniciar sesión / Crear cuenta cuando no la hay
+  (reutiliza `getProfile()` / `UserMenu`).
+- **FR-REFINE-15.4 — Consistencia de toggles**: los selectores de tema/marca del
+  landing se alinean a la derecha igual que el header autenticado (`AppHeader`).
+- **FR-REFINE-15.5 — Reglas coherentes con ranking global** (coherencia con
+  Unit 14): se elimina el callout "El ranking es por liga, no global…" porque ya
+  existe ranking por liga **y** global.
+- **FR-REFINE-15.6 — Reglas sin toggles duplicados** (regresión Unit 11): se
+  eliminan los toggles de tema/marca del cuerpo de `/rules`; ya los provee
+  `AppHeader`.
+- **FR-REFINE-15.7 — Calculadora de penales por predicción/real** (extiende
+  FR-REFINE-14.4/14.5): la tanda de penales se captura en dos columnas
+  "Tu predicción" y "Resultado real", cada una derivando su ganador; el bonus
+  aplica solo si coinciden (reutiliza `derivePenaltyWinner`/`computeScore`).
+- **FR-REFINE-15.8 — Avatares por defecto resilientes** (endurece FR-REFINE-12.6):
+  si una imagen remota del set por defecto falla (Storage no sembrado / proyecto
+  equivocado), el grid degrada a los SVG locales empaquetados (`onError`).
+- **FR-REFINE-15.9 — Correo actual visible** (extiende FR-REFINE-12.4): la sección
+  de cambio de email del Perfil muestra el correo actual (solo lectura).
+- **FR-REFINE-15.10 — Cambio de email aplica de verdad**: la confirmación de cambio
+  de email usa el flujo robusto `token_hash`/`verifyOtp` (`/auth/confirm`), no
+  PKCE. Con "Secure email change" activo en Supabase, el cambio requiere confirmar
+  desde el correo actual **y** el nuevo (copy de UI lo explica). Ver memoria
+  `email-confirm-pkce-fragile`.
+- **FR-REFINE-15.11 — Validación cliente en login**: el formulario de inicio de
+  sesión valida en cliente formato de email y regla de contraseña con
+  react-hook-form + zodResolver (reutiliza `SignInSchema`); el server action
+  sigue revalidando.
+- **FR-REFINE-15.12 — Validación cliente en registro**: el formulario de registro
+  valida en cliente email, contraseña y coincidencia de confirmación
+  (`SignUpSchema` + zodResolver).
+- **FR-REFINE-15.13 — Gate de onboarding robusto** (corrige regresión de
+  FR-REFINE-12.7): el gate usa un flag explícito `profiles.onboarding_completed`
+  (migración Prisma + backfill) en vez de inferir por `nickname_base` nulo con
+  fail-open; falla **cerrado** (lectura fallida → onboarding, sin loop).
+- **FR-REFINE-15.14 — Confirmación de email obligatoria** (NFR-01 seguridad): el
+  gate (`src/proxy.ts`) bloquea sesiones con `email_confirmed_at` nulo y las
+  envía a `/verify-email`. Requiere "Confirm email" activo en Supabase
+  (documentado en `supabase/config.toml` + runbook de Operations).
+
+### NFR / Infra
+- **NFR**: solo FR-REFINE-15.14 tiene implicación de seguridad (enforcement de
+  confirmación en el gate). El resto es UI/flujo.
+- **Infra**: FR-REFINE-15.13 añade columna `profiles.onboarding_completed`
+  (migración versionada `20260613120000_unit15_onboarding_flag`, requiere
+  `prisma migrate deploy` + backfill en prod — CF-6/Operations).
+
+---
+
+## FR-REFINE-16: Onboarding obligatorio (defensa en profundidad) y orden del fixture (Post-construcción — Unit 16)
+
+> Refine post-construcción (2026-06-13). Dos defectos reportados en uso en vivo.
+> Aditivo; **no reinicia** ninguna etapa aprobada. Cubre la **Épica 15**.
+
+- **FR-REFINE-16.1 — Onboarding obligatorio, aplicado en servidor** (endurece
+  FR-REFINE-15.13): un usuario que no ha completado el onboarding (sin nickname)
+  **no debe** poder entrar a `/matches` ni crear ligas, invitar o predecir. El
+  gate de `src/proxy.ts` por sí solo es insuficiente: depende de que
+  `onboarding_completed` sea legible vía la API de datos (PostgREST) y **falla
+  ABIERTO** ante error de lectura (decisión de resiliencia de §8.2, necesaria para
+  no convertir una caída de PostgREST en lockout). Por eso se añade **defensa en
+  profundidad** por la ruta fiable (Prisma / Postgres directo):
+  (a) el layout del route-group `(app)` (`src/app/(app)/layout.tsx`) re-verifica
+  `onboardingCompleted` con `getProfile()` y redirige a `/onboarding/profile` si
+  está incompleto — ninguna página de la app se renderiza sin onboarding, aunque
+  el middleware se evada; (b) las server actions mutadoras `createPool`,
+  `createDirectedInvite` y `savePrediction` exigen `getOnboardedUserId()` (nuevo
+  helper en `features/profile/queries.ts`, lee el flag por Prisma) y devuelven un
+  error de dominio ("Completa tu perfil para …") si no está completo. El
+  middleware se mantiene como primera línea (fail-open); estas capas son la
+  garantía dura.
+- **FR-REFINE-16.2 — Partidos por orden de ocurrencia (agrupados por día)**: en
+  `/matches` los partidos deben listarse en **orden cronológico de inicio**, no
+  agrupados por fase (hoy se muestran los 12 grupos + 6 rondas en `displayOrder`,
+  de modo que todos los de Grupo A preceden a los de Grupo B aunque ocurran en
+  fechas intercaladas). Decisión de presentación (AskUserQuestion): **lista
+  agrupada por día** con encabezado de fecha (p. ej. "Jueves, 11 de junio") y,
+  dentro de cada día, orden por hora de inicio; cada partido conserva una etiqueta
+  de su grupo/ronda. Los partidos sin `kickoffAt` (eliminatorias por resolver) se
+  agrupan al final bajo "Fecha por confirmar". El agrupamiento por día usa **UTC**
+  para un orden determinista y coherente con el render por tarjeta.
+
+- **FR-REFINE-16.3 — Chrome del onboarding (cerrar sesión + tema)**: la pantalla
+  de onboarding debe ofrecer **cerrar sesión** y **cambiar tema/marca**. No se
+  reutiliza el `AppHeader` completo: éste lleva `PrimaryNav` y un `UserMenu` que
+  enlazan a rutas de la app (`/matches`, `/settings`, `/admin`) de las que un
+  usuario sin onboarding está gateado (lo rebotarían de vuelta — ver 16.1). Se
+  añade un **header mínimo** `OnboardingHeader` con solo `BrandToggle` +
+  `ThemeToggle` + botón de cerrar sesión (reutiliza la server action `signOut`).
+- **FR-REFINE-16.4 — Navegación al paso anterior**: dentro del flujo de onboarding
+  (nickname → avatar → reglas → passkey) el usuario debe poder **volver al paso
+  anterior cuando aplique** (en todos menos el primero). Botón "Atrás" centralizado
+  en `OnboardingClient` (estado `step`), sin perder datos ya persistidos.
+- **FR-REFINE-16.5 — Cooldown de nickname no aplica durante onboarding** (corrige
+  interacción de 16.4 con FR-REFINE-12.5): `setNickname` sella `nicknameUpdatedAt`,
+  así que volver al paso de nickname (16.4) y re-enviar disparaba el cooldown de 30
+  días (`rate_limited`) y **bloqueaba** terminar el onboarding. El cooldown debe
+  aplicar **solo tras completar el onboarding** (`onboardingCompleted = true`);
+  durante el onboarding el cambio de nickname siempre se permite.
+- **FR-REFINE-16.8 — Confirmación de cuenta sin falso negativo**: al hacer clic en
+  el enlace de confirmación de cuenta, el usuario veía en `/sign-in` el mensaje "No
+  pudimos completar la confirmación…" **aunque el correo SÍ quedaba confirmado**
+  (al iniciar sesión pasaba al onboarding). Causa: con la plantilla PKCE por defecto
+  el enlace cae en `/auth/callback?code=…`; Supabase **confirma el correo antes** de
+  redirigir, pero el `exchangeCodeForSession` falla cuando el enlace se abre en otro
+  dispositivo/navegador o lo pre-carga un escáner de correo (falta el
+  `code-verifier`), produciendo `exchange_failed` → falso negativo. Fix de código:
+  `sign-up` marca el flujo (`flow=email_confirm` en `emailRedirectTo`) y
+  `/auth/callback`, ante un fallo de intercambio **en ese flujo**, redirige a
+  `/sign-in?confirmed=1` con un mensaje **correcto y no alarmante** ("Tu correo fue
+  confirmado. Inicia sesión para continuar."), en vez del error. **Fix de raíz
+  (Operations, CF-7)**: usar la plantilla **token_hash** (`/auth/confirm` +
+  `verifyOtp`, ya implementada y versionada en `supabase/templates/`), que no
+  depende de PKCE y elimina el falso negativo de origen; pendiente de desplegar en
+  el proyecto Supabase de prod.
+- **FR-REFINE-16.7 — Toggles de tema en las pantallas de auth**: en la pantalla de
+  sign-in (y resto de pantallas no autenticadas) el usuario debe poder cambiar
+  tema/marca. Se añaden `BrandToggle` + `ThemeToggle` (arriba a la derecha) en el
+  layout compartido `(auth)/layout.tsx` — cubre sign-in, sign-up, forgot/reset
+  password y verify-email. Sin cerrar sesión (no hay sesión). Reutiliza los mismos
+  toggles que `AppHeader`/`OnboardingHeader`.
+- **FR-REFINE-16.6 — Tema de marca por cookie (sin script inline)** (resuelve CF-8):
+  el bootstrap anti-FOUC del eje de marca deja de ser un `<script
+  dangerouslySetInnerHTML>` y pasa a **render server-side desde la cookie
+  `brand-theme`** (`layout.tsx` lee `cookies()` → `<html data-theme>`; `setBrand`
+  escribe la cookie). Elimina el warning de runtime de React 19/Next 16
+  ("Encountered a script tag while rendering React component") y la excepción de
+  CSP de CF-8. Coste aceptado: el layout pasa a dinámico (rutas de auth antes
+  estáticas → dinámicas).
+
+### NFR / Infra (Unit 16)
+- **NFR**: FR-REFINE-16.1 es de seguridad/integridad (control de acceso por
+  función — alinea con SECURITY-08: deny-by-default, defensa en profundidad). Sin
+  nuevos NFR formales. 16.3/16.4 son UI.
+- **Infra**: ninguna. Sin cambios de schema ni migraciones (la columna
+  `onboarding_completed` ya existe desde Unit 15).
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

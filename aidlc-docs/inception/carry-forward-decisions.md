@@ -111,7 +111,36 @@ Detalle del enfoque:
 - El commit `683d707` ("clean codebase") **eliminó `src/proxy.ts`** etiquetándolo como *"dead code: unwired auth middleware"* **sin un refine AI-DLC** — desviando el código de los artefactos de Unit 1 (que seguían describiendo el middleware como presente). Restaurado en `fa43333`, lo que re-alinea código y documentación.
 - El 404 de confirmación de email se debía a redirecciones a `/auth/sign-in` (ruta inexistente; el login vive en el route-group `(auth)` → `/sign-in`). Corregido.
 **Resiliencia (loop de redirección, `9e22350`)**: con `/matches` como home gateada, un usuario autenticado **sin fila en `profiles`** (trigger `handle_new_user` no ejecutado: usuario previo al trigger o migraciones no desplegadas) provocaba `ERR_TOO_MANY_REDIRECTS` (proxy → `/onboarding/profile` → `redirect('/sign-in')` → proxy → `/matches`). Mitigado en código: `getOrCreateProfile()` auto-crea la fila (upsert idempotente) y la página de onboarding distingue "sin sesión" (→ `/sign-in`) de "fila ausente" (auto-sana). **Deuda de datos en prod** (ver CF-6 / Operations): ejecutar `prisma migrate deploy` (instala el trigger para futuros signups) y backfill de `profiles` para usuarios de `auth.users` sin fila.
-**Pendiente (no aprobado por el usuario, 2026-06-11)**: migrar la confirmación de email del flujo PKCE a `token_hash` + `verifyOtp` para resistir Outlook SafeLinks / cross-device.
+**Pendiente (2026-06-11)**: migrar la confirmación de email del flujo PKCE a `token_hash` + `verifyOtp` para resistir Outlook SafeLinks / cross-device.
+**Actualización (2026-06-13, FR-REFINE-16.8)**: el flujo `token_hash` **ya está implementado** en código — ruta `src/app/auth/confirm/route.ts` (`verifyOtp`) + plantillas versionadas `supabase/templates/*.html` (apuntan a `/auth/confirm?token_hash=…`) + `supabase/config.toml`. **Falta DESPLEGARLO** en el proyecto Supabase de prod (hoy usa la plantilla por defecto → el enlace cae en `/auth/callback` PKCE → falso negativo "No pudimos completar la confirmación" aunque el correo sí se confirma). Acción Operations: aplicar/pushear las plantillas (token_hash) a Supabase. Mientras tanto, FR-REFINE-16.8 añadió una **red de seguridad en código**: `/auth/callback`, ante fallo de intercambio en el flujo `flow=email_confirm`, redirige a `/sign-in?confirmed=1` (mensaje correcto) en vez del error.
+
+---
+
+## CF-8 — Excepción de seguridad: script inline anti-FOUC (`dangerouslySetInnerHTML`)
+**Origen**: Refine de seguridad (2026-06-13) — al revisar `src/app/layout.tsx` se detecta un `<script dangerouslySetInnerHTML={{ __html: BRAND_BOOTSTRAP }} />` con un `biome-ignore lint/security/noDangerouslySetInnerHtml` que **nunca se documentó como artefacto AI-DLC**, pese a estar habilitada la extensión Security Baseline (SECURITY-01…15). Introducido en Unit 8 (commit `a1af328`) como bootstrap del eje de marca.
+**Destino**: Unit 8 (Design System, donde vive el script) — transversal a SECURITY-04 (CSP / HTTP Security Headers) y SECURITY-05 (Input Validation / `noDangerouslySetInnerHtml`).
+
+> **✅ RESUELTO (2026-06-13, FR-REFINE-16.6).** El `<script>` inline anti-FOUC **se
+> eliminó**. El eje de marca ahora se renderiza **server-side** desde la cookie
+> `brand-theme` (`src/app/layout.tsx` lee `cookies()` y emite `<html data-theme>`),
+> y `setBrand` escribe esa cookie. Ya **no hay** `dangerouslySetInnerHTML` ni
+> `biome-ignore` ni `BRAND_BOOTSTRAP`. Consecuencias: (1) desaparece el warning de
+> runtime de React 19/Next 16 ("Encountered a script tag…") — no hay script que
+> React renderice; (2) **se cancela** el constraint de CSP de abajo (ya no hace
+> falta hash/nonce en `script-src` para este script — no existe); (3) `src/app/layout.tsx`
+> pasa a **dinámico** por leer cookie (las 3 rutas de auth antes estáticas ahora son
+> `ƒ`; coste aceptado). Motivo del cambio: la excepción de seguridad era innecesaria
+> y el script causaba un warning persistente. El texto histórico se conserva abajo.
+
+**Decisión / restricción** (excepción de seguridad **revisada y aceptada** — histórico, ya no aplica):
+- El `<script>` inline es el patrón estándar **anti-FOUC** (estilo next-themes): lee `localStorage["brand-theme"]` y fija `<html data-theme>` **antes del primer paint**, evitando el parpadeo del tema de marca en SSR. No hay alternativa equivalente sin un flash visible.
+- **Por qué es seguro (no es un sink de XSS)**: `BRAND_BOOTSTRAP` es una **constante estática de compilación**, sin interpolación de strings y **sin ninguna entrada de usuario / request / `localStorage`** concatenada al HTML. El valor leído de `localStorage` solo se usa para **comparar contra una whitelist** (`moderno`/`premium`, default `deportivo`) y escribir un atributo via la API DOM (`setAttribute`), nunca para construir el HTML del script. La regla `noDangerouslySetInnerHtml` (clase SECURITY-05) se suprime localmente con un `biome-ignore` que documenta el motivo ("trusted static bootstrap, no user input").
+- **`suppressHydrationWarning` requerido (2026-06-13)**: el `<script>` lleva `suppressHydrationWarning`, replicando cómo next-themes renderiza su propio script anti-FOUC. Sin él, React 19 / Next 16 emiten en runtime *"Encountered a script tag while rendering React component"* al hidratar un `<script>` inline. El script igual se ejecuta en la carga SSR inicial (es lo que fija `<html data-theme>` antes del paint); el atributo solo silencia el warning de hidratación. **No quitar** este atributo.
+- **Restricción de mantenimiento (bloqueante)**: el contenido de `BRAND_BOOTSTRAP` debe permanecer **literal y estático**. Está **prohibido** interpolar datos de runtime, request o de usuario en ese string. Si en el futuro necesitara datos dinámicos, migrar a un enfoque con **nonce por request** (no relajar la regla) y re-revisar esta excepción.
+**Constraint hacia adelante — CSP (SECURITY-04)**:
+- Un `<script>` inline es **incompatible con un `script-src` estricto** sin `'unsafe-inline'`, un **nonce por request** o un **hash** (`'sha256-…'`). Hoy la CSP está en **Report-Only** (decisión de Unit 1 NFR Design: "CSP moderate/report-only"), por lo que **no bloquea** y solo reporta.
+- **Al pasar la CSP a enforce** (acción de Operations / SECURITY-04): añadir el **hash sha256** del bootstrap (o un nonce) a `script-src`. **No** habilitar `'unsafe-inline'` de forma global. El script **no** lleva nonce actualmente; si se elige la vía nonce, generarlo en el middleware (`src/proxy.ts`) y propagarlo al `<script>` del layout.
+- Si cambia el contenido de `BRAND_BOOTSTRAP`, **recalcular el hash** de la CSP (de lo contrario el script se bloqueará en enforce).
 
 ---
 
@@ -125,3 +154,4 @@ Detalle del enfoque:
 | CF-5 | Glosario copy español internacional | Transversal | Aplicado a UI/contenido/docs; mantener en futuros cambios |
 | CF-6 | Estrategia de migraciones (Prisma vs supabase/migrations) | Operations | **Aprobada + implementada**; falta `migrate deploy` en prod |
 | CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. Pendiente opcional: `token_hash`/`verifyOtp` |
+| CF-8 | Script inline anti-FOUC (`dangerouslySetInnerHTML`) — excepción de seguridad | Unit 8 / SECURITY-04+05 | **✅ Resuelto (FR-REFINE-16.6)**: script eliminado; marca renderizada server-side desde cookie `brand-theme`. Sin inline script → sin warning y sin constraint de CSP |

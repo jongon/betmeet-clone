@@ -47,6 +47,15 @@ Single source of truth: `src/app/globals.css`.
 - Pre-paint bootstrap script in `src/app/layout.tsx` (`BRAND_BOOTSTRAP`) sets the
   attribute before first paint; `<html data-theme="deportivo">` default + 
   `suppressHydrationWarning`.
+  - **Security note (Security Baseline)**: the bootstrap is injected via
+    `<script dangerouslySetInnerHTML>` with a local
+    `biome-ignore lint/security/noDangerouslySetInnerHtml`. Accepted exception —
+    `BRAND_BOOTSTRAP` is a **static compile-time literal with no user/request
+    input**; the persisted brand is only matched against a whitelist and written
+    with `setAttribute`, never concatenated into HTML → not an XSS sink. Standing
+    constraint: keep it a static literal, and add a sha256 hash/nonce to
+    `script-src` when CSP moves from Report-Only to enforce. See
+    [`CF-8`](../../inception/carry-forward-decisions.md) (SECURITY-04 / SECURITY-05).
 - `src/components/theme/brand-toggle.tsx`: popover selector (swatch + label +
   description) placed next to the existing light/dark `ThemeToggle` on `/` and
   `/rules`.
