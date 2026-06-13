@@ -11,15 +11,15 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
-vi.mock("@/features/pools/services/session", () => ({
-  getCurrentUserId: vi.fn(),
+vi.mock("@/features/profile/queries", () => ({
+  getOnboardedUserId: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }));
 
-import { getCurrentUserId } from "@/features/pools/services/session";
+import { getOnboardedUserId } from "@/features/profile/queries";
 import { prisma } from "@/lib/prisma";
 import { savePrediction } from "../../actions/save-prediction";
 
@@ -43,7 +43,7 @@ function mockMatch(overrides: Record<string, unknown> = {}) {
 }
 
 function stubAuth(userId: string | null) {
-  vi.mocked(getCurrentUserId).mockResolvedValue(userId);
+  vi.mocked(getOnboardedUserId).mockResolvedValue(userId);
 }
 
 describe("savePrediction", () => {
@@ -51,7 +51,7 @@ describe("savePrediction", () => {
     vi.clearAllMocks();
   });
 
-  it("returns error when user is not authenticated", async () => {
+  it("returns error when user is not onboarded", async () => {
     stubAuth(null);
     const result = await savePrediction({
       matchId: MATCH_ID,
@@ -59,7 +59,7 @@ describe("savePrediction", () => {
       awayScore: 1,
       penaltyWinnerTeamId: null,
     });
-    expect(result).toEqual({ error: "Debes iniciar sesión para predecir." });
+    expect(result).toEqual({ error: "Completa tu perfil para predecir." });
   });
 
   it("creates a new prediction", async () => {

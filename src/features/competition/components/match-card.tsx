@@ -17,13 +17,21 @@ function score(match: MatchView) {
   return `${match.homeScore} - ${match.awayScore}`;
 }
 
-export function MatchCard({ match }: { match: PredictionMatchView | MatchView }) {
+export function MatchCard({
+  match,
+  contextLabel,
+}: {
+  match: PredictionMatchView | MatchView;
+  /** Optional group/round label shown in views that aren't grouped by phase. */
+  contextLabel?: string;
+}) {
   const isPredictionMatch = "canEdit" in match;
 
   return (
     <article className="rounded-xl border p-4" data-testid={`match-card-${match.id}`}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
+          {contextLabel ? `${contextLabel} · ` : ""}
           {match.matchNumber ? `Partido ${match.matchNumber} · ` : ""}
           {formatLocalDate(match.kickoffAt)}
         </p>

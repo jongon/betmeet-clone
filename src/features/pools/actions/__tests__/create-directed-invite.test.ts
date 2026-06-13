@@ -10,11 +10,11 @@ vi.mock("@/lib/prisma", () => ({
     $queryRaw: vi.fn(),
   },
 }));
-vi.mock("../../services/session", () => ({ getCurrentUserId: vi.fn() }));
+vi.mock("@/features/profile/queries", () => ({ getOnboardedUserId: vi.fn() }));
 
 import { queueNotificationEvent } from "@/features/notifications/services/events";
+import { getOnboardedUserId } from "@/features/profile/queries";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUserId } from "../../services/session";
 import { createDirectedInvite } from "../create-directed-invite";
 
 const POOL_ID = "11111111-1111-4111-8111-111111111111";
@@ -22,7 +22,7 @@ const POOL_ID = "11111111-1111-4111-8111-111111111111";
 describe("createDirectedInvite (FR-REFINE-13.4 verification)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(getCurrentUserId).mockResolvedValue("owner-1");
+    vi.mocked(getOnboardedUserId).mockResolvedValue("owner-1");
     vi.mocked(prisma.pool.findUnique).mockResolvedValue({
       id: POOL_ID,
       name: "Mi Liga",
@@ -56,7 +56,7 @@ describe("createDirectedInvite (FR-REFINE-13.4 verification)", () => {
   });
 
   it("rejects a non-owner", async () => {
-    vi.mocked(getCurrentUserId).mockResolvedValue("intruder");
+    vi.mocked(getOnboardedUserId).mockResolvedValue("intruder");
     const result = await createDirectedInvite({ poolId: POOL_ID, target: "Pedro#1234" });
     expect(result).toEqual({ error: "Solo el administrador puede invitar" });
     expect(queueNotificationEvent).not.toHaveBeenCalled();

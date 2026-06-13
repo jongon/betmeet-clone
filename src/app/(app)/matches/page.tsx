@@ -1,16 +1,14 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { FixtureStaleBanner } from "@/features/competition/components/fixture-stale-banner";
-import { PhaseSection } from "@/features/competition/components/phase-section";
-import { getFixture } from "@/features/competition/queries";
+import { MatchCard } from "@/features/competition/components/match-card";
 import { getCurrentUserId } from "@/features/pools/services/session";
-import { getFixtureWithMyPredictions } from "@/features/predictions/queries";
+import { getFixtureByDayWithMyPredictions } from "@/features/predictions/queries";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
   const userId = await getCurrentUserId();
-  const fixture = userId ? await getFixtureWithMyPredictions(userId) : await getFixture();
+  const fixture = await getFixtureByDayWithMyPredictions(userId);
 
   return (
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
@@ -33,35 +31,23 @@ export default async function MatchesPage() {
           </p>
         </section>
       ) : (
-        <>
-          {"freshness" in fixture && (
-            <FixtureStaleBanner
-              freshness={
-                fixture.freshness as {
-                  isStale: boolean;
-                  lastSyncedAt: string | null;
-                  reason: "NO_SUCCESSFUL_SYNC" | "LIVE_WINDOW_MISSED" | "RATE_LIMITED" | null;
-                }
-              }
-            />
-          )}
-          <div className="space-y-8" data-testid="fixture-ready">
-            {fixture.phases.map((phase) => (
-              <PhaseSection
-                key={phase.id}
-                phase={
-                  phase as {
-                    id: string;
-                    name: string;
-                    type: string;
-                    groupCode: string | null;
-                    matches: import("@/features/predictions/types").PredictionMatchView[];
-                  }
-                }
-              />
-            ))}
-          </div>
-        </>
+        // Matches are listed in order of occurrence, grouped by day (FR-REFINE-16.2).
+        <div className="space-y-8" data-testid="fixture-ready">
+          {fixture.days.map((day) => (
+            <section
+              key={day.dayKey ?? "tbd"}
+              className="space-y-3"
+              data-testid={`fixture-day-${day.dayKey ?? "tbd"}`}
+            >
+              <h2 className="text-xl font-semibold capitalize">{day.label}</h2>
+              <div className="space-y-3">
+                {day.matches.map((match) => (
+                  <MatchCard key={match.id} match={match} contextLabel={match.phaseName} />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       )}
     </main>
   );

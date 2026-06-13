@@ -28,6 +28,7 @@ const AUTH_ONLY_ROUTES = [
 ];
 
 const ONBOARDING_ROUTE = "/onboarding/profile";
+const VERIFY_EMAIL_ROUTE = "/verify-email";
 
 function isPublic(pathname: string) {
   return PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -71,10 +72,10 @@ export async function proxy(request: NextRequest) {
   // Original destination to return to after auth/onboarding (FR-REFINE-13.1/13.2).
   const intendedPath = `${pathname}${search}`;
 
-  // Redirect authenticated users away from auth-only pages
-  if (user && isAuthOnly(pathname)) {
-    return NextResponse.redirect(new URL("/matches", request.url));
-  }
+  // A session whose email is not yet confirmed must not reach the app. When
+  // Supabase "Confirm email" is enabled an unconfirmed user has a null
+  // `email_confirmed_at`; OAuth/confirmed users have it set (FR-REFINE-15.14).
+  const emailConfirmed = !user || Boolean(user.email_confirmed_at);
 
   // Unauthenticated users can only access public routes
   if (!user && !isPublic(pathname)) {
@@ -87,19 +88,41 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  // Authenticated users without a completed profile are gated to onboarding
+  // Authenticated but unconfirmed: force the verify-email page (which offers
+  // resend / change-email). Public routes — including /verify-email itself,
+  // /auth/confirm and /auth/callback — are left reachable so confirmation can
+  // complete (FR-REFINE-15.14).
+  if (user && !emailConfirmed) {
+    if (!isPublic(pathname)) {
+      return NextResponse.redirect(new URL(VERIFY_EMAIL_ROUTE, request.url));
+    }
+    return supabaseResponse;
+  }
+
+  // Redirect confirmed users away from auth-only pages
+  if (user && isAuthOnly(pathname)) {
+    return NextResponse.redirect(new URL("/matches", request.url));
+  }
+
+  // Confirmed users who have not finished onboarding are gated to it, using the
+  // explicit `onboarding_completed` flag (FR-REFINE-15.13). Gate ONLY on a
+  // positively-determined incomplete profile:
+  //   - a row exists with the flag false, or
+  //   - no row exists yet (brand-new user; maybeSingle returns null, no error).
+  // A genuine READ ERROR (e.g. PostgREST schema-cache reload / PGRST002, or any
+  // data-API outage) must fail OPEN. The onboarding page reads the profile via
+  // Prisma (direct Postgres, a different data path), so if the data API is down
+  // here but Prisma sees a completed profile there, a fail-closed gate would
+  // bounce the user /matches → /onboarding → /matches forever. Failing open
+  // turns an API hiccup into "onboarding check skipped" instead of a lockout.
   if (user && !isPublic(pathname) && pathname !== ONBOARDING_ROUTE) {
     const { data: profile, error } = await supabase
       .from("profiles")
-      .select("nickname_base")
+      .select("onboarding_completed")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
-    // Only gate to onboarding when we positively know the profile has no
-    // nickname. If the read itself failed (e.g. PostgREST unavailable / schema
-    // cache reloading), fail open instead of trapping every authenticated user
-    // in an onboarding redirect loop.
-    if (!error && !profile?.nickname_base) {
+    if (!error && !profile?.onboarding_completed) {
       const onboardingUrl = new URL(ONBOARDING_ROUTE, request.url);
       // Continue to the intended destination once onboarding completes
       // (FR-REFINE-13.2 / 12.7).

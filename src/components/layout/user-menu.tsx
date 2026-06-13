@@ -78,6 +78,7 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
         <form action={signOut}>
           <DropdownMenuItem
             render={<button type="submit" />}
+            nativeButton
             className="w-full text-destructive data-[highlighted]:text-destructive"
             data-testid="user-menu-sign-out"
           >

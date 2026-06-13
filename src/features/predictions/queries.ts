@@ -4,7 +4,10 @@ import { resolvePoints, type ScoreRow } from "@/features/scoring-rankings/servic
 import type { PredictionLockReason } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { getPredictionEligibility } from "./services/eligibility";
+import { type FixtureDayGroup, groupFixtureByDay } from "./services/fixture-by-day";
 import type { PredictionMatchView, PredictionView } from "./types";
+
+export type { DayMatchView, FixtureDayGroup } from "./services/fixture-by-day";
 
 function toPredictionView(p: {
   id: string;
@@ -171,5 +174,23 @@ export async function getFixtureWithMyPredictions(userId: string | null): Promis
   return {
     competitionName: competition.name,
     phases,
+  };
+}
+
+/**
+ * BL-5.4 + FR-REFINE-16.2: the same fixture as {@link getFixtureWithMyPredictions},
+ * but grouped by calendar day via {@link groupFixtureByDay} so matches render in true
+ * order of occurrence (kickoff time) instead of grouped by group/phase.
+ */
+export async function getFixtureByDayWithMyPredictions(userId: string | null): Promise<{
+  competitionName: string;
+  days: FixtureDayGroup[];
+} | null> {
+  const fixture = await getFixtureWithMyPredictions(userId);
+  if (!fixture) return null;
+
+  return {
+    competitionName: fixture.competitionName,
+    days: groupFixtureByDay(fixture.phases),
   };
 }

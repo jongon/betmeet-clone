@@ -9,6 +9,7 @@ export const es = {
     signIn: "Iniciar sesión",
     continue: "Continuar",
     skipForNow: "Saltar por ahora",
+    back: "Atrás",
   },
   theme: {
     label: "Tema",
@@ -78,10 +79,13 @@ export const es = {
     nicknameRateLimited: "Solo puedes cambiar tu nickname una vez cada 30 días.",
     nicknameSuccess: "Nickname actualizado.",
     emailSection: "Correo",
-    emailDescription: "Te enviaremos un enlace de confirmación a ambos correos.",
+    emailDescription:
+      "Por seguridad, enviaremos un enlace de confirmación a tu correo actual y al nuevo. Abre ambos y confirma para aplicar el cambio.",
+    emailCurrentLabel: "Correo actual",
     emailLabel: "Correo nuevo",
     emailSave: "Cambiar correo",
-    emailSuccess: "Te enviamos un enlace de confirmación para completar el cambio.",
+    emailSuccess:
+      "Te enviamos un enlace de confirmación a tu correo actual y al nuevo. El cambio se aplica cuando confirmas ambos.",
   },
   landing: {
     headerSignIn: "Iniciar sesión",
@@ -90,10 +94,6 @@ export const es = {
     heroTitle: "Predice el Mundial 2026 con tus amigos",
     heroSubtitle: "Crea tu liga, haz tus predicciones y compite por el primer lugar del ranking.",
     primaryCta: "Crear mi liga",
-    explorePools: "Explorar ligas públicas",
-    poolsTitle: "Ligas públicas",
-    poolsEmpty: "Ligas públicas próximamente.",
-    poolsError: "",
     scoringTeaserTitle: "Cómo se puntúa",
   },
   scoring: {
@@ -117,6 +117,9 @@ export const es = {
     away: "Visitante",
     knockout: "Fase eliminatoria (permite penales)",
     penaltyWinner: "¿Quién gana en penales?",
+    penaltyShootout: "Tanda de penales",
+    penaltyBonusHint:
+      "El bonus (+1) se gana por acertar quién gana la tanda, no por el marcador exacto.",
     penaltyScore: "Marcador de la tanda de penales",
     penaltyScoreHint: "Solo disponible si el partido termina empatado en los 90 minutos.",
     penaltyTie: "La tanda de penales no puede terminar empatada. Ajusta el marcador.",
@@ -151,7 +154,6 @@ export const es = {
   cues: {
     nicknameDiscriminator:
       "Si tu nickname ya existe, le añadimos un número único (como en Discord).",
-    rankingPoolOnly: "El ranking es por liga, no global. Compites contra tu grupo.",
     scoringHint: "Los puntos dependen de qué tan cerca esté tu predicción del marcador real.",
     matchLockCountdown: "Puedes editar tu predicción hasta el inicio del partido.",
   },

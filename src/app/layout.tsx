@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { Barlow_Semi_Condensed, Geist, Geist_Mono } from "next/font/google";
+import { cookies } from "next/headers";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { BrandThemeProvider } from "@/components/providers/brand-theme-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { BRAND_COOKIE, coerceBrand } from "@/lib/brand-theme";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,13 +25,6 @@ const barlowSemiCondensed = Barlow_Semi_Condensed({
   weight: ["600", "700", "800"],
 });
 
-/**
- * Anti-FOUC bootstrap for the brand axis (mirrors how next-themes sets the
- * color scheme before paint). Reads the persisted brand and applies it to
- * <html data-theme> synchronously, before the first styled paint.
- */
-const BRAND_BOOTSTRAP = `(function(){try{var b=localStorage.getItem("brand-theme");if(b!=="moderno"&&b!=="premium")b="deportivo";document.documentElement.setAttribute("data-theme",b);}catch(e){}})();`;
-
 export const metadata: Metadata = {
   title: { default: "Liga Mundial 2026", template: "%s · Liga Mundial 2026" },
   description: "Predice el Mundial 2026 con tus amigos. Crea tu liga y compite en el ranking.",
@@ -38,18 +33,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Anti-FOUC for the brand axis without an inline script (FR-REFINE-16.6, CF-8):
+  // render <html data-theme> from the persisted cookie so the correct brand is in
+  // the initial HTML before paint. Defaults to "deportivo" when unset/invalid.
+  const brand = coerceBrand((await cookies()).get(BRAND_COOKIE)?.value);
+
   return (
-    <html lang="es" data-theme="deportivo" suppressHydrationWarning>
+    <html lang="es" data-theme={brand} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${barlowSemiCondensed.variable} antialiased`}
       >
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: trusted static bootstrap, no user input */}
-        <script dangerouslySetInnerHTML={{ __html: BRAND_BOOTSTRAP }} />
         <ThemeProvider>
           <BrandThemeProvider>
             <AuthProvider>{children}</AuthProvider>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { OnboardingHeader } from "@/components/layout/onboarding-header";
 import { getDefaultAvatars, getOrCreateProfile } from "@/features/profile/queries";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { OnboardingClient } from "./onboarding-client";
@@ -25,17 +26,20 @@ export default async function OnboardingProfilePage({
   // missing — getOrCreateProfile self-heals that case to avoid a redirect loop).
   if (!profile) redirect("/sign-in");
   // Already completed onboarding — continue to the requested destination.
-  if (profile.nicknameBase) redirect(next);
+  if (profile.onboardingCompleted) redirect(next);
 
   return (
-    <div className="flex min-h-svh items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <OnboardingClient
-          currentAvatarUrl={profile.avatarUrl}
-          defaultAvatars={defaultAvatars}
-          googleAvatarUrl={null}
-          next={next}
-        />
+    <div className="flex min-h-svh flex-col">
+      <OnboardingHeader />
+      <div className="flex flex-1 items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <OnboardingClient
+            currentAvatarUrl={profile.avatarUrl}
+            defaultAvatars={defaultAvatars}
+            googleAvatarUrl={null}
+            next={next}
+          />
+        </div>
       </div>
     </div>
   );

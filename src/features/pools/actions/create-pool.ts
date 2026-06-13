@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getOnboardedUserId } from "@/features/profile/queries";
 import { prisma } from "@/lib/prisma";
 import { CreatePoolSchema } from "../schemas";
 import { generateUniqueInviteToken } from "../services/invite-token";
-import { getCurrentUserId } from "../services/session";
 
 export async function createPool(input: { name: string; type: string; capacity: number }) {
   const parsed = CreatePoolSchema.safeParse(input);
@@ -13,8 +13,9 @@ export async function createPool(input: { name: string; type: string; capacity: 
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  const userId = await getCurrentUserId();
-  if (!userId) return { error: "No autenticado" };
+  // Onboarding is mandatory (FR-REFINE-16.1): no nickname → cannot create a league.
+  const userId = await getOnboardedUserId();
+  if (!userId) return { error: "Completa tu perfil para crear una liga." };
 
   const { name, type, capacity } = parsed.data;
 

@@ -3,9 +3,9 @@
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { queueNotificationEvent } from "@/features/notifications/services/events";
+import { getOnboardedUserId } from "@/features/profile/queries";
 import { prisma } from "@/lib/prisma";
 import { CreateDirectedInviteSchema } from "../schemas";
-import { getCurrentUserId } from "../services/session";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -58,8 +58,9 @@ async function resolveUserByTarget(target: string) {
 }
 
 export async function createDirectedInvite(input: unknown) {
-  const userId = await getCurrentUserId();
-  if (!userId) return { error: "No autenticado" };
+  // Onboarding is mandatory (FR-REFINE-16.1): no nickname → cannot invite.
+  const userId = await getOnboardedUserId();
+  if (!userId) return { error: "Completa tu perfil para invitar." };
 
   const parsed = CreateDirectedInviteSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invitación inválida" };

@@ -42,10 +42,34 @@ function toProfile(profile: PrismaProfile): Profile {
     avatarSource: profile.avatarSource as Profile["avatarSource"],
     verificationStatus: profile.verificationStatus as Profile["verificationStatus"],
     mfaEnabled: profile.mfaEnabled,
+    onboardingCompleted: profile.onboardingCompleted,
     deletedAt: profile.deletedAt,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,
   };
+}
+
+/**
+ * Returns the authenticated user's id ONLY when they have completed onboarding
+ * (FR-REFINE-16.1). Reads the `onboarding_completed` flag via Prisma (direct
+ * Postgres), so the check is reliable even when the Supabase data API (PostgREST)
+ * is degraded — unlike the middleware gate in `src/proxy.ts`, which fails OPEN on
+ * a read error. Returns null when there is no session OR onboarding is incomplete,
+ * so callers (mutating server actions) can deny the operation. This is the
+ * action-layer half of the defense-in-depth onboarding gate.
+ */
+export async function getOnboardedUserId(): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  const userId = data.user?.id;
+  if (!userId) return null;
+
+  const profile = await prisma.profile.findUnique({
+    where: { id: userId },
+    select: { onboardingCompleted: true },
+  });
+
+  return profile?.onboardingCompleted ? userId : null;
 }
 
 export async function getProfile(): Promise<Profile | null> {

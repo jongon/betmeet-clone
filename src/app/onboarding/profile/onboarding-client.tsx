@@ -1,15 +1,23 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { FormError } from "@/components/form-error";
+import { Button } from "@/components/ui/button";
+import { completeOnboarding } from "@/features/profile/actions/complete-onboarding";
 import { AvatarStep } from "@/features/profile/components/avatar-step";
 import { NicknameStep } from "@/features/profile/components/nickname-step";
 import { OnboardingProgressIndicator } from "@/features/profile/components/onboarding-progress-indicator";
 import { PasskeyStep } from "@/features/profile/components/passkey-step";
 import { RulesStep } from "@/features/profile/components/rules-step";
 import type { AvatarAsset } from "@/features/profile/types";
+import { es } from "@/i18n/dictionaries/es";
 
 type Step = "nickname" | "avatar" | "rules" | "passkey";
+
+// Linear order of the onboarding steps; drives back navigation (FR-REFINE-16.3).
+const STEP_ORDER: Step[] = ["nickname", "avatar", "rules", "passkey"];
 
 interface OnboardingClientProps {
   currentAvatarUrl: string;
@@ -27,11 +35,45 @@ export function OnboardingClient({
 }: OnboardingClientProps) {
   const [step, setStep] = useState<Step>("nickname");
   const [avatarUrl] = useState(currentAvatarUrl);
+  const [finishError, setFinishError] = useState<string | null>(null);
   const router = useRouter();
+
+  const stepIndex = STEP_ORDER.indexOf(step);
+  const canGoBack = stepIndex > 0;
+
+  function goBack() {
+    if (canGoBack) setStep(STEP_ORDER[stepIndex - 1]);
+  }
+
+  async function finishOnboarding() {
+    setFinishError(null);
+    const result = await completeOnboarding();
+    if (result.error) {
+      setFinishError(result.error);
+      return;
+    }
+    router.push(next);
+  }
 
   return (
     <div className="space-y-8">
       <OnboardingProgressIndicator currentStep={step} />
+
+      {canGoBack && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={goBack}
+          className="-ml-2 gap-1.5 text-muted-foreground hover:text-foreground"
+          data-testid="onboarding-back"
+        >
+          <ArrowLeft aria-hidden="true" className="size-4" />
+          {es.common.back}
+        </Button>
+      )}
+
+      <FormError messages={finishError ? [finishError] : undefined} />
 
       {step === "nickname" && <NicknameStep onComplete={() => setStep("avatar")} />}
 
@@ -49,7 +91,7 @@ export function OnboardingClient({
       )}
 
       {step === "passkey" && (
-        <PasskeyStep onComplete={() => router.push(next)} onSkip={() => router.push(next)} />
+        <PasskeyStep onComplete={finishOnboarding} onSkip={finishOnboarding} />
       )}
     </div>
   );

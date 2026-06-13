@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { getCurrentUserId } from "@/features/pools/services/session";
+import { getOnboardedUserId } from "@/features/profile/queries";
 import { prisma } from "@/lib/prisma";
 import { PredictionInputSchema } from "../schemas";
 import { getPredictionEligibility } from "../services/eligibility";
@@ -18,8 +18,9 @@ export async function savePrediction(input: {
   awayScore: number;
   penaltyWinnerTeamId: string | null;
 }): Promise<{ success: true } | { error: string }> {
-  const userId = await getCurrentUserId();
-  if (!userId) return { error: "Debes iniciar sesión para predecir." };
+  // Onboarding is mandatory (FR-REFINE-16.1): no nickname → cannot predict.
+  const userId = await getOnboardedUserId();
+  if (!userId) return { error: "Completa tu perfil para predecir." };
 
   const parsed = PredictionInputSchema.safeParse(input);
   if (!parsed.success) {

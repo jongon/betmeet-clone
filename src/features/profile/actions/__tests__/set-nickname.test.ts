@@ -56,14 +56,32 @@ describe("setNickname", () => {
         }),
       }),
     );
+    expect(vi.mocked(prisma.profile.update).mock.calls[0]?.[0].data).not.toHaveProperty(
+      "onboardingCompleted",
+    );
   });
 
-  it("rate-limits a nickname change within the cooldown window", async () => {
+  it("rate-limits a nickname change within the cooldown window (after onboarding)", async () => {
     vi.mocked(prisma.profile.findUnique).mockResolvedValue({
       nicknameUpdatedAt: new Date(),
+      onboardingCompleted: true,
     } as never);
     const result = await setNickname(makeFormData({ nicknameBase: "ValidNick" }));
     expect(result?.error).toBe("rate_limited");
     expect(prisma.profile.update).not.toHaveBeenCalled();
+  });
+
+  it("does NOT rate-limit during onboarding even with a recent timestamp (FR-REFINE-16.5)", async () => {
+    // Re-submitting after pressing "Atrás" mid-onboarding: cooldown must not apply.
+    vi.mocked(prisma.profile.findUnique).mockResolvedValue({
+      nicknameUpdatedAt: new Date(),
+      onboardingCompleted: false,
+    } as never);
+    vi.mocked(assignDiscriminator).mockResolvedValue("0042");
+    vi.mocked(prisma.profile.update).mockResolvedValue({} as never);
+
+    const result = await setNickname(makeFormData({ nicknameBase: "ValidNick" }));
+    expect(result).toEqual({ success: true, nickname: "ValidNick#0042" });
+    expect(prisma.profile.update).toHaveBeenCalled();
   });
 });
