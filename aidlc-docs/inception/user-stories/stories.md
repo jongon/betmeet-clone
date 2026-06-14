@@ -97,6 +97,23 @@
 
 ---
 
+## Épica 19: Passkeys con la API nativa de Supabase
+
+> Refine de US-1.3 (Inicio de sesión con Passkeys). No reinicia la historia original;
+> ajusta el mecanismo técnico tras un bug en vivo.
+
+### US-19.1: Registrar y usar passkeys sin error de MFA
+**Como** usuario en el onboarding (o en la pantalla de login)
+**Quiero** registrar un passkey y luego iniciar sesión con él sin recibir el error "MFA enroll is disabled for WebAuthn"
+**Para** poder autenticarme con la biometría/PIN de mi dispositivo de forma fluida.
+- **Criterios de Aceptación**:
+  - Registrar un passkey en el onboarding ya no falla con "MFA enroll is disabled for WebAuthn".
+  - El registro usa la API nativa de Passkeys de Supabase (`registerPasskey()`), no el factor MFA-WebAuthn.
+  - El login usa `signInWithPasskey()` con credenciales descubribles (sin pedir email ni listar factores).
+  - El cliente habilita `auth.experimental.passkey = true`, coincidiendo con el toggle "Enable Passkey authentication" del dashboard.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

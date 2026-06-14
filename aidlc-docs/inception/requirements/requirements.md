@@ -723,6 +723,42 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## FR-REFINE-20: Passkeys con la API nativa de Supabase (Post-construcción — Unit 20)
+
+> Refine post-construcción (2026-06-14). Bug en vivo del onboarding analizado como
+> Unit 20; aditivo sobre el registro/login con passkey (Unit 1 Foundation / Unit 2
+> Onboarding); **no reinicia** ninguna etapa aprobada. Cubre la **Épica 19**.
+
+- **FR-REFINE-20.1 — Registrar/usar passkeys por la API de Passkeys (beta)**: al
+  registrar un passkey en el onboarding, el sistema fallaba con
+  **"MFA enroll is disabled for WebAuthn"**. Causa raíz: el código usaba la ruta de
+  **factor MFA-WebAuthn** (`supabase.auth.mfa.enroll({ factorType: "webauthn" })` +
+  `challenge`/`verify` con `@simplewebauthn/browser`), cuyo flag de enroll está
+  deshabilitado, mientras que en el proyecto Supabase lo que está habilitado es
+  **Passkeys (beta)** — un sistema **distinto** del factor MFA-WebAuthn. El registro
+  y el login de passkeys pasan a usar la **API nativa de Passkeys**:
+  `supabase.auth.registerPasskey()` y `supabase.auth.signInWithPasskey()`, habilitada
+  con `auth.experimental.passkey = true` en el cliente de navegador. Estos métodos
+  ejecutan la ceremonia WebAuthn completa (challenge → `navigator.credentials` →
+  verify) contra el Relying Party configurado en el dashboard, eliminando el ciclo
+  MFA manual y la dependencia `@simplewebauthn/browser`. El login con passkey usa
+  **credenciales descubribles** (no requiere email ni listar factores previos).
+
+### NFR / Infra (Unit 20)
+- **NFR (compatibilidad)**: la API de Passkeys requiere `@supabase/supabase-js`
+  **≥ 2.105.0** (el proyecto tiene 2.108.1). Es **experimental** (`auth.experimental`),
+  por lo que su superficie puede cambiar; el constraint de adopción se registra como
+  **CF-10**.
+- **NFR (seguridad)**: los passkeys quedan ligados criptográficamente al **Relying
+  Party ID**; debe ser el **dominio pelado** del origen (`localhost` en dev, el
+  dominio real en prod), no el display name. Cambiar el RP ID invalida los passkeys
+  existentes. Security Baseline sigue habilitado.
+- **Infra**: sin schema, migraciones ni rutas nuevas. **Pendiente Operations**:
+  confirmar en el dashboard de Supabase de prod que **"Enable Passkey authentication"**
+  está ON con **RP ID = dominio real** y los **origins** correctos.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Refine — Unit 20 Passkeys con la API nativa de Supabase
+**Timestamp**: 2026-06-14T03:05:00Z
+**User Input**: "Cuando estoy en el on-boarding y me toca registrar un passkey me da este error 'MFA enroll is disabled for WebAuthn'" → (tras diagnóstico y migración) "implementa la opción A" → "Hazlo todo" → "Antes de hacer push, haz commit de lo que falta, hay algo que documentar con respecto a esto último siguiendo la metodología de aidlc?"
+**AI Response**: "Apliqué un refine post-construcción (Unit 20, FR-REFINE-20.1) sin reiniciar etapas aprobadas. Causa raíz: el código de registro/login de passkey usaba el **factor MFA-WebAuthn** (`supabase.auth.mfa.enroll({ factorType: 'webauthn' })` + `challenge`/`verify` con `@simplewebauthn/browser`), cuyo flag de enroll está deshabilitado, mientras que en el proyecto Supabase lo habilitado es **Passkeys (beta)** — un sistema distinto. Migré a la API nativa de Passkeys: `src/lib/supabase/client.ts` habilita `auth.experimental.passkey`; `passkey-step.tsx` usa `registerPasskey()`; `passkey-sign-in-button.tsx` usa `signInWithPasskey()` (credenciales descubribles); eliminé el server action `passkey-register.ts`, el ciclo MFA manual y la dependencia `@simplewebauthn/browser` (`passkey-sign-in.ts` conserva `reportPasskeyFailure`). El TOTP no se toca. Verificado: `tsc` 0, Biome limpio en archivos tocados, `next build` OK (24 rutas), `pnpm install` poda la dep. Registré la adopción de la API de Passkeys (beta) como mecanismo oficial en **CF-10** (requiere supabase-js ≥ 2.105.0; RP ID = dominio pelado, `localhost` en dev). Artefactos: `requirements.md` (FR-REFINE-20, Épica 19), `stories.md` (US-19.1), nueva `construction/unit-20-passkey-native-api/functional-design.md`, `carry-forward-decisions.md` (CF-10), `aidlc-state.md`. **Pendiente Operations**: confirmar en el dashboard de Supabase de prod que 'Enable Passkey authentication' está ON con RP ID = dominio real y origins correctos; prueba en vivo del registro/login con passkey."
+**Code change**: `src/lib/supabase/client.ts`, `src/features/profile/components/passkey-step.tsx`, `src/features/auth/components/passkey-sign-in-button.tsx`, `src/features/auth/actions/passkey-sign-in.ts`, `src/features/auth/actions/passkey-register.ts` (eliminado), `package.json` (dep removida) — commit de código `7149a28` (los 5 archivos de código) + commit pendiente del cleanup de dependencia.
+**Context**: Refine post-construcción aditivo sobre el mecanismo de passkeys (US-1.3 / Units 1–2); no reinicia etapas aprobadas. Refine de US-1.3 → Épica 19.
+
+---
+
 ## Refine — Unit 19 Confirmación única del cambio de email
 **Timestamp**: 2026-06-14T02:10:00Z
 **User Input**: "/aidlc:refine — En la sección de perfil cuando modifico el email, está haciendome confirmar de ambos correos, del nuevo y del antiguo. y solo debería confirmarse el nuevo correo y la notificación de cambio solo debería llegar al correo nuevo"

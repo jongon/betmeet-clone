@@ -155,6 +155,20 @@ Detalle del enfoque:
 
 ---
 
+## CF-10 — Mecanismo oficial de passkeys: API de Passkeys (beta) de Supabase
+**Origen**: Refine FR-REFINE-20.1 (Unit 20, 2026-06-14). Bug en vivo: el registro de passkey en onboarding fallaba con "MFA enroll is disabled for WebAuthn".
+**Destino**: Auth (Units 1/2/20) — transversal a cualquier futura gestión de passkeys (perfil, settings/security).
+
+**Decisión / restricción**:
+- El mecanismo **oficial** de passkeys del proyecto es la **API nativa de Passkeys (beta)** de Supabase (`supabase.auth.registerPasskey()` / `signInWithPasskey()` / namespace `auth.passkey.*`), habilitada con `auth.experimental.passkey = true` en el cliente. **Reemplaza** el enfoque previo de **factor MFA-WebAuthn** (`mfa.enroll({ factorType: "webauthn" })` + `@simplewebauthn/browser`), que fallaba porque su flag de enroll está deshabilitado y es un sistema **distinto** del que habilita el dashboard.
+- **Dos sistemas, no confundir**: (1) Passkeys (beta) ≠ (2) factor MFA-WebAuthn. El TOTP (`mfa.enroll({ factorType: "totp" })`) sigue siendo MFA legítimo y **no** se toca.
+- **Compatibilidad**: requiere `@supabase/supabase-js` **≥ 2.105.0** (proyecto en 2.108.1). API marcada **experimental** → su superficie puede cambiar sin aviso; revisar en upgrades de supabase-js.
+- **Relying Party ID (bloqueante)**: debe ser el **dominio pelado** del origen — `localhost` en dev, el **dominio real** en prod — nunca el display name. Es **permanente**: cambiarlo invalida los passkeys existentes; los registrados en `localhost` no sirven en prod (y viceversa).
+- **Restricción hacia adelante**: si se añade gestión de passkeys (listar/borrar/renombrar) usar `auth.passkey.list/update/delete` (no `mfa.listFactors().webauthn`).
+**Pendiente Operations**: confirmar en el dashboard de prod "Enable Passkey authentication" ON con RP ID = dominio real y origins correctos.
+
+---
+
 ## Estado
 | ID | Tema | Destino | Estado |
 |---|---|---|---|
@@ -167,3 +181,4 @@ Detalle del enfoque:
 | CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. Pendiente opcional: `token_hash`/`verifyOtp` |
 | CF-8 | Script inline anti-FOUC (`dangerouslySetInnerHTML`) — excepción de seguridad | Unit 8 / SECURITY-04+05 | **✅ Resuelto (FR-REFINE-16.6)**: script eliminado; marca renderizada server-side desde cookie `brand-theme`. Sin inline script → sin warning y sin constraint de CSP |
 | CF-9 | Secure email change desactivado (confirmación única del correo nuevo) — tradeoff de seguridad | Unit 19 / Auth / Security Baseline | **Aceptado (FR-REFINE-19.1)**: `secure_email_change_enabled = false`. Solo el correo nuevo confirma/recibe notificación. Pendiente Operations: replicar toggle en dashboard de prod |
+| CF-10 | Mecanismo oficial de passkeys = API de Passkeys (beta) de Supabase | Unit 20 / Auth | **Aplicado (FR-REFINE-20.1)**: `registerPasskey()`/`signInWithPasskey()` + `experimental.passkey`; reemplaza el factor MFA-WebAuthn. Requiere supabase-js ≥ 2.105.0; RP ID = dominio (localhost en dev). Pendiente Operations: confirmar dashboard de prod |
