@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { NicknameBaseSchema } from "../schemas";
@@ -22,16 +23,23 @@ export async function setNickname(formData: FormData) {
     return { error: "Not authenticated" };
   }
 
-  // Rate-limit changes (FR-REFINE-12.5), but ONLY after onboarding is complete.
-  // During onboarding the cooldown must not apply: setting a nickname stamps
-  // `nicknameUpdatedAt`, so going back a step and re-submitting (FR-REFINE-16.4)
-  // would otherwise trip the 30-day cooldown and block finishing onboarding
-  // (FR-REFINE-16.5). The cooldown is meant for changing an established nickname.
+  // Rate-limit changes (FR-REFINE-12.5), but only after onboarding and after the
+  // one post-onboarding grace change (FR-REFINE-17.3). `nicknameUpdatedAt` is also
+  // stamped on initial assignment, so the counter is the durable source of truth.
   const existing = await prisma.profile.findUnique({
     where: { id: userData.user.id },
-    select: { nicknameUpdatedAt: true, onboardingCompleted: true },
+    select: {
+      nicknameBase: true,
+      nicknameUpdatedAt: true,
+      nicknameChangeCount: true,
+      onboardingCompleted: true,
+    },
   });
-  if (existing?.onboardingCompleted && existing.nicknameUpdatedAt) {
+  if (
+    existing?.onboardingCompleted &&
+    existing.nicknameChangeCount >= 2 &&
+    existing.nicknameUpdatedAt
+  ) {
     const elapsedDays = (Date.now() - existing.nicknameUpdatedAt.getTime()) / (1000 * 60 * 60 * 24);
     if (elapsedDays < NICKNAME_CHANGE_COOLDOWN_DAYS) {
       return { error: "rate_limited" as const };
@@ -43,14 +51,20 @@ export async function setNickname(formData: FormData) {
     return { error: "This nickname is fully taken. Please choose another." };
   }
 
+  const nextNicknameChangeCount = existing?.onboardingCompleted
+    ? Math.max(existing.nicknameChangeCount, existing.nicknameBase ? 1 : 0) + 1
+    : 1;
+
   await prisma.profile.update({
     where: { id: userData.user.id },
     data: {
       nicknameBase: parsed.data,
       nicknameDiscriminator: discriminator,
       nicknameUpdatedAt: new Date(),
+      nicknameChangeCount: nextNicknameChangeCount,
     },
   });
 
+  revalidatePath("/settings/profile");
   return { success: true, nickname: `${parsed.data}#${discriminator}` };
 }

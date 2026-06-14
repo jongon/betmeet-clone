@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
@@ -23,9 +24,14 @@ interface AccountSettingsProps {
  */
 export function AccountSettings({ currentNicknameBase, currentEmail }: AccountSettingsProps) {
   const t = es.profile;
+  const router = useRouter();
 
   const [nickState, nickAction, nickPending] = useActionState<NicknameState, FormData>(
-    async (_prev, formData) => setNickname(formData),
+    async (_prev, formData) => {
+      const result = await setNickname(formData);
+      if (result && "success" in result && result.success) router.refresh();
+      return result;
+    },
     undefined,
   );
   const [emailState, emailAction, emailPending] = useActionState<EmailState, FormData>(

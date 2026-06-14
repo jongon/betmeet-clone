@@ -6,9 +6,11 @@ export async function assignDiscriminator(nicknameBase: string): Promise<string 
   for (let i = 0; i < MAX_RETRIES; i++) {
     const discriminator = String(Math.floor(Math.random() * 10000)).padStart(4, "0");
 
-    const existing = await prisma.profile.findUnique({
+    const existing = await prisma.profile.findFirst({
       where: {
-        nicknameBase_nicknameDiscriminator: { nicknameBase, nicknameDiscriminator: discriminator },
+        nicknameBase: { equals: nicknameBase, mode: "insensitive" },
+        nicknameDiscriminator: discriminator,
+        deletedAt: null,
       },
       select: { id: true },
     });

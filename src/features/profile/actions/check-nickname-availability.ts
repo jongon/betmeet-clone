@@ -10,7 +10,7 @@ export async function checkNicknameAvailability(nicknameBase: string) {
   }
 
   const count = await prisma.profile.count({
-    where: { nicknameBase: parsed.data, deletedAt: null },
+    where: { nicknameBase: { equals: parsed.data, mode: "insensitive" }, deletedAt: null },
   });
 
   // A nickname is still "available" if there are fewer than 9999 discriminators used

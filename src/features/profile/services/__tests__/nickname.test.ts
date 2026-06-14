@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { profile: { findUnique: vi.fn() } },
+  prisma: { profile: { findFirst: vi.fn() } },
 }));
 
 import { prisma } from "@/lib/prisma";
@@ -27,26 +27,33 @@ describe("assignDiscriminator", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns a 4-digit zero-padded discriminator when slot is free", async () => {
-    vi.mocked(prisma.profile.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue(null);
     const result = await assignDiscriminator("CoolNick");
     expect(result).toMatch(/^\d{4}$/);
+    expect(prisma.profile.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          nicknameBase: { equals: "CoolNick", mode: "insensitive" },
+        }),
+      }),
+    );
   });
 
   it("retries until a free slot is found", async () => {
-    vi.mocked(prisma.profile.findUnique)
+    vi.mocked(prisma.profile.findFirst)
       .mockResolvedValueOnce({ id: "x" } as never)
       .mockResolvedValueOnce({ id: "x" } as never)
       .mockResolvedValue(null);
 
     const result = await assignDiscriminator("PopularNick");
     expect(result).toMatch(/^\d{4}$/);
-    expect(prisma.profile.findUnique).toHaveBeenCalledTimes(3);
+    expect(prisma.profile.findFirst).toHaveBeenCalledTimes(3);
   });
 
   it("returns null after 10 exhausted retries", async () => {
-    vi.mocked(prisma.profile.findUnique).mockResolvedValue({ id: "x" } as never);
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue({ id: "x" } as never);
     const result = await assignDiscriminator("FullNick");
     expect(result).toBeNull();
-    expect(prisma.profile.findUnique).toHaveBeenCalledTimes(10);
+    expect(prisma.profile.findFirst).toHaveBeenCalledTimes(10);
   });
 });
