@@ -93,7 +93,7 @@ export const es = {
     heroEyebrow: "Mundial 2026",
     heroTitle: "Predice el Mundial 2026 con tus amigos",
     heroSubtitle: "Crea tu liga, haz tus predicciones y compite por el primer lugar del ranking.",
-    primaryCta: "Crear mi liga",
+    primaryCta: "Entra a Jugar",
     scoringTeaserTitle: "Cómo se puntúa",
   },
   scoring: {
