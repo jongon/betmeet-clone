@@ -99,9 +99,18 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Redirect confirmed users away from auth-only pages
+  // Redirect confirmed users away from auth-only pages — UNLESS they still owe a
+  // second factor. After password login an MFA user holds an aal1 session (so
+  // `getUser` returns a user) but must complete the TOTP challenge, which runs on
+  // /sign-in via server actions (getMfaFactors / verifyMfa). Bouncing them to
+  // /matches here turns those action POSTs into redirects, surfacing as an
+  // "unexpected response" error and blocking sign-in. Let aal1-pending users stay.
   if (user && isAuthOnly(pathname)) {
-    return NextResponse.redirect(new URL("/matches", request.url));
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const mfaPending = aal?.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
+    if (!mfaPending) {
+      return NextResponse.redirect(new URL("/matches", request.url));
+    }
   }
 
   // Confirmed users who have not finished onboarding are gated to it, using the

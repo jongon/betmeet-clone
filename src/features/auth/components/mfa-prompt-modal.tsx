@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,21 +23,21 @@ interface MFAPromptModalProps {
 
 export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModalProps) {
   const [code, setCode] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  // verifyMfa redirects on success. A server action's redirect() only propagates
+  // when dispatched inside a transition (same reason sign-in-form wraps its
+  // action) — otherwise it surfaces as an unhandled "unexpected response"
+  // rejection. useActionState handles both the redirect and the returned error.
+  const [state, formAction, pending] = useActionState<{ error?: string } | undefined, string>(
+    async (_prev, value) => {
+      if (value.length !== 6) return { error: "Code must be 6 digits" };
+      return verifyMfa(factorId, value, next);
+    },
+    undefined,
+  );
+  const error = state?.error ?? null;
 
-  async function handleVerify() {
-    if (code.length !== 6) {
-      setError("Code must be 6 digits");
-      return;
-    }
-    setPending(true);
-    const result = await verifyMfa(factorId, code, next);
-    if (result?.error) {
-      setError(result.error);
-      setPending(false);
-    }
-    // On success, verifyMfa redirects — no need to handle
+  function handleVerify() {
+    startTransition(() => formAction(code));
   }
 
   return (

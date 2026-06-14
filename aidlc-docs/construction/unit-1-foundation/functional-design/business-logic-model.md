@@ -203,6 +203,12 @@
 
 **Preconditions**: User is authenticated. User has explicitly confirmed the action (confirmation modal with "I understand this cannot be undone" acknowledgement).
 
+> **Conformidad (FR-REFINE-21.1 / Unit 21, 2026-06-14)**: el paso 2 (hard-delete del
+> `auth.users` vía Admin API) faltaba en la implementación — `deleteAccount` solo hacía
+> el soft-delete y un `signOut` local, por lo que la cuenta no se eliminaba de verdad.
+> Restaurado con `createAdminClient().auth.admin.deleteUser(userId)`. Ver
+> `construction/unit-21-account-deletion-auth-purge/functional-design.md`.
+
 **Steps**:
 1. Set `Profile.deleted_at = now()` (soft delete).
 2. Call Supabase Admin API to delete `auth.users` record (hard delete from auth).

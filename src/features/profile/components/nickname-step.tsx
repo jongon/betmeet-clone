@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,13 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
-  const [suggestions] = useState(() => generateNicknameSuggestions(5));
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+
+  // Random suggestions must be generated client-side only; running the random
+  // generator during render produces a server/client hydration mismatch.
+  useEffect(() => {
+    setSuggestions(generateNicknameSuggestions(5));
+  }, []);
 
   async function handleAvailabilityCheck() {
     if (!value) return;
@@ -83,18 +89,20 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
         </div>
       </form>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-muted-foreground">Suggestions</p>
-        <div className="flex flex-wrap gap-2">
-          {suggestions.map((s) => (
-            <button key={s} type="button" onClick={() => setValue(s)}>
-              <Badge variant="secondary" className="cursor-pointer">
-                {s}
-              </Badge>
-            </button>
-          ))}
+      {suggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-muted-foreground">Suggestions</p>
+          <div className="flex flex-wrap gap-2">
+            {suggestions.map((s) => (
+              <button key={s} type="button" onClick={() => setValue(s)}>
+                <Badge variant="secondary" className="cursor-pointer">
+                  {s}
+                </Badge>
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

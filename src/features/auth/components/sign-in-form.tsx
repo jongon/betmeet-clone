@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { FormError } from "@/components/form-error";
@@ -45,12 +45,21 @@ export function SignInForm({ next }: { next?: string }) {
     FormData
   >(async (_prev, formData) => resendConfirmation(formData), undefined);
 
-  // When server returns requiresMfa, load factors and open modal
-  if (state?.requiresMfa && !mfaFactorId) {
+  // When server returns requiresMfa, load factors and open the MFA modal. Runs in
+  // an effect (not during render) so it fires once per requiresMfa transition and
+  // is safe under concurrent renders.
+  useEffect(() => {
+    if (!state?.requiresMfa) return;
+
+    let cancelled = false;
     getMfaFactors().then(({ factors }) => {
-      if (factors[0]) setMfaFactorId(factors[0].id);
+      if (!cancelled && factors[0]) setMfaFactorId(factors[0].id);
     });
-  }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.requiresMfa]);
 
   const onValid = handleSubmit((data) => {
     const formData = new FormData();

@@ -759,6 +759,37 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## FR-REFINE-21: Eliminación real de la cuenta (purga del `auth.users`) (Post-construcción — Unit 21)
+
+> Refine post-construcción (2026-06-14). Bug en `settings/security` analizado como
+> Unit 21; **no reinicia** ninguna etapa aprobada. Cubre la **Épica 20**. Es un bug de
+> **conformidad**: el diseño ya aprobado de Unit 1 (**WF-11** y **RULE-SEC-03**) ya
+> prescribía el comportamiento correcto; la implementación había **divergido**.
+
+- **FR-REFINE-21.1 — Eliminar cuenta debe eliminar de verdad la cuenta**: en
+  `settings/security → Eliminar cuenta`, tras confirmar, la cuenta **no se eliminaba
+  realmente**: el usuario podía volver a iniciar sesión y el email seguía ocupado.
+  Causa raíz: `delete-account.ts` solo transfería los pools (BL-9), hacía el
+  **soft-delete** del perfil (`Profile.deleted_at`) y un `signOut()` de la sesión
+  local, pero **omitía el paso 2 de WF-11 / RULE-SEC-03**: el *hard-delete* del
+  registro de `auth.users` con la **Admin API**. El flujo pasa a llamar
+  `createAdminClient().auth.admin.deleteUser(userId)` tras el soft-delete; esto
+  invalida todas las sesiones y libera el email. Se **conserva** el modelo híbrido ya
+  documentado (soft-delete del `Profile` para retener historial de predicciones/scores;
+  no hay FK de `profiles.id` a `auth.users`, así que la purga del auth **no** cascadea
+  el perfil). Si la purga falla, la acción devuelve error y **no** redirige.
+
+### NFR / Infra (Unit 21)
+- **NFR (seguridad / privacidad)**: la purga del `auth.users` materializa el "derecho
+  al borrado" del usuario de autenticación (login imposible, sesiones invalidadas,
+  email liberado) que RULE-SEC-03 ya exigía. Usa el `service_role` solo server-side.
+- **Infra**: requiere `SUPABASE_SERVICE_ROLE_KEY` (ya presente desde Unit 12 /
+  FR-REFINE-12.3). Sin schema, migraciones ni rutas nuevas. **Pendiente Operations**:
+  verificar en prod que el usuario desaparece de `auth.users` y que el email puede
+  volver a registrarse.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

@@ -26,7 +26,6 @@ build/
 !.vscode/settings.json
 
 # AI tools — directories are generated, MCP configs are tracked
-.agent
 .claude/
 .opencode/
 .cursor/

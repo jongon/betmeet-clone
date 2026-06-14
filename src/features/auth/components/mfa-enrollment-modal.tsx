@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +20,7 @@ interface MFAEnrollmentModalProps {
   onSuccess: () => void;
 }
 
-type Step = "loading" | "scan" | "verify" | "done";
+type Step = "loading" | "error" | "scan" | "verify" | "done";
 
 export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentModalProps) {
   const [step, setStep] = useState<Step>("loading");
@@ -32,21 +31,31 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  async function handleOpen(isOpen: boolean) {
-    if (isOpen && step === "loading") {
-      const result = await enrollMfa();
+  // The modal is opened in a controlled way from the parent, so the Dialog's
+  // `onOpenChange` never fires on open. Trigger the enroll from an effect that
+  // watches `open`. The parent remounts this component (via `key`) on each open,
+  // so state resets to its defaults without setting state synchronously here.
+  useEffect(() => {
+    if (!open) return;
+
+    let cancelled = false;
+    enrollMfa().then((result) => {
+      if (cancelled) return;
       if ("error" in result) {
         setError(result.error ?? "Failed to start enrollment");
+        setStep("error");
         return;
       }
       setFactorId(result.factorId);
       setQrCode(result.qrCode);
       setSecret(result.secret);
       setStep("scan");
-    } else if (!isOpen) {
-      onClose();
-    }
-  }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   async function handleVerify() {
     if (code.length !== 6) {
@@ -65,7 +74,7 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Enable two-factor authentication</DialogTitle>
@@ -76,18 +85,24 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
 
         {step === "loading" && <p className="text-sm text-muted-foreground">Loading…</p>}
 
+        {step === "error" && (
+          <div className="space-y-4">
+            <FormError messages={error ? [error] : ["Failed to start enrollment"]} />
+            <Button variant="outline" className="w-full" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        )}
+
         {step === "scan" && (
           <div className="space-y-4">
             <FormError messages={error ? [error] : undefined} />
             <div className="flex justify-center">
-              <Image
-                src={qrCode}
-                alt="TOTP QR code"
-                width={192}
-                height={192}
-                className="h-48 w-48"
-                unoptimized
-              />
+              {/* Supabase returns the QR as an unencoded SVG data URI, which
+                  next/image cannot parse — use a plain img (no optimization
+                  applies to a data URI anyway). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrCode} alt="TOTP QR code" width={192} height={192} className="h-48 w-48" />
             </div>
             <p className="text-center text-xs text-muted-foreground break-all">
               Manual entry: <span className="font-mono">{secret}</span>

@@ -26,7 +26,7 @@ curl -fsSL https://code.kimi.com/kimi-code/install.sh | bash
 fi
 
 if command -v claude >/dev/null 2>&1; then
-  pnpm exec claudecode-aidlc setup
+  pnpm exec claudecode-aidlc setup --copy-commands
 fi
 
 if command -v opencode >/dev/null 2>&1; then

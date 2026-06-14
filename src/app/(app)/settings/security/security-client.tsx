@@ -85,6 +85,7 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
       </Card>
 
       <MFAEnrollmentModal
+        key={String(enrollOpen)}
         open={enrollOpen}
         onClose={() => setEnrollOpen(false)}
         onSuccess={() => {

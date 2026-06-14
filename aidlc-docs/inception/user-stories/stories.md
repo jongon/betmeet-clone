@@ -114,6 +114,24 @@
 
 ---
 
+## Épica 20: Eliminación real de la cuenta
+
+> Refine de conformidad sobre el borrado de cuenta (Unit 1 · WF-11 / RULE-SEC-03). No
+> reinicia la historia original; restaura el comportamiento ya aprobado tras un bug en vivo.
+
+### US-20.1: Eliminar la cuenta la elimina de verdad
+**Como** usuario que elimina su cuenta desde `settings/security`
+**Quiero** que la cuenta se elimine de verdad (no poder volver a iniciar sesión y que mi email quede libre)
+**Para** confiar en que mis datos de acceso se han borrado.
+- **Criterios de Aceptación**:
+  - Tras confirmar, el registro de `auth.users` se elimina vía la Admin API (no solo un `signOut`).
+  - El usuario no puede volver a iniciar sesión y todas sus sesiones quedan invalidadas.
+  - El email queda libre para volver a registrarse.
+  - El `Profile` permanece soft-deleted (`deleted_at`) para conservar el historial de predicciones y scores.
+  - Si la purga del `auth.users` falla, se muestra un error y no se redirige (la acción no finge éxito).
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture
