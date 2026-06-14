@@ -17,11 +17,12 @@ site_url = "env(NEXT_PUBLIC_SITE_URL)"
 # Confirmaciones de email obligatorias para registro (sin esto, Supabase entrega
 # sesión sin confirmar y el gate en src/proxy.ts no tendría qué exigir — FR-REFINE-15.14).
 enable_confirmations = true
-# "Secure email change": el cambio de correo se confirma desde la dirección actual
-# Y la nueva; el cambio solo se aplica cuando ambas se confirman (FR-REFINE-15.10).
-# La UI de Perfil avisa de esto. Si se quisiera confirmación única, poner = false
-# (debe coincidir con el toggle del dashboard en prod).
-secure_email_change_enabled = true
+# "Secure email change": cuando está activo, el cambio de correo exige confirmar
+# desde la dirección actual Y la nueva. FR-REFINE-19.1 lo desactiva: el cambio se
+# confirma con UN solo enlace enviado únicamente al correo NUEVO, y la notificación
+# de cambio llega solo al nuevo (no al antiguo). Tradeoff de seguridad aceptado por
+# el usuario (CF-9). Debe coincidir con el toggle del dashboard en prod.
+secure_email_change_enabled = false
 
 # Confirmar email al registro. Trigger: src/features/auth/actions/sign-up.ts
 [auth.email.template.confirmation]
@@ -33,7 +34,8 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Restablece tu contraseña — Quiniela Mundial 2026"
 content_path = "./supabase/templates/recovery.html"
 
-# Confirmar cambio de email (se envía a la dirección antigua y a la nueva).
+# Confirmar cambio de email (con Secure email change desactivado, se envía un
+# único enlace a la dirección NUEVA — FR-REFINE-19.1).
 # Trigger: src/features/auth/actions/change-email.ts
 [auth.email.template.email_change]
 subject = "Confirma el cambio de tu email — Quiniela Mundial 2026"

@@ -80,12 +80,12 @@ export const es = {
     nicknameSuccess: "Nickname actualizado.",
     emailSection: "Correo",
     emailDescription:
-      "Por seguridad, enviaremos un enlace de confirmación a tu correo actual y al nuevo. Abre ambos y confirma para aplicar el cambio.",
+      "Enviaremos un enlace de confirmación a tu correo nuevo. Ábrelo y confírmalo para aplicar el cambio.",
     emailCurrentLabel: "Correo actual",
     emailLabel: "Correo nuevo",
     emailSave: "Cambiar correo",
     emailSuccess:
-      "Te enviamos un enlace de confirmación a tu correo actual y al nuevo. El cambio se aplica cuando confirmas ambos.",
+      "Te enviamos un enlace de confirmación a tu correo nuevo. El cambio se aplica cuando lo confirmas.",
   },
   landing: {
     headerSignIn: "Iniciar sesión",

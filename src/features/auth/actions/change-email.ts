@@ -26,9 +26,10 @@ export async function changeEmail(formData: FormData) {
     return { error: { _form: [error.message] } };
   }
 
-  // With Supabase "Secure email change" enabled, confirmation is sent to BOTH
-  // the current and the new address and the change applies only once BOTH are
-  // confirmed (surfaced in the UI copy). The setting is documented in
-  // supabase/config.toml and the operations runbook.
+  // With Supabase "Secure email change" DISABLED (FR-REFINE-19.1), a single
+  // confirmation link is sent only to the NEW address and the change applies
+  // once that one link is confirmed — the old address is neither asked to
+  // confirm nor notified. The setting lives in supabase/config.toml /
+  // dashboard and the security tradeoff is recorded in CF-9.
   return { success: true };
 }
