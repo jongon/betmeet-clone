@@ -1,5 +1,89 @@
 # AI-DLC Audit Log
 
+## Bug Fix — Profile Nickname Stale UI
+**Timestamp**: 2026-06-14T01:39:47Z
+**User Input**: "Cuando se cambia el nickname en la sección de profile se cambía existosamente pero sigue apareciendo el nickname anterior hasta que refresco el navegador"
+**AI Response**: "Fixed the stale UI after profile nickname changes. `setNickname` now calls `revalidatePath('/settings/profile')`, and `AccountSettings` calls `router.refresh()` after a successful nickname update so the server-rendered profile card and app header receive fresh `getProfile()` data without a manual browser refresh. Updated the `set-nickname` test to assert revalidation. Verification passed: targeted test 7/7, `pnpm exec tsc --noEmit`, `pnpm check`, and `pnpm lint`."
+**Context**: Post-implementation bug fix for Unit 17 nickname flow; no requirement change and no stage restart.
+
+---
+
+## Refine Request — Unit 17 Nickname Grace Clarification
+**Timestamp**: 2026-06-14T01:23:54Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to
+the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or
+per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units,
+and do NOT restart already-approved stages. Log the change in
+`aidlc-docs/audit.md`.
+
+Change: El rate limit del nickname aplica después del primer cambio de nickname no después de la primera asignación de nickname. Un ejemplo. Cuando creo una cuenta y estoy en el on-boarding ahí asigno un nickname, luego tengo una oportunidad de gracia para modificarlo sin tener que esperar los 30 días. Es decir, el rate limit se activa después de haber tenido más de 2 nicknames. Hazme preguntas si lo necesitas"
+**Clarification**: User confirmed **uno gratis**: onboarding creates nickname #1; the first post-onboarding change creates nickname #2 without cooldown; subsequent attempts within 30 days are rate-limited.
+**AI Response**: "Applied a documentation-only AI-DLC refine without restarting approved stages. Updated `requirements.md`, Unit 12/16 dependent designs, Unit 17 functional design, and `aidlc-state.md` to clarify that FR-REFINE-17.3 includes one post-onboarding nickname grace change before the 30-day cooldown applies. Logged that implementation must distinguish whether the grace was already consumed; `nicknameUpdatedAt` alone is insufficient. No application code changes were made in this request."
+**Context**: Additive clarification over Unit 17 nickname cooldown; Unit 18 remains approved and preserved.
+
+---
+
+## Refine Implementation — Unit 17 Nickname Grace
+**Timestamp**: 2026-06-14T01:29:36Z
+**User Input**: "Implementalo"
+**AI Response**: "Implemented the nickname grace rule in code without restarting approved stages. Added `profiles.nickname_change_count` to Prisma with migration `20260614123000_nickname_grace_count` and conservative backfill (`1` for existing profiles with nickname). Updated `setNickname` so onboarding assignments stay at count 1, the first post-onboarding change advances to count 2 without cooldown, and subsequent attempts within 30 days return `rate_limited`. Updated `set-nickname` tests for the grace path and rate-limit path; regenerated Prisma. Verification passed: `pnpm prisma:generate`, `pnpm exec tsc --noEmit`, `pnpm check`, `pnpm lint`, and `pnpm test` (179/179)."
+**Context**: Code implementation of the immediately preceding Unit 17 clarification; Unit 18 remains approved and preserved.
+
+---
+
+## Refine Request — Unit 18 Landing CTA Copy
+**Timestamp**: 2026-06-14T01:18:27Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to
+the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or
+per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units,
+and do NOT restart already-approved stages. Log the change in
+`aidlc-docs/audit.md`.
+
+Change: El botón del landing que dice \"Crea mi Liga\" dbería decir, \"Entra a Jugar\""
+**AI Response**: "Applied a documentation-only AI-DLC refine without restarting approved stages. Added FR-REFINE-18.1 and US-17.1, updated the Landing / Public Home screen contract to set the main CTA to `Entra a Jugar`, updated dependent Unit 2 landing rules/model/components and Unit 15 landing design, created the Unit 18 functional design, and updated `aidlc-state.md`. No application code changes were requested in this workflow step."
+**Context**: Additive copy refine over the landing artifacts; dependent Unit 15 design updated.
+
+---
+
+## Refine Request — Unit 17 Reglas, Avatar Upload y Nickname
+**Timestamp**: 2026-06-14T00:12:55Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to
+the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or
+per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units,
+and do NOT restart already-approved stages. Log the change in
+`aidlc-docs/audit.md`.
+
+Change: 1) En la sección de reglas dice \"El ranking es por liga, no global. Compites contra tu grupo.\" Eso no va. Hay Ranking por Liga y global. 2) En la sección de perfil al cambiar el avatar subiendo una imagen estoy recibiendo el mensaje \"Failed to create upload URL\" 3) El rate limit del nickname aplica después del primer cambio de nickname no después de la primera asignación de nickname 4) Solo para reforzar el nickname no es case sensitive, aplica lo mismo para la busqueda.
+HAzme las preguntas que consideres si detectas alguna ambigüedad"
+**AI Response**: "Analyzed existing AI-DLC artifacts and code without editing. Identified a post-construction refine affecting Unit 15 (rules/profile), Unit 16 (nickname cooldown), and Unit 10/3 invite lookup expectations. Asked three clarification questions about desired rules copy, environment for the upload error, and exact case-insensitive nickname collision behavior."
+**Context**: New additive refine; approved stages must not be restarted.
+
+---
+
+## Refine Clarifications — Unit 17
+**Timestamp**: 2026-06-14T00:12:55Z
+**User Input**: "1) Sí está bien, 2) aún en devcontainer apunto a supabase, si pude ser colisión de path 3) Sí, de todas maneras eso es muy poco probable que pase, pero si, se debería bloquear"
+**AI Response**: "Confirmed the Unit 17 plan: rules copy should explicitly state that league and global rankings both exist; avatar upload URL failures in devcontainer against Supabase can be treated as likely fixed-path collision; nickname equivalence must be case-insensitive, including full nickname collisions such as `Pepe#1234` vs `pepe#1234`."
+**Context**: Clarification gate completed for the refine.
+
+---
+
+## Refine Execution Approval — Unit 17
+**Timestamp**: 2026-06-14T00:12:55Z
+**User Input**: "Ejecutar"
+**AI Response**: "Proceeding to update AI-DLC artifacts, implement the Unit 17 fixes, add tests, and verify without restarting already-approved stages."
+**Context**: User explicitly approved execution.
+
+---
+
+## Refine Complete — Unit 17 Reglas, Avatar Upload y Nickname
+**Timestamp**: 2026-06-14T00:20:55Z
+**User Input**: "Ejecutar"
+**AI Response**: "Implemented Unit 17 without restarting approved stages. Updated AI-DLC artifacts (`requirements.md`, `aidlc-state.md`, Unit 15/16 dependent designs, and new `construction/unit-17-rules-avatar-nickname-refine/functional-design.md`). Code changes: rules copy now states there is league and global ranking; avatar upload URL generation now uses unique Storage paths (`custom/{userId}/{uuid}.{ext}`) and logs server-side signing failures while keeping a generic user error; nickname cooldown now applies only when a prior nickname exists and onboarding is complete; nickname availability and discriminator assignment now compare nickname base case-insensitively. Added tests for unique avatar upload paths, stable upload URL error, case-insensitive availability, case-insensitive discriminator lookup, and first nickname assignment after onboarding. Verification passed: `pnpm exec tsc --noEmit`, `pnpm check`, `pnpm lint`, and `pnpm test` (177/177 tests)."
+**Context**: Unit 17 refine completed and verified; no schema migration required.
+
+---
+
 ## Workflow Start — Commit de funcionalidades existentes
 **Timestamp**: 2026-06-13T23:48:25Z
 **User Input**: "Haz commit de todo"

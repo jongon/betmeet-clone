@@ -12,7 +12,7 @@
 - User arrives from search, referral, pool invite, or social link.
 
 ### Primary Action
-- Main CTA: `Crear mi quiniela`
+- Main CTA: `Entra a Jugar`
 - Expected result: User starts registration/login flow.
 
 ### Secondary Actions

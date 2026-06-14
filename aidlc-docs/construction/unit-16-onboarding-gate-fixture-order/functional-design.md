@@ -133,12 +133,15 @@ nueva navegación "Atrás" (16.4) permite volver al paso de nickname y re-enviar
 como ya había un `nicknameUpdatedAt` reciente, el cooldown de 30 días de
 FR-REFINE-12.5 devolvía `rate_limited` y **bloqueaba** continuar el onboarding.
 
-**Decisión.** El cooldown es para **cambiar un nickname ya establecido**, no para
-configurarlo. En `set-nickname.ts` se lee también `onboardingCompleted` y el
-cooldown se evalúa **solo si `onboardingCompleted === true`**. Durante el
-onboarding (flag aún `false` — lo marca `completeOnboarding()` al final) el cambio
-siempre se permite. Tests: el caso de rate-limit ahora fija `onboardingCompleted:
-true`; nuevo caso verifica que con `false` y timestamp reciente NO se limita.
+**Decisión.** El cooldown es para **cambios posteriores a la oportunidad de
+gracia**, no para configurar el nickname. En `set-nickname.ts` se lee también
+`onboardingCompleted` y el cooldown se evalúa **solo si `onboardingCompleted ===
+true`**. Durante el onboarding (flag aún `false` — lo marca `completeOnboarding()`
+al final) el cambio siempre se permite. Refine Unit 17: después del nickname de
+onboarding, el usuario conserva **un cambio de gracia** sin esperar 30 días; a
+partir del siguiente intento dentro de la ventana debe devolver `rate_limited`.
+Tests: el caso de rate-limit fija `onboardingCompleted: true`; otro caso verifica
+que con `false` y timestamp reciente NO se limita.
 
 ### Tema de marca por cookie — sin script inline (US-15.6 / FR-REFINE-16.6, resuelve CF-8)
 
@@ -311,3 +314,16 @@ tanto.
   tema/marca antes de iniciar sesión.
 - **US-15.8**: Como usuario que confirma su cuenta quiero un mensaje correcto (no
   un falso "no pudimos confirmar") cuando el correo ya quedó confirmado.
+
+## 8. Refine dependiente Unit 17 (2026-06-14)
+
+Unit 17 no reinicia Unit 16; ajusta la semántica de FR-REFINE-16.5:
+
+- El cooldown de nickname no solo debe omitirse durante onboarding. También debe
+  omitirse en la **oportunidad de gracia post-onboarding**: el primer cambio
+  posterior a la asignación inicial se permite sin esperar 30 días. La ventana de
+  30 días empieza a bloquear a partir de intentos posteriores, cuando esa gracia ya
+  fue consumida. La implementación Unit 17 persiste esta distinción con
+  `profiles.nickname_change_count`.
+- La comparación de nickname se refuerza como case-insensitive en disponibilidad y
+  asignación: `Pepe#1234` y `pepe#1234` son el mismo nickname lógico.

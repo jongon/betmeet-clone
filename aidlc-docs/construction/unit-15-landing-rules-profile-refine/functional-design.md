@@ -37,6 +37,9 @@
   (`explorePools`, `poolsTitle`, `poolsEmpty`, `poolsError`).
 - Toggles (`BrandToggle`/`ThemeToggle`) movidos a la derecha (consistencia con
   `AppHeader`). `listPublicPools` se conserva (la usa `/pools/discover`).
+- **Dependencia Unit 18 (2026-06-14)**: el CTA principal del landing cambia de
+  "Crea mi Liga" a **"Entra a Jugar"**. No cambia destino ni comportamiento; solo
+  copy del botón.
 
 ### Reglas (US-14.5 / 14.6) — `src/app/(app)/rules/page.tsx`
 - Se elimina `DismissibleCallout cueId="ranking-pool-only"` y la clave
@@ -275,3 +278,15 @@ reinician etapas, no cambian schema ni la regla de negocio de penales.
 - `tsc --noEmit` 0 errores; Biome limpio; **168/168 tests** (incluye
   `avatar-source-tabs.test.tsx`). Avatar grid validado visualmente con Playwright
   (10 avatares visibles).
+
+## 9. Refine dependiente Unit 17 (2026-06-14)
+
+Unit 17 no reinicia Unit 15; corrige/refuerza dos decisiones de este diseño:
+
+- **Reglas (US-14.5 / FR-REFINE-15.5)**: el objetivo no es solo eliminar el callout
+  incorrecto, sino dejar copy afirmativo: hay **ranking por liga y ranking global**;
+  el usuario compite contra su liga y contra todos los usuarios.
+- **Perfil / avatar upload (US-14.8)**: el fallback visual de avatares por defecto
+  no cubre el upload custom. `create-avatar-upload-url.ts` debe dejar de usar el
+  path fijo `custom/{userId}/avatar.{ext}` y pasar a un path único por intento para
+  evitar colisiones de Supabase Storage que producen "Failed to create upload URL".

@@ -141,7 +141,7 @@ RulesStep:
 **Propósito**: Página `/` que explica la quiniela antes de registrarse (reemplaza el placeholder del template).
 
 **Bloques** (orden mobile-first, una propuesta de valor primero):
-1. **Hero + propuesta de valor**: qué es una quiniela, foco Mundial 2026, CTA principal `Crear mi quiniela`.
+1. **Hero + propuesta de valor**: qué es una quiniela, foco Mundial 2026, CTA principal `Entra a Jugar` (actualizado por Unit 18).
 2. **Teaser de puntuación**: tarjeta compacta (exacto 5 / resultado 2 / parcial 1 / penales +1). Es el único contenido de reglas público.
 3. **PoolPreview**: sección cableada a la interfaz `PoolPreviewItem` (Unit 3). Renderiza skeleton mientras carga; si no hay fuente de datos (pre-Unit 3) muestra estado vacío; si falla, se oculta y mantiene la explicación estática.
 4. **CTAs secundarios**: `Iniciar sesión`, `Explorar pools públicos` (este último activo cuando Unit 3 entregue datos).

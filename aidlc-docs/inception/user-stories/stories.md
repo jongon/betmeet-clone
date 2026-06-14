@@ -70,6 +70,19 @@
 
 ---
 
+## Épica 17: Ajuste de Copy del Landing
+
+### US-17.1: CTA principal más directo
+**Como** visitante
+**Quiero** que el botón principal del landing diga "Entra a Jugar"
+**Para** entender claramente que la acción me lleva a participar en la experiencia de juego.
+- **Criterios de Aceptación**:
+  - El CTA principal del landing no muestra "Crea mi Liga".
+  - El CTA principal del landing muestra exactamente "Entra a Jugar".
+  - El destino/flujo del CTA permanece igual que antes del cambio de copy.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

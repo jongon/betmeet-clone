@@ -633,6 +633,67 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## FR-REFINE-17: Reglas, Avatar Upload y Nickname Consistency (Post-construcción — Unit 17)
+
+> Refine post-construcción (2026-06-14). Aditivo; **no reinicia** ninguna etapa
+> aprobada. Cubre la **Épica 16**.
+
+- **FR-REFINE-17.1 — Reglas con ranking por liga y global** (corrige/refuerza
+  FR-REFINE-15.5): la sección de reglas no debe decir que el ranking es solo por
+  liga. Debe explicar explícitamente que hay **ranking por liga** y **ranking
+  global**: el usuario compite contra su liga y también contra todos los usuarios.
+- **FR-REFINE-17.2 — Upload de avatar sin colisión de path** (corrige Perfil / Unit
+  15): al subir una imagen custom, `createSignedUploadUrl` no debe depender de un
+  path fijo (`custom/{userId}/avatar.{ext}`) que puede colisionar en Supabase
+  Storage y devolver "Failed to create upload URL". Cada intento de upload debe
+  usar un path único por usuario (por ejemplo `custom/{userId}/{uuid}.{ext}`), con
+  error de usuario estable y logging server-side sin secretos.
+- **FR-REFINE-17.3 — Cooldown de nickname tras oportunidad de gracia** (corrige
+  FR-REFINE-16.5 / FR-REFINE-12.5): el rate limit de 30 días aplica después de que
+  el usuario consume **una oportunidad de gracia post-onboarding**, no después de la
+  primera asignación. Secuencia esperada: (1) onboarding asigna el primer nickname;
+  (2) el primer cambio posterior al onboarding se permite sin esperar 30 días;
+  (3) cualquier intento posterior dentro de la ventana devuelve `rate_limited`. La
+  implementación debe poder distinguir si la gracia post-onboarding ya fue
+  consumida; `nicknameUpdatedAt` por sí solo no basta porque también se escribe en
+  la asignación inicial. Implementación: `profiles.nickname_change_count` cuenta la
+  asignación inicial como 1, el cambio de gracia como 2 y activa el cooldown desde
+  intentos posteriores.
+- **FR-REFINE-17.4 — Nickname case-insensitive en disponibilidad, asignación y
+  búsqueda**: `Pepe#1234` y `pepe#1234` representan el mismo nickname lógico. La
+  disponibilidad, la asignación de discriminator y las búsquedas por nickname deben
+  comparar la base sin distinguir mayúsculas/minúsculas. El display puede conservar
+  el casing escrito por el usuario.
+
+### NFR / Infra (Unit 17)
+- **NFR**: FR-REFINE-17.4 refuerza integridad de identidad y prevención de spoofing
+  visual. FR-REFINE-17.2 mantiene errores externos genéricos para no filtrar
+  detalles de Supabase Storage.
+- **Infra**: FR-REFINE-17.3 añade migración Prisma
+  `20260614123000_nickname_grace_count` (`profiles.nickname_change_count` +
+  backfill conservador); FR-REFINE-17.4 mantiene la unicidad case-insensitive en
+  lógica de aplicación. Si en el futuro se requiere garantía fuerte a nivel DB, se
+  evaluará índice funcional `lower(nickname_base), nickname_discriminator`.
+
+---
+
+## FR-REFINE-18: Copy del CTA principal del landing (Post-construcción — Unit 18)
+
+> Refine post-construcción (2026-06-14). Aditivo y documental sobre el landing;
+> **no reinicia** ninguna etapa aprobada. Cubre la **Épica 17**.
+
+- **FR-REFINE-18.1 — CTA principal del landing**: el botón principal del landing que
+  decía "Crea mi Liga" debe decir **"Entra a Jugar"**. El destino/acción del botón
+  no cambia: inicia el flujo de registro/login o entrada al producto según el estado
+  de sesión existente. Este ajuste reemplaza cualquier copy equivalente anterior del
+  CTA principal del landing, incluido `Crear mi quiniela` en el contrato base.
+
+### NFR / Infra (Unit 18)
+- **NFR**: sin nuevos NFR; es un cambio de copy.
+- **Infra**: sin cambios de schema, migraciones, servicios ni rutas.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

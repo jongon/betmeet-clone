@@ -23,7 +23,7 @@
 **Estructura**:
 ```
 LandingPage
-├── LandingHero            (propuesta de valor + CTA "Crear mi quiniela")
+├── LandingHero            (propuesta de valor + CTA "Entra a Jugar"; actualizado por Unit 18)
 ├── ScoringTeaser          (tarjeta resumen: exacto 5 / resultado 2 / parcial 1 / penales +1)
 ├── PoolPreview            (cliente; cableado a PoolPreviewItem[], skeleton/empty/error)
 └── LandingSecondaryCTAs   ("Iniciar sesión", "Explorar pools públicos")

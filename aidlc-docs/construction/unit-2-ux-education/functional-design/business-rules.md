@@ -64,7 +64,7 @@
 |---|---|
 | **BR-2.25** | La sección de preview de pools de la landing se cablea a la interfaz `PoolPreviewItem`; mientras Unit 3 no provea datos, renderiza estado skeleton o vacío. |
 | **BR-2.26** | Si la fuente de datos de pools falla, la sección de preview se oculta y la landing mantiene su explicación estática. |
-| **BR-2.27** | La landing debe presentar, en el primer viewport mobile, la propuesta de valor, el teaser de puntuación y el CTA principal `Crear mi quiniela`. |
+| **BR-2.27** | La landing debe presentar, en el primer viewport mobile, la propuesta de valor, el teaser de puntuación y el CTA principal `Entra a Jugar` (actualizado por Unit 18). |
 
 ---
 

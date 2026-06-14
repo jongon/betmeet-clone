@@ -61,7 +61,9 @@
 ### US-11.4 — Cambio de nickname en Perfil (FR-REFINE-12.5)
 - **Reusa** `setNickname()` (ya reasigna discriminador vía `assignDiscriminator`).
 - **Rate-limit nuevo**: limitar cambios de nickname (p. ej. 1 cada N días) con
-  marca temporal en `profiles` (`nicknameUpdatedAt`). A confirmar el N en Code Gen.
+  marca temporal en `profiles` (`nicknameUpdatedAt`). Refine posterior Unit 17:
+  debe respetar una oportunidad de gracia post-onboarding; la asignación inicial y
+  el primer cambio posterior no disparan el bloqueo de 30 días.
 - Montado en `/settings/profile`; mensajes de éxito/error en español.
 
 ### US-11.5 — Avatares por defecto resilientes (FR-REFINE-12.6)
@@ -105,7 +107,10 @@
 ## 6. Schema (DECISIÓN CONFIRMADA — migración Prisma)
 - **Confirmado (2026-06-12)**: se usa migración Prisma versionada (CF-6), no cache efímera.
 - `EmailActionThrottle(email, action, lastSentAt)` para cooldown (FR-REFINE-12.2).
-- `profiles.nicknameUpdatedAt` para rate-limit de nickname (FR-REFINE-12.5).
+- `profiles.nicknameUpdatedAt` para rate-limit de nickname (FR-REFINE-12.5), con
+  refinamiento Unit 17 para distinguir la oportunidad de gracia post-onboarding.
+- `profiles.nicknameChangeCount` / `nickname_change_count` (Unit 17) para persistir
+  si la gracia post-onboarding ya fue consumida.
 - Requiere `prisma migrate deploy` en prod (Operations/CF-6).
 - **Confirmado (2026-06-12)**: el cambio de email no confirmado usa `service_role`
   (`SUPABASE_SERVICE_ROLE_KEY`) en un cliente server-only (`src/lib/supabase/admin.ts`).
