@@ -118,7 +118,7 @@ export async function getOrCreateProfile(): Promise<Profile | null> {
       id: userData.user.id,
       avatarUrl: defaultAvatar?.storageUrl ?? "",
       avatarSource: "DEFAULT_SET",
-      verificationStatus: "UNVERIFIED",
+      verificationStatus: userData.user.email_confirmed_at ? "VERIFIED" : "UNVERIFIED",
     },
   });
 

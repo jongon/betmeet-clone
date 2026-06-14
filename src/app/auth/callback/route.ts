@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { handleGoogleCallback } from "@/features/auth/actions/google-callback";
+import { syncProfileVerification } from "@/features/auth/services/sync-profile-verification";
 import { prisma } from "@/lib/prisma";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
@@ -37,6 +38,11 @@ export async function GET(request: NextRequest) {
   if (provider === "google") {
     await handleGoogleCallback(data.session.user.id);
   }
+
+  await syncProfileVerification(
+    data.session.user.id,
+    Boolean(data.session.user.email_confirmed_at),
+  );
 
   const profile = await prisma.profile.findUnique({
     where: { id: data.session.user.id },

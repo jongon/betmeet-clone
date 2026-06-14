@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { sanitizeNext } from "@/lib/safe-redirect";
 import { createClient } from "@/lib/supabase/server";
 import { SignInSchema } from "../schemas";
+import { syncProfileVerification } from "../services/sync-profile-verification";
 
 type SignInState =
   | {
@@ -81,6 +82,8 @@ export async function signIn(formData: FormData): Promise<SignInState> {
   if (!profile) {
     return { error: { _form: ["Sign in failed. Please try again."] } };
   }
+
+  await syncProfileVerification(profile.id, Boolean(profile.email_confirmed_at));
 
   const userProfile = await prisma.profile.findUnique({
     where: { id: profile.id },

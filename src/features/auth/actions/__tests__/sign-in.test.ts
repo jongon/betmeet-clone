@@ -6,7 +6,7 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
-  prisma: { profile: { findUnique: vi.fn() } },
+  prisma: { profile: { findUnique: vi.fn(), updateMany: vi.fn() } },
 }));
 vi.mock("@/lib/auth-logger", () => ({
   logAuthEvent: vi.fn(),
@@ -40,6 +40,7 @@ describe("signIn", () => {
       data: { currentLevel: "aal1", nextLevel: "aal1" },
     });
     vi.mocked(prisma.profile.findUnique).mockResolvedValue({ onboardingCompleted: true } as never);
+    vi.mocked(prisma.profile.updateMany).mockResolvedValue({ count: 1 } as never);
   });
 
   it("returns field errors on invalid input", async () => {
@@ -58,7 +59,7 @@ describe("signIn", () => {
 
   it("returns requiresMfa when next level is aal2", async () => {
     mockSignInWithPassword.mockResolvedValue({
-      data: { user: { id: "1", email: "a@b.com" } },
+      data: { user: { id: "1", email: "a@b.com", email_confirmed_at: "2026-06-14T00:00:00Z" } },
       error: null,
     });
     mockGetAuthenticatorAssuranceLevel.mockResolvedValue({
@@ -70,16 +71,30 @@ describe("signIn", () => {
 
   it("redirects to /matches on success", async () => {
     mockSignInWithPassword.mockResolvedValue({
-      data: { user: { id: "1", email: "a@b.com" } },
+      data: { user: { id: "1", email: "a@b.com", email_confirmed_at: "2026-06-14T00:00:00Z" } },
       error: null,
     });
     await signIn(makeFormData({ email: "a@b.com", password: "password123" }));
     expect(redirect).toHaveBeenCalledWith("/matches");
   });
 
+  it("promotes confirmed users to verified on success", async () => {
+    mockSignInWithPassword.mockResolvedValue({
+      data: { user: { id: "1", email: "a@b.com", email_confirmed_at: "2026-06-14T00:00:00Z" } },
+      error: null,
+    });
+
+    await signIn(makeFormData({ email: "a@b.com", password: "password123" }));
+
+    expect(prisma.profile.updateMany).toHaveBeenCalledWith({
+      where: { id: "1", verificationStatus: "UNVERIFIED" },
+      data: { verificationStatus: "VERIFIED" },
+    });
+  });
+
   it("redirects incomplete profiles to onboarding on success", async () => {
     mockSignInWithPassword.mockResolvedValue({
-      data: { user: { id: "1", email: "a@b.com" } },
+      data: { user: { id: "1", email: "a@b.com", email_confirmed_at: "2026-06-14T00:00:00Z" } },
       error: null,
     });
     vi.mocked(prisma.profile.findUnique).mockResolvedValue({ onboardingCompleted: false } as never);
