@@ -4,10 +4,7 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
-import {
-  startPasskeyRegistration,
-  verifyPasskeyRegistration,
-} from "@/features/auth/actions/passkey-register";
+import { createClient } from "@/lib/supabase/client";
 
 interface PasskeyStepProps {
   onComplete: () => void;
@@ -23,23 +20,15 @@ export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
     setPending(true);
     setError(null);
 
-    const result = await startPasskeyRegistration();
-    if ("error" in result) {
-      setError(result.error ?? "Failed to start passkey registration");
-      setPending(false);
-      return;
-    }
-
     try {
-      const { startRegistration } = await import("@simplewebauthn/browser");
-      const credential = await startRegistration(result.creationOptions as never);
-      const verifyResult = await verifyPasskeyRegistration(
-        (result.creationOptions as { id: string }).id,
-        credential,
-      );
+      const supabase = createClient();
+      // registerPasskey() ejecuta la ceremonia WebAuthn completa (challenge →
+      // navigator.credentials.create → verify) contra el RP configurado en el
+      // dashboard. Requiere sesión activa, que ya existe en el onboarding.
+      const { error: registerError } = await supabase.auth.registerPasskey();
 
-      if (verifyResult?.error) {
-        setError(verifyResult.error);
+      if (registerError) {
+        setError(registerError.message);
       } else {
         setRegistered(true);
       }

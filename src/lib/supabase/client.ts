@@ -10,5 +10,9 @@ export function createClient() {
     throw new Error("Missing Supabase public environment variables");
   }
 
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    // Habilita la API de Passkeys (registerPasskey/signInWithPasskey). Debe
+    // coincidir con el toggle "Enable Passkey authentication" del dashboard.
+    auth: { experimental: { passkey: true } },
+  });
 }

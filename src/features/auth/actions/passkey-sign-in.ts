@@ -1,9 +1,7 @@
 "use server";
 
-// Passkey sign-in is handled entirely client-side via the WebAuthn browser API
-// (@simplewebauthn/browser + supabase MFA challenge/verify).
-// These stubs are kept for future server-side integration if Supabase adds passkey
-// sign-in as a first-class method (currently in beta as a separate auth flow).
+// Passkey sign-in runs client-side via supabase.auth.signInWithPasskey()
+// (Supabase Passkeys beta). This server action only records failure telemetry.
 
 import { logAuthEvent } from "@/lib/auth-logger";
 

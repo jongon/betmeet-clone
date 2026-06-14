@@ -17,39 +17,13 @@ export function PasskeySignInButton({ next }: { next?: string }) {
 
     try {
       const supabase = createClient();
-      const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
-      if (factorsError || !factorsData?.webauthn?.length) {
-        setError("No passkey registered on this account");
-        setPending(false);
-        return;
-      }
+      // signInWithPasskey() maneja toda la ceremonia WebAuthn con credenciales
+      // descubribles: no requiere email ni listar factores previamente.
+      const { error: signInError } = await supabase.auth.signInWithPasskey();
 
-      const factor = factorsData.webauthn[0];
-      const { data: challengeData, error: challengeError } = await supabase.auth.mfa.challenge({
-        factorId: factor.id,
-      });
-
-      if (challengeError) {
-        await reportPasskeyFailure(challengeError.message);
-        setError("Passkey challenge failed");
-        setPending(false);
-        return;
-      }
-
-      const { startAuthentication } = await import("@simplewebauthn/browser");
-      const credential = await startAuthentication({
-        optionsJSON: challengeData as never,
-      });
-
-      const { error: verifyError } = await supabase.auth.mfa.verify({
-        factorId: factor.id,
-        challengeId: challengeData.id,
-        code: JSON.stringify(credential),
-      });
-
-      if (verifyError) {
-        await reportPasskeyFailure(verifyError.message);
-        setError("Passkey verification failed");
+      if (signInError) {
+        await reportPasskeyFailure(signInError.message);
+        setError(signInError.message);
         setPending(false);
         return;
       }
