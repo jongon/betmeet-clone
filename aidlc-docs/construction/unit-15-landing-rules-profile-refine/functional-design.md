@@ -80,10 +80,12 @@
   `/auth/confirm` (token_hash/verifyOtp), consistente con el resto de auth y con la
   plantilla `email_change.html` (que ya enlazaba a `/auth/confirm`). El bloqueo real
   observado ("no da error pero no cambia") corresponde a **Secure email change** de
-  Supabase: requiere confirmar desde el correo actual **y** el nuevo. Decisión:
-  mantenerlo activo (seguro) y hacerlo explícito en el copy (`emailDescription`/
-  `emailSuccess`); documentado en `supabase/config.toml`
-  (`secure_email_change_enabled = true`).
+  Supabase: requiere confirmar desde el correo actual **y** el nuevo. Decisión
+  original: mantenerlo activo (seguro) y hacerlo explícito en el copy.
+  **⚠️ Superseded por FR-REFINE-19.1 (Unit 19, 2026-06-14)**: el usuario pidió que
+  solo se confirme el correo nuevo y que la notificación llegue solo al nuevo →
+  `secure_email_change_enabled = false`; copy de `emailDescription`/`emailSuccess`
+  actualizado a confirmación única. Tradeoff de seguridad en CF-9.
 
 ### Validación cliente (US-14.11 / 14.12) — `sign-in-form.tsx`, `sign-up-form.tsx`
 - Se introduce **react-hook-form + zodResolver** (deps ya presentes, stack en
@@ -144,7 +146,7 @@
   NFR Requirements/Design e Infrastructure formales: **SKIP**.
 - **Infra**: migración versionada `20260613120000_unit15_onboarding_flag`. Requiere
   `prisma migrate deploy` + backfill en prod (CF-6 / Operations). Supabase:
-  "Confirm email" ON y "Secure email change" según `config.toml`.
+  "Confirm email" ON y "Secure email change" **OFF** (FR-REFINE-19.1) según `config.toml`.
 
 ## 6. Verificación (criterios de "hecho")
 - `tsc --noEmit` 0 errores; Biome limpio; ESLint 0; Vitest verde; `next build` OK.

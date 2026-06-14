@@ -83,6 +83,20 @@
 
 ---
 
+## Épica 18: Confirmación Única del Cambio de Email
+
+### US-18.1: Cambio de email confirmado solo en el correo nuevo
+**Como** usuario que cambia su correo en el Perfil
+**Quiero** confirmar únicamente el correo nuevo y que la notificación del cambio llegue solo a ese correo
+**Para** no depender de tener acceso al correo antiguo ni recibir correos innecesarios en él.
+- **Criterios de Aceptación**:
+  - Al solicitar el cambio, solo el correo **nuevo** recibe un enlace de confirmación.
+  - El correo **antiguo** no recibe correo ni debe confirmar nada.
+  - El cambio se aplica al confirmar ese único enlace.
+  - El copy del Perfil describe la confirmación única (no menciona "ambos" correos).
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

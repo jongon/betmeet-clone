@@ -144,6 +144,17 @@ Detalle del enfoque:
 
 ---
 
+## CF-9 — Tradeoff de seguridad: Secure email change desactivado
+**Origen**: Refine FR-REFINE-19.1 (Unit 19, 2026-06-14). El usuario reportó que el cambio de email en el Perfil pedía confirmar **ambos** correos (antiguo y nuevo) y pidió que solo se confirme el correo **nuevo** y que la notificación llegue solo a este.
+**Destino**: Auth / Perfil (Units 12/15/19) — transversal a Security Baseline (control de apropiación de cuenta).
+
+**Decisión / restricción** (excepción de seguridad **revisada y aceptada por el usuario**):
+- Se desactiva **Secure email change** de Supabase (`secure_email_change_enabled = false` en `supabase/config.toml`; replicar el toggle en el dashboard de prod). Resultado: un único enlace de confirmación enviado **solo al correo nuevo**; el antiguo no recibe correo ni confirma.
+- **Riesgo aceptado**: con doble confirmación, un atacante con sesión activa no puede cambiar el email sin acceso también al correo **antiguo**. Al desactivarla, esa segunda barrera desaparece — un secuestro de sesión podría reasignar el email confirmando solo desde el correo nuevo (controlado por el atacante). Se mantiene la mitigación de que el cambio **sigue requiriendo** confirmar el enlace del correo nuevo (no es instantáneo) y el resto de controles (confirmación de email obligatoria, gate de sesión, RLS) no cambia.
+- **Restricción hacia adelante**: si en el futuro se endurece la postura de seguridad de cuenta (p. ej. acciones sensibles con re-autenticación), reconsiderar reactivar Secure email change. Cualquier cambio de este toggle debe mantener **coincidencia** entre `config.toml` y el dashboard de prod.
+
+---
+
 ## Estado
 | ID | Tema | Destino | Estado |
 |---|---|---|---|
@@ -155,3 +166,4 @@ Detalle del enfoque:
 | CF-6 | Estrategia de migraciones (Prisma vs supabase/migrations) | Operations | **Aprobada + implementada**; falta `migrate deploy` en prod |
 | CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. Pendiente opcional: `token_hash`/`verifyOtp` |
 | CF-8 | Script inline anti-FOUC (`dangerouslySetInnerHTML`) — excepción de seguridad | Unit 8 / SECURITY-04+05 | **✅ Resuelto (FR-REFINE-16.6)**: script eliminado; marca renderizada server-side desde cookie `brand-theme`. Sin inline script → sin warning y sin constraint de CSP |
+| CF-9 | Secure email change desactivado (confirmación única del correo nuevo) — tradeoff de seguridad | Unit 19 / Auth / Security Baseline | **Aceptado (FR-REFINE-19.1)**: `secure_email_change_enabled = false`. Solo el correo nuevo confirma/recibe notificación. Pendiente Operations: replicar toggle en dashboard de prod |

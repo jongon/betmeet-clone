@@ -515,9 +515,10 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
   de cambio de email del Perfil muestra el correo actual (solo lectura).
 - **FR-REFINE-15.10 — Cambio de email aplica de verdad**: la confirmación de cambio
   de email usa el flujo robusto `token_hash`/`verifyOtp` (`/auth/confirm`), no
-  PKCE. Con "Secure email change" activo en Supabase, el cambio requiere confirmar
-  desde el correo actual **y** el nuevo (copy de UI lo explica). Ver memoria
-  `email-confirm-pkce-fragile`.
+  PKCE. Ver memoria `email-confirm-pkce-fragile`. ~~Con "Secure email change"
+  activo en Supabase, el cambio requiere confirmar desde el correo actual **y**
+  el nuevo~~ → **Reemplazado por FR-REFINE-19.1**: ahora se confirma con un único
+  enlace enviado solo al correo nuevo.
 - **FR-REFINE-15.11 — Validación cliente en login**: el formulario de inicio de
   sesión valida en cliente formato de email y regla de contraseña con
   react-hook-form + zodResolver (reutiliza `SignInSchema`); el server action
@@ -691,6 +692,34 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 ### NFR / Infra (Unit 18)
 - **NFR**: sin nuevos NFR; es un cambio de copy.
 - **Infra**: sin cambios de schema, migraciones, servicios ni rutas.
+
+---
+
+## FR-REFINE-19: Confirmación única del cambio de email (Post-construcción — Unit 19)
+
+> Refine post-construcción (2026-06-14). Aditivo sobre el flujo de cambio de email
+> del Perfil (Units 12/15); **no reinicia** ninguna etapa aprobada. Cubre la
+> **Épica 18**. **Reemplaza** la parte de doble confirmación de FR-REFINE-15.10.
+
+- **FR-REFINE-19.1 — Solo se confirma el correo nuevo**: al cambiar el email en el
+  Perfil, el sistema deja de pedir confirmación desde el correo **antiguo** y el
+  **nuevo**. Ahora se envía **un único enlace de confirmación, únicamente al correo
+  nuevo**, y la **notificación del cambio llega solo al correo nuevo** (el antiguo
+  no recibe correo ni debe confirmar). El cambio se aplica cuando se confirma ese
+  único enlace. Implementación: `secure_email_change_enabled = false` en Supabase
+  (`supabase/config.toml` + toggle del dashboard en prod). Se conserva el flujo
+  robusto `token_hash`/`verifyOtp` (`/auth/confirm`) de FR-REFINE-15.10. El copy de
+  Perfil (`profile.emailDescription`/`emailSuccess`) se actualiza para describir el
+  flujo de confirmación única.
+
+### NFR / Infra (Unit 19)
+- **NFR (seguridad)**: desactivar Secure email change reduce la protección contra
+  apropiación de cuenta (un atacante con sesión activa podría cambiar el email sin
+  confirmar desde la dirección antigua). Tradeoff **aceptado explícitamente por el
+  usuario** y registrado como **CF-9**. Security Baseline sigue habilitado; el resto
+  de controles no cambia.
+- **Infra**: sin schema, migraciones, servicios ni rutas nuevas. Solo un toggle de
+  configuración de Supabase Auth (debe replicarse en el dashboard de prod).
 
 ---
 

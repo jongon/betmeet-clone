@@ -1,5 +1,13 @@
 # AI-DLC Audit Log
 
+## Refine — Unit 19 Confirmación única del cambio de email
+**Timestamp**: 2026-06-14T02:10:00Z
+**User Input**: "/aidlc:refine — En la sección de perfil cuando modifico el email, está haciendome confirmar de ambos correos, del nuevo y del antiguo. y solo debería confirmarse el nuevo correo y la notificación de cambio solo debería llegar al correo nuevo"
+**AI Response**: "Apliqué un refine post-construcción (Unit 19, FR-REFINE-19.1) sin reiniciar etapas aprobadas. Causa raíz: la función **Secure email change** de Supabase (`secure_email_change_enabled = true`, decisión original de FR-REFINE-15.10) envía confirmación al correo antiguo **y** al nuevo y exige ambos. Cambio: `secure_email_change_enabled = false` en `supabase/config.toml` → un único enlace de confirmación enviado solo al correo nuevo; el antiguo no recibe ni confirma. Actualicé el comentario de `change-email.ts` y el copy de Perfil (`profile.emailDescription`/`emailSuccess` en `es.ts`) a confirmación única; el server action y la plantilla `email_change.html` siguen siendo correctos sin cambios funcionales. Se conserva el flujo `token_hash`/`verifyOtp`. El tradeoff de seguridad (un secuestro de sesión podría cambiar el email sin confirmar desde el correo antiguo) se registró como **CF-9**, aceptado por el usuario; Security Baseline sigue habilitado. Artefactos actualizados: `requirements.md` (FR-REFINE-19, Épica 18; nota de reemplazo en 15.10), `stories.md` (US-18.1), nueva `construction/unit-19-email-change-single-confirm/functional-design.md`, Unit 15 design (superseded), `unit-9-email/email-design.md`, `carry-forward-decisions.md` (CF-9), `aidlc-state.md`. **Pendiente Operations**: poner el toggle 'Secure email change' en OFF en el dashboard de Supabase de prod para que el comportamiento en vivo coincida con `config.toml`."
+**Context**: Refine post-construcción aditivo sobre el flujo de cambio de email (Units 12/15); reemplaza la doble confirmación de FR-REFINE-15.10; no reinicia etapas aprobadas.
+
+---
+
 ## Bug Fix — Profile Nickname Stale UI
 **Timestamp**: 2026-06-14T01:39:47Z
 **User Input**: "Cuando se cambia el nickname en la sección de profile se cambía existosamente pero sigue apareciendo el nickname anterior hasta que refresco el navegador"

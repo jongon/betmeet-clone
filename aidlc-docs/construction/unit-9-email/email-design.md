@@ -54,6 +54,10 @@ Decisiones tomadas durante el refine:
 | `recovery` | `supabase/templates/recovery.html` | `src/features/auth/actions/forgot-password.ts` (`resetPasswordForEmail`) |
 | `email_change` | `supabase/templates/email_change.html` | `src/features/auth/actions/change-email.ts` (`updateUser({email})`) |
 
+> `email_change`: con **Secure email change desactivado** (FR-REFINE-19.1 /
+> `secure_email_change_enabled = false`), este correo se envía **solo a la dirección
+> nueva** (un único enlace); el correo antiguo no recibe nada. Ver CF-9.
+
 > Tipos `magic_link`, `invite` y `reauthentication`: gestionados por Supabase pero
 > no usados por la app hoy → se dejan en su default (no se versiona plantilla).
 
