@@ -85,7 +85,7 @@ services:
       target: pnpm
     image: nextjs/pnpm
     volumes:
-      - .:/var/www/html
+      - .:/var/www/html/main
     networks:
       - nextjs
 

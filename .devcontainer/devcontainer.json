@@ -2,7 +2,7 @@
   "name": "Next.js Dev Container",
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "devcontainer",
-  "workspaceFolder": "/var/www/html/main",
+  "workspaceFolder": "/var/www/html",
   "remoteEnv": {
     "OPENCODE_CONFIG": "/var/www/html/main/.opencode/opencode.json"
   },
@@ -86,5 +86,5 @@
     }
   },
   "remoteUser": "node",
-  "postCreateCommand": "bash .devcontainer/post-create.sh"
+  "postCreateCommand": "cd ./main && bash ./.devcontainer/post-create.sh"
 }
