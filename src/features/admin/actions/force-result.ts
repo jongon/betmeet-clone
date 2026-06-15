@@ -1,6 +1,8 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
+import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { prisma } from "@/lib/prisma";
@@ -68,5 +70,7 @@ export async function forceMatchResult(matchId: string, input: unknown) {
 
   logAuthEvent("admin.match_overridden", { userId: adminId, matchId });
   revalidatePath("/admin/matches");
+  revalidateTag(COMPETITION_FIXTURE_TAG, "max"); // refresh the cached /matches fixture
+  revalidateTag(RANKINGS_TAG, "max"); // scoreMatch rescored → refresh /rankings
   return { success: true };
 }

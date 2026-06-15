@@ -1,5 +1,7 @@
+import { unstable_cache } from "next/cache";
 import { formatNickname } from "@/features/pools/services/session";
 import { prisma } from "@/lib/prisma";
+import { RANKINGS_TAG } from "./cache-tags";
 import { assignDensePositions } from "./services/ranking";
 import type { LeaderboardRow } from "./types";
 
@@ -15,43 +17,63 @@ export async function userTotals(userIds: string[]): Promise<Map<string, number>
 }
 
 /**
+ * The global ranking WITHOUT the per-viewer `isViewer` flag (always false). It only
+ * changes when prediction scores change, so it is cached and invalidated by
+ * {@link RANKINGS_TAG} instead of re-running an unfiltered `groupBy` over the whole
+ * `PredictionScore` table on every `/rankings` visit (NFR-PERF-REFINE-22.4). The
+ * output is serializable, so it survives the cache boundary.
+ */
+const getGlobalRankingRows = unstable_cache(
+  async (): Promise<LeaderboardRow[]> => {
+    // Users with at least one scored prediction, with their global point totals.
+    const totalsByUser = await prisma.predictionScore.groupBy({
+      by: ["userId"],
+      _sum: { totalPoints: true },
+    });
+    if (totalsByUser.length === 0) return [];
+
+    // Keep only verified, non-deleted users (FR-REFINE-14.1).
+    const profiles = await prisma.profile.findMany({
+      where: {
+        id: { in: totalsByUser.map((t) => t.userId) },
+        verificationStatus: { not: "UNVERIFIED" },
+        deletedAt: null,
+      },
+      select: { id: true, nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true },
+    });
+
+    const totals = new Map(totalsByUser.map((t) => [t.userId, t._sum.totalPoints ?? 0]));
+
+    const rows = profiles
+      .map((p) => ({
+        userId: p.id,
+        nickname: formatNickname(p.nicknameBase, p.nicknameDiscriminator),
+        avatarUrl: p.avatarUrl,
+        totalPoints: totals.get(p.id) ?? 0,
+        isViewer: false as boolean,
+      }))
+      // Deterministic tiebreak by nickname (FR-REFINE-14.3).
+      .sort((a, b) => b.totalPoints - a.totalPoints || a.nickname.localeCompare(b.nickname));
+
+    return assignDensePositions(rows);
+  },
+  ["global-ranking"],
+  { tags: [RANKINGS_TAG], revalidate: 300 },
+);
+
+/**
  * Global ranking across all pools (FR-REFINE-14.1 / US-13.1). Includes verified
  * users with at least one scored prediction. Only reads nickname, avatar and
  * total points — never emails, private pools or individual predictions
  * (FR-REFINE-14.3 security). Deterministic order: points desc, then nickname asc.
+ *
+ * The ranking itself is cached ({@link getGlobalRankingRows}); only the per-viewer
+ * `isViewer` flag is applied per request.
  */
 export async function getGlobalRanking(viewerId: string | null): Promise<LeaderboardRow[]> {
-  // Users with at least one scored prediction, with their global point totals.
-  const totalsByUser = await prisma.predictionScore.groupBy({
-    by: ["userId"],
-    _sum: { totalPoints: true },
-  });
-  if (totalsByUser.length === 0) return [];
-
-  // Keep only verified, non-deleted users (FR-REFINE-14.1).
-  const profiles = await prisma.profile.findMany({
-    where: {
-      id: { in: totalsByUser.map((t) => t.userId) },
-      verificationStatus: { not: "UNVERIFIED" },
-      deletedAt: null,
-    },
-    select: { id: true, nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true },
-  });
-
-  const totals = new Map(totalsByUser.map((t) => [t.userId, t._sum.totalPoints ?? 0]));
-
-  const rows = profiles
-    .map((p) => ({
-      userId: p.id,
-      nickname: formatNickname(p.nicknameBase, p.nicknameDiscriminator),
-      avatarUrl: p.avatarUrl,
-      totalPoints: totals.get(p.id) ?? 0,
-      isViewer: p.id === viewerId,
-    }))
-    // Deterministic tiebreak by nickname (FR-REFINE-14.3).
-    .sort((a, b) => b.totalPoints - a.totalPoints || a.nickname.localeCompare(b.nickname));
-
-  return assignDensePositions(rows);
+  const rows = await getGlobalRankingRows();
+  if (!viewerId) return rows;
+  return rows.map((row) => ({ ...row, isViewer: row.userId === viewerId }));
 }
 
 /**

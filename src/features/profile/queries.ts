@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/current-user";
 import { LOCAL_FALLBACK_AVATARS } from "./default-avatars";
 import type { AvatarAsset, Profile } from "./types";
 
@@ -59,9 +59,8 @@ function toProfile(profile: PrismaProfile): Profile {
  * action-layer half of the defense-in-depth onboarding gate.
  */
 export async function getOnboardedUserId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getUser();
-  const userId = data.user?.id;
+  const user = await getAuthUser();
+  const userId = user?.id;
   if (!userId) return null;
 
   const profile = await prisma.profile.findUnique({
@@ -73,12 +72,11 @@ export async function getOnboardedUserId(): Promise<string | null> {
 }
 
 export async function getProfile(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return null;
+  const user = await getAuthUser();
+  if (!user) return null;
 
   const profile = await prisma.profile.findUnique({
-    where: { id: userData.user.id },
+    where: { id: user.id },
   });
 
   if (!profile) return null;
@@ -97,12 +95,11 @@ export async function getProfile(): Promise<Profile | null> {
  * and the proxy bounces that auth-only page back to `/matches`, and so on.
  */
 export async function getOrCreateProfile(): Promise<Profile | null> {
-  const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  if (!userData.user) return null;
+  const user = await getAuthUser();
+  if (!user) return null;
 
   const existing = await prisma.profile.findUnique({
-    where: { id: userData.user.id },
+    where: { id: user.id },
   });
   if (existing) return toProfile(existing);
 
@@ -112,13 +109,13 @@ export async function getOrCreateProfile(): Promise<Profile | null> {
 
   // Idempotent: upsert guards against duplicate creates on concurrent renders.
   const created = await prisma.profile.upsert({
-    where: { id: userData.user.id },
+    where: { id: user.id },
     update: {},
     create: {
-      id: userData.user.id,
+      id: user.id,
       avatarUrl: defaultAvatar?.storageUrl ?? "",
       avatarSource: "DEFAULT_SET",
-      verificationStatus: userData.user.email_confirmed_at ? "VERIFIED" : "UNVERIFIED",
+      verificationStatus: user.email_confirmed_at ? "VERIFIED" : "UNVERIFIED",
     },
   });
 

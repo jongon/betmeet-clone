@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+// `getGlobalRanking` caches its rows via `unstable_cache`. In tests we want each
+// case to read the current prisma mocks, so stub the cache to a passthrough (no
+// memoization across cases).
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     predictionScore: { groupBy: vi.fn() },
