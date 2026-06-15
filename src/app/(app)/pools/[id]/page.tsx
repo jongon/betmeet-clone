@@ -35,7 +35,6 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
           <Badge variant={pool.type === "PUBLIC" ? "default" : "secondary"}>
             {pool.type === "PUBLIC" ? "Público" : "Privado"}
           </Badge>
-          {pool.isFrozen && <Badge variant="secondary">Congelado</Badge>}
         </div>
         <p className="text-sm text-muted-foreground">
           {pool.memberCount}/{pool.capacity} participantes ·{" "}

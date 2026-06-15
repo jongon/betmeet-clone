@@ -21,7 +21,7 @@ export function MemberList({ pool }: { pool: PoolDetail }) {
               </p>
             </div>
           </div>
-          {pool.isOwner && !member.isOwner && !pool.isFrozen && (
+          {pool.isOwner && !member.isOwner && (
             <KickButton poolId={pool.id} userId={member.userId} />
           )}
         </li>

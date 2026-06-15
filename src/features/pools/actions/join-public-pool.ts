@@ -2,15 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { isFrozen } from "../services/competition-lock";
 import { getCurrentUserId } from "../services/session";
 
-/** Join a public pool from the directory (BL-2). */
+/**
+ * Join a public pool from the directory (BL-2).
+ * FR-REFINE-23: joining is allowed at any time, even after the competition has
+ * started (no `isFrozen()` gate). Capacity (BR-3.7) and uniqueness (BR-3.6) still apply.
+ */
 export async function joinPublicPool(poolId: string) {
   const userId = await getCurrentUserId();
   if (!userId) return { error: "No autenticado" };
-
-  if (await isFrozen()) return { error: "Las listas están congeladas: ya no se puede unir." };
 
   try {
     await prisma.$transaction(async (tx) => {

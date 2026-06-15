@@ -31,7 +31,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
         >
           {pool.isArchived ? "Desarchivar" : "Archivar"}
         </Button>
-        {!pool.isOwner && !pool.isFrozen && (
+        {!pool.isOwner && (
           <Button
             variant="outline"
             disabled={pending}
@@ -40,7 +40,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
             Salir de la liga
           </Button>
         )}
-        {pool.isOwner && !pool.isFrozen && (
+        {pool.isOwner && (
           <Button
             variant="destructive"
             disabled={pending}

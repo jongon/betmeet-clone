@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export function InviteShare({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
-  const link = useMemo(() => {
-    if (typeof window === "undefined") return `/pools/join/${token}`;
-    return `${window.location.origin}/pools/join/${token}`;
+  // Start with the relative path so the first client render matches the server HTML
+  // (the origin is unknown during SSR). Upgrade to the absolute URL after mount to
+  // avoid a hydration mismatch.
+  const [link, setLink] = useState(`/pools/join/${token}`);
+  useEffect(() => {
+    setLink(`${window.location.origin}/pools/join/${token}`);
   }, [token]);
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Únete a mi liga del Mundial: ${link}`)}`;
 

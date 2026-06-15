@@ -20,7 +20,7 @@
 |---|---|
 | **BR-3.6** | Un usuario puede pertenecer a **varios** pools, pero a un pool **una sola vez** (`UNIQUE(poolId, userId)`). |
 | **BR-3.7** | No se puede unir a un pool **lleno** (`memberCount >= capacity`) (US-4.2). |
-| **BR-3.8** | No se puede unir a un pool **congelado** (`isFrozen`) (US-4.3). |
+| **BR-3.8** | ~~No se puede unir a un pool **congelado** (`isFrozen`).~~ **Derogada por FR-REFINE-23 (Unit 23, 2026-06-15)**: el ingreso a una liga ya **no** está sujeto al congelamiento; un usuario puede unirse (directorio o token) **en cualquier momento**, incluso tras el inicio de la competición. Se conservan capacidad (BR-3.7) y unicidad (BR-3.6). |
 | **BR-3.9** | Un pool **privado** solo se une por `inviteToken`. Un pool **público** se une desde el directorio o por token (BR-3.15 directorio solo lista públicos). |
 
 ## Rol de administrador
@@ -29,30 +29,30 @@
 |---|---|
 | **BR-3.10** | Cada pool tiene **un único owner** (el creador). No hay co-admins (Q5=A). |
 | **BR-3.11** | El ownership es **no transferible** en operación normal. La **única** excepción es el borrado de cuenta del owner (BR-3.20, Q9). |
-| **BR-3.12** | El owner **no puede abandonar** su pool con "salir". Para dejar de participar antes del congelamiento debe **eliminar** el pool (BR-3.17); durante el torneo el pool permanece (BR-3.19). |
+| **BR-3.12** | El owner **no puede abandonar** su pool con "salir". Para dejar de participar debe **eliminar** el pool (BR-3.17) o transferir el ownership (vía borrado de cuenta). Tras FR-REFINE-23 esto es posible **en cualquier momento** (ya no limitado a "antes del congelamiento"). |
 
 ## Expulsar / salir / archivar
 
 | ID | Regla |
 |---|---|
-| **BR-3.13** | **Expulsar** (US-4.3): solo el **owner**, solo **antes del congelamiento**, y **no a sí mismo**. Elimina la `PoolMembership` del expulsado. |
-| **BR-3.14** | **Salir** (Q7): un miembro **no-owner** puede salir **antes del congelamiento**; elimina su membresía. |
-| **BR-3.15** | Tras el **congelamiento**, las listas se **congelan**: no hay unir, salir ni expulsar (US-4.3). |
+| **BR-3.13** | **Expulsar** (US-4.3): solo el **owner** y **no a sí mismo**. Elimina la `PoolMembership` del expulsado. **Actualizada por FR-REFINE-23**: ya **no** está limitada a "antes del congelamiento" — permitida en cualquier momento. |
+| **BR-3.14** | **Salir** (Q7): un miembro **no-owner** puede salir; elimina su membresía. **Actualizada por FR-REFINE-23**: ya **no** está limitada a "antes del congelamiento" — permitida en cualquier momento. |
+| **BR-3.15** | ~~Tras el **congelamiento**, las listas se **congelan**: no hay unir, salir ni expulsar.~~ **Derogada por FR-REFINE-23 (Unit 23, alcance ampliado 2026-06-15)**: el congelamiento **ya no bloquea ninguna mutación de membresía** (unir, salir, expulsar ni eliminar). Las listas **no** se congelan por el inicio del torneo. |
 | **BR-3.16** | **Archivar** (F1=A) es un estado **personal** (`PoolMembership.archivedAt`): oculta el pool de la lista activa de *ese* miembro, **no** afecta su membresía ni a otros, y está disponible **en cualquier momento** (incluso congelado). Es reversible (desarchivar). |
 
 ## Eliminar pool y ciclo de vida
 
 | ID | Regla |
 |---|---|
-| **BR-3.17** | **Eliminar pool** (Q8): solo el **owner**, solo **antes del congelamiento**. Elimina el pool y sus membresías (cascade). |
-| **BR-3.18** | Tras el congelamiento **no** se puede eliminar el pool. |
-| **BR-3.19** | El pool debe **permanecer vivo hasta el final del torneo** una vez congelado (Q9). |
+| **BR-3.17** | **Eliminar pool** (Q8): solo el **owner**. Elimina el pool y sus membresías (cascade). **Actualizada por FR-REFINE-23**: ya **no** está limitada a "antes del congelamiento" — permitida en cualquier momento. |
+| **BR-3.18** | ~~Tras el congelamiento **no** se puede eliminar el pool.~~ **Derogada por FR-REFINE-23**: el owner puede eliminar el pool en cualquier momento. |
+| **BR-3.19** | ~~El pool debe **permanecer vivo hasta el final del torneo** una vez congelado (Q9).~~ **Derogada por FR-REFINE-23**: era una consecuencia del congelamiento del borrado; con el congelamiento levantado, la continuidad del pool queda a criterio del **owner** (que puede eliminarlo). |
 
 ## Congelamiento
 
 | ID | Regla |
 |---|---|
-| **BR-3.20** | `isFrozen` ⟺ `now() >= getCompetitionLockTime()`. La fuente es Competition Data (Unit 4); en v1 se respalda con `WORLD_CUP_KICKOFF` o config (Q6=A). |
+| **BR-3.20** | `isFrozen` ⟺ `now() >= getCompetitionLockTime()`. La fuente es Competition Data (Unit 4); en v1 se respalda con `WORLD_CUP_KICKOFF` o config (Q6=A). **FR-REFINE-23**: el servicio se **conserva** como utilidad ("¿empezó la competición?") pero **ya no gobierna ninguna mutación de membresía**. |
 | **BR-3.21** | Si `getCompetitionLockTime()` es `null` (no configurado), el sistema se considera **no congelado**. |
 
 ## Borrado de cuenta (integración con Unit 1)
@@ -62,7 +62,7 @@
 | **BR-3.22** | Al **borrar la cuenta** de un usuario, sus membresías **no-owner** se eliminan. |
 | **BR-3.23** | Para cada pool del que es **owner**: si hay otros miembros, debe **transferir el ownership** a un miembro **elegido por él** (la UI lista de **más antiguo a más nuevo**, F2=A) como paso obligatorio del borrado. El pool permanece vivo. |
 | **BR-3.24** | Si el owner es el **único miembro** del pool, al borrar la cuenta **se elimina el pool** (F3=A). |
-| **BR-3.25** | La transferencia de ownership por borrado de cuenta es válida **incluso tras el congelamiento** (el congelamiento bloquea unir/salir/expulsar/eliminar, no la continuidad del pool). |
+| **BR-3.25** | La transferencia de ownership por borrado de cuenta es válida en cualquier momento. (Con FR-REFINE-23 el congelamiento ya **no** bloquea ninguna mutación de membresía; esta regla deja de ser una excepción al congelamiento y simplemente confirma la continuidad del pool durante el borrado.) |
 
 ## Directorio público
 

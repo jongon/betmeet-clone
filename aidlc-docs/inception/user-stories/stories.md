@@ -132,6 +132,41 @@
 
 ---
 
+## Épica 21: Recomendaciones de Performance (Unit 22 — añadida vía `/aidlc:refine`)
+
+> Análisis / recomendación (no implementación aprobada). No reinicia etapas. Análisis
+> completo en `construction/unit-22-performance-recommendations/performance-analysis.md`.
+
+### US-21.1: Pantallas autenticadas que cargan rápido
+**Como** usuario de la aplicación
+**Quiero** que las pantallas autenticadas (sobre todo `/matches` y `/rankings`) carguen rápido
+**Para** usar la app sin notar lentitud.
+- **Criterios de Aceptación**:
+  - Los round-trips de validación de auth por navegación bajan de 3 a 1 (dedup con `cache()` + `getClaims()` local).
+  - El fixture estático y los rankings estables se sirven desde caché invalidada por evento (sync / recálculo) en lugar de recomputarse por request.
+  - En producción, la conexión de BD usa el transaction pooler (6543); `DIRECT_URL` queda solo para migraciones.
+  - Las optimizaciones no cambian el comportamiento funcional ni el resultado de las pantallas.
+
+---
+
+## Épica 22: Unirse a una liga en cualquier momento (Unit 23 — añadida vía `/aidlc:refine`)
+
+> Cambio de regla de negocio (no reinicia etapas). Levanta el congelamiento de **toda**
+> la membresía: unir, salir, expulsar y eliminar ya **no** se congelan por el inicio del torneo.
+
+### US-22.1: Gestionar mi membresía aunque la competición ya haya empezado
+**Como** jugador
+**Quiero** unirme, salir, expulsar o eliminar una liga en cualquier momento, incluso con la competición en curso
+**Para** gestionar mi participación sin que el inicio del torneo me lo impida, asumiendo que no puntúo los partidos ya cerrados.
+- **Criterios de Aceptación**:
+  - El ingreso desde el directorio público y por token/link de invitación funciona aunque la competición ya haya empezado.
+  - Las invitaciones dirigidas (nickname/email) pueden aceptarse después del inicio de la competición.
+  - Salir (no-owner), expulsar (owner) y eliminar (owner) la liga funcionan en cualquier momento; ya no se ocultan ni rechazan por congelamiento.
+  - Siguen aplicando el límite de capacidad, la unicidad de membresía y la autorización (solo el owner expulsa/elimina; el owner no "sale").
+  - El usuario que se une tarde no recibe puntos de partidos cuyo cierre por kickoff ya pasó (bloqueo por partido de Unit 5), sin que eso impida unirse.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture
@@ -216,6 +251,7 @@
   - Los pools privados requieren el código/link.
   - Un usuario puede estar en múltiples pools simultáneamente.
   - No se puede entrar si se alcanzó el límite máximo de participantes configurado.
+  - Un usuario puede unirse **en cualquier momento**, incluso con la competición ya iniciada (FR-REFINE-23 / US-22.1). El ingreso ya **no** se congela por el inicio del torneo.
 
 ### US-4.3: Expulsar Miembros (Admin de Pool)
 **Como** admin de un pool
@@ -223,7 +259,7 @@
 **Para** mantener el control de mi grupo privado.
 - **Criterios de Aceptación**:
   - Solo el admin del pool puede hacerlo.
-  - Solo se puede expulsar a alguien ANTES de que comience el primer partido del Mundial. Una vez rodando el balón de inauguración, las listas se congelan.
+  - ~~Solo se puede expulsar a alguien ANTES de que comience el primer partido del Mundial.~~ **Actualizado por FR-REFINE-23 (US-22.1)**: expulsar (como unir/salir/eliminar) se permite **en cualquier momento**; las listas ya **no** se congelan por el inicio del torneo.
 
 ---
 

@@ -12,7 +12,10 @@ function isFrozen() -> boolean:
     if lockTime == null: return false        // BR-3.21
     return now() >= lockTime                  // BR-3.20
 ```
-Toda mutación de membresía (unir/salir/expulsar/eliminar) llama a `isFrozen()` primero.
+**FR-REFINE-23 (Unit 23):** **ninguna** mutación de membresía (unir/salir/expulsar/eliminar)
+consulta ya `isFrozen()`. El congelamiento queda **derogado** para todas ellas; se permiten
+en cualquier momento. El servicio `isFrozen()`/`getCompetitionLockTime()` se conserva como
+utilidad ("¿empezó la competición?") pero no gobierna nada de la membresía.
 
 ---
 
@@ -27,7 +30,7 @@ Toda mutación de membresía (unir/salir/expulsar/eliminar) llama a `isFrozen()`
 4. Crear Pool { ownerId = creatorId, ... } y PoolMembership(creator).  // BR-3.5  (transacción)
 5. Devolver pool + token.
 ```
-La creación **no** está sujeta al congelamiento (se pueden crear pools incluso después, pero unirse no — decisión natural; revisable).
+La creación **no** está sujeta al congelamiento. **El ingreso tampoco** (FR-REFINE-23, Unit 23): se pueden crear pools y unirse a ellos incluso después del inicio de la competición.
 
 ---
 
@@ -36,10 +39,10 @@ La creación **no** está sujeta al congelamiento (se pueden crear pools incluso
 **Entrada**: `poolId`, `userId`.
 ```
 1. Cargar pool (debe ser PUBLIC).                          // BR-3.9
-2. if isFrozen(): rechazar ("listas congeladas").          // BR-3.8/BR-3.15
-3. if memberCount >= capacity: rechazar ("pool lleno").    // BR-3.7
-4. if ya es miembro: rechazar (idempotente/duplicado).     // BR-3.6
-5. Crear PoolMembership(userId). (transacción + chequeo de capacidad atómico)
+   // FR-REFINE-23: SIN gate de congelamiento — el ingreso se permite en cualquier momento.
+2. if memberCount >= capacity: rechazar ("pool lleno").    // BR-3.7
+3. if ya es miembro: rechazar (idempotente/duplicado).     // BR-3.6
+4. Crear PoolMembership(userId). (transacción + chequeo de capacidad atómico)
 ```
 
 ## BL-3: Unirse por token (privado o público)
@@ -47,7 +50,7 @@ La creación **no** está sujeta al congelamiento (se pueden crear pools incluso
 **Entrada**: `inviteToken`, `userId`.
 ```
 1. Resolver token -> pool (404 si no existe).
-2. Mismos chequeos que BL-2 pasos 2–5 (congelado, lleno, duplicado).
+2. Mismos chequeos que BL-2 (lleno, duplicado) — SIN congelamiento (FR-REFINE-23).
 ```
 > El paso 5 debe ser **atómico** frente a concurrencia: contar miembros e insertar en una transacción/`SELECT ... FOR UPDATE` o con constraint, para no exceder `capacity` por carreras.
 
@@ -56,9 +59,9 @@ La creación **no** está sujeta al congelamiento (se pueden crear pools incluso
 **Entrada**: `poolId`, `targetUserId`, `actorId`.
 ```
 1. Cargar pool. Verificar actorId == pool.ownerId.    // BR-3.13, BR-3.28
-2. if isFrozen(): rechazar.                            // BR-3.15
-3. if targetUserId == ownerId: rechazar (no a sí mismo).
-4. Eliminar PoolMembership(target).
+   // FR-REFINE-23: SIN gate de congelamiento.
+2. if targetUserId == ownerId: rechazar (no a sí mismo).
+3. Eliminar PoolMembership(target).
 ```
 
 ## BL-5: Salir del pool (Q7)
@@ -66,8 +69,8 @@ La creación **no** está sujeta al congelamiento (se pueden crear pools incluso
 **Entrada**: `poolId`, `userId`.
 ```
 1. Cargar membresía. if userId == ownerId: rechazar (el owner no sale; BR-3.12).
-2. if isFrozen(): rechazar (BR-3.15).
-3. Eliminar PoolMembership(userId).
+   // FR-REFINE-23: SIN gate de congelamiento.
+2. Eliminar PoolMembership(userId).
 ```
 
 ## BL-6: Archivar / desarchivar (F1)
@@ -84,8 +87,8 @@ No afecta a otros ni a la membresía; solo a la vista personal.
 **Entrada**: `poolId`, `actorId`.
 ```
 1. Verificar actorId == ownerId.                 // BR-3.17, BR-3.28
-2. if isFrozen(): rechazar (BR-3.18).
-3. Eliminar pool (cascade memberships).
+   // FR-REFINE-23: SIN gate de congelamiento.
+2. Eliminar pool (cascade memberships).
 ```
 
 ## BL-8: Directorio público (US-4.2, Q4)

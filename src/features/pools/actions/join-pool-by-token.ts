@@ -4,18 +4,20 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { JoinByTokenSchema } from "../schemas";
-import { isFrozen } from "../services/competition-lock";
 import { getCurrentUserId } from "../services/session";
 
-/** Join a pool via invite token / link (BL-3). */
+/**
+ * Join a pool via invite token / link (BL-3).
+ * FR-REFINE-23: joining (including accepting a directed invite) is allowed at any
+ * time, even after the competition has started (no `isFrozen()` gate). Capacity
+ * (BR-3.7) and uniqueness (BR-3.6) still apply.
+ */
 export async function joinPoolByToken(token: string) {
   const parsed = JoinByTokenSchema.safeParse({ token });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Código inválido" };
 
   const userId = await getCurrentUserId();
   if (!userId) return { error: "No autenticado" };
-
-  if (await isFrozen()) return { error: "Las listas están congeladas: ya no se puede unir." };
 
   let targetPoolId: string | null = null;
   try {

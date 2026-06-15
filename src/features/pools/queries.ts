@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/prisma";
-import { isFrozen } from "./services/competition-lock";
 import { formatNickname, getCurrentUserId } from "./services/session";
 import type {
   MyPoolSummary,
@@ -22,8 +21,6 @@ export async function getMyPools(): Promise<MyPoolSummary[]> {
     orderBy: { joinedAt: "desc" },
   });
 
-  const frozen = await isFrozen();
-
   return memberships.map((m) => ({
     id: m.pool.id,
     name: m.pool.name,
@@ -32,7 +29,6 @@ export async function getMyPools(): Promise<MyPoolSummary[]> {
     capacity: m.pool.capacity,
     isOwner: m.pool.ownerId === userId,
     isArchived: m.archivedAt !== null,
-    isFrozen: frozen,
   }));
 }
 
@@ -71,7 +67,6 @@ export async function getPoolDetail(poolId: string): Promise<PoolDetail | null> 
     memberCount: members.length,
     inviteToken: pool.inviteToken,
     isOwner: pool.ownerId === userId,
-    isFrozen: await isFrozen(),
     isArchived: own.archivedAt !== null,
     members,
   };

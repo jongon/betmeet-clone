@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { isFrozen } from "../services/competition-lock";
 import { getCurrentUserId } from "../services/session";
 
-/** A non-owner member leaves the pool before the freeze (BL-5, Q7). */
+/**
+ * A non-owner member leaves the pool (BL-5, Q7).
+ * FR-REFINE-23: no longer gated by the competition freeze — leaving is allowed at any time.
+ */
 export async function leavePool(poolId: string) {
   const userId = await getCurrentUserId();
   if (!userId) return { error: "No autenticado" };
@@ -15,7 +17,6 @@ export async function leavePool(poolId: string) {
   if (pool.ownerId === userId) {
     return { error: "El administrador no puede salir; debe eliminar o transferir la liga." };
   }
-  if (await isFrozen()) return { error: "Las listas están congeladas." };
 
   await prisma.poolMembership.deleteMany({ where: { poolId, userId } });
 

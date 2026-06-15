@@ -2,11 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: vi.fn() } }));
-vi.mock("../../services/competition-lock", () => ({ isFrozen: vi.fn() }));
 vi.mock("../../services/session", () => ({ getCurrentUserId: vi.fn() }));
 
 import { prisma } from "@/lib/prisma";
-import { isFrozen } from "../../services/competition-lock";
 import { getCurrentUserId } from "../../services/session";
 import { joinPublicPool } from "../join-public-pool";
 
@@ -14,10 +12,17 @@ describe("joinPublicPool", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(getCurrentUserId).mockResolvedValue("user-1");
-    vi.mocked(isFrozen).mockResolvedValue(false);
   });
 
   it("returns success with poolId on a successful join (FR-REFINE-13.5)", async () => {
+    vi.mocked(prisma.$transaction).mockResolvedValue(undefined as never);
+    const result = await joinPublicPool("pool-1");
+    expect(result).toEqual({ success: true, poolId: "pool-1" });
+  });
+
+  // FR-REFINE-23: joining is no longer gated by the competition freeze. The action
+  // does not consult `isFrozen()`, so a join succeeds even with the tournament started.
+  it("allows joining at any time (no isFrozen gate, FR-REFINE-23)", async () => {
     vi.mocked(prisma.$transaction).mockResolvedValue(undefined as never);
     const result = await joinPublicPool("pool-1");
     expect(result).toEqual({ success: true, poolId: "pool-1" });

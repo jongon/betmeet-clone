@@ -790,6 +790,83 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## NFR-PERF-REFINE-22: Recomendaciones de performance (Post-construcción — Unit 22)
+
+> Refine post-construcción (2026-06-14). **Análisis / recomendación**, no una
+> implementación aprobada. **No reinicia** ninguna etapa aprobada. Cubre la **Épica 21**.
+> Solicitud del usuario: *"Quiero saber qué recomendaciones de performance me das para
+> esta aplicación, a veces la noto lenta."* La implementación queda **diferida** hasta
+> que el usuario priorice. Análisis completo (anclado a `archivo:línea`) en
+> `construction/unit-22-performance-recommendations/performance-analysis.md`.
+
+- **NFR-PERF-REFINE-22.1 — Round-trips de auth por navegación (P0)**: `getUser()` hace
+  una llamada de red a GoTrue por invocación y se llama **3 veces en secuencia** por
+  carga autenticada (middleware `proxy.ts` → `getProfile` del layout `(app)` →
+  `getCurrentUserId` de la page). Objetivo: deduplicar con `cache()` de React y migrar
+  la validación a `getClaims()` (verificación local del JWT) donde solo se necesita el
+  `id`. Reduce el TTFB en cada navegación.
+- **NFR-PERF-REFINE-22.2 — Perfil leído dos veces (P1)**: el flag de onboarding se lee
+  vía PostgREST (middleware) **y** vía Prisma (layout). Se conserva la defensa en
+  profundidad (fail-open del middleware), pero `getProfile()` debe envolverse en
+  `cache()` para no duplicar la query Prisma por render.
+- **NFR-PERF-REFINE-22.3 — Fixture sin caché (P1)**: `/matches` es `force-dynamic` y
+  recarga toda la competición por visita. Cachear la parte estática (fases/partidos/
+  equipos) con `unstable_cache` + tag, invalidada por el sync/override de admin; dejar
+  dinámicas solo las predicciones del usuario; quitar el `include: { phase: true }`
+  redundante.
+- **NFR-PERF-REFINE-22.4 — Rankings sin caché (P2)**: `getGlobalRanking` agrega toda la
+  tabla `PredictionScore` sin filtro en cada visita. Cachear con tag e invalidar tras
+  cada recálculo de puntajes (global y por pool).
+- **NFR-PERF-REFINE-22.5 — Pooling en prod (P2)**: confirmar que `DATABASE_URL` usa el
+  **transaction pooler** de Supabase (puerto 6543, `pgbouncer=true`) en producción y que
+  `DIRECT_URL` (5432) queda solo para migraciones (**Operations**).
+- **NFR-PERF-REFINE-22.6 — Menores (P3)**: `cache()` sobre `isFrozen()`; verificar
+  `next/image`/`sizes`; oportunidades de `Promise.all` en lecturas independientes.
+
+> **Nota de alcance**: el esquema ya está bien indexado; el cuello de botella es
+> round-trips de red por request y recomputación sin caché, no índices faltantes.
+
+---
+
+## FR-REFINE-23: Unirse a una liga en cualquier momento (Post-construcción — Unit 23)
+
+> Refine post-construcción (2026-06-15). Cambio de regla de negocio. **No reinicia**
+> ninguna etapa aprobada. Cubre la **Épica 22**. Solicitud del usuario: *"Cuando una
+> competencia empezó un usuario no puede unirse ni ser invitado. Quiero remover esa
+> regla. Un usuario puede unirse a un pool/liga privada o pública en cualquier momento."*
+> Tras aclarar el concepto de "congelamiento", el usuario **amplió el alcance** para
+> levantarlo **también** de salir/expulsar/eliminar (*"Así es, implementar"*).
+
+- **FR-REFINE-23.1 — Unirse tras el inicio de la competición**: se **elimina** la regla
+  de congelamiento sobre el **ingreso** a una liga. Un usuario puede unirse a una liga
+  **privada o pública** en **cualquier momento**, incluso después de que la competición
+  haya comenzado. Aplica tanto al ingreso desde el **directorio público** (`joinPublicPool`,
+  BL-2) como por **token/link de invitación** (`joinPoolByToken`, BL-3), que es la vía de
+  las **invitaciones dirigidas** por nickname/email de Unit 10 (BR-3.30). Deroga la parte
+  de "unir" de **BR-3.8** y **BR-3.15**.
+- **FR-REFINE-23.2 — Límites que se conservan**: siguen vigentes el tope de **capacidad**
+  (BR-3.7: no se puede unir a una liga llena), la **unicidad** de membresía (BR-3.6), la
+  regla de **liga privada solo por token** (BR-3.9) y la **autorización** server-side
+  (BR-3.28/BR-3.29: solo el owner expulsa/elimina; el owner no "sale"). Un usuario que se
+  une tarde simplemente **no puntúa** los partidos cuyo cierre por kickoff ya pasó (las
+  predicciones se bloquean por partido en Unit 5); esto es consecuencia natural, no un bloqueo.
+- **FR-REFINE-23.3 — Alcance ampliado: toda la membresía**: el congelamiento se **elimina
+  también** para **salir** (BR-3.14), **expulsar** (BR-3.13) y **eliminar** la liga
+  (BR-3.17/BR-3.18). **Ninguna** mutación de membresía se congela por el inicio del torneo.
+  En consecuencia se **deroga BR-3.19** (el pool ya no está obligado a permanecer vivo
+  hasta el final: el owner puede eliminarlo en cualquier momento). El servicio `isFrozen`
+  se **conserva** como utilidad ("¿empezó la competición?") pero **no gobierna** ninguna
+  mutación; el campo `isFrozen` del DTO de pools se elimina.
+
+### NFR / Infra (Unit 23)
+- Sin schema, migraciones ni rutas nuevas. Cambio de regla en los cinco Server Actions de
+  membresía (`join-public-pool.ts`, `join-pool-by-token.ts`, `leave-pool.ts`,
+  `kick-member.ts`, `delete-pool.ts`), el DTO (`types.ts`/`queries.ts`) y la UI
+  (`pool-actions.tsx`, `member-list.tsx`, `pool-card.tsx`, `pools/[id]/page.tsx`).
+  Security Baseline intacto (capacidad/unicidad/autorización server-side sin cambios).
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

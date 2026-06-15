@@ -26,7 +26,6 @@ export interface MyPoolSummary {
   capacity: number;
   isOwner: boolean;
   isArchived: boolean;
-  isFrozen: boolean;
 }
 
 /** A member row in the pool detail view (identity from Unit 1 Profile). */
@@ -47,7 +46,6 @@ export interface PoolDetail {
   memberCount: number;
   inviteToken: string;
   isOwner: boolean;
-  isFrozen: boolean;
   isArchived: boolean;
   members: PoolMemberSummary[];
 }

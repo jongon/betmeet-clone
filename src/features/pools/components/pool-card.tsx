@@ -21,7 +21,6 @@ export function PoolCard({ pool }: { pool: MyPoolSummary }) {
             {pool.type === "PUBLIC" ? "Público" : "Privado"}
           </p>
           <p>{pool.isOwner ? "Eres administrador" : "Miembro"}</p>
-          {pool.isFrozen && <p>Lista congelada por inicio del torneo.</p>}
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href={`/pools/${pool.id}`}>
           Ver liga

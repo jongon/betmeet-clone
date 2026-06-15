@@ -32,10 +32,10 @@ MyPoolsPage
 ### PoolCard
 | Prop | Tipo | Descripción |
 |---|---|---|
-| `pool` | `MyPoolSummary` | id, name, type, memberCount, capacity, isOwner, isArchived, isFrozen |
+| `pool` | `MyPoolSummary` | id, name, type, memberCount, capacity, isOwner, isArchived (campo `isFrozen` eliminado en FR-REFINE-23) |
 
 - Muestra nombre, tipo, `memberCount/capacity`, badge "Admin" si `isOwner`.
-- Menú de acciones según rol/estado: **Archivar/Desarchivar** (siempre), **Salir** (no-owner, no congelado), **Eliminar** (owner, no congelado), **Compartir invitación**.
+- Menú de acciones según rol: **Archivar/Desarchivar** (siempre), **Salir** (no-owner), **Eliminar** (owner), **Compartir invitación**. (FR-REFINE-23: ya **no** se ocultan por congelamiento.)
 - `data-testid="pool-card-{id}"`.
 
 ---
@@ -71,7 +71,7 @@ PoolDirectoryPage
 - `data-testid="pool-search-input"`, `pool-search-capacity-toggle`.
 
 ### PoolPreviewCard
-- Reusa/concuerda con `PoolPreviewItem` (Unit 2). Botón **Unirse** (deshabilitado si lleno/congelado).
+- Reusa/concuerda con `PoolPreviewItem` (Unit 2). Botón **Unirse** (deshabilitado solo si **lleno**; ya **no** por congelamiento — FR-REFINE-23/Unit 23).
 - `data-testid="pool-join-{id}"`.
 
 ---
@@ -82,11 +82,11 @@ PoolDirectoryPage
 
 ```
 PoolDetailPage   (solo miembros; 403/redirect si no lo es)
-├── PoolDetailHeader   (nombre, tipo, memberCount/capacity, estado congelado)
+├── PoolDetailHeader   (nombre, tipo, memberCount/capacity)  // badge "Congelado" eliminado (FR-REFINE-23)
 ├── InviteShare        (token: copiar link, copiar código, compartir WhatsApp) — Q1=A
 ├── MemberList         (MemberRow[] con nickname/avatar de Unit 1)
-│   └── KickButton      (solo owner, solo no congelado, no a sí mismo) — US-4.3
-└── PoolActions        (Archivar/Desarchivar; Salir; Eliminar según rol/estado)
+│   └── KickButton      (solo owner, no a sí mismo) — US-4.3  // FR-REFINE-23: sin gate de congelamiento
+└── PoolActions        (Archivar/Desarchivar; Salir; Eliminar según rol)
 ```
 
 ### InviteShare (cliente)
@@ -100,7 +100,7 @@ PoolDetailPage   (solo miembros; 403/redirect si no lo es)
 
 ### MemberList / MemberRow
 - Muestra avatar + nickname (datos de Unit 1). Badge "Admin" para el owner.
-- `KickButton` por fila (solo visible para el owner, oculto en congelado y en la fila propia). Confirmación modal.
+- `KickButton` por fila (solo visible para el owner, oculto en la fila propia). Confirmación modal. (FR-REFINE-23: ya **no** se oculta por congelamiento.)
 - `data-testid="member-row-{userId}"`, `member-kick-{userId}"`.
 
 ---
@@ -110,7 +110,7 @@ PoolDetailPage   (solo miembros; 403/redirect si no lo es)
 **Tipo**: Server Component que resuelve el token + confirmación cliente.
 
 - Muestra nombre/tipo/cupo del pool y botón **Unirse** (`joinPoolByToken`).
-- Estados de error: token inválido (404), pool lleno (BR-3.7), congelado (BR-3.8), ya miembro (redirige a `/pools/[id]`).
+- Estados de error: token inválido (404), pool lleno (BR-3.7), ya miembro (redirige a `/pools/[id]`). (FR-REFINE-23: el estado "congelado" ya no aplica al ingreso.)
 - `data-testid="join-confirm"`.
 
 ---
