@@ -11,10 +11,10 @@ export async function runCompetitionSync(
 ) {
   const run = await prisma.providerSyncRun.upsert({
     where: {
-      provider_scope_windowKey: { provider: "API_FOOTBALL", scope, windowKey: window.windowKey },
+      provider_scope_windowKey: { provider: "FOOTBALL_DATA", scope, windowKey: window.windowKey },
     },
     update: { status: "STARTED", startedAt: new Date(), finishedAt: null, errorMessage: null },
-    create: { provider: "API_FOOTBALL", scope, windowKey: window.windowKey, status: "STARTED" },
+    create: { provider: "FOOTBALL_DATA", scope, windowKey: window.windowKey, status: "STARTED" },
   });
 
   try {
