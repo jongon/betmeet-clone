@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
-import { ApiFootballProvider } from "@/features/competition/services/providers/api-football";
+import { FootballDataProvider } from "@/features/competition/services/providers/football-data";
 import { runCompetitionSync } from "@/features/competition/services/sync-orchestrator";
 import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { scoreFinishedUnscoredMatches } from "@/features/scoring-rankings/services/score-sweeper";
@@ -22,14 +22,14 @@ export async function triggerSync(scope: ProviderSyncScope) {
   if (!ALLOWED_SCOPES.includes(scope)) return { error: "Scope inválido" };
 
   try {
-    const provider = new ApiFootballProvider();
+    const provider = new FootballDataProvider();
     const windowKey = `manual-${scope}-${new Date().toISOString().slice(0, 10)}`;
     await runCompetitionSync(provider, scope, { windowKey });
     await scoreFinishedUnscoredMatches();
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (message === "API_FOOTBALL_KEY_MISSING") {
-      return { error: "Falta configurar API_FOOTBALL_KEY para el proveedor." };
+    if (message === "FOOTBALL_DATA_KEY_MISSING") {
+      return { error: "Falta configurar FOOTBALL_DATA_KEY para el proveedor." };
     }
     return { error: "La sincronización falló. Revisa los runs recientes." };
   }
