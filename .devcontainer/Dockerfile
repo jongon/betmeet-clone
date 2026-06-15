@@ -2,14 +2,18 @@ ARG WWWUSER=1000
 ARG WWWGROUP=1000
 
 FROM node:24-bookworm-slim AS base
-WORKDIR /var/www/html
+ARG WWWUSER=1000
+ARG WWWGROUP=1000
+WORKDIR /var/www/html/main
 ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 ENV PNPM_HOME=/home/node/.local/share/pnpm
 ENV PATH=/home/node/.local/share/pnpm/bin:${PATH}
 ENV pnpm_config_store_dir=/var/www/html/node_modules/.pnpm-store
-RUN apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates \
+RUN mkdir -p /var/www/html/main \
+    && apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && corepack enable
+RUN chown -R ${WWWUSER}:${WWWGROUP} /var/www/html
 
 FROM base AS devcontainer
 USER node

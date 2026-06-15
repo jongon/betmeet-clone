@@ -2,10 +2,11 @@
   "name": "Next.js Dev Container",
   "dockerComposeFile": ["../docker-compose.yml"],
   "service": "devcontainer",
-  "workspaceFolder": "/var/www/html",
+  "workspaceFolder": "/var/www/html/main",
   "remoteEnv": {
-    "OPENCODE_CONFIG": "/var/www/html/.opencode/opencode.json"
+    "OPENCODE_CONFIG": "/var/www/html/main/.opencode/opencode.json"
   },
+  "forwardPorts": [3001],
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
       "installZsh": true,

@@ -8,7 +8,7 @@ services:
       target: devcontainer
     image: nextjs/code
     volumes:
-      - '.:/var/www/html'
+      - '.:/var/www/html/main'
       - 'node-home:/home/node'
     networks:
       - nextjs
@@ -26,7 +26,7 @@ services:
       - '${APP_PORT:-3000}:3000'
       - '${DEBUG_PORT:-9229}:9229'
     volumes:
-      - .:/var/www/html
+      - .:/var/www/html/main
     depends_on:
       postgres:
         condition: service_healthy
@@ -51,7 +51,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME:-username}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
     volumes:
-      - 'nextjs-postgres:/var/lib/postgresql'
+      - nextjs-postgres:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-username}']
       interval: 5s
@@ -72,7 +72,7 @@ services:
     depends_on:
       - postgres
     volumes:
-      - 'pgadmin-data:/var/lib/pgadmin'
+      - pgadmin-data:/var/lib/pgadmin
     restart: on-failure
     networks:
       - nextjs
