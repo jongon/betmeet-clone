@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { createAvatarUploadUrl } from "../actions/create-avatar-upload-url";
 import { setAvatarFromDefaultSet } from "../actions/set-avatar-from-default-set";
 import { setAvatarFromGoogle } from "../actions/set-avatar-from-google";
@@ -26,6 +27,7 @@ export function AvatarSourceTabs({
   currentAvatarUrl,
   onAvatarChange,
 }: AvatarSourceTabsProps) {
+  const t = useDictionary().onboarding;
   const [selectedDefaultId, setSelectedDefaultId] = useState<string | null>(
     defaultAvatars.find((avatar) => avatar.storageUrl === currentAvatarUrl)?.id ?? null,
   );
@@ -69,7 +71,7 @@ export function AvatarSourceTabs({
     }
 
     if (!urlResult.signedUrl || !urlResult.storagePath) {
-      setUploadError("Failed to get upload URL");
+      setUploadError(t.avatarUploadUrlError);
       setUploadPending(false);
       return;
     }
@@ -82,7 +84,7 @@ export function AvatarSourceTabs({
     });
 
     if (!uploadRes.ok) {
-      setUploadError("Upload failed. Please try again.");
+      setUploadError(t.avatarUploadFailed);
       setUploadPending(false);
       return;
     }
@@ -100,15 +102,15 @@ export function AvatarSourceTabs({
     <Tabs defaultValue="default">
       <TabsList className="w-full">
         <TabsTrigger value="default" className="flex-1">
-          Default set
+          {t.avatarDefaultSet}
         </TabsTrigger>
         {googleAvatarUrl && (
           <TabsTrigger value="google" className="flex-1">
-            Google
+            {t.avatarGoogle}
           </TabsTrigger>
         )}
         <TabsTrigger value="upload" className="flex-1">
-          Upload
+          {t.avatarUpload}
         </TabsTrigger>
       </TabsList>
 
@@ -124,12 +126,12 @@ export function AvatarSourceTabs({
         <TabsContent value="google" className="mt-4 flex flex-col items-center gap-4">
           <Image
             src={googleAvatarUrl}
-            alt="Google profile picture"
+            alt={t.avatarGoogleAlt}
             width={96}
             height={96}
             className="h-24 w-24 rounded-full object-cover"
           />
-          <Button onClick={handleGoogleSelect}>Use Google photo</Button>
+          <Button onClick={handleGoogleSelect}>{t.avatarUseGoogle}</Button>
         </TabsContent>
       )}
 
@@ -141,7 +143,7 @@ export function AvatarSourceTabs({
             type="file"
             accept="image/jpeg,image/png,image/webp"
             className="sr-only"
-            aria-label="Upload avatar image"
+            aria-label={t.avatarUploadLabel}
             onChange={handleFileUpload}
           />
           <Button
@@ -149,9 +151,9 @@ export function AvatarSourceTabs({
             disabled={uploadPending}
             onClick={() => fileInputRef.current?.click()}
           >
-            {uploadPending ? "Uploading…" : "Choose image"}
+            {uploadPending ? t.avatarUploading : t.avatarChooseImage}
           </Button>
-          <p className="text-xs text-muted-foreground">JPEG, PNG, or WebP · max 5 MB</p>
+          <p className="text-xs text-muted-foreground">{t.avatarHint}</p>
         </div>
       </TabsContent>
     </Tabs>

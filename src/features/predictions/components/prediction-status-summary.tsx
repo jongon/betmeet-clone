@@ -1,14 +1,17 @@
-import { eligibilityMessage } from "../services/eligibility";
+"use client";
+
+import { useDictionary } from "@/i18n/dictionary-provider";
 import type { PredictionMatchView } from "../types";
 
 export function PredictionStatusSummary({ match }: { match: PredictionMatchView }) {
+  const t = useDictionary().predictions;
   const hasPrediction = match.prediction !== null;
   const isLocked = match.prediction?.lockedAt !== null || !match.canEdit;
 
   if (match.status === "CANCELLED") {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Partido cancelado. No suma puntos.
+        {t.cancelled}
       </p>
     );
   }
@@ -16,7 +19,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (match.status === "POSTPONED") {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Partido postergado. Las predicciones están pausadas.
+        {t.postponed}
       </p>
     );
   }
@@ -24,7 +27,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (!match.homeTeam || !match.awayTeam) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Predicción disponible cuando se definan los equipos.
+        {t.teamsPending}
       </p>
     );
   }
@@ -32,7 +35,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (!match.kickoffAt) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Horario pendiente; aún no se puede predecir.
+        {t.kickoffPending}
       </p>
     );
   }
@@ -40,7 +43,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (match.canEdit && !hasPrediction) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Aún no guardaste predicción. Si no guardas antes del inicio, no sumas puntos.
+        {t.unsavedOpen}
       </p>
     );
   }
@@ -48,7 +51,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (match.canEdit && hasPrediction) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Predicción guardada. Puedes cambiarla hasta el inicio del partido.
+        {t.savedOpen}
       </p>
     );
   }
@@ -56,7 +59,7 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (match.prediction?.lockedAt && hasPrediction) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Predicción bloqueada.
+        {t.locked}
       </p>
     );
   }
@@ -64,12 +67,12 @@ export function PredictionStatusSummary({ match }: { match: PredictionMatchView 
   if (isLocked && !hasPrediction) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">
-        Sin predicción guardada; no suma puntos en este partido.
+        {t.unsavedLocked}
       </p>
     );
   }
 
-  const msg = match.lockReason ? eligibilityMessage(match.lockReason) : null;
+  const msg = match.lockReason ? t.unavailable : null;
   if (msg) {
     return (
       <p className="text-xs text-muted-foreground" data-testid="prediction-status-summary">

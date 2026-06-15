@@ -9,12 +9,17 @@ import { AccountSettings } from "@/features/profile/components/account-settings"
 import { AvatarSourceTabs } from "@/features/profile/components/avatar-source-tabs";
 import { getDefaultAvatars, getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "Profile settings" };
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = getDictionary(await getRequestLocale());
+  return { title: dictionary.settings.profileTitle };
+}
 
 export default async function ProfileSettingsPage() {
+  const dictionary = getDictionary(await getRequestLocale());
   const supabase = await createClient();
   const [profile, defaultAvatars, notificationSettings, { data: userData }] = await Promise.all([
     getProfile(),
@@ -29,13 +34,13 @@ export default async function ProfileSettingsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Avatar</CardTitle>
+          <CardTitle>{dictionary.profile.avatarSection}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-4">
             <Image
               src={profile.avatarUrl}
-              alt="Your avatar"
+              alt={dictionary.profile.avatarAlt}
               width={64}
               height={64}
               className="h-16 w-16 rounded-full object-cover"
@@ -54,7 +59,7 @@ export default async function ProfileSettingsPage() {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle>{es.profile.title}</CardTitle>
+          <CardTitle>{dictionary.profile.title}</CardTitle>
         </CardHeader>
         <CardContent>
           <AccountSettings
@@ -66,7 +71,7 @@ export default async function ProfileSettingsPage() {
       {notificationSettings && (
         <Card>
           <CardHeader>
-            <CardTitle>Notificaciones web push</CardTitle>
+            <CardTitle>{dictionary.settings.webPush}</CardTitle>
           </CardHeader>
           <CardContent>
             <NotificationSettingsPanel {...notificationSettings} />

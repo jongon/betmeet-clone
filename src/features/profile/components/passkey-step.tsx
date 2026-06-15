@@ -4,6 +4,7 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { createClient } from "@/lib/supabase/client";
 
 interface PasskeyStepProps {
@@ -12,6 +13,8 @@ interface PasskeyStepProps {
 }
 
 export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
+  const dictionary = useDictionary();
+  const t = dictionary.onboarding;
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [registered, setRegistered] = useState(false);
@@ -33,7 +36,7 @@ export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
         setRegistered(true);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Passkey registration failed");
+      setError(err instanceof Error ? err.message : t.passkeyFailure);
     }
 
     setPending(false);
@@ -46,13 +49,11 @@ export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
           <ShieldCheck className="h-16 w-16 text-green-500" aria-hidden="true" />
         </div>
         <div>
-          <h2 className="text-xl font-semibold">Passkey registered!</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            You can now sign in with your device biometrics.
-          </p>
+          <h2 className="text-xl font-semibold">{t.passkeyRegisteredTitle}</h2>
+          <p className="mt-1 text-sm text-muted-foreground">{t.passkeyRegisteredDescription}</p>
         </div>
         <Button className="w-full" onClick={onComplete}>
-          Finish setup
+          {t.passkeyFinish}
         </Button>
       </div>
     );
@@ -61,10 +62,8 @@ export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Add a passkey</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Sign in faster and more securely using your device&apos;s biometrics or PIN.
-        </p>
+        <h2 className="text-xl font-semibold">{t.passkeyTitle}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t.passkeyDescription}</p>
       </div>
 
       <div className="flex justify-center">
@@ -75,10 +74,10 @@ export function PasskeyStep({ onComplete, onSkip }: PasskeyStepProps) {
 
       <div className="space-y-2">
         <Button className="w-full" disabled={pending} onClick={handleRegister}>
-          {pending ? "Setting up…" : "Register passkey"}
+          {pending ? t.passkeySettingUp : t.passkeyRegister}
         </Button>
         <Button variant="ghost" className="w-full" onClick={onSkip}>
-          Skip for now
+          {dictionary.common.skipForNow}
         </Button>
       </div>
     </div>

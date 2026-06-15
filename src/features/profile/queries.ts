@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { DEFAULT_LOCALE, parseLocale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/supabase/current-user";
 import { LOCAL_FALLBACK_AVATARS } from "./default-avatars";
@@ -43,6 +44,7 @@ function toProfile(profile: PrismaProfile): Profile {
     verificationStatus: profile.verificationStatus as Profile["verificationStatus"],
     mfaEnabled: profile.mfaEnabled,
     onboardingCompleted: profile.onboardingCompleted,
+    locale: parseLocale(profile.locale) ?? DEFAULT_LOCALE,
     deletedAt: profile.deletedAt,
     createdAt: profile.createdAt,
     updatedAt: profile.updatedAt,

@@ -1,8 +1,14 @@
+"use client";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { PoolDetail } from "../types";
 import { KickButton } from "./kick-button";
 
 export function MemberList({ pool }: { pool: PoolDetail }) {
+  const t = useDictionary().pools;
+  const locale = useLocale();
+
   return (
     <ul className="divide-y rounded-xl border" data-testid="pool-member-list">
       {pool.members.map((member) => (
@@ -16,8 +22,8 @@ export function MemberList({ pool }: { pool: PoolDetail }) {
               <p className="font-medium">{member.nickname}</p>
               <p className="text-xs text-muted-foreground">
                 {member.isOwner
-                  ? "Administrador"
-                  : `Desde ${new Date(member.joinedAt).toLocaleDateString("es")}`}
+                  ? t.owner
+                  : `${t.since} ${new Date(member.joinedAt).toLocaleDateString(locale)}`}
               </p>
             </div>
           </div>

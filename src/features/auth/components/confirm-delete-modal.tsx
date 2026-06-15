@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { loadOwnedPoolsForDeletion } from "@/features/pools/actions/load-owned-pools-for-deletion";
 import type { OwnedPoolTransfer } from "@/features/pools/types";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { deleteAccount } from "../actions/delete-account";
 
 const CONFIRM_PHRASE = "delete my account";
@@ -25,6 +26,7 @@ interface ConfirmDeleteModalProps {
 }
 
 export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
+  const t = useDictionary().auth;
   const [phrase, setPhrase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -51,7 +53,7 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
       Object.entries(assignments).map(([poolId, newOwnerId]) => ({ poolId, newOwnerId })),
     );
     if (result?.error) {
-      setError(result.error._form?.[0] ?? "Failed to delete account");
+      setError(result.error._form?.[0] ?? t.deleteFailed);
       setPending(false);
     }
     // On success, deleteAccount redirects
@@ -61,10 +63,11 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete account</DialogTitle>
+          <DialogTitle>{t.deleteTitle}</DialogTitle>
           <DialogDescription>
-            This action is permanent and cannot be undone. Type <strong>{CONFIRM_PHRASE}</strong> to
-            confirm.
+            {t.deleteDescription.split("**delete my account**")[0]}
+            <strong>{CONFIRM_PHRASE}</strong>
+            {t.deleteDescription.split("**delete my account**")[1]}
           </DialogDescription>
         </DialogHeader>
 
@@ -73,7 +76,7 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
 
           {poolsNeedingOwner.length > 0 && (
             <div className="space-y-3 rounded-md border p-3">
-              <p className="text-sm font-medium">Transfiere la administración de tus ligas</p>
+              <p className="text-sm font-medium">{t.transferPools}</p>
               {poolsNeedingOwner.map((pool) => (
                 <div key={pool.poolId} className="space-y-1">
                   <Label htmlFor={`transfer-${pool.poolId}`}>{pool.poolName}</Label>
@@ -87,7 +90,7 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
                     }
                   >
                     <option value="" disabled>
-                      Elige un nuevo administrador…
+                      {t.transferPlaceholder}
                     </option>
                     {pool.candidates.map((c) => (
                       <option key={c.userId} value={c.userId}>
@@ -102,13 +105,12 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
 
           {poolsToDelete.length > 0 && (
             <p className="text-sm text-muted-foreground">
-              Estas ligas se eliminarán por no tener otros miembros:{" "}
-              {poolsToDelete.map((p) => p.poolName).join(", ")}.
+              {t.poolsToDelete} {poolsToDelete.map((p) => p.poolName).join(", ")}.
             </p>
           )}
 
           <div className="space-y-1.5">
-            <Label htmlFor="confirm-phrase">Confirmation</Label>
+            <Label htmlFor="confirm-phrase">{t.deleteConfirmation}</Label>
             <Input
               id="confirm-phrase"
               type="text"
@@ -121,10 +123,10 @@ export function ConfirmDeleteModal({ open, onClose }: ConfirmDeleteModalProps) {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={pending}>
-            Cancel
+            {t.cancel}
           </Button>
           <Button variant="destructive" disabled={!confirmed || pending} onClick={handleDelete}>
-            {pending ? "Deleting…" : "Delete account"}
+            {pending ? t.deleting : t.deleteTitle}
           </Button>
         </DialogFooter>
       </DialogContent>

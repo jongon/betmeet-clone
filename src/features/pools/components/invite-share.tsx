@@ -1,35 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 export function InviteShare({ token }: { token: string }) {
+  const t = useDictionary().pools;
   const [copied, setCopied] = useState(false);
-  // Start with the relative path so the first client render matches the server HTML
-  // (the origin is unknown during SSR). Upgrade to the absolute URL after mount to
-  // avoid a hydration mismatch.
-  const [link, setLink] = useState(`/pools/join/${token}`);
-  useEffect(() => {
-    setLink(`${window.location.origin}/pools/join/${token}`);
-  }, [token]);
-  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Únete a mi liga del Mundial: ${link}`)}`;
+  const path = `/pools/join/${token}`;
+  const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${t.whatsappText} ${path}`)}`;
+
+  function absoluteLink() {
+    return `${window.location.origin}${path}`;
+  }
 
   async function copy() {
-    await navigator.clipboard.writeText(link);
+    await navigator.clipboard.writeText(absoluteLink());
     setCopied(true);
   }
 
   return (
     <div className="space-y-3 rounded-xl border p-4" data-testid="invite-share">
       <div>
-        <p className="font-medium">Invitación</p>
-        <p className="text-sm text-muted-foreground">Código: {token}</p>
+        <p className="font-medium">{t.invite}</p>
+        <p className="text-sm text-muted-foreground">
+          {t.inviteCode} {token}
+        </p>
       </div>
-      <Input readOnly value={link} aria-label="Link de invitación" />
+      <Input readOnly value={path} aria-label={t.inviteLink} />
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" onClick={copy}>
-          {copied ? "Copiado" : "Copiar link"}
+          {copied ? t.copied : t.copyLink}
         </Button>
         <a
           className={buttonVariants({ variant: "outline" })}
@@ -37,7 +39,7 @@ export function InviteShare({ token }: { token: string }) {
           target="_blank"
           rel="noreferrer"
         >
-          Compartir por WhatsApp
+          {t.whatsapp}
         </a>
       </div>
     </div>

@@ -12,7 +12,7 @@ import { OnboardingProgressIndicator } from "@/features/profile/components/onboa
 import { PasskeyStep } from "@/features/profile/components/passkey-step";
 import { RulesStep } from "@/features/profile/components/rules-step";
 import type { AvatarAsset } from "@/features/profile/types";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 type Step = "nickname" | "avatar" | "rules" | "passkey";
 
@@ -33,6 +33,7 @@ export function OnboardingClient({
   googleAvatarUrl,
   next = "/matches",
 }: OnboardingClientProps) {
+  const { common } = useDictionary();
   const [step, setStep] = useState<Step>("nickname");
   const [avatarUrl] = useState(currentAvatarUrl);
   const [finishError, setFinishError] = useState<string | null>(null);
@@ -69,7 +70,7 @@ export function OnboardingClient({
           data-testid="onboarding-back"
         >
           <ArrowLeft aria-hidden="true" className="size-4" />
-          {es.common.back}
+          {common.back}
         </Button>
       )}
 

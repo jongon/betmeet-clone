@@ -5,7 +5,10 @@ import { AuthProvider } from "@/components/providers/auth-provider";
 import { BrandThemeProvider } from "@/components/providers/brand-theme-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { DictionaryProvider } from "@/i18n/dictionary-provider";
+import { getDictionary } from "@/i18n/get-dictionary";
 import { BRAND_COOKIE, coerceBrand } from "@/lib/brand-theme";
+import { getRequestLocale } from "@/lib/locale";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -42,18 +45,22 @@ export default async function RootLayout({
   // render <html data-theme> from the persisted cookie so the correct brand is in
   // the initial HTML before paint. Defaults to "deportivo" when unset/invalid.
   const brand = coerceBrand((await cookies()).get(BRAND_COOKIE)?.value);
+  const locale = await getRequestLocale();
+  const dictionary = getDictionary(locale);
 
   return (
-    <html lang="es" data-theme={brand} suppressHydrationWarning>
+    <html lang={locale} data-theme={brand} suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${barlowSemiCondensed.variable} antialiased`}
       >
-        <ThemeProvider>
-          <BrandThemeProvider>
-            <AuthProvider>{children}</AuthProvider>
-            <Toaster richColors closeButton />
-          </BrandThemeProvider>
-        </ThemeProvider>
+        <DictionaryProvider dictionary={dictionary} locale={locale}>
+          <ThemeProvider>
+            <BrandThemeProvider>
+              <AuthProvider>{children}</AuthProvider>
+              <Toaster richColors closeButton />
+            </BrandThemeProvider>
+          </ThemeProvider>
+        </DictionaryProvider>
       </body>
     </html>
   );

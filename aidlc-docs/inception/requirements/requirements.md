@@ -867,6 +867,66 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## FR-I18N-24: Internacionalización, selector de idioma y homologación de copy (Post-construcción — Unit 24)
+
+> Refine post-construcción (2026-06-15). Aditivo y transversal; **no reinicia**
+> ninguna etapa aprobada. Cubre la **Épica 23**. Solicitud del usuario: la aplicación
+> tiene mezcla de copy en español e inglés; debe poder seleccionarse idioma, con
+> español preferido y por defecto, y opción de inglés. Además, debe homologarse la
+> experiencia sin eliminar préstamos naturales del inglés usados en español.
+
+- **FR-I18N-24.1 — Idiomas soportados**: la aplicación soporta `es` y `en`, con
+  `es` como idioma por defecto. La experiencia inicial usa español salvo que exista
+  una preferencia persistida del usuario o una cookie válida; la detección de
+  `Accept-Language` puede usarse como fallback inicial, pero nunca desplaza la
+  preferencia explícita.
+- **FR-I18N-24.2 — Sin prefijo de locale en URL**: se conserva la decisión de Unit 2
+  **Opción A**: no se introduce segmento `[locale]` ni rutas `/es/*` o `/en/*` en esta
+  unidad. Las URLs existentes permanecen intactas (`/matches`, `/pools`, `/rules`,
+  `/settings/*`, `/admin/*`). La selección se resuelve por cookie/perfil, no por ruta.
+- **FR-I18N-24.3 — Persistencia cookie + perfil**: la preferencia se guarda en una
+  cookie `locale` para SSR sin flash y en `profiles.locale` para sincronizarla entre
+  dispositivos. La cookie gobierna el render inmediato; el perfil permite restaurar
+  la preferencia cuando el usuario inicia sesión desde otro navegador.
+- **FR-I18N-24.4 — Selector de idioma**: el usuario puede cambiar idioma desde el
+  `UserMenu` del header autenticado y desde `Settings/Profile`. El cambio debe
+  actualizar cookie y perfil, refrescar la UI y conservar la ruta actual.
+- **FR-I18N-24.5 — Homologación de copy**: toda copy visible de UI debe salir del
+  diccionario tipado (`src/i18n/dictionaries/es.ts` / `en.ts`), corrigiendo la mezcla
+  actual de textos hardcoded en inglés y español. Esto materializa **BR-2.28** a
+  escala de aplicación, no solo en Unit 2.
+- **FR-I18N-24.6 — Diccionario inglés completo**: `en.ts` debe tener la misma forma
+  que `es.ts` y cubrir la UI completa: auth, onboarding, settings/security, pools,
+  predictions, competition, admin, notifications, páginas de app, navegación,
+  educación/reglas y estados/errores de dominio.
+- **FR-I18N-24.7 — Contenido MDX bilingüe**: el Centro de Reglas debe existir en
+  español e inglés. El contenido actual bajo `content/rules/es/*.mdx` se conserva y
+  se añade una versión equivalente en `content/rules/en/*.mdx`; el loader debe
+  seleccionar el contenido por locale activo.
+- **FR-I18N-24.8 — Préstamos del inglés en español**: no se traducen préstamos
+  naturales o términos de producto/técnicos ya usados así en español: `email`,
+  `passkey`, `nickname`, `Google`, `WebAuthn`, `TOTP`, `push`, `web push`, entre otros
+  equivalentes. Se mantiene **CF-5**: en copy visible, `Pool`/`pool` se presenta como
+  **Liga**, `Pick` como **Predicción**, `Kickoff` como **Inicio del partido** e
+  `Invite` como **Invitación**; `Ranking` se conserva como préstamo aprobado.
+- **FR-I18N-24.9 — Rutas y SEO**: no se exige SEO multi-idioma con hreflang en esta
+  unidad porque no hay URLs por locale. Metadata visible debe usar el diccionario
+  activo cuando aplique; el routing por `[locale]` queda como decisión futura si el
+  producto necesita SEO público bilingüe avanzado.
+
+### NFR / Infra (Unit 24)
+- **NFR (consistencia / accesibilidad)**: el idioma activo debe aplicarse de forma
+  consistente a labels, `aria-label`, metadata, errores, empty states, toasts y
+  botones. El selector de idioma debe ser navegable por teclado y tener labels claros.
+- **NFR (mantenibilidad)**: `es` sigue siendo la forma fuente del tipo `Dictionary`;
+  `en` debe compilar con la misma estructura. No se permiten strings literales de
+  cara al usuario en componentes nuevos.
+- **Infra**: requiere migración Prisma para `profiles.locale` con default `es` y
+  restricción lógica/validación de valores `es | en`. Sin nuevas rutas públicas ni
+  cambios de endpoints externos.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.

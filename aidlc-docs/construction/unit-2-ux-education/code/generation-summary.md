@@ -66,4 +66,4 @@
 - **Tema**: se usa `next-themes` (ya era dependencia) en lugar de un script propio; encaja con `.dark` + `@custom-variant` de `globals.css`. El script inline de next-themes está permitido por la CSP report-only (`'unsafe-inline'`); el endurecimiento por hash queda documentado para el cambio a enforce.
 - **MDX**: `@next/mdx` se descartó a favor de **content-collections** (Q2=C) por tipado/validación en build.
 - **OG**: metadata `openGraph` en la landing; el asset de imagen estática (`src/app/opengraph-image.png`, convención Next) queda como activo de diseño pendiente.
-- **Locale**: ruta sin prefijo (Opción A). `SUPPORTED_LOCALES=["es"]`; añadir un idioma no requiere refactor de componentes.
+- **Locale**: ruta sin prefijo (Opción A). Estado original de Unit 2: `SUPPORTED_LOCALES=["es"]`; añadir un idioma no requiere refactor de componentes. **Refine Unit 24**: se activa `en` sin introducir `/es` ni `/en`, con preferencia por cookie + `profiles.locale`, selector en `UserMenu`/Perfil y contenido MDX bilingüe.

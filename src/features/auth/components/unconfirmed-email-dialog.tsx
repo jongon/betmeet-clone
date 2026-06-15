@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { changeUnconfirmedEmail } from "../actions/change-unconfirmed-email";
 
 type ActionState = Awaited<ReturnType<typeof changeUnconfirmedEmail>>;
@@ -28,7 +28,7 @@ interface UnconfirmedEmailDialogProps {
  * account (FR-REFINE-12.3). Opened from the sign-in unconfirmed-email panel.
  */
 export function UnconfirmedEmailDialog({ email, open, onClose }: UnconfirmedEmailDialogProps) {
-  const t = es.auth;
+  const t = useDictionary().auth;
   const [state, action, pending] = useActionState<ActionState | undefined, FormData>(
     async (_prev, formData) => changeUnconfirmedEmail(formData),
     undefined,

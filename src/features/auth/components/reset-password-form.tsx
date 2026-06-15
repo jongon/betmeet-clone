@@ -5,11 +5,13 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { resetPassword } from "../actions/reset-password";
 
 type ActionState = Awaited<ReturnType<typeof resetPassword>>;
 
 export function ResetPasswordForm() {
+  const t = useDictionary().auth;
   const [state, action, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => resetPassword(formData),
     undefined,
@@ -20,7 +22,7 @@ export function ResetPasswordForm() {
       <FormError messages={state?.error?._form as string[] | undefined} />
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">New password</Label>
+        <Label htmlFor="password">{t.newPassword}</Label>
         <Input
           id="password"
           name="password"
@@ -33,7 +35,7 @@ export function ResetPasswordForm() {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="confirmPassword">Confirm new password</Label>
+        <Label htmlFor="confirmPassword">{t.confirmNewPassword}</Label>
         <Input
           id="confirmPassword"
           name="confirmPassword"
@@ -49,7 +51,7 @@ export function ResetPasswordForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Resetting…" : "Reset password"}
+        {pending ? t.resetting : t.resetSubmit}
       </Button>
     </form>
   );

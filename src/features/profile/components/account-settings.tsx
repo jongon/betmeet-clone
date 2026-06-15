@@ -3,11 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { FormError } from "@/components/form-error";
+import { LanguageToggle } from "@/components/language/language-toggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { changeEmail } from "@/features/auth/actions/change-email";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { setNickname } from "../actions/set-nickname";
 
 type NicknameState = Awaited<ReturnType<typeof setNickname>> | undefined;
@@ -23,7 +24,8 @@ interface AccountSettingsProps {
  * (FR-REFINE-12.4 / 12.5). Both reuse existing server actions.
  */
 export function AccountSettings({ currentNicknameBase, currentEmail }: AccountSettingsProps) {
-  const t = es.profile;
+  const dictionary = useDictionary();
+  const t = dictionary.profile;
   const router = useRouter();
 
   const [nickState, nickAction, nickPending] = useActionState<NicknameState, FormData>(
@@ -76,6 +78,14 @@ export function AccountSettings({ currentNicknameBase, currentEmail }: AccountSe
             {t.nicknameSave}
           </Button>
         </form>
+      </section>
+
+      <section className="space-y-3">
+        <div className="space-y-1">
+          <h3 className="font-medium">{t.languageSection}</h3>
+          <p className="text-sm text-muted-foreground">{t.languageDescription}</p>
+        </div>
+        <LanguageToggle />
       </section>
 
       <section className="space-y-3">

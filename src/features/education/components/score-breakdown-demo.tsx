@@ -1,5 +1,7 @@
+"use client";
+
 import { computeScore, type ScoringExample } from "@/features/scoring/compute-score";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { ScoreBreakdownExplainer } from "./score-breakdown-explainer";
 
 interface DemoCase {
@@ -47,9 +49,11 @@ const DEMOS: DemoCase[] = [
  * the shared scoring module, so they always match the real engine.
  */
 export function ScoreBreakdownDemo() {
+  const { rules } = useDictionary();
+
   return (
     <div className="space-y-4" data-testid="score-breakdown-demo">
-      <h3 className="text-sm font-semibold">{es.rules.demoTitle}</h3>
+      <h3 className="text-sm font-semibold">{rules.demoTitle}</h3>
       <div className="grid gap-4 sm:grid-cols-3">
         {DEMOS.map((demo) => (
           <div key={demo.label} className="rounded-md border p-4">

@@ -169,6 +169,37 @@ Detalle del enfoque:
 
 ---
 
+## CF-11 — Estrategia i18n bilingüe sin prefijo de locale
+**Origen**: Refine FR-I18N-24 (Unit 24, 2026-06-15). La aplicación tiene mezcla de
+copy en español e inglés y el usuario pidió poder seleccionar idioma, con español
+preferido/por defecto e inglés como opción, homologando la experiencia.
+**Destino**: Transversal — `src/i18n`, `src/app`, features, Content Collections,
+Perfil, App Shell, middleware/proxy y futuras pantallas.
+
+**Decisión / restricción**:
+- Idiomas activos: `es` y `en`; default de producto: `es`.
+- Se conserva la decisión de Unit 2 **Opción A**: **sin** segmento `[locale]` en URL.
+  No crear `/es/*` ni `/en/*` en Unit 24; las rutas existentes permanecen estables.
+- La preferencia se persiste en cookie `locale` (SSR sin flash) y `profiles.locale`
+  (sincronización entre dispositivos). La preferencia explícita del usuario domina
+  cualquier fallback de `Accept-Language`.
+- El selector vive en `UserMenu` y `Settings/Profile`; cambiar idioma conserva la
+  ruta actual.
+- Todo copy visible debe salir del diccionario tipado; `es` sigue siendo la forma
+  fuente del tipo `Dictionary` y `en` debe satisfacer la misma estructura.
+- El Centro de Reglas MDX debe existir por locale: `content/rules/es/*.mdx` y
+  `content/rules/en/*.mdx`.
+- Se respetan préstamos naturales en español: `email`, `passkey`, `nickname`,
+  `Google`, `WebAuthn`, `TOTP`, `push`/`web push`. Se mantiene CF-5 para términos de
+  producto: `Pool` visible = **Liga** en español; `Ranking` se conserva como
+  préstamo aprobado.
+
+**Restricción hacia adelante**: si el producto necesita SEO público bilingüe avanzado
+o enlaces explícitamente localizados, reabrir la decisión para introducir `[locale]`
+como cambio de routing separado; no mezclarlo con refinements de copy.
+
+---
+
 ## Estado
 | ID | Tema | Destino | Estado |
 |---|---|---|---|
@@ -182,3 +213,4 @@ Detalle del enfoque:
 | CF-8 | Script inline anti-FOUC (`dangerouslySetInnerHTML`) — excepción de seguridad | Unit 8 / SECURITY-04+05 | **✅ Resuelto (FR-REFINE-16.6)**: script eliminado; marca renderizada server-side desde cookie `brand-theme`. Sin inline script → sin warning y sin constraint de CSP |
 | CF-9 | Secure email change desactivado (confirmación única del correo nuevo) — tradeoff de seguridad | Unit 19 / Auth / Security Baseline | **Aceptado (FR-REFINE-19.1)**: `secure_email_change_enabled = false`. Solo el correo nuevo confirma/recibe notificación. Pendiente Operations: replicar toggle en dashboard de prod |
 | CF-10 | Mecanismo oficial de passkeys = API de Passkeys (beta) de Supabase | Unit 20 / Auth | **Aplicado (FR-REFINE-20.1)**: `registerPasskey()`/`signInWithPasskey()` + `experimental.passkey`; reemplaza el factor MFA-WebAuthn. Requiere supabase-js ≥ 2.105.0; RP ID = dominio (localhost en dev). Pendiente Operations: confirmar dashboard de prod |
+| CF-11 | i18n bilingüe sin prefijo de locale | Unit 24 / Transversal | **Aprobado para Unit 24**: `es` default + `en`, cookie `locale` + `profiles.locale`, selector en `UserMenu`/Perfil, MDX bilingüe, sin `/es` ni `/en` |

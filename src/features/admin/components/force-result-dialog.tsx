@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { forceMatchResult } from "../actions/force-result";
 import type { AdminMatchRow } from "../types";
 
@@ -45,6 +46,7 @@ function NumberField({
 }
 
 export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
+  const t = useDictionary().admin;
   const [open, setOpen] = useState(false);
   const [homeScore, setHomeScore] = useState(match.homeScore ?? 0);
   const [awayScore, setAwayScore] = useState(match.awayScore ?? 0);
@@ -85,7 +87,7 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
         data-testid={`force-result-${match.id}`}
         className="text-sm font-medium text-primary underline-offset-4 hover:underline"
       >
-        Forzar resultado
+        {t.forceResult}
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -98,14 +100,14 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
           <div className="flex items-end gap-4">
             <NumberField
               id="force-result-home"
-              label={match.homeTeamName ?? "Local"}
+              label={match.homeTeamName ?? t.home}
               value={homeScore}
               onChange={setHomeScore}
             />
             <span className="pb-2 text-muted-foreground">-</span>
             <NumberField
               id="force-result-away"
-              label={match.awayTeamName ?? "Visitante"}
+              label={match.awayTeamName ?? t.away}
               value={awayScore}
               onChange={setAwayScore}
             />
@@ -115,14 +117,14 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
             <div className="flex items-end gap-4">
               <NumberField
                 id="force-penalty-home"
-                label="Penales local"
+                label={t.homePenalties}
                 value={homePenalty}
                 onChange={setHomePenalty}
               />
               <span className="pb-2 text-muted-foreground">-</span>
               <NumberField
                 id="force-penalty-away"
-                label="Penales visitante"
+                label={t.awayPenalties}
                 value={awayPenalty}
                 onChange={setAwayPenalty}
               />
@@ -131,11 +133,11 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
 
           {showPenaltyWinner && (
             <div className="space-y-1">
-              <span className="text-sm font-medium">Ganador de penales</span>
+              <span className="text-sm font-medium">{t.penaltyWinner}</span>
               <div className="flex gap-2">
                 {[
-                  { id: match.homeTeamId, name: match.homeTeamName ?? "Local" },
-                  { id: match.awayTeamId, name: match.awayTeamName ?? "Visitante" },
+                  { id: match.homeTeamId, name: match.homeTeamName ?? t.home },
+                  { id: match.awayTeamId, name: match.awayTeamName ?? t.away },
                 ].map((team) => (
                   <button
                     key={team.id}
@@ -156,7 +158,7 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
           )}
 
           <div className="space-y-1">
-            <Label htmlFor="force-result-reason">Motivo (obligatorio)</Label>
+            <Label htmlFor="force-result-reason">{t.reason}</Label>
             <textarea
               id="force-result-reason"
               value={reason}
@@ -173,7 +175,7 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
             onClick={handleSubmit}
             data-testid="force-result-submit"
           >
-            {pending ? "Guardando…" : "Forzar y recalcular"}
+            {pending ? t.saving : t.forceAndRecalculate}
           </Button>
         </div>
       </DialogContent>

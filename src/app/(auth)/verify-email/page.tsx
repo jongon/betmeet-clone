@@ -1,24 +1,31 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
-export const metadata: Metadata = { title: "Verify your email" };
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = getDictionary(await getRequestLocale());
+  return { title: dictionary.auth.verifyEmailTitle };
+}
 
-export default function VerifyEmailPage() {
+export default async function VerifyEmailPage() {
+  const dictionary = getDictionary(await getRequestLocale());
+
   return (
     <div className="space-y-4 text-center">
       <div className="text-4xl" aria-hidden="true">
         📬
       </div>
       <div>
-        <h2 className="text-lg font-semibold">Check your inbox</h2>
+        <h2 className="text-lg font-semibold">{dictionary.auth.verifyEmailHeading}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          We sent a confirmation link to your email. Click it to activate your account.
+          {dictionary.auth.verifyEmailDescription}
         </p>
       </div>
       <p className="text-sm text-muted-foreground">
-        Already confirmed?{" "}
+        {dictionary.auth.alreadyConfirmed}{" "}
         <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground">
-          Sign in
+          {dictionary.common.signIn}
         </Link>
       </p>
     </div>

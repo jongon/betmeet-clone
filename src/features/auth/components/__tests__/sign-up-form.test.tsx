@@ -26,9 +26,9 @@ describe("SignUpForm client validation", () => {
   it("blocks submission and shows errors for an invalid email + mismatched passwords", async () => {
     render(<SignUpForm />);
     fill("Email", "not-an-email");
-    fill("Password", "supersecret");
-    fill("Confirm password", "different");
-    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+    fill("Contraseña", "supersecret");
+    fill("Confirmar contraseña", "different");
+    fireEvent.click(screen.getByRole("button", { name: /crear cuenta/i }));
 
     expect(await screen.findByText(/invalid email address/i)).toBeInTheDocument();
     expect(screen.getByText(/passwords do not match/i)).toBeInTheDocument();
@@ -38,9 +38,9 @@ describe("SignUpForm client validation", () => {
   it("calls the server action when the form is valid", async () => {
     render(<SignUpForm />);
     fill("Email", "jon@example.com");
-    fill("Password", "supersecret");
-    fill("Confirm password", "supersecret");
-    fireEvent.click(screen.getByRole("button", { name: /create account/i }));
+    fill("Contraseña", "supersecret");
+    fill("Confirmar contraseña", "supersecret");
+    fireEvent.click(screen.getByRole("button", { name: /crear cuenta/i }));
 
     await waitFor(() => expect(signUp).toHaveBeenCalledTimes(1));
   });

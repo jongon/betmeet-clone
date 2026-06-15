@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { disableMfa } from "@/features/auth/actions/mfa-disable";
 import { ConfirmDeleteModal } from "@/features/auth/components/confirm-delete-modal";
 import { MFAEnrollmentModal } from "@/features/auth/components/mfa-enrollment-modal";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 interface TotpFactor {
   id: string;
@@ -21,6 +22,7 @@ interface SecuritySettingsClientProps {
 }
 
 export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySettingsClientProps) {
+  const t = useDictionary().settings;
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [factors, setFactors] = useState(totpFactors);
@@ -33,7 +35,7 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
     } else {
       setFactors((prev) => prev.filter((f) => f.id !== factorId));
       if (factors.length <= 1) setIsMfaEnabled(false);
-      toast.success("Two-factor authentication disabled");
+      toast.success(t.twoFactorDisabled);
     }
   }
 
@@ -43,11 +45,11 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Two-factor authentication</CardTitle>
-              <CardDescription>Add an extra layer of security to your account.</CardDescription>
+              <CardTitle>{t.twoFactorTitle}</CardTitle>
+              <CardDescription>{t.twoFactorDescription}</CardDescription>
             </div>
             <Badge variant={isMfaEnabled ? "default" : "secondary"}>
-              {isMfaEnabled ? "Enabled" : "Disabled"}
+              {isMfaEnabled ? t.enabled : t.disabled}
             </Badge>
           </div>
         </CardHeader>
@@ -59,13 +61,13 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
             >
               <span className="text-sm">{factor.friendlyName}</span>
               <Button variant="destructive" size="sm" onClick={() => handleDisableMfa(factor.id)}>
-                Remove
+                {t.remove}
               </Button>
             </div>
           ))}
 
           <Button variant="outline" onClick={() => setEnrollOpen(true)}>
-            Add authenticator app
+            {t.addAuthenticator}
           </Button>
         </CardContent>
       </Card>
@@ -74,12 +76,12 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
 
       <Card className="border-destructive">
         <CardHeader>
-          <CardTitle className="text-destructive">Danger zone</CardTitle>
-          <CardDescription>These actions are permanent and cannot be undone.</CardDescription>
+          <CardTitle className="text-destructive">{t.dangerZone}</CardTitle>
+          <CardDescription>{t.dangerDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <Button variant="destructive" onClick={() => setDeleteOpen(true)}>
-            Delete account
+            {t.deleteAccount}
           </Button>
         </CardContent>
       </Card>
@@ -91,7 +93,7 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
         onSuccess={() => {
           setIsMfaEnabled(true);
           setEnrollOpen(false);
-          toast.success("Two-factor authentication enabled");
+          toast.success(t.twoFactorEnabled);
         }}
       />
 

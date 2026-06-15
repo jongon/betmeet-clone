@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { initiateGoogleSignIn } from "../actions/google-callback";
 
 export function GoogleSignInButton({ next }: { next?: string }) {
+  const t = useDictionary().auth;
   const [pending, setPending] = useState(false);
 
   async function handleClick() {
@@ -39,7 +41,7 @@ export function GoogleSignInButton({ next }: { next?: string }) {
           fill="#EA4335"
         />
       </svg>
-      {pending ? "Redirecting…" : "Continue with Google"}
+      {pending ? t.redirecting : t.google}
     </Button>
   );
 }

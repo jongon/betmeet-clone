@@ -8,28 +8,33 @@ import { LandingHero } from "@/features/education/components/landing-hero";
 import { ScoringTeaser } from "@/features/education/components/scoring-teaser";
 import { getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
-export const metadata: Metadata = {
-  title: es.common.appName,
-  description: es.landing.heroSubtitle,
-  openGraph: {
-    title: es.common.appName,
-    description: es.landing.heroSubtitle,
-    type: "website",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = getDictionary(await getRequestLocale());
+  return {
+    title: dictionary.common.appName,
+    description: dictionary.landing.heroSubtitle,
+    openGraph: {
+      title: dictionary.common.appName,
+      description: dictionary.landing.heroSubtitle,
+      type: "website",
+    },
+  };
+}
 
 export default async function Home() {
   // Session-aware landing (FR-REFINE-15.3): logged-in visitors see their identity
   // menu, anonymous visitors see the sign-in / sign-up actions.
+  const dictionary = getDictionary(await getRequestLocale());
   const profile = await getProfile();
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16">
       <header className="flex flex-wrap items-center justify-between gap-2 pt-4">
         <Link href="/" className="font-display text-lg font-bold tracking-tight">
-          {es.common.appName}
+          {dictionary.common.appName}
         </Link>
         {/* Toggles aligned to the right to match the authenticated app header (FR-REFINE-15.4). */}
         <div className="flex items-center gap-1">
@@ -42,12 +47,12 @@ export default async function Home() {
               isAdmin={profile.verificationStatus === "ADMIN"}
             />
           ) : (
-            <nav className="flex items-center gap-2" aria-label={es.landing.headerSignIn}>
+            <nav className="flex items-center gap-2" aria-label={dictionary.landing.headerSignIn}>
               <Link href="/sign-in" className={buttonVariants({ variant: "ghost", size: "sm" })}>
-                {es.landing.headerSignIn}
+                {dictionary.landing.headerSignIn}
               </Link>
               <Link href="/sign-up" className={buttonVariants({ size: "sm" })}>
-                {es.landing.headerSignUp}
+                {dictionary.landing.headerSignUp}
               </Link>
             </nav>
           )}

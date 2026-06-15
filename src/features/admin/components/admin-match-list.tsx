@@ -1,13 +1,17 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
+import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { AdminMatchRow } from "../types";
 import { ForceResultDialog } from "./force-result-dialog";
 import { RevertOverrideButton } from "./revert-override-button";
 
 export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
+  const t = useDictionary().admin;
+  const locale = useLocale();
+
   if (matches.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">No hay partidos en la competición activa.</p>
-    );
+    return <p className="text-sm text-muted-foreground">{t.noMatches}</p>;
   }
 
   return (
@@ -28,7 +32,7 @@ export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
               {match.homeScore !== null && match.awayScore !== null
                 ? ` · ${match.homeScore}-${match.awayScore}`
                 : ""}
-              {match.kickoffAt ? ` · ${new Date(match.kickoffAt).toLocaleString("es")}` : ""}
+              {match.kickoffAt ? ` · ${new Date(match.kickoffAt).toLocaleString(locale)}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -36,7 +40,7 @@ export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
             {match.homeTeamId && match.awayTeamId ? (
               <ForceResultDialog match={match} />
             ) : (
-              <span className="text-xs text-muted-foreground">Sin equipos definidos</span>
+              <span className="text-xs text-muted-foreground">{t.noTeams}</span>
             )}
           </div>
         </li>

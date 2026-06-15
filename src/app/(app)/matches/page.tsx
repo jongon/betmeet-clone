@@ -3,10 +3,13 @@ import { buttonVariants } from "@/components/ui/button";
 import { MatchCard } from "@/features/competition/components/match-card";
 import { getCurrentUserId } from "@/features/pools/services/session";
 import { getFixtureByDayWithMyPredictions } from "@/features/predictions/queries";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
 export const dynamic = "force-dynamic";
 
 export default async function MatchesPage() {
+  const dictionary = getDictionary(await getRequestLocale());
   const userId = await getCurrentUserId();
   const fixture = await getFixtureByDayWithMyPredictions(userId);
 
@@ -14,20 +17,20 @@ export default async function MatchesPage() {
     <main className="mx-auto max-w-5xl space-y-8 px-4 py-8">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary">Fixture</p>
-          <h1 className="text-3xl font-semibold tracking-tight">Partidos del Mundial</h1>
-          <p className="text-muted-foreground">Horarios mostrados en tu hora local.</p>
+          <p className="text-sm font-medium text-primary">{dictionary.pages.matchesEyebrow}</p>
+          <h1 className="text-3xl font-semibold tracking-tight">{dictionary.pages.matchesTitle}</h1>
+          <p className="text-muted-foreground">{dictionary.pages.matchesDescription}</p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href="/pools">
-          Mis ligas
+          {dictionary.pools.myPools}
         </Link>
       </header>
 
       {!fixture ? (
         <section className="rounded-xl border p-8 text-center" data-testid="fixture-empty">
-          <h2 className="font-semibold">Fixture no disponible</h2>
+          <h2 className="font-semibold">{dictionary.pages.matchesEmptyTitle}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Ejecuta el seed de competición para cargar los datos iniciales.
+            {dictionary.pages.matchesEmptyDescription}
           </p>
         </section>
       ) : (

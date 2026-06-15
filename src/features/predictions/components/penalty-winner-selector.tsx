@@ -1,5 +1,7 @@
 "use client";
 
+import { useDictionary } from "@/i18n/dictionary-provider";
+
 interface PenaltyWinnerSelectorProps {
   homeTeamName: string;
   awayTeamName: string;
@@ -19,11 +21,11 @@ export function PenaltyWinnerSelector({
   onChange,
   disabled,
 }: PenaltyWinnerSelectorProps) {
+  const t = useDictionary().predictions;
+
   return (
     <div className="space-y-2" data-testid="prediction-penalty-winner">
-      <p className="text-xs text-muted-foreground">
-        Si empatan en eliminación directa, elige quién avanza por penales.
-      </p>
+      <p className="text-xs text-muted-foreground">{t.penaltyDescription}</p>
       <div className="flex gap-2">
         <button
           type="button"

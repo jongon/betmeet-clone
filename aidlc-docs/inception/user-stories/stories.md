@@ -167,6 +167,51 @@
 
 ---
 
+## Épica 23: Internacionalización y selector de idioma (Unit 24 — añadida vía `/aidlc:refine`)
+
+> Refine transversal post-construcción. No reinicia Units 1–23. Implementa la
+> infraestructura bilingüe prevista desde Unit 2 (sin prefijo de URL) y corrige la
+> mezcla actual de copy en español/inglés.
+
+### US-23.1: Elegir idioma de la aplicación
+**Como** usuario
+**Quiero** cambiar el idioma entre español e inglés
+**Para** usar la aplicación en el idioma que prefiera.
+- **Criterios de Aceptación**:
+  - El español (`es`) es el idioma por defecto.
+  - El usuario puede seleccionar `Español` o `English` desde el `UserMenu` y desde `Settings/Profile`.
+  - El cambio se aplica sin cambiar la URL actual.
+  - La preferencia se guarda en cookie y en el perfil del usuario para persistir entre sesiones y dispositivos.
+
+### US-23.2: Ver una experiencia homogénea sin mezcla de idiomas
+**Como** usuario
+**Quiero** que la interfaz no mezcle copys en español e inglés
+**Para** entender cada pantalla sin cambios de idioma inesperados.
+- **Criterios de Aceptación**:
+  - En `es`, los textos visibles están en español internacional, respetando CF-5 y préstamos naturales como `email`, `passkey` y `nickname`.
+  - En `en`, los textos visibles están en inglés y usan los equivalentes de producto correctos (`League`, `Prediction`, `Match start`, `Invitation`) salvo préstamos/términos técnicos que se mantienen.
+  - Labels, placeholders, botones, errores, toasts, empty states, metadata y `aria-label` salen del diccionario tipado.
+
+### US-23.3: Leer el Centro de Reglas en mi idioma
+**Como** usuario
+**Quiero** consultar las reglas en español o inglés según mi preferencia
+**Para** entender cómo jugar y puntuar sin depender de otro idioma.
+- **Criterios de Aceptación**:
+  - El contenido MDX de reglas existe en `content/rules/es/` y `content/rules/en/`.
+  - `/rules` muestra los documentos del locale activo sin cambiar la ruta.
+  - El build valida que las versiones por idioma tengan frontmatter compatible y no rompan la colección tipada.
+
+### US-23.4: Mantener URLs estables al cambiar idioma
+**Como** usuario que comparte o guarda enlaces
+**Quiero** que las URLs existentes sigan funcionando igual
+**Para** no romper enlaces ni navegación al activar inglés.
+- **Criterios de Aceptación**:
+  - No se introducen rutas `/es/*` ni `/en/*` en esta unidad.
+  - Todas las rutas existentes permanecen intactas.
+  - El locale activo se resuelve por cookie/perfil y no por path.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

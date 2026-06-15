@@ -9,7 +9,7 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { getMfaFactors } from "../actions/mfa-verify";
 import { resendConfirmation } from "../actions/resend-confirmation";
 import { signIn } from "../actions/sign-in";
@@ -20,6 +20,7 @@ import { UnconfirmedEmailDialog } from "./unconfirmed-email-dialog";
 type ActionState = Awaited<ReturnType<typeof signIn>>;
 
 export function SignInForm({ next }: { next?: string }) {
+  const t = useDictionary().auth;
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => signIn(formData),
     undefined,
@@ -88,7 +89,7 @@ export function SignInForm({ next }: { next?: string }) {
         <FormError messages={state?.error?._form as string[] | undefined} />
 
         <div className="space-y-1.5">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t.email}</Label>
           <Input
             id="email"
             type="email"
@@ -102,12 +103,12 @@ export function SignInForm({ next }: { next?: string }) {
 
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t.password}</Label>
             <Link
               href="/forgot-password"
               className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
             >
-              Forgot password?
+              {t.forgotPassword}
             </Link>
           </div>
           <Input
@@ -129,18 +130,18 @@ export function SignInForm({ next }: { next?: string }) {
             {...register("rememberMe")}
           />
           <Label htmlFor="rememberMe" className="text-sm font-normal">
-            Remember me for 30 days
+            {t.rememberMe}
           </Label>
         </div>
 
         <Button type="submit" className="w-full" disabled={pending}>
-          {pending ? "Signing in…" : "Sign in"}
+          {pending ? t.signingIn : t.signInSubmit}
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          {t.noAccount}{" "}
           <Link href="/sign-up" className="underline underline-offset-4 hover:text-foreground">
-            Sign up
+            {t.signUpSubmit}
           </Link>
         </p>
       </form>
@@ -151,24 +152,24 @@ export function SignInForm({ next }: { next?: string }) {
           className="mt-4 space-y-3 rounded-md border border-border bg-muted/40 p-4"
         >
           <div className="space-y-1">
-            <p className="text-sm font-medium">{es.auth.unconfirmedTitle}</p>
-            <p className="text-sm text-muted-foreground">{es.auth.unconfirmedDescription}</p>
+            <p className="text-sm font-medium">{t.unconfirmedTitle}</p>
+            <p className="text-sm text-muted-foreground">{t.unconfirmedDescription}</p>
           </div>
 
           {resendState?.success ? (
-            <p className="text-sm text-muted-foreground">{es.auth.resendSuccess}</p>
+            <p className="text-sm text-muted-foreground">{t.resendSuccess}</p>
           ) : null}
-          {resendState?.retryAfterSeconds ? <FormError messages={[es.auth.cooldown]} /> : null}
+          {resendState?.retryAfterSeconds ? <FormError messages={[t.cooldown]} /> : null}
 
           <div className="flex flex-col gap-2 sm:flex-row">
             <form action={resendAction} className="flex-1">
               <input type="hidden" name="email" value={unconfirmedEmail} />
               <Button type="submit" variant="outline" className="w-full" disabled={resendPending}>
-                {resendPending ? es.auth.resending : es.auth.resend}
+                {resendPending ? t.resending : t.resend}
               </Button>
             </form>
             <Button type="button" className="flex-1" onClick={() => setChangeEmailOpen(true)}>
-              {es.auth.changeEmail}
+              {t.changeEmail}
             </Button>
           </div>
         </div>

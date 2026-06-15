@@ -9,7 +9,7 @@ import {
   derivePenaltyWinner,
   type ScoringExample,
 } from "@/features/scoring/compute-score";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { ScoreBreakdownExplainer } from "./score-breakdown-explainer";
 
 function clampGoals(value: string): number {
@@ -57,6 +57,7 @@ function GoalInput({
  * winner of each shootout is derived and the bonus applies only when they match.
  */
 export function ScoringCalculator() {
+  const { calculator } = useDictionary();
   const [predictedHome, setPredictedHome] = useState(2);
   const [predictedAway, setPredictedAway] = useState(2);
   const [actualHome, setActualHome] = useState(2);
@@ -105,40 +106,40 @@ export function ScoringCalculator() {
   return (
     <Card data-testid="scoring-calculator">
       <CardHeader>
-        <CardTitle>{es.calculator.title}</CardTitle>
-        <p className="text-sm text-muted-foreground">{es.calculator.description}</p>
+        <CardTitle>{calculator.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{calculator.description}</p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-2 gap-6">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">{es.calculator.prediction}</legend>
+            <legend className="text-sm font-medium">{calculator.prediction}</legend>
             <div className="flex gap-3">
               <GoalInput
                 id="pred-home"
-                label={es.calculator.home}
+                label={calculator.home}
                 value={predictedHome}
                 onChange={setPredictedHome}
               />
               <GoalInput
                 id="pred-away"
-                label={es.calculator.away}
+                label={calculator.away}
                 value={predictedAway}
                 onChange={setPredictedAway}
               />
             </div>
           </fieldset>
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">{es.calculator.actual}</legend>
+            <legend className="text-sm font-medium">{calculator.actual}</legend>
             <div className="flex gap-3">
               <GoalInput
                 id="act-home"
-                label={es.calculator.home}
+                label={calculator.home}
                 value={actualHome}
                 onChange={setActualHome}
               />
               <GoalInput
                 id="act-away"
-                label={es.calculator.away}
+                label={calculator.away}
                 value={actualAway}
                 onChange={setActualAway}
               />
@@ -154,76 +155,72 @@ export function ScoringCalculator() {
             data-testid="calculator-knockout"
           />
           <Label htmlFor="knockout" className="text-sm">
-            {es.calculator.knockout}
+            {calculator.knockout}
           </Label>
         </div>
 
         {showPenalty && (
           <fieldset className="space-y-3 rounded-md border border-dashed p-4">
-            <legend className="px-1 text-sm font-medium">{es.calculator.penaltyShootout}</legend>
-            <p className="text-sm text-muted-foreground">{es.calculator.penaltyBonusHint}</p>
+            <legend className="px-1 text-sm font-medium">{calculator.penaltyShootout}</legend>
+            <p className="text-sm text-muted-foreground">{calculator.penaltyBonusHint}</p>
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <span className="text-sm font-medium">{es.calculator.prediction}</span>
+                <span className="text-sm font-medium">{calculator.prediction}</span>
                 <div className="flex gap-3">
                   <GoalInput
                     id="pred-pen-home"
-                    label={es.calculator.home}
+                    label={calculator.home}
                     value={predictedPenaltyHome}
                     onChange={setPredictedPenaltyHome}
                   />
                   <GoalInput
                     id="pred-pen-away"
-                    label={es.calculator.away}
+                    label={calculator.away}
                     value={predictedPenaltyAway}
                     onChange={setPredictedPenaltyAway}
                   />
                 </div>
                 {predictedPenaltyTie ? (
                   <p role="alert" className="text-sm text-destructive">
-                    {es.calculator.penaltyTie}
+                    {calculator.penaltyTie}
                   </p>
                 ) : (
                   <p
                     className="text-sm text-muted-foreground"
                     data-testid="calculator-predicted-penalty-winner"
                   >
-                    {es.calculator.penaltyDerivedWinner}{" "}
-                    {derivedPredictedPenaltyWinner === "home"
-                      ? es.calculator.home
-                      : es.calculator.away}
+                    {calculator.penaltyDerivedWinner}{" "}
+                    {derivedPredictedPenaltyWinner === "home" ? calculator.home : calculator.away}
                   </p>
                 )}
               </div>
               <div className="space-y-2">
-                <span className="text-sm font-medium">{es.calculator.actual}</span>
+                <span className="text-sm font-medium">{calculator.actual}</span>
                 <div className="flex gap-3">
                   <GoalInput
                     id="act-pen-home"
-                    label={es.calculator.home}
+                    label={calculator.home}
                     value={actualPenaltyHome}
                     onChange={setActualPenaltyHome}
                   />
                   <GoalInput
                     id="act-pen-away"
-                    label={es.calculator.away}
+                    label={calculator.away}
                     value={actualPenaltyAway}
                     onChange={setActualPenaltyAway}
                   />
                 </div>
                 {actualPenaltyTie ? (
                   <p role="alert" className="text-sm text-destructive">
-                    {es.calculator.penaltyTie}
+                    {calculator.penaltyTie}
                   </p>
                 ) : (
                   <p
                     className="text-sm text-muted-foreground"
                     data-testid="calculator-actual-penalty-winner"
                   >
-                    {es.calculator.penaltyDerivedWinner}{" "}
-                    {derivedActualPenaltyWinner === "home"
-                      ? es.calculator.home
-                      : es.calculator.away}
+                    {calculator.penaltyDerivedWinner}{" "}
+                    {derivedActualPenaltyWinner === "home" ? calculator.home : calculator.away}
                   </p>
                 )}
               </div>
@@ -232,7 +229,7 @@ export function ScoringCalculator() {
         )}
 
         <div className="rounded-md border bg-muted/30 p-4">
-          <p className="mb-2 text-sm font-medium">{es.calculator.total}</p>
+          <p className="mb-2 text-sm font-medium">{calculator.total}</p>
           <ScoreBreakdownExplainer breakdown={breakdown} live />
         </div>
       </CardContent>

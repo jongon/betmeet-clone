@@ -5,10 +5,12 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { createPool } from "../actions/create-pool";
 import type { PoolType } from "../types";
 
 export function CreatePoolForm() {
+  const t = useDictionary().pools;
   const [name, setName] = useState("");
   const [type, setType] = useState<PoolType>("PUBLIC");
   const [capacity, setCapacity] = useState(20);
@@ -28,7 +30,7 @@ export function CreatePoolForm() {
       <FormError messages={error ? [error] : undefined} />
 
       <div className="space-y-2">
-        <Label htmlFor="pool-name">Nombre</Label>
+        <Label htmlFor="pool-name">{t.name}</Label>
         <Input
           id="pool-name"
           name="name"
@@ -37,26 +39,26 @@ export function CreatePoolForm() {
           required
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="La liga de la oficina"
+          placeholder={t.namePlaceholder}
         />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="pool-type">Visibilidad</Label>
+          <Label htmlFor="pool-type">{t.visibility}</Label>
           <select
             id="pool-type"
             className="h-9 w-full rounded-lg border border-border bg-background px-3 text-sm"
             value={type}
             onChange={(event) => setType(event.target.value as PoolType)}
           >
-            <option value="PUBLIC">Público</option>
-            <option value="PRIVATE">Privado</option>
+            <option value="PUBLIC">{t.public}</option>
+            <option value="PRIVATE">{t.private}</option>
           </select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="pool-capacity">Capacidad</Label>
+          <Label htmlFor="pool-capacity">{t.capacity}</Label>
           <Input
             id="pool-capacity"
             name="capacity"
@@ -71,7 +73,7 @@ export function CreatePoolForm() {
       </div>
 
       <Button type="submit" disabled={pending} data-testid="create-pool-submit">
-        {pending ? "Creando..." : "Crear liga"}
+        {pending ? t.creating : t.create}
       </Button>
     </form>
   );

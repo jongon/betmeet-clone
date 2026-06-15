@@ -3,27 +3,29 @@ import { redirect } from "next/navigation";
 import { Separator } from "@/components/ui/separator";
 import { getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
-
-const NAV_LINKS = [
-  { href: "/settings/profile", label: "Profile" },
-  { href: "/settings/security", label: "Security" },
-];
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
+  const dictionary = getDictionary(await getRequestLocale());
+  const navLinks = [
+    { href: "/settings/profile", label: dictionary.settings.profile },
+    { href: "/settings/security", label: dictionary.settings.security },
+  ];
   const profile = await getProfile();
   if (!profile) redirect("/sign-in");
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{dictionary.settings.title}</h1>
         <p className="text-sm text-muted-foreground">{getDisplayNickname(profile)}</p>
       </div>
 
       <div className="flex gap-8">
-        <nav aria-label="Settings navigation" className="w-40 shrink-0">
+        <nav aria-label={dictionary.settings.navigation} className="w-40 shrink-0">
           <ul className="space-y-1">
-            {NAV_LINKS.map(({ href, label }) => (
+            {navLinks.map(({ href, label }) => (
               <li key={href}>
                 <Link
                   href={href}

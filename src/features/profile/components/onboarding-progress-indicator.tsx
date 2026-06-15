@@ -1,10 +1,13 @@
+"use client";
+
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
-  { label: "Nickname", key: "nickname" },
-  { label: "Avatar", key: "avatar" },
-  { label: "Reglas", key: "rules" },
-  { label: "Passkey", key: "passkey" },
+  { labelKey: "stepNickname", key: "nickname" },
+  { labelKey: "stepAvatar", key: "avatar" },
+  { labelKey: "stepRules", key: "rules" },
+  { labelKey: "stepPasskey", key: "passkey" },
 ] as const;
 
 type StepKey = (typeof STEPS)[number]["key"];
@@ -14,10 +17,11 @@ interface OnboardingProgressIndicatorProps {
 }
 
 export function OnboardingProgressIndicator({ currentStep }: OnboardingProgressIndicatorProps) {
+  const t = useDictionary().onboarding;
   const currentIndex = STEPS.findIndex((s) => s.key === currentStep);
 
   return (
-    <nav aria-label="Onboarding progress" className="flex items-center justify-center gap-2">
+    <nav aria-label={t.progress} className="flex items-center justify-center gap-2">
       {STEPS.map((step, i) => {
         const isComplete = i < currentIndex;
         const isCurrent = i === currentIndex;
@@ -49,7 +53,7 @@ export function OnboardingProgressIndicator({ currentStep }: OnboardingProgressI
                   isCurrent ? "font-medium text-foreground" : "text-muted-foreground",
                 )}
               >
-                {step.label}
+                {t[step.labelKey]}
               </span>
             </div>
           </div>

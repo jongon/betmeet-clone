@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { checkNicknameAvailability } from "../actions/check-nickname-availability";
 import { setNickname } from "../actions/set-nickname";
 import { generateNicknameSuggestions } from "../services/nickname-suggestions";
@@ -15,16 +16,18 @@ interface NicknameStepProps {
 }
 
 export function NicknameStep({ onComplete }: NicknameStepProps) {
+  const dictionary = useDictionary();
+  const t = dictionary.onboarding;
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
-  // Random suggestions must be generated client-side only; running the random
-  // generator during render produces a server/client hydration mismatch.
-  useEffect(() => {
-    setSuggestions(generateNicknameSuggestions(5));
-  }, []);
+  function ensureSuggestions() {
+    if (suggestions.length === 0) {
+      setSuggestions(generateNicknameSuggestions(5));
+    }
+  }
 
   async function handleAvailabilityCheck() {
     if (!value) return;
@@ -46,43 +49,42 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Choose your nickname</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This is how other players will identify you. A unique #discriminator is added
-          automatically.
-        </p>
+        <h2 className="text-xl font-semibold">{t.nicknameTitle}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t.nicknameDescription}</p>
       </div>
 
       <form action={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <Label htmlFor="nicknameBase">Nickname</Label>
+          <Label htmlFor="nicknameBase">{t.nicknameLabel}</Label>
           <div className="flex gap-2">
             <Input
               id="nicknameBase"
               name="nicknameBase"
               value={value}
               onChange={(e) => {
+                ensureSuggestions();
                 setValue(e.target.value);
                 setAvailable(null);
               }}
+              onFocus={ensureSuggestions}
               onBlur={handleAvailabilityCheck}
               placeholder="e.g. SwiftEagle"
               maxLength={20}
               aria-describedby="nickname-hint"
             />
-            <Button type="submit">Continue</Button>
+            <Button type="submit">{dictionary.common.continue}</Button>
           </div>
           <p id="nickname-hint" className="text-xs text-muted-foreground">
-            3–20 characters. Letters, numbers, _ and - only.
+            {t.nicknameHint}
           </p>
           {available === true && (
             <p className="text-xs text-green-600" role="status">
-              Available!
+              {t.nicknameAvailable}
             </p>
           )}
           {available === false && !error && (
             <p className="text-xs text-destructive" role="status">
-              This nickname is fully taken.
+              {t.nicknameTaken}
             </p>
           )}
           <FormError messages={error ? [error] : undefined} />
@@ -91,7 +93,7 @@ export function NicknameStep({ onComplete }: NicknameStepProps) {
 
       {suggestions.length > 0 && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Suggestions</p>
+          <p className="text-sm font-medium text-muted-foreground">{t.nicknameSuggestions}</p>
           <div className="flex flex-wrap gap-2">
             {suggestions.map((s) => (
               <button key={s} type="button" onClick={() => setValue(s)}>

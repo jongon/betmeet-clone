@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/config";
+
 export type VerificationStatus = "UNVERIFIED" | "VERIFIED" | "ADMIN";
 export type AvatarSource = "GOOGLE_PHOTO" | "DEFAULT_SET" | "CUSTOM_UPLOAD";
 
@@ -10,6 +12,7 @@ export interface Profile {
   verificationStatus: VerificationStatus;
   mfaEnabled: boolean;
   onboardingCompleted: boolean;
+  locale: Locale;
   deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;

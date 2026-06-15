@@ -1,11 +1,13 @@
 "use client";
 
 import { Component, type ReactNode } from "react";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
+import type { Dictionary } from "@/i18n/types";
 import { ScoringTable } from "./scoring-table";
 
 interface Props {
   children: ReactNode;
+  calculator: Dictionary["calculator"];
 }
 
 interface State {
@@ -17,7 +19,7 @@ interface State {
  * calculator throws, it degrades to the static scoring table so the user still
  * learns the rules and the page never breaks (BR-2.14).
  */
-export class CalculatorErrorBoundary extends Component<Props, State> {
+class CalculatorErrorBoundaryInner extends Component<Props, State> {
   state: State = { hasError: false };
 
   static getDerivedStateFromError(): State {
@@ -28,12 +30,19 @@ export class CalculatorErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="space-y-2" data-testid="calculator-fallback">
-          <p className="text-sm font-medium">{es.calculator.fallbackTitle}</p>
-          <p className="text-sm text-muted-foreground">{es.calculator.fallbackNote}</p>
+          <p className="text-sm font-medium">{this.props.calculator.fallbackTitle}</p>
+          <p className="text-sm text-muted-foreground">{this.props.calculator.fallbackNote}</p>
           <ScoringTable />
         </div>
       );
     }
     return this.props.children;
   }
+}
+
+export function CalculatorErrorBoundary({ children }: { children: ReactNode }) {
+  const { calculator } = useDictionary();
+  return (
+    <CalculatorErrorBoundaryInner calculator={calculator}>{children}</CalculatorErrorBoundaryInner>
+  );
 }

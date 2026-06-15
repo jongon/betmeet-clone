@@ -4,6 +4,7 @@ import { UserRound } from "lucide-react";
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import type { AvatarAsset } from "../types";
 import { AvatarSourceTabs } from "./avatar-source-tabs";
 
@@ -20,12 +21,13 @@ export function AvatarStep({
   googleAvatarUrl,
   onComplete,
 }: AvatarStepProps) {
+  const t = useDictionary().onboarding;
   const [previewUrl, setPreviewUrl] = useState(currentAvatarUrl);
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Choose your avatar</h2>
+        <h2 className="text-xl font-semibold">{t.avatarTitle}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Elige una imagen que te represente en tu liga.
         </p>
@@ -33,7 +35,7 @@ export function AvatarStep({
 
       <div className="flex justify-center">
         <Avatar size="lg" className="size-24 ring-2 ring-border">
-          {previewUrl && <AvatarImage src={previewUrl} alt="Your current avatar" />}
+          {previewUrl && <AvatarImage src={previewUrl} alt={t.avatarTitle} />}
           <AvatarFallback>
             <UserRound className="size-10 text-muted-foreground" />
           </AvatarFallback>
@@ -48,7 +50,7 @@ export function AvatarStep({
       />
 
       <Button className="w-full" onClick={onComplete}>
-        Continue with this avatar
+        {t.avatarContinue}
       </Button>
     </div>
   );

@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import type { TeamView } from "../types";
 
 export function TeamBadge({
@@ -8,9 +11,11 @@ export function TeamBadge({
   team: TeamView | null;
   placeholder: string | null;
 }) {
+  const { competition } = useDictionary();
+
   if (!team) {
     return (
-      <span className="text-sm text-muted-foreground">{placeholder ?? "Equipo por definir"}</span>
+      <span className="text-sm text-muted-foreground">{placeholder ?? competition.teamTbd}</span>
     );
   }
 

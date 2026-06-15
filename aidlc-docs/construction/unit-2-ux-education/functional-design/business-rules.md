@@ -72,8 +72,8 @@
 
 | ID | Regla |
 |---|---|
-| **BR-2.28** | Toda copy de UI y educativa referencia una clave de diccionario; no se permiten strings literales de cara al usuario embebidos en componentes. |
-| **BR-2.29** | El idioma activo es español (`es`); la estructura de diccionario y de contenido MDX debe permitir añadir idiomas sin refactorizar componentes. |
+| **BR-2.28** | Toda copy de UI y educativa referencia una clave de diccionario; no se permiten strings literales de cara al usuario embebidos en componentes. **Unit 24 materializa esta regla a escala de toda la app**: auth, onboarding, settings, pools, predictions, competition, admin, notifications, páginas, metadata, `aria-label`, toasts y errores. |
+| **BR-2.29** | El idioma por defecto es español (`es`). Desde **Unit 24**, los idiomas activos son `es` y `en`; la estrategia sigue siendo i18n sin prefijo `[locale]` en URL (Opción A), con selector de idioma, cookie/perfil y contenido MDX bilingüe (`content/rules/es` + `content/rules/en`). |
 
 ---
 

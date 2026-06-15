@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { confirmMfaEnrollment, enrollMfa } from "../actions/mfa-enroll";
 
 interface MFAEnrollmentModalProps {
@@ -23,6 +24,7 @@ interface MFAEnrollmentModalProps {
 type Step = "loading" | "error" | "scan" | "verify" | "done";
 
 export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentModalProps) {
+  const t = useDictionary().auth;
   const [step, setStep] = useState<Step>("loading");
   const [factorId, setFactorId] = useState("");
   const [qrCode, setQrCode] = useState("");
@@ -42,7 +44,7 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
     enrollMfa().then((result) => {
       if (cancelled) return;
       if ("error" in result) {
-        setError(result.error ?? "Failed to start enrollment");
+        setError(result.error ?? t.mfaEnrollStartFailed);
         setStep("error");
         return;
       }
@@ -55,11 +57,11 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [open, t.mfaEnrollStartFailed]);
 
   async function handleVerify() {
     if (code.length !== 6) {
-      setError("Code must be 6 digits");
+      setError(t.mfaCodeLength);
       return;
     }
     setPending(true);
@@ -77,19 +79,17 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Enable two-factor authentication</DialogTitle>
-          <DialogDescription>
-            Scan the QR code with your authenticator app, then enter the code to confirm.
-          </DialogDescription>
+          <DialogTitle>{t.mfaEnrollTitle}</DialogTitle>
+          <DialogDescription>{t.mfaEnrollDescription}</DialogDescription>
         </DialogHeader>
 
-        {step === "loading" && <p className="text-sm text-muted-foreground">Loading…</p>}
+        {step === "loading" && <p className="text-sm text-muted-foreground">{t.submitting}</p>}
 
         {step === "error" && (
           <div className="space-y-4">
-            <FormError messages={error ? [error] : ["Failed to start enrollment"]} />
+            <FormError messages={error ? [error] : [t.mfaEnrollStartFailed]} />
             <Button variant="outline" className="w-full" onClick={onClose}>
-              Close
+              {t.close}
             </Button>
           </div>
         )}
@@ -102,13 +102,13 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
                   next/image cannot parse — use a plain img (no optimization
                   applies to a data URI anyway). */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrCode} alt="TOTP QR code" width={192} height={192} className="h-48 w-48" />
+              <img src={qrCode} alt={t.mfaQrAlt} width={192} height={192} className="h-48 w-48" />
             </div>
             <p className="text-center text-xs text-muted-foreground break-all">
-              Manual entry: <span className="font-mono">{secret}</span>
+              {t.mfaManualEntry} <span className="font-mono">{secret}</span>
             </p>
             <Button className="w-full" onClick={() => setStep("verify")}>
-              I&apos;ve scanned the code
+              {t.mfaScanned}
             </Button>
           </div>
         )}
@@ -117,7 +117,7 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
           <div className="space-y-4">
             <FormError messages={error ? [error] : undefined} />
             <div className="space-y-1.5">
-              <Label htmlFor="totp-code">Authentication code</Label>
+              <Label htmlFor="totp-code">{t.mfaCode}</Label>
               <Input
                 id="totp-code"
                 type="text"
@@ -130,7 +130,7 @@ export function MFAEnrollmentModal({ open, onClose, onSuccess }: MFAEnrollmentMo
               />
             </div>
             <Button className="w-full" disabled={pending} onClick={handleVerify}>
-              {pending ? "Verifying…" : "Enable 2FA"}
+              {pending ? t.mfaVerifying : t.mfaEnable}
             </Button>
           </div>
         )}

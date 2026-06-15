@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { kickMember } from "../actions/kick-member";
 
 export function KickButton({ poolId, userId }: { poolId: string; userId: string }) {
+  const t = useDictionary().pools;
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -25,7 +27,7 @@ export function KickButton({ poolId, userId }: { poolId: string; userId: string 
         disabled={pending}
         data-testid={`kick-member-${userId}`}
       >
-        {pending ? "Expulsando..." : "Expulsar"}
+        {pending ? t.kicking : t.kick}
       </Button>
       {message && <p className="text-xs text-destructive">{message}</p>}
     </div>

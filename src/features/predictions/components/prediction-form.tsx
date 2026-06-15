@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { savePrediction } from "../actions/save-prediction";
 import type { PredictionMatchView } from "../types";
 import { PenaltyWinnerSelector } from "./penalty-winner-selector";
@@ -14,6 +15,7 @@ interface PredictionFormProps {
 }
 
 export function PredictionForm({ match }: PredictionFormProps) {
+  const t = useDictionary().predictions;
   const [homeScore, setHomeScore] = useState(match.prediction?.homeScore ?? 0);
   const [awayScore, setAwayScore] = useState(match.prediction?.awayScore ?? 0);
   const [penaltyWinner, setPenaltyWinner] = useState<string | null>(
@@ -87,8 +89,8 @@ export function PredictionForm({ match }: PredictionFormProps) {
         <PredictionScoreControls
           homeScore={homeScore}
           awayScore={awayScore}
-          homeLabel={match.homeTeam?.name ?? "Casa"}
-          awayLabel={match.awayTeam?.name ?? "Fuera"}
+          homeLabel={match.homeTeam?.name ?? t.home}
+          awayLabel={match.awayTeam?.name ?? t.away}
           onChange={(h, a) => {
             setHomeScore(h);
             setAwayScore(a);
@@ -123,7 +125,7 @@ export function PredictionForm({ match }: PredictionFormProps) {
 
       {isReadOnly && !savedPrediction && (
         <div className="rounded-md bg-muted/40 p-3 text-center">
-          <p className="text-sm text-muted-foreground">Sin predicción guardada</p>
+          <p className="text-sm text-muted-foreground">{t.noPrediction}</p>
         </div>
       )}
 
@@ -135,7 +137,7 @@ export function PredictionForm({ match }: PredictionFormProps) {
             onClick={handleSave}
             size="sm"
           >
-            {pending ? "Guardando…" : hasExisting ? "Actualizar predicción" : "Guardar predicción"}
+            {pending ? t.saving : hasExisting ? t.update : t.save}
           </Button>
         </div>
       )}

@@ -8,12 +8,14 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { signUp } from "../actions/sign-up";
 import { type SignUpInput, SignUpSchema } from "../schemas";
 
 type ActionState = Awaited<ReturnType<typeof signUp>>;
 
 export function SignUpForm({ next }: { next?: string }) {
+  const t = useDictionary().auth;
   const [state, formAction, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => signUp(formData),
     undefined,
@@ -57,7 +59,7 @@ export function SignUpForm({ next }: { next?: string }) {
       <FormError messages={state?.error?._form as string[] | undefined} />
 
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input
           id="email"
           type="email"
@@ -70,7 +72,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t.password}</Label>
         <Input
           id="password"
           type="password"
@@ -83,7 +85,7 @@ export function SignUpForm({ next }: { next?: string }) {
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="confirmPassword">Confirm password</Label>
+        <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
         <Input
           id="confirmPassword"
           type="password"
@@ -96,13 +98,13 @@ export function SignUpForm({ next }: { next?: string }) {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Creating account…" : "Create account"}
+        {pending ? t.signingUp : t.signUpSubmit}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
+        {t.hasAccount}{" "}
         <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground">
-          Sign in
+          {t.signInSubmit}
         </Link>
       </p>
     </form>

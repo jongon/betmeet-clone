@@ -1,19 +1,19 @@
 "use client";
 
 import { useEffect, useSyncExternalStore } from "react";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  email_link_invalid: "El enlace de confirmación no es válido o ya expiró. Solicita uno nuevo.",
-  exchange_failed:
-    "No pudimos completar la confirmación. Intenta iniciar sesión o solicita otro enlace.",
-  verify_failed: "No pudimos verificar el enlace. Puede estar vencido o ya usado.",
-  otp_expired: "El enlace de confirmación expiró o ya fue usado. Solicita uno nuevo.",
-  access_denied: "Supabase rechazó el enlace de confirmación. Solicita uno nuevo.",
-};
-
-function messageFor(error: string | undefined) {
+function messageFor(
+  error: string | undefined,
+  messages: ReturnType<typeof useDictionary>["auth"]["linkErrors"],
+) {
   if (!error) return null;
-  return ERROR_MESSAGES[error] ?? "No pudimos completar la autenticación. Intenta de nuevo.";
+  if (error === "email_link_invalid") return messages.missing_token;
+  if (error === "exchange_failed") return messages.exchange_failed;
+  if (error === "verify_failed") return messages.invalid;
+  if (error === "otp_expired") return messages.expired;
+  if (error === "access_denied") return messages.access_denied;
+  return messages.fallback;
 }
 
 let currentHashError: string | null = null;
@@ -38,6 +38,7 @@ function setCurrentHashError(error: string) {
 }
 
 export function AuthLinkErrorMessage({ error }: { error?: string }) {
+  const messages = useDictionary().auth.linkErrors;
   const hashError = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   useEffect(() => {
@@ -52,7 +53,7 @@ export function AuthLinkErrorMessage({ error }: { error?: string }) {
     window.history.replaceState(null, "", cleanUrl);
   }, []);
 
-  const message = messageFor(hashError ?? error);
+  const message = messageFor(hashError ?? error, messages);
   if (!message) return null;
 
   return (

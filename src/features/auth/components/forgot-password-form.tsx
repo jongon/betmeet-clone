@@ -6,11 +6,13 @@ import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { forgotPassword } from "../actions/forgot-password";
 
 type ActionState = Awaited<ReturnType<typeof forgotPassword>>;
 
 export function ForgotPasswordForm() {
+  const t = useDictionary().auth;
   const [state, action, pending] = useActionState<ActionState, FormData>(
     async (_prev, formData) => forgotPassword(formData),
     undefined,
@@ -19,10 +21,8 @@ export function ForgotPasswordForm() {
   if (state?.success) {
     return (
       <div role="status" className="rounded-md bg-muted px-4 py-6 text-center text-sm">
-        <p className="font-medium">Check your email</p>
-        <p className="mt-1 text-muted-foreground">
-          If an account exists for that address, we sent a password reset link.
-        </p>
+        <p className="font-medium">{t.checkEmailTitle}</p>
+        <p className="mt-1 text-muted-foreground">{t.checkEmailDescription}</p>
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function ForgotPasswordForm() {
   return (
     <form action={action} className="space-y-4" noValidate>
       <div className="space-y-1.5">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t.email}</Label>
         <Input
           id="email"
           name="email"
@@ -43,12 +43,12 @@ export function ForgotPasswordForm() {
       </div>
 
       <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Sending…" : "Send reset link"}
+        {pending ? t.sending : t.forgotSubmit}
       </Button>
 
       <p className="text-center text-sm text-muted-foreground">
         <Link href="/sign-in" className="underline underline-offset-4 hover:text-foreground">
-          Back to sign in
+          {t.backToSignIn}
         </Link>
       </p>
     </form>

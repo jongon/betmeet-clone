@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { triggerSync } from "../actions/trigger-sync";
 
 const SCOPES = ["FIXTURES", "LIVE_STATUS", "RESULTS", "FULL"] as const;
 
 export function TriggerSyncControls() {
+  const t = useDictionary().admin;
   const [scope, setScope] = useState<(typeof SCOPES)[number]>("RESULTS");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function TriggerSyncControls() {
 
   return (
     <section className="space-y-2 rounded-xl border p-4" data-testid="trigger-sync">
-      <h2 className="text-lg font-semibold">Sincronizar ahora</h2>
+      <h2 className="text-lg font-semibold">{t.syncNow}</h2>
       <FormError messages={error ? [error] : undefined} />
       <div className="flex flex-wrap items-center gap-2">
         <select
@@ -38,7 +40,7 @@ export function TriggerSyncControls() {
           ))}
         </select>
         <Button onClick={handleTrigger} disabled={pending} data-testid="admin-sync-trigger">
-          {pending ? "Sincronizando…" : "Sincronizar ahora"}
+          {pending ? t.syncing : t.syncNow}
         </Button>
       </div>
     </section>

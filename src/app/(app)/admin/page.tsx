@@ -6,19 +6,25 @@ import { RecentRunsTable } from "@/features/admin/components/recent-runs-table";
 import { SyncStatusPanel } from "@/features/admin/components/sync-status-panel";
 import { TriggerSyncControls } from "@/features/admin/components/trigger-sync-controls";
 import { getSyncDashboard } from "@/features/admin/queries";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
-export const metadata: Metadata = { title: "Admin · Sincronización" };
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = getDictionary(await getRequestLocale());
+  return { title: `Admin · ${dictionary.admin.syncNow}` };
+}
 
 export default async function AdminDashboardPage() {
+  const dictionary = getDictionary(await getRequestLocale());
   const data = await getSyncDashboard();
   if (!data) notFound(); // not an admin (BR-7.1)
 
   return (
     <main className="mx-auto max-w-5xl space-y-6 px-4 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Panel de administración</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{dictionary.pages.adminTitle}</h1>
         <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/admin/matches">
-          Forzar resultados
+          {dictionary.pages.forceResults}
         </Link>
       </div>
 
@@ -26,7 +32,7 @@ export default async function AdminDashboardPage() {
       <SyncStatusPanel data={data} />
 
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Sincronizaciones recientes</h2>
+        <h2 className="text-lg font-semibold">{dictionary.pages.recentSyncs}</h2>
         <RecentRunsTable runs={data.recentRuns} />
       </section>
     </main>

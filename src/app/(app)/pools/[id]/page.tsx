@@ -10,12 +10,15 @@ import { getPoolDetail } from "@/features/pools/queries";
 import { getCurrentUserId } from "@/features/pools/services/session";
 import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
 import { getPoolLeaderboard } from "@/features/scoring-rankings/queries";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
 interface PoolDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
 export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
+  const dictionary = getDictionary(await getRequestLocale());
   const { id } = await params;
   const pool = await getPoolDetail(id);
   if (!pool) notFound();
@@ -26,19 +29,19 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
       <Link className={buttonVariants({ variant: "ghost" })} href="/pools">
-        Volver
+        {dictionary.pools.back}
       </Link>
 
       <header className="space-y-3 rounded-xl border p-6">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">{pool.name}</h1>
           <Badge variant={pool.type === "PUBLIC" ? "default" : "secondary"}>
-            {pool.type === "PUBLIC" ? "Público" : "Privado"}
+            {pool.type === "PUBLIC" ? dictionary.pools.public : dictionary.pools.private}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          {pool.memberCount}/{pool.capacity} participantes ·{" "}
-          {pool.isOwner ? "Eres administrador" : "Miembro"}
+          {pool.memberCount}/{pool.capacity} {dictionary.pools.participants} ·{" "}
+          {pool.isOwner ? dictionary.pools.ownerStatus : dictionary.pools.member}
         </p>
       </header>
 
@@ -47,13 +50,13 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
           {leaderboard && (
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">Ranking</h2>
+                <h2 className="text-xl font-semibold">{dictionary.pools.ranking}</h2>
                 {leaderboard.length > 5 && (
                   <Link
                     className={buttonVariants({ variant: "ghost", size: "sm" })}
                     href={`/pools/${id}/leaderboard`}
                   >
-                    Ver completa
+                    {dictionary.pools.fullRanking}
                   </Link>
                 )}
               </div>
@@ -61,7 +64,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
             </section>
           )}
           <section className="space-y-3">
-            <h2 className="text-xl font-semibold">Miembros</h2>
+            <h2 className="text-xl font-semibold">{dictionary.pools.members}</h2>
             <MemberList pool={pool} />
           </section>
         </div>

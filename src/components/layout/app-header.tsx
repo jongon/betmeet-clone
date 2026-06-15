@@ -5,7 +5,8 @@ import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
 /**
  * Global app chrome for authenticated routes (and admin). Server component so it
@@ -13,6 +14,7 @@ import { es } from "@/i18n/dictionaries/es";
  * client components. Session/onboarding/admin gating stays in src/proxy.ts.
  */
 export async function AppHeader() {
+  const dictionary = getDictionary(await getRequestLocale());
   const profile = await getProfile();
   const isAdmin = profile?.verificationStatus === "ADMIN";
 
@@ -23,10 +25,10 @@ export async function AppHeader() {
           <PrimaryNav />
           <Link
             href="/matches"
-            aria-label={es.nav.brandHome}
+            aria-label={dictionary.nav.brandHome}
             className="font-display text-lg font-bold tracking-tight"
           >
-            {es.common.appName}
+            {dictionary.common.appName}
           </Link>
           <AdminContextBadge />
         </div>
@@ -45,7 +47,7 @@ export async function AppHeader() {
               href="/sign-in"
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
             >
-              {es.common.signIn}
+              {dictionary.common.signIn}
             </Link>
           )}
         </div>

@@ -7,14 +7,14 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetClose, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
-  { href: "/matches", label: es.nav.matches },
-  { href: "/pools", label: es.nav.pools },
-  { href: "/rankings", label: es.nav.rankings },
-  { href: "/rules", label: es.nav.rules },
+const LINK_KEYS = [
+  { href: "/matches", key: "matches" },
+  { href: "/pools", key: "pools" },
+  { href: "/rankings", key: "rankings" },
+  { href: "/rules", key: "rules" },
 ] as const;
 
 /** True when `pathname` is `href` or a nested route below it. */
@@ -27,14 +27,15 @@ export function isActive(pathname: string, href: string) {
  * into a Sheet drawer. Active section is marked with `aria-current="page"`.
  */
 export function PrimaryNav() {
+  const { nav } = useDictionary();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
   return (
     <>
       {/* Desktop */}
-      <nav aria-label={es.nav.primaryLabel} className="hidden items-center gap-1 md:flex">
-        {LINKS.map(({ href, label }) => {
+      <nav aria-label={nav.primaryLabel} className="hidden items-center gap-1 md:flex">
+        {LINK_KEYS.map(({ href, key }) => {
           const active = isActive(pathname, href);
           return (
             <Link
@@ -46,7 +47,7 @@ export function PrimaryNav() {
                 active && "bg-muted text-foreground",
               )}
             >
-              {label}
+              {nav[key]}
             </Link>
           );
         })}
@@ -60,7 +61,7 @@ export function PrimaryNav() {
               type="button"
               variant="ghost"
               size="icon"
-              aria-label={es.nav.openMenu}
+              aria-label={nav.openMenu}
               className="md:hidden"
             >
               <Menu className="size-5" aria-hidden="true" />
@@ -69,17 +70,17 @@ export function PrimaryNav() {
         />
         <SheetContent side="left">
           <div className="flex items-center justify-between">
-            <SheetTitle>{es.nav.primaryLabel}</SheetTitle>
+            <SheetTitle>{nav.primaryLabel}</SheetTitle>
             <SheetClose
               render={
-                <Button type="button" variant="ghost" size="icon" aria-label={es.nav.closeMenu}>
+                <Button type="button" variant="ghost" size="icon" aria-label={nav.closeMenu}>
                   <X className="size-5" aria-hidden="true" />
                 </Button>
               }
             />
           </div>
-          <nav aria-label={es.nav.primaryLabel} className="flex flex-col gap-1">
-            {LINKS.map(({ href, label }) => {
+          <nav aria-label={nav.primaryLabel} className="flex flex-col gap-1">
+            {LINK_KEYS.map(({ href, key }) => {
               const active = isActive(pathname, href);
               return (
                 <Link
@@ -92,7 +93,7 @@ export function PrimaryNav() {
                     active && "bg-muted text-foreground",
                   )}
                 >
-                  {label}
+                  {nav[key]}
                 </Link>
               );
             })}
@@ -108,17 +109,18 @@ export function PrimaryNav() {
  * the player-facing app. Client component so it can read the current pathname.
  */
 export function AdminContextBadge() {
+  const { nav } = useDictionary();
   const pathname = usePathname();
   if (!isActive(pathname, "/admin")) return null;
 
   return (
     <div className="flex items-center gap-2">
-      <Badge variant="brand">{es.nav.adminContext}</Badge>
+      <Badge variant="brand">{nav.adminContext}</Badge>
       <Link
         href="/matches"
         className="hidden text-sm text-muted-foreground transition-colors hover:text-foreground sm:inline"
       >
-        {es.nav.backToApp}
+        {nav.backToApp}
       </Link>
     </div>
   );

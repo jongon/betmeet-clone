@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { verifyMfa } from "../actions/mfa-verify";
 
 interface MFAPromptModalProps {
@@ -22,6 +23,7 @@ interface MFAPromptModalProps {
 }
 
 export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModalProps) {
+  const t = useDictionary().auth;
   const [code, setCode] = useState("");
   // verifyMfa redirects on success. A server action's redirect() only propagates
   // when dispatched inside a transition (same reason sign-in-form wraps its
@@ -29,7 +31,7 @@ export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModal
   // rejection. useActionState handles both the redirect and the returned error.
   const [state, formAction, pending] = useActionState<{ error?: string } | undefined, string>(
     async (_prev, value) => {
-      if (value.length !== 6) return { error: "Code must be 6 digits" };
+      if (value.length !== 6) return { error: t.mfaCodeLength };
       return verifyMfa(factorId, value, next);
     },
     undefined,
@@ -44,15 +46,15 @@ export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModal
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Two-factor authentication</DialogTitle>
-          <DialogDescription>Enter the 6-digit code from your authenticator app.</DialogDescription>
+          <DialogTitle>{t.mfaTitle}</DialogTitle>
+          <DialogDescription>{t.mfaDescription}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           <FormError messages={error ? [error] : undefined} />
 
           <div className="space-y-1.5">
-            <Label htmlFor="mfa-code">Authentication code</Label>
+            <Label htmlFor="mfa-code">{t.mfaCode}</Label>
             <Input
               id="mfa-code"
               type="text"
@@ -67,7 +69,7 @@ export function MFAPromptModal({ factorId, open, next, onClose }: MFAPromptModal
           </div>
 
           <Button className="w-full" disabled={pending} onClick={handleVerify}>
-            {pending ? "Verifying…" : "Verify"}
+            {pending ? t.mfaVerifying : t.mfaVerify}
           </Button>
         </div>
       </DialogContent>

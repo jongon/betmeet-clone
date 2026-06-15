@@ -182,6 +182,22 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: On every authenticated route (including admin), the user can see they are signed in and can switch theme/brand, open profile/security, and sign out from a consistent header.
 
+## Unit 24: Internacionalización y Selector de Idioma
+
+**Goal**: Convertir la aplicación en una experiencia bilingüe español/inglés, con español por defecto, sin mezclar copys y sin cambiar las URLs existentes.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc-refine` (2026-06-15); transversal y aditivo; does not restart approved Units 1–23.
+- Ampliar `src/i18n` de `es` único a `es` + `en`, manteniendo `es` como fuente del tipo `Dictionary` y default de producto.
+- Mantener la estrategia de Unit 2 **Opción A**: i18n sin prefijo `[locale]`; no crear rutas `/es/*` ni `/en/*`.
+- Persistir preferencia de idioma en cookie `locale` para SSR sin flash y en `profiles.locale` para sincronización cross-device.
+- Añadir selector de idioma en `UserMenu` y `Settings/Profile`, conservando la ruta actual al cambiar idioma.
+- Externalizar toda copy visible hardcoded a diccionarios tipados: auth, onboarding, settings, pools, predictions, competition, admin, notifications, app pages, nav/theme/brand y mensajes/errores.
+- Traducir el Centro de Reglas MDX: mantener `content/rules/es/*.mdx` y crear `content/rules/en/*.mdx` con frontmatter compatible.
+- Respetar CF-5 y los préstamos naturales: `email`, `passkey`, `nickname`, `Google`, `WebAuthn`, `TOTP`, `push`/`web push` se conservan; `Pool` visible sigue siendo **Liga** en español.
+
+**Primary Deliverable**: El usuario puede alternar entre español e inglés desde la app; toda la UI y el Centro de Reglas se renderizan en el idioma activo, con URLs estables y sin mezcla de copy.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -195,6 +211,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 9. Unit 9: Transactional Email (post-construction refine; cross-cutting; no new deps)
 10. Unit 10: Web Push Notifications (post-construction refine; event-driven; free baseline)
 11. Unit 11: App Shell & Navigation (post-construction refine; UI-only; reuses existing auth/theme/profile primitives)
+12. Unit 24: Internacionalización y Selector de Idioma (post-construction refine; transversal; no URL locale prefix)
 
 ## Security Notes
 

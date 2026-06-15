@@ -3,7 +3,8 @@ import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/features/auth/actions/sign-out";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 
 /**
  * Minimal chrome for the onboarding flow (FR-REFINE-16.3). Deliberately NOT the
@@ -13,11 +14,15 @@ import { es } from "@/i18n/dictionaries/es";
  * sense mid-onboarding: theme/brand toggles and sign-out (reusing the existing
  * `signOut` server action). No session read needed.
  */
-export function OnboardingHeader() {
+export async function OnboardingHeader() {
+  const dictionary = getDictionary(await getRequestLocale());
+
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-4">
-        <span className="font-display text-lg font-bold tracking-tight">{es.common.appName}</span>
+        <span className="font-display text-lg font-bold tracking-tight">
+          {dictionary.common.appName}
+        </span>
 
         <div className="ml-auto flex items-center gap-1">
           <BrandToggle />
@@ -30,7 +35,7 @@ export function OnboardingHeader() {
               data-testid="onboarding-sign-out"
             >
               <LogOut aria-hidden="true" className="size-4" />
-              <span className="hidden sm:inline">{es.userMenu.signOut}</span>
+              <span className="hidden sm:inline">{dictionary.userMenu.signOut}</span>
             </Button>
           </form>
         </div>

@@ -1,4 +1,7 @@
+"use client";
+
 import { Badge } from "@/components/ui/badge";
+import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { SyncRunRow } from "../types";
 
 function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | "destructive" {
@@ -8,10 +11,11 @@ function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | 
 }
 
 export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
+  const t = useDictionary().admin;
+  const locale = useLocale();
+
   if (runs.length === 0) {
-    return (
-      <p className="text-sm text-muted-foreground">Aún no hay sincronizaciones registradas.</p>
-    );
+    return <p className="text-sm text-muted-foreground">{t.noRuns}</p>;
   }
 
   return (
@@ -19,12 +23,12 @@ export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
       <table className="w-full text-sm" data-testid="recent-runs-table">
         <thead className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
           <tr>
-            <th className="p-2">Scope</th>
-            <th className="p-2">Estado</th>
-            <th className="p-2">Inicio</th>
-            <th className="p-2">Fin</th>
-            <th className="p-2 text-right">Items</th>
-            <th className="p-2">Error</th>
+            <th className="p-2">{t.scope}</th>
+            <th className="p-2">{t.status}</th>
+            <th className="p-2">{t.start}</th>
+            <th className="p-2">{t.end}</th>
+            <th className="p-2 text-right">{t.items}</th>
+            <th className="p-2">{t.error}</th>
           </tr>
         </thead>
         <tbody>
@@ -35,10 +39,10 @@ export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
                 <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
               </td>
               <td className="p-2 text-muted-foreground">
-                {new Date(run.startedAt).toLocaleString("es")}
+                {new Date(run.startedAt).toLocaleString(locale)}
               </td>
               <td className="p-2 text-muted-foreground">
-                {run.finishedAt ? new Date(run.finishedAt).toLocaleString("es") : "—"}
+                {run.finishedAt ? new Date(run.finishedAt).toLocaleString(locale) : "—"}
               </td>
               <td className="p-2 text-right tabular-nums">
                 {run.itemsUpdated}/{run.itemsFetched}

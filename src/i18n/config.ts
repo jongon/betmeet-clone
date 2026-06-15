@@ -1,18 +1,34 @@
 /**
- * i18n configuration (Unit 2, Q6=B realised as Option A).
- *
- * v1 ships a single active locale (`es`). All user-facing copy is referenced
- * through dictionary keys and content is organised per-locale, so adding a
- * second language later does not require touching components — only adding a
- * dictionary and a content folder, and (then) introducing the `[locale]`
- * URL segment.
+ * i18n configuration (Unit 24). The app stays on stable URLs (no `[locale]`
+ * route segment); locale is resolved from cookie/profile/header instead.
  */
-export const SUPPORTED_LOCALES = ["es"] as const;
+export const SUPPORTED_LOCALES = ["es", "en"] as const;
 
 export type Locale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = "es";
 
-export function isSupportedLocale(value: string): value is Locale {
+export function isSupportedLocale(value: string | null | undefined): value is Locale {
+  if (!value) return false;
   return (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
+export function parseLocale(value: string | null | undefined): Locale | null {
+  return isSupportedLocale(value) ? value : null;
+}
+
+export function localeFromAcceptLanguage(value: string | null | undefined): Locale | null {
+  if (!value) return null;
+
+  const entries = value
+    .split(",")
+    .map((entry) => entry.trim().split(";")[0]?.toLowerCase())
+    .filter(Boolean);
+
+  for (const entry of entries) {
+    const base = entry?.split("-")[0];
+    if (isSupportedLocale(base)) return base;
+  }
+
+  return null;
 }

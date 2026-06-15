@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 interface PredictionScoreControlsProps {
   homeScore: number;
@@ -19,6 +20,8 @@ export function PredictionScoreControls({
   onChange,
   disabled,
 }: PredictionScoreControlsProps) {
+  const t = useDictionary().predictions;
+
   function clamp(value: number) {
     return Math.max(0, Math.min(20, value));
   }
@@ -35,7 +38,7 @@ export function PredictionScoreControls({
             className="h-8 w-8"
             disabled={disabled || homeScore <= 0}
             onClick={() => onChange(clamp(homeScore - 1), awayScore)}
-            aria-label="Reducir goles de casa"
+            aria-label={t.decrementHome}
           >
             −
           </Button>
@@ -52,13 +55,13 @@ export function PredictionScoreControls({
             className="h-8 w-8"
             disabled={disabled || homeScore >= 20}
             onClick={() => onChange(clamp(homeScore + 1), awayScore)}
-            aria-label="Aumentar goles de casa"
+            aria-label={t.incrementHome}
           >
             +
           </Button>
         </div>
       </div>
-      <span className="text-sm font-medium text-muted-foreground">vs</span>
+      <span className="text-sm font-medium text-muted-foreground">{t.vs}</span>
       <div className="flex flex-1 flex-col items-center gap-1">
         <span className="text-xs text-muted-foreground">{awayLabel}</span>
         <div className="flex items-center gap-2">
@@ -69,7 +72,7 @@ export function PredictionScoreControls({
             className="h-8 w-8"
             disabled={disabled || awayScore <= 0}
             onClick={() => onChange(homeScore, clamp(awayScore - 1))}
-            aria-label="Reducir goles de fuera"
+            aria-label={t.decrementAway}
           >
             −
           </Button>
@@ -86,7 +89,7 @@ export function PredictionScoreControls({
             className="h-8 w-8"
             disabled={disabled || awayScore >= 20}
             onClick={() => onChange(homeScore, clamp(awayScore + 1))}
-            aria-label="Aumentar goles de fuera"
+            aria-label={t.incrementAway}
           >
             +
           </Button>

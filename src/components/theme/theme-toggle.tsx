@@ -4,7 +4,7 @@ import { Monitor, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 const noopSubscribe = () => () => {};
 
@@ -17,17 +17,12 @@ const ICONS: Record<ThemeChoice, typeof Sun> = {
   system: Monitor,
 };
 
-const LABELS: Record<ThemeChoice, string> = {
-  light: es.theme.light,
-  dark: es.theme.dark,
-  system: es.theme.system,
-};
-
 /**
  * Cycles light → dark → system. Renders a stable placeholder until mounted to
  * avoid a hydration mismatch (next-themes resolves the theme on the client).
  */
 export function ThemeToggle() {
+  const { theme: labels } = useDictionary();
   const { theme, setTheme } = useTheme();
   // Client-only mount detection without setState-in-effect: false during SSR/
   // hydration, true afterwards (avoids a theme hydration mismatch).
@@ -39,6 +34,7 @@ export function ThemeToggle() {
 
   const current = (mounted ? (theme as ThemeChoice) : "system") ?? "system";
   const Icon = ICONS[current] ?? Monitor;
+  const currentLabel = labels[current];
 
   function cycle() {
     const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
@@ -51,8 +47,8 @@ export function ThemeToggle() {
       variant="ghost"
       size="icon"
       onClick={cycle}
-      aria-label={`${es.theme.toggle}: ${LABELS[current]}`}
-      title={es.theme.label}
+      aria-label={`${labels.toggle}: ${currentLabel}`}
+      title={labels.label}
       data-testid="theme-toggle"
       suppressHydrationWarning
     >

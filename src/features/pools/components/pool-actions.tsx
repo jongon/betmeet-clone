@@ -3,12 +3,14 @@
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { deletePool } from "../actions/delete-pool";
 import { leavePool } from "../actions/leave-pool";
 import { setPoolArchived } from "../actions/set-pool-archived";
 import type { PoolDetail } from "../types";
 
 export function PoolActions({ pool }: { pool: PoolDetail }) {
+  const t = useDictionary().pools;
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -29,7 +31,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
           disabled={pending}
           onClick={() => run(() => setPoolArchived(pool.id, !pool.isArchived))}
         >
-          {pool.isArchived ? "Desarchivar" : "Archivar"}
+          {pool.isArchived ? t.unarchive : t.archive}
         </Button>
         {!pool.isOwner && (
           <Button
@@ -37,7 +39,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
             disabled={pending}
             onClick={() => run(() => leavePool(pool.id))}
           >
-            Salir de la liga
+            {t.leave}
           </Button>
         )}
         {pool.isOwner && (
@@ -46,7 +48,7 @@ export function PoolActions({ pool }: { pool: PoolDetail }) {
             disabled={pending}
             onClick={() => run(() => deletePool(pool.id))}
           >
-            Eliminar liga
+            {t.delete}
           </Button>
         )}
       </div>

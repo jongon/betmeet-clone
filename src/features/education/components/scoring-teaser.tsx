@@ -1,6 +1,7 @@
 import { MDXContent } from "@content-collections/mdx/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 import { getTeaserRules } from "@/lib/rules-content";
 import { ScoringTable } from "./scoring-table";
 
@@ -8,13 +9,15 @@ import { ScoringTable } from "./scoring-table";
  * The only rules content shown publicly on the landing (BR-2.9): a compact
  * scoring summary. Renders the teaser MDX plus the canonical scoring table.
  */
-export function ScoringTeaser() {
-  const [teaser] = getTeaserRules();
+export async function ScoringTeaser() {
+  const locale = await getRequestLocale();
+  const dictionary = getDictionary(locale);
+  const [teaser] = getTeaserRules(locale);
 
   return (
     <Card data-testid="scoring-teaser">
       <CardHeader>
-        <CardTitle>{es.landing.scoringTeaserTitle}</CardTitle>
+        <CardTitle>{dictionary.landing.scoringTeaserTitle}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {teaser && (

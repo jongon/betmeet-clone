@@ -2,6 +2,7 @@
 
 import { LogOut, Shield, User } from "lucide-react";
 import Link from "next/link";
+import { LanguageToggle } from "@/components/language/language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,7 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/features/auth/actions/sign-out";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 
 interface UserMenuProps {
   displayNickname: string;
@@ -32,6 +33,9 @@ function initial(nickname: string) {
  * entry (only for ADMIN profiles) and sign-out (existing server action).
  */
 export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps) {
+  const dictionary = useDictionary();
+  const t = dictionary.userMenu;
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -40,7 +44,7 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
             type="button"
             variant="ghost"
             className="h-9 gap-2 px-1.5 sm:pr-2.5"
-            aria-label={es.userMenu.trigger}
+            aria-label={t.trigger}
             data-testid="user-menu-trigger"
           >
             <Avatar size="sm">
@@ -58,11 +62,11 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
         <DropdownMenuSeparator />
         <DropdownMenuLinkItem render={<Link href="/settings/profile" />} closeOnClick>
           <User aria-hidden="true" />
-          {es.userMenu.profile}
+          {t.profile}
         </DropdownMenuLinkItem>
         <DropdownMenuLinkItem render={<Link href="/settings/security" />} closeOnClick>
           <Shield aria-hidden="true" />
-          {es.userMenu.security}
+          {t.security}
         </DropdownMenuLinkItem>
         {isAdmin && (
           <DropdownMenuLinkItem
@@ -71,9 +75,13 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
             data-testid="user-menu-admin"
           >
             <Shield aria-hidden="true" />
-            {es.userMenu.admin}
+            {t.admin}
           </DropdownMenuLinkItem>
         )}
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1.5">
+          <LanguageToggle compact />
+        </div>
         <DropdownMenuSeparator />
         <form action={signOut}>
           <DropdownMenuItem
@@ -83,7 +91,7 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
             data-testid="user-menu-sign-out"
           >
             <LogOut aria-hidden="true" />
-            {es.userMenu.signOut}
+            {t.signOut}
           </DropdownMenuItem>
         </form>
       </DropdownMenuContent>

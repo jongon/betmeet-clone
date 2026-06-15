@@ -33,6 +33,7 @@ model Profile {
   nicknameUpdatedAt     DateTime?          @map("nickname_updated_at")
   nicknameChangeCount   Int                @default(0) @map("nickname_change_count")
   onboardingCompleted   Boolean            @default(false) @map("onboarding_completed")
+  locale                String             @default("es") @db.VarChar(2)
   deletedAt             DateTime?          @map("deleted_at")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")

@@ -4,15 +4,18 @@ import { RulesAccordion } from "@/features/education/components/rules-accordion"
 import { RulesHeader } from "@/features/education/components/rules-header";
 import { ScoreBreakdownDemo } from "@/features/education/components/score-breakdown-demo";
 import { ScoringCalculator } from "@/features/education/components/scoring-calculator";
-import { es } from "@/i18n/dictionaries/es";
+import { getDictionary } from "@/i18n/get-dictionary";
+import { getRequestLocale } from "@/lib/locale";
 import { getFullRules } from "@/lib/rules-content";
 
-export const metadata: Metadata = {
-  title: es.rules.centerTitle,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const dictionary = getDictionary(await getRequestLocale());
+  return { title: dictionary.rules.centerTitle };
+}
 
-export default function RulesPage() {
-  const sections = getFullRules().map((doc) => ({
+export default async function RulesPage() {
+  const locale = await getRequestLocale();
+  const sections = getFullRules(locale).map((doc) => ({
     slug: doc.slug,
     title: doc.title,
     body: doc.body,

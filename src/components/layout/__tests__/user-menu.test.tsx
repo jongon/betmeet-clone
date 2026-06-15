@@ -6,6 +6,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 // Cut the server-action import chain (next/headers, supabase server client).
 const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
 vi.mock("@/features/auth/actions/sign-out", () => ({ signOut }));
+vi.mock("@/components/language/language-toggle", () => ({
+  LanguageToggle: () => <div data-testid="language-toggle" />,
+}));
 
 import { UserMenu } from "../user-menu";
 

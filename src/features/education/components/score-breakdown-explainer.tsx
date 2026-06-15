@@ -1,5 +1,7 @@
+"use client";
+
 import type { ScoreBreakdown } from "@/features/scoring/compute-score";
-import { es } from "@/i18n/dictionaries/es";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { cn } from "@/lib/utils";
 
 interface ScoreBreakdownExplainerProps {
@@ -8,13 +10,6 @@ interface ScoreBreakdownExplainerProps {
   /** When true, announces changes to screen readers (used by the live calculator). */
   live?: boolean;
 }
-
-const EXPLANATION: Record<ScoreBreakdown["explanationKey"], string> = {
-  EXACT: es.breakdown.exact,
-  RESULT: es.breakdown.result,
-  PARTIAL: es.breakdown.partial,
-  MISS: es.breakdown.miss,
-};
 
 /**
  * Data-agnostic explainer (BR-2.33): given a computed breakdown it renders the
@@ -26,6 +21,14 @@ export function ScoreBreakdownExplainer({
   className,
   live = false,
 }: ScoreBreakdownExplainerProps) {
+  const { breakdown: labels } = useDictionary();
+  const explanation: Record<ScoreBreakdown["explanationKey"], string> = {
+    EXACT: labels.exact,
+    RESULT: labels.result,
+    PARTIAL: labels.partial,
+    MISS: labels.miss,
+  };
+
   return (
     <div
       className={cn("space-y-2 text-sm", className)}
@@ -33,22 +36,22 @@ export function ScoreBreakdownExplainer({
       data-testid="score-breakdown"
     >
       <p className="text-muted-foreground">
-        {EXPLANATION[breakdown.explanationKey]}
-        {breakdown.penaltyApplied ? ` ${es.breakdown.penaltyApplied}` : ""}
+        {explanation[breakdown.explanationKey]}
+        {breakdown.penaltyApplied ? ` ${labels.penaltyApplied}` : ""}
       </p>
       <dl className="space-y-1">
         <div className="flex justify-between">
-          <dt className="text-muted-foreground">{es.breakdown.base}</dt>
+          <dt className="text-muted-foreground">{labels.base}</dt>
           <dd>{breakdown.basePoints}</dd>
         </div>
         {breakdown.penaltyApplied && (
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">{es.breakdown.penalty}</dt>
+            <dt className="text-muted-foreground">{labels.penalty}</dt>
             <dd>+{breakdown.penaltyPoints}</dd>
           </div>
         )}
         <div className="flex justify-between border-t pt-1 font-semibold">
-          <dt>{es.breakdown.total}</dt>
+          <dt>{labels.total}</dt>
           <dd data-testid="score-breakdown-total">{breakdown.totalPoints}</dd>
         </div>
       </dl>

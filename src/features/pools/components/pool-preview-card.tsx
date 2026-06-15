@@ -5,10 +5,12 @@ import { useState, useTransition } from "react";
 import { FormError } from "@/components/form-error";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { joinPublicPool } from "../actions/join-public-pool";
 import type { PoolPreviewItem } from "../types";
 
 export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
+  const t = useDictionary().pools;
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -26,7 +28,7 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
       }
       // Already a member: stay in the directory with an info message (FR-REFINE-13.6).
       if ("alreadyMember" in result) {
-        setInfo("Ya eres miembro de esta liga.");
+        setInfo(t.alreadyMember);
         return;
       }
       // Successful join: go straight to the pool page (FR-REFINE-13.5).
@@ -42,7 +44,7 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
         <div>
           <p className="font-medium">{pool.name}</p>
           <p className="text-sm text-muted-foreground">
-            {pool.memberCount}/{pool.capacity} participantes
+            {pool.memberCount}/{pool.capacity} {t.participants}
           </p>
           <FormError messages={error ? [error] : undefined} />
           {info ? (
@@ -53,7 +55,7 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
                 className="underline underline-offset-4 hover:text-foreground"
                 onClick={() => router.push(`/pools/${pool.id}`)}
               >
-                Ir a la liga
+                {t.goToPool}
               </button>
             </p>
           ) : null}
@@ -63,7 +65,7 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
           disabled={!hasCapacity || pending}
           data-testid={`join-public-pool-${pool.id}`}
         >
-          {hasCapacity ? (pending ? "Uniendo..." : "Unirme") : "Lleno"}
+          {hasCapacity ? (pending ? t.joining : t.join) : t.full}
         </Button>
       </CardContent>
     </Card>

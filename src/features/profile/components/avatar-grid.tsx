@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { useDictionary } from "@/i18n/dictionary-provider";
 import { cn } from "@/lib/utils";
 import { LOCAL_FALLBACK_AVATARS } from "../default-avatars";
 import type { AvatarAsset } from "../types";
@@ -19,6 +20,7 @@ function localFallbackFor(index: number): string {
 }
 
 export function AvatarGrid({ avatars, selectedId, onSelect }: AvatarGridProps) {
+  const { avatarDefaultLabel } = useDictionary().onboarding;
   // Track avatars whose remote image 404'd (e.g. Storage not seeded / wrong
   // project) so the picker degrades to the bundled local set instead of showing
   // blank slots (FR-REFINE-15.8, hardening FR-REFINE-12.6).
@@ -27,7 +29,7 @@ export function AvatarGrid({ avatars, selectedId, onSelect }: AvatarGridProps) {
   return (
     <div
       role="listbox"
-      aria-label="Default avatars"
+      aria-label={avatarDefaultLabel}
       className="grid grid-cols-4 gap-2 sm:grid-cols-6"
     >
       {avatars.map((avatar, index) => {

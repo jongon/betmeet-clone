@@ -1,5 +1,37 @@
 # AI-DLC Audit Log
 
+## Code Generation Part 2 — Unit 24 Internacionalización y selector de idioma
+**Timestamp**: 2026-06-15T04:25:00Z
+**User Input**: Approval to continue Code Generation Part 2, followed by continuation request: "Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed."
+**AI Response**: "Implemented Unit 24 i18n/language selection without restarting Units 1–23. Added `profiles.locale` (Prisma schema + migration), locale config/helpers, dictionary provider/hooks, request locale resolution by cookie/profile/header/default, `setLocale` Server Action, accessible `LanguageToggle`, selectors in `UserMenu` and Settings/Profile, English dictionary, English MDX rules content, and localized visible copy across app pages/features/components including auth, settings, onboarding, pools, predictions, competition, rankings, admin, notifications and education. Added a safe Spanish fallback for isolated component tests. Updated tests for Spanish default where needed. Verification app-scoped: `pnpm exec eslint src` passed; `pnpm exec biome check src content prisma` passed with one existing/accepted TOTP QR data-URI `<img>` warning; `pnpm exec vitest run --dir src` passed (47 files / 187 tests); `pnpm build` passed after temporarily excluding `api-football/` from TypeScript scope to isolate the app, then restoring `tsconfig.json`. Full-repo `pnpm lint`, `pnpm check`, `pnpm build`, and `pnpm test` are blocked by the nested `api-football/` tree being included by root globs/config, producing nested Biome config, ESLint, TypeScript generated-client and duplicate-React test failures unrelated to Unit 24."
+**Code change**: `src/i18n/*`, `src/lib/locale.ts`, `src/app/layout.tsx`, localized `src/app/**`, `src/components/**`, `src/features/**`, `content/rules/en/*.mdx`, `prisma/schema.prisma`, `prisma/migrations/20260615100000_unit24_profile_locale/migration.sql`, and affected root tests. AI-DLC summary added at `construction/unit-24-i18n-language-selection/code/generation-summary.md`.
+**Context**: CONSTRUCTION / Unit 24 Code Generation Part 2. Stable URLs preserved; application code stayed in workspace root; AI-DLC artifacts updated in the same interaction.
+
+---
+
+## Code Generation Planning — Unit 24 Internacionalización y selector de idioma
+**Timestamp**: 2026-06-15T01:38:33Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional): Continua"
+**AI Response**: "Loaded the AI-DLC core workflow, mandatory common rules and construction Code Generation rules. Confirmed Unit 24 Functional Design is already complete/approved, with NFR/Infrastructure formally skipped by the existing Unit 24 scope, and Code Generation pending. Created the required Code Generation Part 1 plan at `aidlc-docs/construction/plans/unit-24-i18n-language-selection-code-generation-plan.md` with planning checkboxes marked complete and 9 implementation steps left unchecked for Part 2. Updated `aidlc-state.md` to mark Unit 24 Code Generation Part 1 as complete and Part 2 pending approval. Approval gate is now active; no application code was generated."
+**Context**: CONSTRUCTION / Per-unit loop / Unit 24 Code Generation Part 1. Application code remains in workspace root only for future Part 2; this interaction changed AI-DLC documentation and state only.
+
+---
+
+## Refine — Unit 24 Internacionalización y selector de idioma
+**Timestamp**: 2026-06-15T00:55:00Z
+**User Input**: "Actualmente en la aplicación hay una mezcla de copys entre español e inglés. Quiero poder seleccionar el idioma (preferimente y por defecto en español), pero es posible cambiarlo en inglés. Además de la implementación seguramente encontrarás muchos partes que están en español y otras en inglés habrá que homologar. No cambies aquellos préstamos del inglés que se hacen en español. En la planeación inical del proyecto algo se consideró para implementar este feature. Hazme aquellas preguntas para acalarar el requerimiento si lo necesitas." → tras preguntas: "El contenido MDX si debe traducirse. Y si, apruebo el plan."
+**AI Response**: "Analicé la infraestructura i18n existente de Unit 2: `src/i18n` existe con `es` único y la decisión original Q6=B fue reducida en code generation a **Opción A** (diccionario tipado sin prefijo `[locale]`). Confirmé que `BR-2.28` ya exige copy vía diccionario y `BR-2.29` dejó la estructura preparada para más idiomas, pero la implementación posterior acumuló copy hardcoded en inglés (auth/onboarding/settings) y español (pools/predictions/admin/notifications/app pages). Pregunté y el usuario aprobó: (1) sin `/es` ni `/en`; (2) persistencia cookie + perfil DB; (3) alcance completo: infraestructura, homologación ES, selector y diccionario EN completo; (4) traducir también el contenido MDX del Centro de Reglas; (5) conservar préstamos como `email`, `passkey`, `nickname`; (6) selector en `UserMenu` + `Settings/Profile`. Apliqué un refine documental como **Unit 24** sin reiniciar Units 1–23: añadí `FR-I18N-24.1…24.9`, Épica 23 (`US-23.1…US-23.4`), Unit 24 en `unit-of-work.md`, actualizaciones dependientes en Unit 2 (`BR-2.28/29` + generation-summary), **CF-11** y el diseño funcional `construction/unit-24-i18n-language-selection/functional-design.md`. `aidlc-state.md` queda en `CONSTRUCTION — REFINE PLANNED / Unit 24`. Sin cambios de código en esta solicitud documental; implementación futura requiere migración `profiles.locale`, `en.ts`, selector de idioma, externalización de hardcoded copy y `content/rules/en/*.mdx`."
+**Code change**: Ninguno. Solo artefactos AI-DLC en `aidlc-docs/`.
+**Context**: Refine post-construcción transversal de i18n/copy; no reinicia etapas ya aprobadas. Conserva la decisión de routing sin prefijo de locale de Unit 2 y la eleva a CF-11.
+
+---
+
 ## Reverse Engineering (focalizado) — Predicciones global vs. por pool
 **Timestamp**: 2026-06-15T00:50:00Z
 **User Input**: "/aidlc:analyze — Execute the Reverse Engineering stage... Optional scope: Yo sé que puedo hacer una predicción global pero puedo hacer una predicción en un pool específico, es así?"
