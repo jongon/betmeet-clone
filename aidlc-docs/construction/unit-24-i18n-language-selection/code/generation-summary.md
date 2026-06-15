@@ -10,7 +10,8 @@
 ## Key Code Changes
 - `src/i18n/*`: locale config, dictionary loading, provider/hooks, `es` and `en` dictionaries.
 - `src/lib/locale.ts`: request locale resolution by cookie, profile, `Accept-Language`, fallback.
-- `src/features/profile/actions/set-locale.ts`: Server Action to persist locale and revalidate current path.
+- `src/features/profile/actions/set-locale.ts`: Server Action called from the client to persist locale and revalidate current path.
+- `src/components/language/language-toggle.tsx`: client-triggered language change (`onClick` + transition + `router.refresh()`), replacing form submission.
 - `prisma/schema.prisma` + `prisma/migrations/20260615100000_unit24_profile_locale/`: profile locale column.
 - `src/components/language/language-toggle.tsx`: accessible language selector.
 - `content/rules/en/*.mdx`: English rules mirror.

@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { startTransition, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { setLocale } from "@/features/profile/actions/set-locale";
 import { type Locale, SUPPORTED_LOCALES } from "@/i18n/config";
@@ -14,7 +15,20 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
   const dictionary = useDictionary();
   const activeLocale = useLocale();
   const pathname = usePathname() || "/";
+  const router = useRouter();
+  const [pending, setTransitionPending] = useTransition();
   const labels = dictionary.language;
+
+  function handleChange(locale: Locale) {
+    if (locale === activeLocale || pending) return;
+
+    setTransitionPending(async () => {
+      const result = await setLocale(locale, pathname);
+      if (result?.success) {
+        startTransition(() => router.refresh());
+      }
+    });
+  }
 
   return (
     <fieldset className="space-y-2" data-testid="language-toggle">
@@ -23,19 +37,18 @@ export function LanguageToggle({ compact = false }: { compact?: boolean }) {
         {SUPPORTED_LOCALES.map((locale) => {
           const isActive = locale === activeLocale;
           return (
-            <form action={setLocale} key={locale}>
-              <input type="hidden" name="locale" value={locale} />
-              <input type="hidden" name="path" value={pathname} />
-              <Button
-                type="submit"
-                size="sm"
-                variant={isActive ? "default" : "outline"}
-                aria-pressed={isActive}
-                data-testid={`language-toggle-${locale}`}
-              >
-                {localeLabel(locale, labels)}
-              </Button>
-            </form>
+            <Button
+              key={locale}
+              type="button"
+              size="sm"
+              variant={isActive ? "default" : "outline"}
+              aria-pressed={isActive}
+              disabled={pending || isActive}
+              onClick={() => handleChange(locale)}
+              data-testid={`language-toggle-${locale}`}
+            >
+              {localeLabel(locale, labels)}
+            </Button>
           );
         })}
       </div>

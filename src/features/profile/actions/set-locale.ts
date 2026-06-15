@@ -2,17 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
-import { parseLocale } from "@/i18n/config";
+import { type Locale, parseLocale } from "@/i18n/config";
 import { LOCALE_COOKIE } from "@/lib/locale";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/supabase/current-user";
 
-export async function setLocale(formData: FormData) {
-  const locale = parseLocale(formData.get("locale")?.toString());
-  const path = formData.get("path")?.toString() || "/matches";
+export async function setLocale(localeValue: Locale, path = "/matches") {
+  const locale = parseLocale(localeValue);
 
   if (!locale) {
-    return;
+    return { error: "unsupported_locale" as const };
   }
 
   const cookieStore = await cookies();
@@ -33,4 +32,5 @@ export async function setLocale(formData: FormData) {
   }
 
   revalidatePath(path);
+  return { success: true as const, locale };
 }

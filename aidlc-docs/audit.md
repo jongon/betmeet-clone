@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Interaction Refinement — Unit 24 Client-triggered Language Switch
+**Timestamp**: 2026-06-15T09:10:00Z
+**User Input**: "Antes, haz commit de todo menos de lo que está en el directorio api-football y luego implementalo."
+**AI Response**: "Committed the completed Unit 24 implementation as `8fd5ac0 :sparkles: feat(i18n): agregar selector de idioma`, staging only `aidlc-docs`, `content`, `prisma`, and `src`; `api-football/` remained untracked/unstaged. Then changed the language selector from `<form action={setLocale}>` to a client-triggered interaction: `LanguageToggle` now uses `onClick`, `useTransition`, calls the `setLocale(locale, pathname)` Server Action, and runs `router.refresh()` after persistence. `setLocale` now accepts serializable arguments and returns a small success/error result. Verification app-scoped passed: `pnpm exec eslint src`, `pnpm exec biome check src content prisma` (same TOTP QR `<img>` warning), `pnpm exec vitest run --dir src` (47 files / 187 tests), and `pnpm build` with temporary `api-football/` TS exclusion restored afterward."
+**Code change**: `src/components/language/language-toggle.tsx`, `src/features/profile/actions/set-locale.ts`, plus AI-DLC state/summary/audit updates.
+**Context**: Post-code-generation interaction refinement for Unit 24. Persistence remains server-side; user interaction is now client-side and refreshes the RSC tree without form submission.
+
+---
+
 ## Code Generation Part 2 — Unit 24 Internacionalización y selector de idioma
 **Timestamp**: 2026-06-15T04:25:00Z
 **User Input**: Approval to continue Code Generation Part 2, followed by continuation request: "Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed."
