@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Construction Close-out — Unit 25 Sync con football-data.org
+**Timestamp**: 2026-06-15T22:20:00Z
+**User Input**: "/aidlc:refine — Tengo cambios pendientes?" → tras el reporte de estado, selección: "Implementar Unit 25".
+**AI Response**: "Respondí primero la consulta de estado (working tree limpio; 3 commits locales sin pushear a `betmeet/main`; única etapa AI-DLC pendiente = Unit 25; varios ítems de Operations). El usuario eligió implementar Unit 25. Al inspeccionar el código encontré que **Unit 25 ya estaba implementada y commiteada** (`107035a`): `FootballDataProvider`, `mapFootballDataStatus`, `trigger-sync` con `FootballDataProvider` + orquestador `provider=\"FOOTBALL_DATA\"`, `FOOTBALL_DATA_KEY` en `.env.example`, y tests (`football-data.test.ts` 7 casos + casos FD en `status-mapping.test.ts`); los 6 pasos del plan estaban hechos salvo la verificación. Por tanto cerré la unidad: verifiqué (tsc 0, Biome limpio con 1 warning preexistente de `<img>`, ESLint 0, **207/207 tests**), eliminé el stub muerto `api-football.ts` (0 referencias en `src/`) y el `API_FOOTBALL_KEY` obsoleto de `.env.example`, y alineé los artefactos AI-DLC: `aidlc-state.md` (Unit 25 Code Generation + Build/Test → COMPLETE, Current Stage, Execution Plan Summary → 0 etapas restantes), los 6 checkboxes del plan `unit-25-football-data-sync-plan.md`, y esta entrada de `audit.md`. No se reinician etapas aprobadas (Units 1–24 intactas)."
+**Code change**: Eliminado `src/features/competition/services/providers/api-football.ts` (dead code); `.env.example` quita `API_FOOTBALL_KEY` (cleanup). La implementación funcional de Unit 25 ya estaba en `107035a`. Artefactos AI-DLC: `aidlc-state.md`, `construction/plans/unit-25-football-data-sync-plan.md`, `audit.md`.
+**Context**: Cierre de la fase Construction. Todas las unidades (1–27) quedan implementadas y verificadas; solo restan ítems de Operations en prod (`prisma migrate deploy`, toggles Supabase, `FOOTBALL_DATA_KEY` real + smoke del sync admin). La sync sigue siendo manual por admin.
+
+---
+
 ## Refine — Unit 26 + Unit 27 Performance Fase 1 y 2
 **Timestamp**: 2026-06-15T10:30:00Z
 **User Input**: "Sí quiero que implementes la Fase 1, Luego la Fase 2" → Opción B (separar en dos unidades) → "Sí, apruebo"
