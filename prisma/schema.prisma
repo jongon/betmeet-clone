@@ -49,6 +49,7 @@ model Profile {
   createdPoolInvites     PoolDirectedInvite[] @relation("PoolDirectedInviteCreator")
 
   @@unique([nicknameBase, nicknameDiscriminator])
+  @@index([deletedAt])
   @@map("profiles")
 }
 
@@ -282,6 +283,8 @@ model Match {
   @@index([phaseId])
   @@index([status])
   @@index([kickoffAt])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
   @@map("matches")
 }
 
@@ -302,6 +305,7 @@ model ProviderSyncRun {
 
   @@unique([provider, scope, windowKey])
   @@index([provider, scope, status])
+  @@index([scope, status, finishedAt])
   @@index([startedAt])
   @@map("provider_sync_runs")
 }

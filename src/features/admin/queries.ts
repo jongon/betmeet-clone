@@ -39,21 +39,25 @@ function toRunRow(run: {
 export async function getSyncDashboard(): Promise<SyncStatusView | null> {
   if (!(await getAdminUserId())) return null;
 
-  const [recent, successes] = await Promise.all([
+  const [recent, allSuccesses] = await Promise.all([
     prisma.providerSyncRun.findMany({ orderBy: { startedAt: "desc" }, take: RECENT_RUNS_LIMIT }),
-    Promise.all(
-      SYNC_SCOPES.map((scope) =>
-        prisma.providerSyncRun.findFirst({
-          where: { scope, status: "SUCCESS" },
-          orderBy: { finishedAt: "desc" },
-        }),
-      ),
-    ),
+    prisma.providerSyncRun.findMany({
+      where: { scope: { in: SYNC_SCOPES }, status: "SUCCESS" },
+      orderBy: { finishedAt: "desc" },
+    }),
   ]);
 
+  // Keep only the most recent SUCCESS per scope (replaces N+1 sequential queries).
+  const latestByScope = new Map<string, (typeof allSuccesses)[number]>();
+  for (const run of allSuccesses) {
+    if (!latestByScope.has(run.scope)) {
+      latestByScope.set(run.scope, run);
+    }
+  }
+
   return {
-    lastSuccessByScope: SYNC_SCOPES.map((scope, i) => {
-      const run = successes[i];
+    lastSuccessByScope: SYNC_SCOPES.map((scope) => {
+      const run = latestByScope.get(scope);
       return {
         scope,
         finishedAt: run?.finishedAt?.toISOString() ?? null,

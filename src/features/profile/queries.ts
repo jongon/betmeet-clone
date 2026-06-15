@@ -80,11 +80,38 @@ export const getProfile = cache(async (): Promise<Profile | null> => {
 
   const profile = await prisma.profile.findUnique({
     where: { id: user.id },
+    select: {
+      id: true,
+      nicknameBase: true,
+      nicknameDiscriminator: true,
+      avatarUrl: true,
+      avatarSource: true,
+      verificationStatus: true,
+      mfaEnabled: true,
+      onboardingCompleted: true,
+      locale: true,
+      deletedAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   if (!profile) return null;
 
-  return toProfile(profile);
+  return {
+    id: profile.id,
+    nicknameBase: profile.nicknameBase,
+    nicknameDiscriminator: profile.nicknameDiscriminator,
+    avatarUrl: profile.avatarUrl,
+    avatarSource: profile.avatarSource as Profile["avatarSource"],
+    verificationStatus: profile.verificationStatus as Profile["verificationStatus"],
+    mfaEnabled: profile.mfaEnabled,
+    onboardingCompleted: profile.onboardingCompleted,
+    locale: parseLocale(profile.locale) ?? DEFAULT_LOCALE,
+    deletedAt: profile.deletedAt,
+    createdAt: profile.createdAt,
+    updatedAt: profile.updatedAt,
+  };
 });
 
 /**

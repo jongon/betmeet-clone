@@ -38,7 +38,7 @@ const createPrismaClient = () => {
   const sanitized = sanitizeConnectionString(connectionString);
   const pooled = sanitized.includes("?connection_limit=")
     ? sanitized
-    : `${sanitized}${sanitized.includes("?") ? "&" : "?"}connection_limit=1`;
+    : `${sanitized}${sanitized.includes("?") ? "&" : "?"}connection_limit=3`;
   const adapter = new PrismaPg({ connectionString: pooled });
   return new PrismaClient({ adapter });
 };

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { formatNickname, getCurrentUserId } from "./services/session";
 import type {
@@ -11,7 +12,7 @@ import type {
 const DIRECTORY_PAGE_SIZE = 20;
 
 /** Pools the current user belongs to (active + archived) — MyPoolsPage. */
-export async function getMyPools(): Promise<MyPoolSummary[]> {
+export const getMyPools = cache(async (): Promise<MyPoolSummary[]> => {
   const userId = await getCurrentUserId();
   if (!userId) return [];
 
@@ -30,10 +31,10 @@ export async function getMyPools(): Promise<MyPoolSummary[]> {
     isOwner: m.pool.ownerId === userId,
     isArchived: m.archivedAt !== null,
   }));
-}
+});
 
 /** Full pool detail — only members may view it (BR-3.28). Returns null otherwise. */
-export async function getPoolDetail(poolId: string): Promise<PoolDetail | null> {
+export const getPoolDetail = cache(async (poolId: string): Promise<PoolDetail | null> => {
   const userId = await getCurrentUserId();
   if (!userId) return null;
 
@@ -70,7 +71,7 @@ export async function getPoolDetail(poolId: string): Promise<PoolDetail | null> 
     isArchived: own.archivedAt !== null,
     members,
   };
-}
+});
 
 interface ListPublicPoolsParams {
   query?: string;

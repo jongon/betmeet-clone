@@ -20,11 +20,13 @@ interface PoolDetailPageProps {
 export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   const dictionary = getDictionary(await getRequestLocale());
   const { id } = await params;
-  const pool = await getPoolDetail(id);
-  if (!pool) notFound();
 
   const userId = await getCurrentUserId();
-  const leaderboard = userId ? await getPoolLeaderboard(id, userId) : null;
+  const [pool, leaderboard] = await Promise.all([
+    getPoolDetail(id),
+    userId ? getPoolLeaderboard(id, userId) : Promise.resolve(null),
+  ]);
+  if (!pool) notFound();
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">

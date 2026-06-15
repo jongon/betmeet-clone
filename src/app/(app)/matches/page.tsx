@@ -6,7 +6,7 @@ import { getFixtureByDayWithMyPredictions } from "@/features/predictions/queries
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/lib/locale";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function MatchesPage() {
   const dictionary = getDictionary(await getRequestLocale());
