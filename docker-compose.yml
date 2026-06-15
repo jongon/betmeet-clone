@@ -1,4 +1,5 @@
 name: nextjs-app
+
 services:
   devcontainer:
     container_name: nextjs-devcontainer
@@ -8,8 +9,9 @@ services:
       target: devcontainer
     image: nextjs/code
     volumes:
-      - '.:/var/www/html/main'
-      - 'node-home:/home/node'
+      - workdir-data:/var/www/html
+      - .:/var/www/html/main
+      - node-home-data:/home/node
     networks:
       - nextjs
     extra_hosts:
@@ -51,7 +53,7 @@ services:
       POSTGRES_USER: '${DB_USERNAME:-username}'
       POSTGRES_PASSWORD: '${DB_PASSWORD:-password}'
     volumes:
-      - nextjs-postgres:/var/lib/postgresql
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${DB_USERNAME:-username}']
       interval: 5s
@@ -94,9 +96,11 @@ networks:
     driver: bridge
 
 volumes:
-  nextjs-postgres:
+  postgres-data:
     driver: local
-  node-home:
+  workdir-data:
+    driver: local
+  node-home-data:
     driver: local
   pgadmin-data:
     driver: local
