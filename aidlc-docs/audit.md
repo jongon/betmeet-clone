@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Refine — Unit 26 + Unit 27 Performance Fase 1 y 2
+**Timestamp**: 2026-06-15T10:30:00Z
+**User Input**: "Sí quiero que implementes la Fase 1, Luego la Fase 2" → Opción B (separar en dos unidades) → "Sí, apruebo"
+**AI Response**: "Creé los artefactos AI-DLC para dos nuevas unidades de performance que extienden el análisis de Unit 22 con hallazgos adicionales de una investigación de latencia (2-3s por request en Vercel `iad1` → Supabase `us-east-1`). **Unit 26 (Fase 1, Quick Wins, Épica 25/US-25.1, target <1s)**: `getProfile()` con `select` + `React.cache()`, `Promise.all()` en `/pools/[id]`, `connection_limit` 1→3, FK indexes `homeTeamId`/`awayTeamId` en Match. **Unit 27 (Fase 2, Estructural, Épica 26/US-26.1, target <300ms)**: `force-dynamic` → `revalidate` en `/matches`, índice parcial `Profile.deletedAt`, índice `ProviderSyncRun(scope,status,finishedAt)` + refactor N+1, `React.cache()` sobre `getMyPools`/`getPoolDetail`. Artefactos creados/modificados: `requirements.md` (NFR-PERF-REFINE-26 + NFR-PERF-REFINE-27), `stories.md` (Épica 25 + Épica 26), `unit-of-work.md` (Unit 26 + Unit 27 + secuencia #13/#14), `construction/unit-26-phase1-performance/functional-design.md`, `construction/unit-27-phase2-performance/functional-design.md`, `aidlc-state.md` (Current Stage, Stage Progress, All Units, Execution Plan Summary), `audit.md` (esta entrada). Sin cambios de código en esta solicitud; solo artefactos AI-DLC. No se reinician etapas aprobadas (Units 1–25 intactas)."
+**Code change**: Ninguno. Solo artefactos AI-DLC en `aidlc-docs/`.
+**Context**: Refine post-construcción de performance tras análisis extendido. La separación en dos unidades (Fase 1 y Fase 2) fue decisión explícita del usuario (Opción B). Unit 26 ataca los quick wins de bajo riesgo; Unit 27 aborda los cambios estructurales que requieren más validación (estrategia de caché, índices parciales, refactor de queries). Unit 22 (Performance Recommendations) permanece como el análisis original y no se modifica.
+
+---
+
 ## Interaction Refinement — Unit 24 Client-triggered Language Switch
 **Timestamp**: 2026-06-15T09:10:00Z
 **User Input**: "Antes, haz commit de todo menos de lo que está en el directorio api-football y luego implementalo."

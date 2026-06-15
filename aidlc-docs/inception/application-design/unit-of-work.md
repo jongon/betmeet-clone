@@ -198,6 +198,34 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El usuario puede alternar entre español e inglés desde la app; toda la UI y el Centro de Reglas se renderizan en el idioma activo, con URLs estables y sin mezcla de copy.
 
+## Unit 26: Performance Fase 1 — Quick Wins
+
+**Goal**: Reducir latencia de navegación de 2-3s a <1s con cambios de bajo riesgo y alto impacto sobre el perfil del usuario, la paralelización de queries, la conexión a BD y los índices del fixture.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-15); aditivo y no reinicia etapas aprobadas.
+- `getProfile()` retorna solo columnas necesarias con `select` y se deduplica por render con `React.cache()`, eliminando lecturas redundantes en layout `(app)` + AppHeader + pages.
+- `/pools/[id]` ejecuta `getPoolDetail` y `getPoolLeaderboard` en `Promise.all()` en lugar de secuencial.
+- El pool de conexiones `@prisma/adapter-pg` sube `connection_limit` de 1 a 3, permitiendo concurrencia de queries dentro del mismo request por el pooler de Supabase (:6543).
+- Índices en `Match.homeTeamId` y `Match.awayTeamId` aceleran los JOINs del fixture (presentes en cada carga de `/matches` y admin).
+- Sin cambios de schema salvo la migración de los dos `@@index`; sin nuevas columnas ni tablas.
+
+**Primary Deliverable**: Las pantallas principales cargan en <1s (desde 2-3s). Suite de tests verde, build OK, sin cambios funcionales visibles.
+
+## Unit 27: Performance Fase 2 — Estructural
+
+**Goal**: Reducir latencia de navegación a <300ms con cambios estructurales: estrategia de caché en `/matches`, índices en Profile/ProviderSyncRun, eliminación de N+1 y dedup de queries frecuentes.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-15); aditivo y no reinicia etapas aprobadas.
+- `/matches` reemplaza `force-dynamic` por `revalidate` con TTL corto, apoyándose en el fixture cacheado de Unit 22 (tag `competition-fixture`) y manteniendo predicciones por-usuario frescas con `cookies()`.
+- Índice parcial en `Profile.deletedAt` (WHERE `deleted_at IS NULL`) acelera `getGlobalRankSnapshot()` y `checkNicknameAvailability()`.
+- Índice en `ProviderSyncRun(scope, status, finishedAt)` + refactor del N+1 del admin dashboard (6 queries secuenciales → 1 query con GROUP BY o carga agrupada).
+- `React.cache()` sobre `getMyPools()` y `getPoolDetail()` para dedup por render.
+- Sin cambios de schema salvo las dos migraciones de `@@index`; sin nuevas columnas ni tablas.
+
+**Primary Deliverable**: La navegación se siente instantánea (<300ms TTFB). Suite de tests verde, build OK, sin cambios funcionales visibles.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -212,6 +240,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 10. Unit 10: Web Push Notifications (post-construction refine; event-driven; free baseline)
 11. Unit 11: App Shell & Navigation (post-construction refine; UI-only; reuses existing auth/theme/profile primitives)
 12. Unit 24: Internacionalización y Selector de Idioma (post-construction refine; transversal; no URL locale prefix)
+13. Unit 26: Performance Fase 1 — Quick Wins (post-construction refine; query/cache/indexes/pool; <1s target)
+14. Unit 27: Performance Fase 2 — Estructural (post-construction refine; cache/indexes/N+1/dedup; <300ms target)
 
 ## Security Notes
 

@@ -212,6 +212,48 @@
 
 ---
 
+## Épica 25: Performance Fase 1 — Quick Wins (Unit 26 — añadida vía AI-DLC refine)
+
+> Implementación de optimizaciones de bajo riesgo y alto impacto (~30min) detectadas
+> en el análisis de latencia (2-3s por request). No reinicia etapas aprobadas. Detalle
+> en `construction/unit-26-phase1-performance/functional-design.md`.
+
+### US-25.1: Navegación más rápida en las pantallas principales
+**Como** usuario de la aplicación
+**Quiero** que las pantallas principales (`/matches`, `/pools/[id]`, `/rankings`) carguen en <1s
+**Para** navegar por la app sin esperas de 2-3s.
+- **Criterios de Aceptación**:
+  - `getProfile()` devuelve solo las columnas necesarias con `select` y se deduplica con `React.cache()`, eliminando lecturas redundantes de BD en layout + AppHeader + page.
+  - `/pools/[id]` ejecuta sus queries independientes en paralelo con `Promise.all()` en lugar de secuencialmente.
+  - `connection_limit` sube de 1 a 3, permitiendo queries concurrentes dentro del mismo request a través del pooler de Supabase.
+  - El modelo `Match` tiene índices en `homeTeamId` y `awayTeamId`, acelerando los JOINs del fixture.
+  - Ningún cambio funcional: la UI, los datos y el comportamiento de las pantallas permanecen idénticos.
+  - Suite de tests verde, build OK.
+
+---
+
+## Épica 26: Performance Fase 2 — Estructural (Unit 27 — añadida vía AI-DLC refine)
+
+> Implementación de optimizaciones estructurales (~1h): estrategia de caché en
+> `/matches`, índices en Profile/ProviderSyncRun, refactor N+1 y caché de queries
+> frecuentes. No reinicia etapas aprobadas. Detalle en
+> `construction/unit-27-phase2-performance/functional-design.md`.
+
+### US-26.1: Navegación instantánea en toda la app
+**Como** usuario de la aplicación
+**Quiero** que la navegación se sienta instantánea (<300ms) en todas las pantallas
+**Para** usar la app sin percibir esperas.
+- **Criterios de Aceptación**:
+  - `/matches` ya no usa `force-dynamic`; la página usa `revalidate` con TTL corto y los datos de predicción por-usuario se mantienen frescos sin forzar cold starts.
+  - `Profile.deletedAt` tiene un índice parcial (`WHERE deleted_at IS NULL`) que acelera la snapshot de ranking global y la búsqueda de disponibilidad de nickname.
+  - `ProviderSyncRun` tiene índice `(scope, status, finishedAt)` y el dashboard de admin usa una sola query en lugar de 6 secuenciales (elimina el N+1).
+  - Las queries frecuentes (`getMyPools`, `getPoolDetail`) están deduplicadas por render con `React.cache()`.
+  - Latencia objetivo <300ms en páginas principales, medida con TTFB en Vercel Analytics.
+  - Ningún cambio funcional en pantallas, datos ni comportamiento.
+  - Suite de tests verde, build OK.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

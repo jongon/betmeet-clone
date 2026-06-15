@@ -927,6 +927,96 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
 
 ---
 
+## NFR-PERF-REFINE-26: Performance Fase 1 — Quick Wins (Post-construcción — Unit 26)
+
+> Refine post-construcción (2026-06-15). **Fase 1** del plan de optimización de
+> performance detectado en análisis de latencia (2-3s por request en navegación).
+> **No reinicia** ninguna etapa aprobada. Cubre la **Épica 25** (US-25.1). Cambios
+> de bajo riesgo, alto impacto (~30min): query select, dedup, paralelización,
+> connection pool y FK indexes.
+
+- **FR-PERF-26.1 — `getProfile()` con `select` mínimo**: la query
+  `prisma.profile.findUnique` en `getProfile()` (`src/features/profile/queries.ts`)
+  debe usar `select` para devolver **solo** las columnas que los consumidores
+  necesitan (id, nicknameBase, nicknameDiscriminator, avatarUrl, avatarSource,
+  verificationStatus, onboardingCompleted, locale, deletedAt). Actualmente devuelve
+  la fila completa (20+ columnas) cada vez que se invoca en layout, AppHeader y
+  páginas. Esto reduce tráfico de red y serialización por request.
+- **FR-PERF-26.2 — Dedup de `getProfile()` por render**: envolver `getProfile()`
+  con `React.cache()` para que llamadas concurrentes dentro del mismo render
+  (layout `(app)` + AppHeader + page) compartan una sola query Prisma. Conserva
+  el comportamiento actual; solo evita ejecución duplicada.
+- **FR-PERF-26.3 — Paralelizar queries de pool detail**: en
+  `src/app/(app)/pools/[id]/page.tsx`, `getPoolDetail(id)` y
+  `getPoolLeaderboard(id, userId)` se ejecutan secuencialmente. Deben correr en
+  `Promise.all()` ya que son independientes (el leaderboard no necesita el detalle
+  del pool como entrada).
+- **FR-PERF-26.4 — `connection_limit` de 1 → 3**: en `src/lib/prisma.ts`, la
+  lógica de pooling hardcodea `connection_limit=1`. Subir a 3 para permitir que
+  queries independientes dentro de un mismo request se ejecuten concurrentemente
+  a través del pooler de Supabase (pgBouncer modo transacción en :6543).
+- **FR-PERF-26.5 — FK indexes en `Match.homeTeamId` y `Match.awayTeamId`**: toda
+  query de fixture (`getStaticFixture`, `getAdminMatches`, etc.) hace `include:
+  { homeTeam: true, awayTeam: true }`. PostgreSQL ejecuta nested loop joins sobre
+  estas columnas sin índice. Agregar `@@index([homeTeamId])` y
+  `@@index([awayTeamId])` en el modelo `Match` del schema Prisma **con migración**.
+
+### NFR / Infra (Unit 26)
+- **NFR (latencia)**: tras Fase 1, la latencia objetivo es <1s por request en
+  páginas principales (`/matches`, `/pools/[id]`, `/rankings`).
+- **Schema**: migración Prisma para los dos `@@index` en `Match`. Sin nuevas
+  columnas ni tablas. `prisma migrate deploy` requerido en prod.
+- **Infra**: sin nuevas dependencias npm ni cambios de runtime. `connection_limit`
+  es un parámetro de connection string compatible con `PrismaPg`.
+
+---
+
+## NFR-PERF-REFINE-27: Performance Fase 2 — Estructural (Post-construcción — Unit 27)
+
+> Refine post-construcción (2026-06-15). **Fase 2** del plan de optimización.
+> **No reinicia** ninguna etapa aprobada. Cubre la **Épica 26** (US-26.1). Cambios
+> estructurales (~1h): caching strategy, índices en Profile/ProviderSyncRun,
+> refactor N+1 y caché de queries frecuentes.
+
+- **FR-PERF-27.1 — Reemplazar `force-dynamic` en `/matches`**: la página
+  `src/app/(app)/matches/page.tsx` declara `dynamic = "force-dynamic"`, lo que
+  inhabilita toda caché RSC/CDN y fuerza cold start de serverless por request.
+  Como el fixture ya está cacheado con `unstable_cache` (Unit 22), la página
+  puede usar `revalidate` con un TTL razonable (ej. 60s) y revalidar por tag,
+  manteniendo las predicciones por-usuario dinámicas vía `cookies()`.
+- **FR-PERF-27.2 — Índice en `Profile.deletedAt`**: `getGlobalRankSnapshot()`
+  (`src/features/scoring-rankings/services/ranking-events.ts`) ejecuta
+  `profile.findMany({ where: { deletedAt: null } })` cada vez que se puntúa un
+  partido, causando un seq scan sobre toda la tabla Profile. Agregar un **índice
+  parcial** `@@index([deletedAt])` con `WHERE deleted_at IS NULL` en el modelo
+  `Profile` del schema Prisma **con migración**.
+- **FR-PERF-27.3 — Índice en `ProviderSyncRun` + refactor N+1**: el admin
+  dashboard (`src/features/admin/queries.ts`) ejecuta 6 queries secuenciales
+  (una por `SYNC_SCOPE`) filtrando por `scope` + `status: "SUCCESS"`. El índice
+  existente `@@index([provider, scope, status])` no puede usarse porque
+  `provider` es la primera columna y no está en el WHERE. Agregar
+  `@@index([scope, status, finishedAt])` en el modelo `ProviderSyncRun` **con
+  migración** + refactorizar el N+1 a una sola query con `groupBy` o carga
+  agrupada en memoria.
+- **FR-PERF-27.4 — Caché de queries frecuentes**: las queries `getMyPools()`,
+  `getPoolDetail()` y `getNotificationSettings()` no usan `React.cache()` ni
+  `unstable_cache`. Envolver `getMyPools` y `getPoolDetail` con `React.cache()`
+  para dedup dentro del render. Evaluar `unstable_cache` con tags para
+  `getDefaultAvatars` (ya cacheado 24h), `getPoolDetail` (invalidar en cambios
+  de membresía) y lecturas de admin (TTL corto, invalidar en sync).
+
+### NFR / Infra (Unit 27)
+- **NFR (latencia)**: tras Fase 2, la latencia objetivo es <300ms por request
+  en páginas principales.
+- **Schema**: dos migraciones Prisma: `@@index` parcial en `Profile.deletedAt`
+  y `@@index([scope, status, finishedAt])` en `ProviderSyncRun`. Sin nuevas
+  columnas ni tablas. `prisma migrate deploy` requerido en prod.
+- **Infra**: sin nuevas dependencias npm. `force-dynamic` → `revalidate` es un
+  cambio de directiva de export en el page file. Compatible con el caché RSC
+  existente de Next.js 16.
+
+---
+
 ## 6. Dominio del SaaS — Pendiente de Definición
 
 Las respuestas indican que el usuario tiene **funcionalidades principales bastante claras** para la infraestructura transversal (auth, seguridad, integraciones) pero el **dominio específico del SaaS** aún no ha sido descrito en detalle.
