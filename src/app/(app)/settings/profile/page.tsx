@@ -11,7 +11,7 @@ import { getDefaultAvatars, getProfile } from "@/features/profile/queries";
 import { getDisplayNickname } from "@/features/profile/types";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/lib/locale";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/supabase/current-user";
 
 export async function generateMetadata(): Promise<Metadata> {
   const dictionary = getDictionary(await getRequestLocale());
@@ -20,15 +20,14 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ProfileSettingsPage() {
   const dictionary = getDictionary(await getRequestLocale());
-  const supabase = await createClient();
-  const [profile, defaultAvatars, notificationSettings, { data: userData }] = await Promise.all([
+  const [profile, defaultAvatars, notificationSettings, user] = await Promise.all([
     getProfile(),
     getDefaultAvatars(),
     getNotificationSettings(),
-    supabase.auth.getUser(),
+    getAuthUser(),
   ]);
   if (!profile) redirect("/sign-in");
-  const currentEmail = userData.user?.email ?? "";
+  const currentEmail = user?.email ?? "";
 
   return (
     <div className="space-y-6">
@@ -44,7 +43,7 @@ export default async function ProfileSettingsPage() {
               width={64}
               height={64}
               className="h-16 w-16 rounded-full object-cover"
-              unoptimized
+              priority
             />
             <div>
               <p className="font-medium">{getDisplayNickname(profile)}</p>

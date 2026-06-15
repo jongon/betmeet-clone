@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getCompetitionLockTime } from "../../competition/services/competition-lock";
 
 export { getCompetitionLockTime };
@@ -10,8 +11,8 @@ export { getCompetitionLockTime };
  * Retained as a generic "has the competition started?" utility (still unit-tested) for
  * potential reuse; it is intentionally not wired to membership actions.
  */
-export async function isFrozen(now: Date = new Date()): Promise<boolean> {
+export const isFrozen = cache(async (now: Date = new Date()): Promise<boolean> => {
   const lockTime = await getCompetitionLockTime();
   if (lockTime === null) return false;
   return now.getTime() >= lockTime.getTime();
-}
+});

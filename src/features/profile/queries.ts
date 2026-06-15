@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { DEFAULT_LOCALE, parseLocale } from "@/i18n/config";
 import { prisma } from "@/lib/prisma";
 import { getAuthUser } from "@/lib/supabase/current-user";
@@ -73,7 +74,7 @@ export async function getOnboardedUserId(): Promise<string | null> {
   return profile?.onboardingCompleted ? userId : null;
 }
 
-export async function getProfile(): Promise<Profile | null> {
+export const getProfile = cache(async (): Promise<Profile | null> => {
   const user = await getAuthUser();
   if (!user) return null;
 
@@ -84,7 +85,7 @@ export async function getProfile(): Promise<Profile | null> {
   if (!profile) return null;
 
   return toProfile(profile);
-}
+});
 
 /**
  * Returns the current user's profile, creating it if the `handle_new_user`
