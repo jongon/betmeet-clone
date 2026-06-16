@@ -1127,3 +1127,39 @@ El botón es un `<button>` real con estado expandido/colapsado comunicado (texto
 ### Decisiones registradas (AskUserQuestion, 2026-06-16)
 - **Corte**: por día — hoy se muestra completo (no por hora de kickoff).
 - **Toggle**: client-side, colapsado por defecto (no URL param), para conservar el caching.
+## Épica 30 — Refine Unit 31: "Revertir a la API" también revierte el puntaje de los usuarios (2026-06-16)
+
+**Contexto**: en el admin panel, "Revertir a la API" sobre un partido con override manual limpiaba
+solo los flags de override pero conservaba el resultado manual (`homeScore`/`awayScore`/`winnerTeamId`/
+`status=FINISHED`); `scoreMatch()` re-puntuaba contra ese mismo resultado, por lo que los usuarios
+**mantenían** los puntos del override. El intent: revertir debe **también revertir el puntaje**.
+
+### FR-REFINE-31.1 — Revertir limpia el resultado manual y revierte los puntos
+Al revertir un override, además de limpiar los flags (`manualOverride`/`manualOverrideReason`/
+`overriddenByUserId`/`overriddenAt`), se limpia el resultado manual: `homeScore`, `awayScore`,
+`homePenaltyScore`, `awayPenaltyScore`, `winnerTeamId` → `null` y `status` → `SCHEDULED`. Como el
+partido deja de ser *scoreable*, `scoreMatch()` elimina los `PredictionScore` de ese partido
+(lógica existente, BR-6.7) → los usuarios pierden los puntos del override. El próximo sync de
+football-data.org repuebla el resultado real y vuelve a puntuar. El resultado original de la API
+**no** se snapshotea (`force-result` sobrescribe en sitio), por lo que revertir **limpia**, no restaura.
+
+### FR-REFINE-31.2 — Confirmación antes de revertir
+Como la acción ahora es destructiva (elimina puntos de usuarios), el botón "Revertir a la API" pide
+confirmación mediante un diálogo ("Se eliminará el resultado manual y los puntos que los usuarios
+ganaron con él. El próximo sync de la API repondrá el resultado real.") antes de ejecutar.
+
+### NFR / Infraestructura — SKIP
+Sin schema, migraciones ni rutas. Reutiliza `scoreMatch()`, el primitivo `Dialog` (base-ui) y los
+tags de caché existentes. Security Baseline intacto (gate `getAdminUserId()` sin cambios).
+
+### Archivos afectados
+| Archivo | Cambio |
+|---|---|
+| `src/features/admin/actions/revert-override.ts` | Limpiar resultado (scores/penales/winner→null, status→SCHEDULED) en el update |
+| `src/features/admin/components/revert-override-button.tsx` | Diálogo de confirmación (reusa `Dialog`) |
+| `src/i18n/dictionaries/{es,en}.ts` | Copy `revertConfirmTitle`/`revertConfirmBody`/`revertConfirm`/`cancel` (admin) |
+| `src/features/admin/actions/__tests__/revert-override.test.ts` (nuevo) | Tests del action |
+
+### Decisiones registradas (AskUserQuestion, 2026-06-16)
+- **Semántica**: limpiar resultado + quitar puntos; el próximo sync de la API repone el resultado real.
+- **Confirmación**: sí, diálogo de confirmación antes de revertir.

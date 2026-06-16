@@ -474,6 +474,11 @@ export const en = {
     forceAndRecalculate: "Force and recalculate",
     reverting: "Reverting…",
     revertToApi: "Revert to API",
+    revertConfirmTitle: "Revert to API?",
+    revertConfirmBody:
+      "This will remove the manual result and the points users earned from it. The next API sync will restore the real result.",
+    revertConfirm: "Revert",
+    cancel: "Cancel",
     lastSyncByScope: "Last sync by scope",
     noSuccessfulSync: "No successful syncs yet.",
     itemsUpdated: "items updated",

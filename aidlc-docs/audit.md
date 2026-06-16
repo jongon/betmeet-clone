@@ -1501,3 +1501,36 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Context**: CONSTRUCTION — Code Generation APPROVED → Build & Test COMPLETE → Unit 30 cerrada.
 
 ---
+
+
+## Workspace Detection — New Intent (Unit 31 candidate)
+**Timestamp**: 2026-06-16T12:50:00Z
+**User Input**: "En el admin panel cuando hago click sobre \"Revertir en la API\" también debería revertir el puntaje de los usuarios"
+**AI Response**: Resumido proyecto existente (aidlc-state.md presente, Units 1–30 completas). Brownfield, reverse engineering N/A. Analizado el flujo actual de revert: `revertMatchOverride` (`src/features/admin/actions/revert-override.ts`) limpia solo los flags de override (`manualOverride`/`manualOverrideReason`/`overriddenByUserId`/`overriddenAt`) pero **conserva** `homeScore`/`awayScore`/`winnerTeamId`/`status=FINISHED`, por lo que `scoreMatch()` re-puntúa con el resultado manual y los usuarios **mantienen** sus puntos. Gap confirmado vs. intent. Procediendo a Requirements Analysis (mínima) con una pregunta de clarificación sobre la semántica exacta del revert.
+**Context**: INCEPTION — Workspace Detection (resume) → Requirements Analysis.
+
+---
+
+## Requirements Analysis — Clarificación (Unit 31)
+**Timestamp**: 2026-06-16T12:55:00Z
+**User Input**: "[AskUserQuestion] Semántica del revert = 'Limpiar resultado + quitar puntos' (homeScore/awayScore/penalties/winnerTeamId→null, status→SCHEDULED, flags de override→limpios; scoreMatch elimina PredictionScore; el próximo sync repuebla el resultado real). Confirmación = 'Sí, pedir confirmación' (diálogo antes de revertir, advirtiendo que se eliminarán los puntos)."
+**AI Response**: Decisiones registradas. FR-REFINE-31.1 (limpiar resultado manual + quitar puntos al revertir) y FR-REFINE-31.2 (diálogo de confirmación). Procediendo a redactar requirements (min) + plan de ejecución para aprobación.
+**Context**: INCEPTION — Requirements Analysis (min).
+
+---
+
+## Requirements Analysis — Aprobación + Plan (Unit 31)
+**Timestamp**: 2026-06-16T13:00:00Z
+**User Input**: "A"
+**AI Response**: Plan aprobado (FR-REFINE-31.1 limpiar resultado + quitar puntos; FR-REFINE-31.2 diálogo de confirmación; NFR/Infra SKIP). Procediendo a Functional Design (light) + Code Generation + Build & Test en este lote.
+**Context**: INCEPTION Requirements (min) APPROVED → CONSTRUCTION.
+
+---
+
+## Code Generation + Build & Test (Unit 31)
+**Timestamp**: 2026-06-16T13:20:00Z
+**User Input**: "[ExitPlanMode aprobado]" (el plan entró brevemente en plan mode; el usuario aprobó el plan)
+**AI Response**: Implementado FR-REFINE-31.1/31.2. `revertMatchOverride` limpia el resultado manual (homeScore/awayScore/homePenaltyScore/awayPenaltyScore/winnerTeamId→null, status→SCHEDULED) además de los flags; `scoreMatch()` deja el partido no-scoreable → elimina `PredictionScore` (puntos revertidos); revalidaciones/log conservados. `RevertOverrideButton` envuelto en `Dialog` de confirmación (Cancelar/Revertir destructive). Copy `revertConfirmTitle`/`revertConfirmBody`/`revertConfirm`/`cancel` (es/en, admin). Nuevo test `revert-override.test.ts` (4 casos). Docs AI-DLC alineados: requirements.md (Épica 30), stories.md (US-30.1), unit-of-work.md (Unit 31 + secuencia #18/#19), functional-design.md, aidlc-state.md. Verificación: tsc 0, Biome limpio (5 archivos tocados), ESLint 0, vitest **225/225**, `pnpm build` OK.
+**Context**: CONSTRUCTION — Unit 31 Code Generation + Build & Test COMPLETE.
+
+---

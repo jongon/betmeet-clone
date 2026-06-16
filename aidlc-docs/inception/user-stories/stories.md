@@ -582,3 +582,16 @@
 - **Criterios de Aceptación**:
   - El chrome en `/admin/*` refleja el contexto Admin y ofrece regreso a la app.
   - El gate de admin se mantiene (`notFound()` si no es ADMIN).
+
+## Épica 30: Revertir override revierte el puntaje (Unit 31 — añadida vía `/aidlc:start`)
+
+### US-30.1: Revertir un override devuelve el control a la API y revierte los puntos
+**Como** administrador
+**Quiero** que al pulsar "Revertir a la API" sobre un partido con override manual se reviertan también los puntos que los usuarios ganaron con ese resultado
+**Para** que un override quede completamente deshecho y el resultado real de la API sea la única fuente de puntuación.
+- **Criterios de Aceptación**:
+  - Al revertir, se limpian los flags de override **y** el resultado manual (marcador, penales, ganador → null; `status` → `SCHEDULED`).
+  - `scoreMatch()` elimina los `PredictionScore` del partido (no-scoreable, BR-6.7) → los usuarios pierden los puntos del override.
+  - El próximo sync de football-data.org repuebla el resultado real y vuelve a puntuar.
+  - El botón pide confirmación antes de ejecutar (acción destructiva), advirtiendo que se eliminarán los puntos.
+  - El gate de admin (`getAdminUserId()`) se mantiene.

@@ -470,6 +470,11 @@ export const es = {
     forceAndRecalculate: "Forzar y recalcular",
     reverting: "Revirtiendo…",
     revertToApi: "Revertir a la API",
+    revertConfirmTitle: "¿Revertir a la API?",
+    revertConfirmBody:
+      "Se eliminará el resultado manual y los puntos que los usuarios ganaron con él. El próximo sync de la API repondrá el resultado real.",
+    revertConfirm: "Revertir",
+    cancel: "Cancelar",
     lastSyncByScope: "Última sincronización por scope",
     noSuccessfulSync: "Sin sincronizaciones exitosas todavía.",
     itemsUpdated: "items actualizados",

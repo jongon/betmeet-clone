@@ -265,6 +265,18 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El seed registra los partidos pendientes del Mundial 2026 desde football-data.org de forma idempotente, con respaldo en snapshot cuando la API no está disponible.
 
+## Unit 31: "Revertir a la API" también revierte el puntaje de los usuarios
+
+**Goal**: Que al revertir un override manual en el admin panel se reviertan también los puntos que los usuarios ganaron con ese resultado.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc:start` (2026-06-16); aditivo y no reinicia Units 1–30. Refine sobre Unit 7 (Admin) + Unit 6 (Scoring).
+- `revertMatchOverride` (`features/admin/actions/revert-override.ts`) limpia el resultado manual (`homeScore`/`awayScore`/`homePenaltyScore`/`awayPenaltyScore`/`winnerTeamId` → `null`, `status` → `SCHEDULED`) además de los flags de override; `scoreMatch()` encuentra el partido no-scoreable y elimina los `PredictionScore` (BR-6.7) → puntos revertidos. El próximo sync repuebla el resultado real.
+- Diálogo de confirmación en `RevertOverrideButton` (reusa `Dialog` de base-ui) porque la acción es destructiva.
+- Sin schema, migraciones ni rutas; sin snapshot del resultado API previo (se limpia, no se restaura).
+
+**Primary Deliverable**: Revertir un override deja el partido en `SCHEDULED` sin resultado y sin puntos asociados, devolviendo el control a la API.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -284,6 +296,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 15. Unit 27: Performance Fase 2 — Estructural (post-construction refine; cache/indexes/N+1/dedup; <300ms target)
 16. Unit 28: Persistencia de matches en sync-orchestrator (post-construction; orquestador persiste matches; sin schema)
 17. Unit 29: Seed de partidos desde football-data.org con snapshot (post-construction; el seed puebla partidos pendientes desde la API con respaldo offline; sin schema)
+18. Unit 30: Filtro de "partidos anteriores" en /matches (post-construction refine; UI-only; client-side toggle; sin schema)
+19. Unit 31: "Revertir a la API" también revierte el puntaje de los usuarios (post-construction refine; admin/scoring; sin schema)
 
 ## Security Notes
 
