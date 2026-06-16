@@ -68,3 +68,28 @@ export function groupFixtureByDay(phases: PhaseForDayGrouping[]): FixtureDayGrou
 
   return [...byDay.values()];
 }
+
+/**
+ * Splits the day groups into the ones already in the past and the rest (FR-REFINE-30.1).
+ * The cut is by UTC calendar day, not by kickoff time: a day is "past" only when its
+ * `dayKey` is strictly before `today`, so today's matches stay visible even if some have
+ * already kicked off. The "Fecha por confirmar" bucket (`dayKey === null`) counts as
+ * upcoming. Pure transform — input order is preserved in both lists.
+ *
+ * @param today `yyyy-mm-dd` (UTC) reference day, e.g. `new Date().toISOString().slice(0, 10)`.
+ */
+export function partitionDaysByToday(
+  days: FixtureDayGroup[],
+  today: string,
+): { pastDays: FixtureDayGroup[]; currentDays: FixtureDayGroup[] } {
+  const pastDays: FixtureDayGroup[] = [];
+  const currentDays: FixtureDayGroup[] = [];
+  for (const day of days) {
+    if (day.dayKey !== null && day.dayKey < today) {
+      pastDays.push(day);
+    } else {
+      currentDays.push(day);
+    }
+  }
+  return { pastDays, currentDays };
+}

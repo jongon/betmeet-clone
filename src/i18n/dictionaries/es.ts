@@ -375,6 +375,8 @@ export const es = {
     matchesDescription: "Horarios mostrados en tu hora local.",
     matchesEmptyTitle: "Fixture no disponible",
     matchesEmptyDescription: "Ejecuta el seed de competición para cargar los datos iniciales.",
+    matchesShowPast: "Ver partidos anteriores ({count})",
+    matchesHidePast: "Ocultar partidos anteriores",
     rankingsTitle: "Ranking global",
     rankingsDescription: "Tu posición frente a todos los jugadores del Mundial.",
     rankingsEmpty: "Aún no hay puntuaciones. Vuelve cuando empiecen los partidos.",

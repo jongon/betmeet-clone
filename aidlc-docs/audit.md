@@ -1429,3 +1429,75 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Context**: Implementación P2 (ranking global) de Unit 22; no reinicia Units 1–21; sin schema, migraciones ni rutas. **Diferido**: caché del leaderboard de pool (alcance), `getClaims()` en middleware (Operations-gated), verificación del pooler en prod (Operations). Nota de mantenimiento: si en el futuro algo más escribe `PredictionScore` o un sync por cron/Route Handler rescorea, debe llamar también `revalidateTag(RANKINGS_TAG, "max")` (y `COMPETITION_FIXTURE_TAG`).
 
 ---
+
+## Workspace Detection + Requirements Analysis (Unit 30 — Matches "older matches" filter)
+**Timestamp**: 2026-06-16T00:00:00Z
+**User Input**: "en la sección de matches (/matches) los partidos que ocurrieron el día anterior deben salir solo si se presiona un botón de filtro de mostrar aquellos antiguos. La idea es no hacer que el usuarios haga mucho scroll para actualizar la predicción del día actual. Quiero saber que sugeririas para esto"
+**AI Response**: Workspace Detection: brownfield, existing AI-DLC project (Units 1–29 complete). RE skipped (artifacts/maturity sufficient). Loaded `/matches` implementation: `src/app/(app)/matches/page.tsx` (server component, `revalidate = 60`), `getFixtureByDayWithMyPredictions` → `groupFixtureByDay` (UTC day grouping, chronological). Intent = adaptive refine (Unit 30, UI/UX), no schema/data change. Presenting Requirements Analysis with a recommendation + clarifying questions before proceeding (user explicitly asked "qué sugerirías").
+**Context**: INCEPTION — Workspace Detection (auto) + Requirements Analysis start.
+
+---
+
+## Requirements Analysis — Decisions (Unit 30)
+**Timestamp**: 2026-06-16T00:05:00Z
+**User Input**: AskUserQuestion answers — Corte="Por día: hoy completo (Recomendado)"; Toggle="Client-side, colapsado por defecto (Recomendado)"
+**AI Response**: Registradas FR-REFINE-30.1..30.4 + NFR-REFINE-30.1/30.2 en `inception/requirements/requirements.md` (Épica 29). Corte por día (hoy completo, UTC); toggle client-side colapsado por defecto; sin schema/datos/queries; conserva caching (revalidate=60 + unstable_cache). Presentando approval gate de Requirements Analysis.
+**Context**: INCEPTION — Requirements Analysis (gate de aprobación pendiente).
+
+---
+
+## Requirements Analysis — Approval (Unit 30)
+**Timestamp**: 2026-06-16T00:08:00Z
+**User Input**: "A"
+**AI Response**: Requirements aprobados. Avanzando a Workflow Planning con plan ligero propuesto (skip User Stories / NFR Req / NFR Design / Infra; EXECUTE Functional Design mínimo + Code Generation + Build&Test).
+**Context**: INCEPTION — Requirements Analysis APPROVED → Workflow Planning.
+
+---
+
+## Workflow Planning — Approval (Unit 30)
+**Timestamp**: 2026-06-16T00:10:00Z
+**User Input**: "A"
+**AI Response**: Plan de workflow aprobado. SKIP User Stories / Application Design / Units Generation / NFR Req / NFR Design / Infra. EXECUTE Functional Design (mínimo) + Code Generation + Build&Test. Avanzando a Functional Design.
+**Context**: INCEPTION — Workflow Planning APPROVED → CONSTRUCTION / Functional Design (Unit 30).
+
+---
+
+## Functional Design — Unit 30
+**Timestamp**: 2026-06-16T00:14:00Z
+**User Input**: (n/a — generación de diseño)
+**AI Response**: Creado `construction/unit-30-matches-past-filter/functional-design.md`: transform puro `partitionDaysBytoday(days, today-UTC)` → {pastDays, currentDays}; componente cliente `MatchesFixtureView` (colapsado por defecto, botón solo si hay pasados, días pasados fuera del DOM al colapsar); cambios en `page.tsx` (conserva revalidate=60 + testids); copy `matchesShowPast`/`matchesHidePast` (es/en); plan de tests del transform. Presentando completion message de Functional Design (2 opciones).
+**Context**: CONSTRUCTION — Functional Design (gate de aprobación pendiente).
+
+---
+
+## Functional Design — Approval (Unit 30)
+**Timestamp**: 2026-06-16T00:16:00Z
+**User Input**: "A"
+**AI Response**: Functional Design aprobado. Avanzando a Code Generation (Part 1 — plan con checkboxes).
+**Context**: CONSTRUCTION — Functional Design APPROVED → Code Generation.
+
+---
+
+## Code Generation Plan — Approval (Unit 30)
+**Timestamp**: 2026-06-16T00:18:00Z
+**User Input**: "A"
+**AI Response**: Plan de Code Generation aprobado. Ejecutando Part 2 (implementación + tests).
+**Context**: CONSTRUCTION — Code Generation Part 1 APPROVED → Part 2 (generación).
+
+---
+
+## Code Generation — Part 2 Complete (Unit 30)
+**Timestamp**: 2026-06-16T00:30:00Z
+**User Input**: (n/a — generación de código)
+**AI Response**: Implementado: `partitionDaysByToday` (`fixture-by-day.ts`, re-export en `queries.ts`); componente cliente `matches-fixture-view.tsx` (colapsado por defecto, botón solo si hay pasados, días pasados fuera del DOM al colapsar, `aria-expanded`, `useDictionary`); `page.tsx` particiona por hoy-UTC y delega; copy `matchesShowPast`/`matchesHidePast` (es/en); 5 tests de `partitionDaysByToday`. Verificación: tsc 0, Biome limpio (archivos tocados), ESLint 0, vitest 221/221, `pnpm build` OK. Plan 7/7. Nota: detectados cambios STAGED ajenos a Unit 30 en el índice (URU→URY en `world-cup-2026.ts` + snapshot) — NO los toqué, pendiente decisión del usuario. Presentando completion message de Code Generation (2 opciones).
+**Context**: CONSTRUCTION — Code Generation Part 2 COMPLETE (gate de aprobación pendiente).
+
+---
+
+## Code Generation — Approval + Build & Test (Unit 30)
+**Timestamp**: 2026-06-16T00:33:00Z
+**User Input**: "A"
+**AI Response**: Code Generation aprobado. Build & Test (final de Construction) ya ejecutado durante la verificación: tsc 0, Biome limpio (archivos tocados), ESLint 0, vitest 221/221, `pnpm build` OK. Unit 30 COMPLETE. Recordatorio pendiente: cambios STAGED ajenos (URU→URY + snapshot) sin commitear, a decisión del usuario.
+**Context**: CONSTRUCTION — Code Generation APPROVED → Build & Test COMPLETE → Unit 30 cerrada.
+
+---

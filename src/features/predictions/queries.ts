@@ -10,6 +10,7 @@ import { type FixtureDayGroup, groupFixtureByDay } from "./services/fixture-by-d
 import type { PredictionMatchView, PredictionView } from "./types";
 
 export type { DayMatchView, FixtureDayGroup } from "./services/fixture-by-day";
+export { partitionDaysByToday } from "./services/fixture-by-day";
 
 function toPredictionView(p: {
   id: string;

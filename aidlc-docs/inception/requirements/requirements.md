@@ -1081,3 +1081,49 @@ Múltiples syncs con los mismos datos no crean duplicados.
 | `src/features/competition/services/upsert-competition-data.ts` | Extraer `seedCompetitionStructure()` |
 | `scripts/seed-competition.ts` | Usar `seedCompetitionStructure()` |
 | `src/features/competition/services/__tests__/sync-orchestrator.test.ts` | Nuevos tests |
+
+---
+
+## Épica 29 — Refine Unit 30: Filtro de "partidos anteriores" en /matches (2026-06-16)
+
+**Intent del usuario**: "En la sección de matches (/matches) los partidos que ocurrieron el día anterior deben salir solo si se presiona un botón de filtro de mostrar aquellos antiguos. La idea es no hacer que el usuario haga mucho scroll para actualizar la predicción del día actual."
+
+Refine UI/UX aditivo sobre Unit 16 (`groupFixtureByDay`, FR-REFINE-16.2). **No** reinicia etapas aprobadas. Sin cambios de schema, datos ni queries: la data del fixture ya viaja completa al cliente; solo cambia qué días se renderizan por defecto.
+
+### FR-REFINE-30.1 — Colapso de días pasados por defecto
+`/matches` muestra por defecto solo los días **>= hoy**. Los días estrictamente **anteriores a hoy** quedan ocultos detrás de un botón "Ver partidos anteriores".
+- **Corte por DÍA, no por hora** (decisión del usuario, AskUserQuestion): el día de hoy se muestra **completo**, incluso si algunos de sus partidos ya se jugaron/bloquearon. Solo se colapsan los días con `dayKey < hoy`.
+- "Hoy" se determina en **UTC** para alinearse con la agrupación existente (`groupFixtureByDay` usa `timeZone: "UTC"`) y mantener el corte determinista con el SSR cacheado.
+- El bucket "Fecha por confirmar" (`dayKey === null`, knockouts sin fecha) se considera **futuro** y permanece visible.
+
+### FR-REFINE-30.2 — Botón de revelado
+- Etiqueta "Ver partidos anteriores" con conteo de días/partidos ocultos (externalizada en diccionarios `es`/`en`).
+- Ubicado **arriba**, antes del primer día visible, para descubrirse sin scroll.
+- Al presionarlo, los días pasados se expanden **en orden cronológico, por encima** del día actual (su lugar natural). Botón alterna a "Ocultar partidos anteriores".
+- Si no hay días pasados, el botón **no se renderiza**.
+
+### FR-REFINE-30.3 — Mecanismo client-side
+Toggle resuelto en el navegador (decisión del usuario, AskUserQuestion): un componente cliente envuelve la lista y oculta/expande los días pasados con estado local (`useState`), **colapsado por defecto**.
+- **Conserva el caching actual**: `export const revalidate = 60` y `unstable_cache` del fixture intactos; no se añaden queries ni se vuelve la página dinámica.
+- Al recargar la página, vuelve al estado colapsado (aceptado).
+
+### FR-REFINE-30.4 — Determinación de "pasado" en el servidor
+La partición pasado/actual+futuro se calcula en el Server Component (a partir de `dayKey` vs. hoy-UTC) y se pasa al componente cliente ya particionada, para no exponer lógica de fecha duplicada ni recalcular en cada render del cliente.
+
+### NFR-REFINE-30.1 — Sin regresión de performance
+No se añaden round-trips ni se desactiva el caché. El coste extra es una partición O(n) de ~104 elementos en el servidor.
+
+### NFR-REFINE-30.2 — Accesibilidad
+El botón es un `<button>` real con estado expandido/colapsado comunicado (texto del label cambia); los días ocultos no quedan en el árbol accesible cuando están colapsados.
+
+### Archivos afectados (previsto)
+| Archivo | Cambio |
+|---|---|
+| `src/app/(app)/matches/page.tsx` | Particionar `days` en pasados/actuales-futuros por hoy-UTC; renderizar vía componente cliente |
+| `src/features/predictions/components/*` (nuevo) | Componente cliente del toggle de días anteriores |
+| `src/i18n/dictionaries/*` | Copy `matchesShowPast` / `matchesHidePast` (es/en) |
+| `src/features/predictions/__tests__/*` | Test de partición por día (pasado vs hoy/futuro, corte UTC, bucket TBD) |
+
+### Decisiones registradas (AskUserQuestion, 2026-06-16)
+- **Corte**: por día — hoy se muestra completo (no por hora de kickoff).
+- **Toggle**: client-side, colapsado por defecto (no URL param), para conservar el caching.

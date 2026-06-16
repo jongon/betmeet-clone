@@ -379,6 +379,8 @@ export const en = {
     matchesDescription: "Times are shown in your local time.",
     matchesEmptyTitle: "Fixture unavailable",
     matchesEmptyDescription: "Run the competition seed to load initial data.",
+    matchesShowPast: "Show earlier matches ({count})",
+    matchesHidePast: "Hide earlier matches",
     rankingsTitle: "Global ranking",
     rankingsDescription: "Your position against all World Cup players.",
     rankingsEmpty: "No scores yet. Come back when matches begin.",
