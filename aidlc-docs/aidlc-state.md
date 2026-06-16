@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: ✅ Unit 31 COMPLETE (2026-06-16) — "Revertir a la API" ahora limpia el resultado manual (scores/penales/winner→null, status→SCHEDULED) y `scoreMatch` elimina los `PredictionScore` (puntos revertidos); botón con diálogo de confirmación. tsc 0, Biome limpio, ESLint 0, **vitest 225/225** (+4 `revert-override.test.ts`), `pnpm build` OK. No reinicia Units 1–30. **Todas las unidades (1–31) implementadas y verificadas** (Units 1–28 operacionales en producción; Unit 29 verificada con tests, snapshot pendiente de generarse en la primera corrida con `FOOTBALL_DATA_KEY`). ✅ CF-7 (token_hash desplegado). ✅ CF-9 (Secure email change OFF). ✅ CF-10 (Passkeys ON, verificado en dispositivo real). ✅ Eliminar cuenta verificado en prod (`auth.users` purgado + email liberado). ✅ Smoke visual del app shell con sesión real de admin. ✅ Sync FIXTURES ejecutado (146 matches en BD, run SUCCESS). ✅ Unit 29: seed de partidos desde football-data.org (solo pendientes, idempotente, snapshot de respaldo).
+- **Current Stage**: ✅ Unit 32 COMPLETE (2026-06-16) — seed **auto-sanador** de identidad de equipos: `reconcileSeedTeam()` reconcilia por `name` (identidad estable), corrige el `fifaCode` en sitio y **fusiona** duplicados re-apuntando las 4 FKs antes de borrar el huérfano (resuelve el "Equipo por Definir" tras corregir Uruguay URU→URY). tsc 0, Biome limpio, ESLint 0, **vitest 229/229**, `pnpm build` OK. No reinicia Units 1–31. Prev: Unit 31 — "Revertir a la API" limpia el resultado manual (scores/penales/winner→null, status→SCHEDULED) y `scoreMatch` elimina los `PredictionScore` (puntos revertidos), con diálogo de confirmación (**vitest 225/225** en su momento). **Todas las unidades (1–32) implementadas y verificadas** (Units 1–28 operacionales en producción; Unit 29 verificada con tests, snapshot de partidos generado y commiteado en `65e99e6`). ✅ CF-7 (token_hash desplegado). ✅ CF-9 (Secure email change OFF). ✅ CF-10 (Passkeys ON, verificado en dispositivo real). ✅ Eliminar cuenta verificado en prod (`auth.users` purgado + email liberado). ✅ Smoke visual del app shell con sesión real de admin. ✅ Sync FIXTURES ejecutado (146 matches en BD, run SUCCESS). ✅ Unit 29: seed de partidos desde football-data.org (solo pendientes, idempotente, snapshot de respaldo).
 - **Prev Stage**: CONSTRUCTION — CODE GENERATION COMPLETE / Unit 25 Sync con football-data.org (2026-06-15) — Cerrada la última etapa AI-DLC pendiente. La implementación ya estaba en el repo (commit `107035a`): `FootballDataProvider`, `mapFootballDataStatus`, `trigger-sync` con provider `"FOOTBALL_DATA"`, `FOOTBALL_DATA_KEY` en `.env.example` y tests. Esta sesión verificó (tsc 0, Biome limpio, ESLint 0, **207/207 tests**), eliminó el stub muerto `api-football.ts` (0 referencias) + `API_FOOTBALL_KEY`, y alineó los artefactos AI-DLC (state/plan/audit). **Todas las unidades 1–27 implementadas.** **✅ Operations COMPLETE (2026-06-16)**: `FOOTBALL_DATA_KEY` configurado + smoke del sync admin ejecutado (146 matches en BD). Sin reinicio de etapas aprobadas.
 - **Prev Stage**: CONSTRUCTION — CODE GENERATION COMPLETE / Unit 26 + Unit 27 Performance Fase 1 y 2 (2026-06-15) — Implementadas las dos fases de optimización. **Unit 26 (Fase 1)**: `select` en `getProfile`, `React.cache()` sobre `getProfile`, `Promise.all()` en `/pools/[id]`, `connection_limit` 1→3, FK indexes `homeTeamId`/`awayTeamId` con migración. **Unit 27 (Fase 2)**: `force-dynamic` → `revalidate = 60` en `/matches`, índice `Profile.deletedAt` con migración, índice `ProviderSyncRun(scope, status, finishedAt)` + refactor N+1 → single query con migración, `React.cache()` sobre `getMyPools`/`getPoolDetail`. Verificado: tsc 0, Biome limpio, ESLint 0, **207/207 tests**, `next build` OK. Sin reinicio de etapas aprobadas (Units 1–25 intactas).
 - **Prev Stage**: CONSTRUCTION — CODE GENERATION COMPLETE / Unit 24 Internacionalización y selector de idioma (2026-06-15) — Implementado `es` por defecto + `en` sin prefijo de URL, persistencia cookie `locale` + `profiles.locale`, selector client-triggered en `UserMenu` y Perfil, diccionarios tipados, externalización de copy visible, reglas MDX bilingües. Verificado app-scoped: ESLint OK, Biome OK, Vitest (187/187), build OK.
@@ -288,6 +288,13 @@
 - [x] Code Generation - COMPLETE. `revertMatchOverride` (`features/admin/actions/revert-override.ts`) limpia `homeScore`/`awayScore`/`homePenaltyScore`/`awayPenaltyScore`/`winnerTeamId`→null y `status`→SCHEDULED además de los flags de override; `scoreMatch()` (sin cambios) deja el partido no-scoreable → elimina los `PredictionScore`; revalidaciones y `logAuthEvent` conservados. `RevertOverrideButton` (`features/admin/components/revert-override-button.tsx`) reescrito con `Dialog` de confirmación (Cancelar `outline` / Revertir `destructive`). Copy `revertConfirmTitle`/`revertConfirmBody`/`revertConfirm`/`cancel` (admin) en `i18n/dictionaries/{es,en}.ts`.
 - [x] Build and Test - COMPLETE. tsc 0, Biome limpio (archivos tocados), ESLint 0, **vitest 225/225** (+4 `features/admin/actions/__tests__/revert-override.test.ts`: limpia resultado + status SCHEDULED, scoreMatch invocado, rechazo no-admin, match inexistente), `pnpm build` OK.
 
+**Unit 32: Seed auto-sanador de identidad de equipos** (added via `/aidlc:refine`, 2026-06-16) — refine post-construcción, no reinicia Units 1–31
+- [x] Requirements (min) — FR-REFINE-32.1/.2/.3 (Épica 31). Causa raíz: `upsertTeam` upserta por `fifaCode`, así que la corrección de Uruguay `URU→URY` (commit `a2cfb96`) re-corría el seed creando un equipo **duplicado** y dejando la fila vieja huérfana; el partido Saudi Arabia vs Uruguay quedaba con `awayTeamId=null` ("Equipo por Definir").
+- [x] Functional Design (light) — `construction/unit-32-seed-team-reconciliation/functional-design.md`.
+- [x] NFR / Infrastructure — SKIP. Idempotente, sin schema/migraciones, sin script aparte; Security Baseline intacto.
+- [x] Code Generation - COMPLETE. Nueva `reconcileSeedTeam()` (solo en el seed de estructura, `upsert-competition-data.ts`) reconcilia por `name` (identidad estable), corrige el `fifaCode` en sitio y **fusiona** duplicados re-apuntando las 4 FKs a `Team` (`Match.homeTeamId/awayTeamId/winnerTeamId`, `Prediction.penaltyWinnerTeamId`) dentro de `$transaction` antes de borrar el huérfano. `upsertTeam` (por `fifaCode`) se conserva para la ruta de **sync** (nombres del provider difieren); la re-vinculación del partido la hace la ruta de update de `syncMatchesToDB` ya existente; los placeholders legítimos de knockout se preservan.
+- [x] Build and Test - COMPLETE. tsc 0, Biome limpio, ESLint 0, **vitest 229/229** (+4 `reconcile-seed-team.test.ts`), `pnpm build` OK.
+
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
 - [x] Build and Test - COMPLETE through Unit 10 implementation (0 TS errors, 115 tests, ESLint 0, Biome clean, build passing).
@@ -318,25 +325,8 @@
 
 ## Execution Plan Summary
 - **Total Remaining Stages**: 0
-- **Stages to Execute**: ninguna (Construction completa para Units 1–29)
-- **Completed (since last summary)**: Unit 29 Code Generation + Build/Test (seed de partidos desde football-data.org con snapshot: `seedMatchesFromFootballData`, scope FULL, fallback a snapshot, eliminación del seed estático incorrecto, 3 test cases, 216/216 tests)
+- **Stages to Execute**: ninguna (Construction completa para Units 1–32)
+- **Completed (since last summary)**: Units 30 (filtro de partidos anteriores), 31 (revert override + rescore) y 32 (seed auto-sanador `reconcileSeedTeam`) — Code Generation + Build/Test, **229/229 tests**
 - **Stages to Skip**: Requirements Analysis, User Stories, Application Design, Units Generation, Functional Design, NFR, Infrastructure (ya cubiertos)
-- **Next Stage**: **✅ PROYECTO COMPLETAMENTE OPERACIONAL (2026-06-16)** — todas las unidades implementadas y verificadas. Operations cerrada. Único residual: generar el snapshot de partidos en la primera corrida del seed con `FOOTBALL_DATA_KEY`.
-- **Status**: Todas las unidades (1–29) implementadas y verificadas. Pendiente operativo: primera corrida del seed con `FOOTBALL_DATA_KEY` para generar el snapshot commiteado.
-
----
-
-**Unit 32: Refine — Seed auto-sanador de identidad de equipos (2026-06-16)**
-Refine post-construcción (FR-REFINE-32.1/.2/.3, Épica 31); no reinicia Units 1–31. Causa raíz: `upsertTeam`
-upserta por `fifaCode`, así que la corrección de Uruguay `URU→URY` (commit `a2cfb96`) re-corría el seed
-creando un equipo **duplicado** y dejando la fila vieja huérfana; el partido Saudi Arabia vs Uruguay
-quedaba con `awayTeamId=null` ("Equipo por Definir"). Solución: nueva `reconcileSeedTeam()` (solo en el
-seed de estructura) reconcilia por `name` (identidad estable), corrige el `fifaCode` en sitio y **fusiona**
-duplicados re-apuntando las 4 FKs a `Team` (`Match.homeTeamId/awayTeamId/winnerTeamId`,
-`Prediction.penaltyWinnerTeamId`) dentro de `$transaction` antes de borrar el huérfano. `upsertTeam` (por
-`fifaCode`) se conserva para la ruta de **sync** (nombres del provider difieren). La re-vinculación del
-partido la hace la ruta de update de `syncMatchesToDB` ya existente una vez sanado el equipo; los
-placeholders legítimos de knockout se preservan. Idempotente, sin schema/migraciones, sin script aparte.
-- [x] Functional Design - COMPLETE (`construction/unit-32-seed-team-reconciliation/functional-design.md`)
-- [x] Code Generation - COMPLETE (`upsert-competition-data.ts` + test `reconcile-seed-team.test.ts` 4 casos)
-- [x] Build & Test - COMPLETE (tsc 0, Biome limpio, ESLint 0, vitest **229/229**, `pnpm build` OK)
+- **Next Stage**: **✅ PROYECTO COMPLETAMENTE OPERACIONAL (2026-06-16)** — todas las unidades implementadas y verificadas. Operations cerrada. Sin residuales: el snapshot de partidos ya está generado y commiteado (`65e99e6`).
+- **Status**: Todas las unidades (1–32) implementadas y verificadas. Sin pendientes operativos.
