@@ -214,5 +214,5 @@ Reglas:
 - SEO bilingüe avanzado (`hreflang`, sitemap por locale).
 - Traducir emails transaccionales hospedados en Supabase de forma dinámica por locale;
   puede tratarse como una unidad posterior si se requiere email bilingüe por usuario.
-- Traducción de datos externos de API-Football si el proveedor solo entrega nombres en
+- Traducción de datos externos del proveedor (football-data.org) si solo entrega nombres en
   un idioma; Unit 24 se limita a copy de UI/contenido propio.

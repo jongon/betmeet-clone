@@ -15,7 +15,7 @@ Rules:
 
 ## BL-4.1: Seed Initial Fixture Data
 
-Purpose: make the fixture usable before API-Football is fully stable.
+Purpose: make the fixture usable before el proveedor externo (football-data.org) is fully stable.
 
 ```
 seedCompetitionData(seed):
@@ -178,6 +178,6 @@ if match.manualOverride == true:
 |---|---|---|---|
 | Seed fixture | Seed JSON/TS data | BL-4.1 | Competition, teams, phases, matches |
 | Fixture page | User filters | BL-4.2 | Grouped fixture view |
-| Provider sync | API-Football payload | BL-4.3, BL-4.6, BL-4.7 | Updated fixtures/results/logs |
+| Provider sync | football-data.org payload | BL-4.3, BL-4.6, BL-4.7 | Updated fixtures/results/logs |
 | Knockout unlock | Provider team assignment | BL-4.4 | Match becomes prediction-eligible |
 | Pool freeze | Active competition/matches | BL-4.5 | First kickoff lock time |

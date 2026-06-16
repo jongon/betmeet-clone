@@ -50,7 +50,7 @@
 **Purpose**: Isolate football data provider details behind an adapter interface.
 
 **Responsibilities**:
-- Use API-Football as v1 default provider.
+- Use football-data.org as v1 default provider (era API-Football; migrado en Unit 25).
 - Normalize provider payloads into internal competition/match/team structures.
 - Track sync attempts, failures, rate limits, and provider timestamps.
 - Support provider replacement without changing domain services.

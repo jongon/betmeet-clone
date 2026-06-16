@@ -2,7 +2,7 @@
 
 ## Scope
 
-Unit 4 introduces dynamic fixture data, API-Football synchronization, match-day freshness, local flag assets, and provider sync logs. It inherits the global stack and security baseline: Next.js 16 App Router, Supabase/PostgreSQL, Prisma, Vercel, server-side validation, RLS, and no client-exposed secrets.
+Unit 4 introduces dynamic fixture data, football-data.org synchronization, match-day freshness, local flag assets, and provider sync logs. It inherits the global stack and security baseline: Next.js 16 App Router, Supabase/PostgreSQL, Prisma, Vercel, server-side validation, RLS, and no client-exposed secrets.
 
 ---
 
@@ -42,7 +42,7 @@ The product is a quiniela MVP, not live betting. Sub-30-second updates are expli
 
 **Decision: Q3 = A + admin override expectation in Unit 7.**
 
-- If API-Football is down, rate-limited, or returns errors, the app must continue serving the last known good fixture data.
+- If football-data.org is down, rate-limited, or returns errors, the app must continue serving the last known good fixture data.
 - Fixture UI must indicate stale data using `lastSyncedAt` or equivalent copy/state.
 - Sync failures must create sanitized `ProviderSyncLog` records.
 - Persistent provider failure must be visible to admins in Unit 7 and resolvable through manual override flows built in Unit 7.
@@ -70,7 +70,7 @@ Temporary local/debug payload capture can be used during development, but it mus
 
 **Decision: Q5 = A.**
 
-- API-Football key lives only in server-side env/secret manager as `API_FOOTBALL_KEY` or equivalent.
+- football-data.org key lives only in server-side env/secret manager as `FOOTBALL_DATA_KEY` or equivalent.
 - It must never be prefixed with `NEXT_PUBLIC`.
 - It must never be sent to client components, browser logs, sync logs, or error responses.
 - Sync code must fail closed if the key is missing: record a sanitized sync failure and avoid partial unauthenticated provider calls.
@@ -88,7 +88,7 @@ Temporary local/debug payload capture can be used during development, but it mus
 | Finished historical matches | Longer revalidate acceptable after result finalized |
 | Provider API responses | Do not use client-side provider fetch; sync persists normalized data in DB |
 
-The database remains the source of truth for reads. Users do not call API-Football directly.
+The database remains the source of truth for reads. Users do not call football-data.org directly.
 
 ---
 

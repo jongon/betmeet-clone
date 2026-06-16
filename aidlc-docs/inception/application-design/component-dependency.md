@@ -7,7 +7,7 @@
 | Auth & Session | Supabase Auth | Profile, Pools, Predictions, Admin |
 | Profile & Identity | Auth & Session, Supabase Storage | Pools, Rankings, UX Education |
 | Competition Data | Football API Adapter | Predictions, Scoring, Admin, UX |
-| Football API Adapter | API-Football, Supabase Edge Jobs | Competition Data, Admin |
+| Football API Adapter | football-data.org, Supabase Edge Jobs | Competition Data, Admin |
 | Pools & Membership | Profile, Competition Data | Rankings, Predictions |
 | Predictions | Auth, Profile, Competition Data | Scoring, UX |
 | Scoring & Rankings | Predictions, Competition Data, Pools | Leaderboard UI, Admin |
@@ -18,7 +18,7 @@
 ## Primary Data Flow
 
 ```text
-API-Football
+football-data.org
   -> Football API Adapter
   -> Competition Data
   -> Match Result Update

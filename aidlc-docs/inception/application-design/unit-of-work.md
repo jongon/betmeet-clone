@@ -75,8 +75,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 **Responsibilities**:
 - World Cup-like seed/demo data for development and tests.
 - Competition, phase, team, match, and match result models.
-- API-Football adapter as default provider.
-- Supabase Edge scheduled jobs for sync.
+- football-data.org adapter as default provider (era API-Football; migrado en Unit 25).
+- Sync v1 manual (server action admin); Supabase Edge scheduled jobs como scaffold/cron a futuro.
 - Provider sync logs and error states.
 
 **Primary Deliverable**: Fixture and match states are available without relying on manual setup.
@@ -198,6 +198,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El usuario puede alternar entre español e inglés desde la app; toda la UI y el Centro de Reglas se renderizan en el idioma activo, con URLs estables y sin mezcla de copy.
 
+## Unit 25: Sync con football-data.org
+
+**Goal**: Reemplazar el stub `ApiFootballProvider` por un provider real contra football-data.org, manteniendo el contrato `CompetitionProvider` existente.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc:refine` (2026-06-15); aditivo y no reinicia Units 1–24.
+- Implementar `FootballDataProvider` contra `GET /v4/competitions/WC/matches?season=2026` con `X-Auth-Token` (`FOOTBALL_DATA_KEY`).
+- Mapear cada match del API a `NormalizedMatch`/`NormalizedTeam` (status vía `mapFootballDataStatus`, marcadores `score.fullTime.* ?? null`, fase vía `stageToPhaseName`).
+- Filtrar por scope (`FIXTURES`/`LIVE_STATUS`/`RESULTS`/`FULL`) con `status`/`dateFrom`/`dateTo`; traducir 429 → `RATE_LIMITED`.
+- El orquestador escribe `provider="FOOTBALL_DATA"` en `ProviderSyncRun`; sin cambios de schema, migraciones ni rutas.
+
+**Primary Deliverable**: La sincronización admin trae fixtures y resultados reales desde football-data.org a través del adapter, sin tocar el orquestador ni el schema.
+
 ## Unit 26: Performance Fase 1 — Quick Wins
 
 **Goal**: Reducir latencia de navegación de 2-3s a <1s con cambios de bajo riesgo y alto impacto sobre el perfil del usuario, la paralelización de queries, la conexión a BD y los índices del fixture.
@@ -226,6 +239,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: La navegación se siente instantánea (<300ms TTFB). Suite de tests verde, build OK, sin cambios funcionales visibles.
 
+## Unit 28: Persistencia de matches en sync-orchestrator
+
+**Goal**: Hacer que la sincronización persista los partidos en la BD (el orquestador buscaba resultados pero no guardaba matches), separando el seed de estructura del de matches.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc:build` (2026-06-16); aditivo y no reinicia Units 1–27.
+- `syncMatchesToDB()` identifica cada match por `providerMatchId` (UPDATE si existe); CREATE solo de `SCHEDULED`/`LIVE` nuevos; SKIP de `FINISHED`/`POSTPONED`/`CANCELLED` inexistentes (no importar resultados históricos en BD fresca).
+- Resolver fase por nombre (`buildPhaseMap()` + `findActiveCompetition()`); UPDATE de status + marcadores; notificaciones de inicio/fin best-effort; `itemsUpdated` = matches procesados.
+- Extraer `seedCompetitionStructure()` de `seedWorldCup2026()` (backward-compat) para sembrar estructura sin matches; fix de `homeFifaCode`/`awayFifaCode` para `tla` null/vacío en knockout.
+- Sin nuevas tablas/columnas ni rutas; cambio acotado al orquestador y al script de seed.
+
+**Primary Deliverable**: Al sincronizar, los partidos quedan creados/actualizados en la BD y disponibles para el fixture y el scoring.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -240,8 +266,10 @@ Feature modules should own their server actions, schemas, services, and feature-
 10. Unit 10: Web Push Notifications (post-construction refine; event-driven; free baseline)
 11. Unit 11: App Shell & Navigation (post-construction refine; UI-only; reuses existing auth/theme/profile primitives)
 12. Unit 24: Internacionalización y Selector de Idioma (post-construction refine; transversal; no URL locale prefix)
-13. Unit 26: Performance Fase 1 — Quick Wins (post-construction refine; query/cache/indexes/pool; <1s target)
-14. Unit 27: Performance Fase 2 — Estructural (post-construction refine; cache/indexes/N+1/dedup; <300ms target)
+13. Unit 25: Sync con football-data.org (post-construction refine; provider adapter; sin schema)
+14. Unit 26: Performance Fase 1 — Quick Wins (post-construction refine; query/cache/indexes/pool; <1s target)
+15. Unit 27: Performance Fase 2 — Estructural (post-construction refine; cache/indexes/N+1/dedup; <300ms target)
+16. Unit 28: Persistencia de matches en sync-orchestrator (post-construction; orquestador persiste matches; sin schema)
 
 ## Security Notes
 

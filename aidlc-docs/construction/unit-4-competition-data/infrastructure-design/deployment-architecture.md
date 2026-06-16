@@ -27,14 +27,14 @@
           └─────────────┬─────────────┘
                         │ server-side only
                         ▼
-                 API-Football
+                 football-data.org
 ```
 
 ---
 
 ## Environments
 
-| Environment | Fixture Data | API-Football Calls | Secrets |
+| Environment | Fixture Data | football-data.org Calls | Secrets |
 |---|---|---|---|
 | Local | `seed-competition` + optional mock fixtures | Optional, only with local key | `.env` / Supabase local secrets |
 | Preview | Seed/mock by default | Only if key explicitly configured | Preview Supabase secret if needed |
@@ -46,7 +46,7 @@
 
 1. Apply Supabase migrations for Unit 4 tables/RLS/indexes.
 2. Deploy Supabase Edge Function `competition-sync`.
-3. Configure `API_FOOTBALL_KEY` in Supabase secrets per environment where real sync is allowed.
+3. Configure `FOOTBALL_DATA_KEY` in Supabase secrets per environment where real sync is allowed.
 4. Run `seed-competition` idempotently after migrations.
 5. Copy/validate `public/flags/*.svg` before app deployment.
 6. Deploy Next.js app to Vercel.
@@ -72,7 +72,7 @@ Seed data must include known initial fixture/team data and UTC kickoff timestamp
 ```text
 cron invokes competition-sync(scope, window)
   ├─ acquire provider_sync_runs lock
-  ├─ fetch API-Football with API_FOOTBALL_KEY
+  ├─ fetch football-data.org with FOOTBALL_DATA_KEY
   ├─ normalize provider payload
   ├─ validate DTOs
   ├─ idempotent upsert into Postgres
@@ -125,7 +125,7 @@ Cache:
 | competitions/phases/teams/matches | read | write via server/service role |
 | provider_sync_runs | no normal-user read in v1 | read/write |
 | Edge Function sync | no access | cron secret/admin/system trigger |
-| API_FOOTBALL_KEY | no access | Edge Function runtime only |
+| FOOTBALL_DATA_KEY | no access | Edge Function runtime only |
 
 ---
 

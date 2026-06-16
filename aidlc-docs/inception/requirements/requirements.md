@@ -1026,3 +1026,58 @@ Los siguientes pasos de ideación (User Stories, Application Design) deberán pr
 - Los flujos principales del producto más allá de auth y gestión de perfiles
 - El modelo de datos de negocio específico
 - Las pantallas y vistas clave del producto
+
+---
+
+---
+
+## Épica 27 — Unit 28: Persistencia de matches en sync-orchestrator (2026-06-16)
+
+**Refine post-construcción** sobre Unit 25 (FootballDataProvider). No reinicia Units 1–27.
+
+### FR-SYNC-28.1 — Persistencia de matches en el orquestador
+`runCompetitionSync()` DEBE persistir los `NormalizedMatch` del provider en la BD además de los teams.
+
+### FR-SYNC-28.2 — BD desde cero: separar seed de estructura vs. matches
+Refactorizar `seedWorldCup2026()` en dos funciones:
+- `seedCompetitionStructure()`: crea Competition + Phases + Teams (sin matches).
+- La lógica de matches pasa a ser opcional (o se elimina del seed default).
+- `scripts/seed-competition.ts` usa `seedCompetitionStructure()`.
+
+### FR-SYNC-28.3 — Identificación de matches por `providerMatchId`
+Lookup: `prisma.match.findFirst({ where: { providerMatchId } })`. Si existe → UPDATE. Si no → FR-SYNC-28.4.
+
+### FR-SYNC-28.4 — Regla de creación por status
+Solo se CREAN matches con status `SCHEDULED` o `LIVE`. Los matches `FINISHED`, `POSTPONED`, `CANCELLED` solo se ACTUALIZAN si ya existen; si no existen, se saltan.
+
+### FR-SYNC-28.5 — Campos a actualizar (todos: Q2-C)
+status, homeScore, awayScore, kickoffAt, homeTeamId (via fifaCode), awayTeamId (via fifaCode), homePlaceholder, awayPlaceholder.
+
+### FR-SYNC-28.6 — Resolución de phase
+Cargar `Map<phaseName, phaseId>` desde la competición activa (`slug = "world-cup-2026"`). Usar para asociar cada match a su phaseId.
+
+### FR-SYNC-28.7 — Matches no vinculables (Q3-A)
+Phase no encontrada o competición inexistente → `console.warn` + continuar. Sync run se marca SUCCESS.
+
+### FR-SYNC-28.8 — Notificaciones de status
+Preservar `emitMatchNotificationEvents(previous, saved)` al actualizar matches. Best-effort.
+
+### FR-SYNC-28.9 — itemsUpdated = matches procesados
+`ProviderSyncRun.itemsUpdated` cuenta matches creados + actualizados.
+
+### FR-SYNC-28.10 — Sweeper automático suficiente (Q4-default A)
+`scoreFinishedUnscoredMatches()` ya corre tras cada sync. Sin cambios en UI.
+
+### NFR-SYNC-28.1 — Idempotencia
+Múltiples syncs con los mismos datos no crean duplicados.
+
+### NFR-SYNC-28.2 — Seguridad (Security Baseline)
+`providerMatchId` viene del API, sanitizado por Zod. Admin gate existente protege `trigger-sync`.
+
+### Archivos afectados
+| Archivo | Cambio |
+|---|---|
+| `src/features/competition/services/sync-orchestrator.ts` | Agregar loop de sync de matches |
+| `src/features/competition/services/upsert-competition-data.ts` | Extraer `seedCompetitionStructure()` |
+| `scripts/seed-competition.ts` | Usar `seedCompetitionStructure()` |
+| `src/features/competition/services/__tests__/sync-orchestrator.test.ts` | Nuevos tests |

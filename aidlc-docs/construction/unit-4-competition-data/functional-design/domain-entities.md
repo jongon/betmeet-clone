@@ -21,7 +21,7 @@ Represents a tournament edition.
 | `startsAt` | datetime nullable | First official kickoff if known; may be derived from earliest match |
 | `endsAt` | datetime nullable | End date for the tournament |
 | `timezone` | string | Canonical tournament timezone for imported fixtures |
-| `provider` | enum/string | e.g. `API_FOOTBALL`, nullable for seeded/manual data |
+| `provider` | enum/string | e.g. `FOOTBALL_DATA` (sync); nullable for seeded/manual data |
 | `providerCompetitionId` | string nullable | External provider competition/league id |
 | `isActive` | boolean | Active competition used by v1 screens and Unit 3 freeze lookup |
 | `createdAt` / `updatedAt` | datetime | Audit timestamps |
@@ -116,12 +116,12 @@ Represents a scheduled or completed fixture.
 
 ## ProviderSyncLog
 
-Records sync attempts with API-Football or future providers.
+Records sync attempts with football-data.org (desde Unit 25; antes API-Football) or future providers.
 
 | Field | Type | Notes |
 |---|---|---|
 | `id` | UUID | Primary key |
-| `provider` | enum/string | e.g. `API_FOOTBALL` |
+| `provider` | enum/string | e.g. `FOOTBALL_DATA` |
 | `scope` | enum/string | `FIXTURES`, `RESULTS`, `LIVE_STATUS`, `TEAMS`, `FULL` |
 | `status` | enum | `STARTED`, `SUCCESS`, `PARTIAL_SUCCESS`, `FAILED`, `RATE_LIMITED` |
 | `startedAt` | datetime | Attempt start |

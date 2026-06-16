@@ -9,9 +9,9 @@
 | Logical Component | Infrastructure | Notes |
 |---|---|---|
 | Sync Trigger Guard | Supabase Edge Function auth + optional admin/server trigger | Cron/system secret or admin verification; no public trigger |
-| Sync Orchestrator | Supabase Edge Function | Runs API-Football sync scopes and cleanup |
+| Sync Orchestrator | Supabase Edge Function | Runs football-data.org sync scopes and cleanup |
 | Sync Lock Store | Supabase Postgres table `provider_sync_runs` | Unified lock + log with unique scope/window |
-| API-Football Provider Adapter | Supabase Edge Function runtime | Uses `API_FOOTBALL_KEY` from Supabase secrets |
+| football-data.org Provider Adapter | Supabase Edge Function runtime | Uses `FOOTBALL_DATA_KEY` from Supabase secrets |
 | Provider DTO Validator | Edge Function / shared TS module | Validates normalized DTOs before DB writes |
 | Competition Upsert Service | Server/Edge code writing Postgres | Idempotent seed/sync upserts |
 | Sync Logger | `provider_sync_runs` + structured logs | 90-day retention; sanitized messages |
@@ -28,7 +28,7 @@
 ### Supabase Edge Function Sync (Q1=A)
 
 - Scheduled sync runs in Supabase Edge Functions.
-- Next.js app reads normalized fixture data from Postgres and does not call API-Football for user requests.
+- Next.js app reads normalized fixture data from Postgres and does not call football-data.org for user requests.
 - Edge Function scopes:
   - `TEAMS`
   - `FIXTURES`
@@ -88,10 +88,10 @@
 
 | Secret | Location | Purpose |
 |---|---|---|
-| `API_FOOTBALL_KEY` | Supabase Edge Function secret per environment | Provider API access |
+| `FOOTBALL_DATA_KEY` | Supabase Edge Function secret per environment | Provider API access |
 | `SYNC_TRIGGER_SECRET` or equivalent | Supabase/Vercel server env if needed | Protected manual/system trigger |
 
-Local development documents `.env` setup. Preview environments use seed/mock by default and only call API-Football if `API_FOOTBALL_KEY` is explicitly configured.
+Local development documents `.env` setup. Preview environments use seed/mock by default and only call football-data.org if `FOOTBALL_DATA_KEY` is explicitly configured.
 
 ---
 
@@ -145,14 +145,14 @@ Local development documents `.env` setup. Preview environments use seed/mock by 
 ### Preview Behavior (Q10=A)
 
 - Preview deployments use seed/mock data by default.
-- Preview calls API-Football only if an environment-specific `API_FOOTBALL_KEY` is explicitly configured.
+- Preview calls football-data.org only if an environment-specific `FOOTBALL_DATA_KEY` is explicitly configured.
 - This protects provider quota and avoids noisy sync from every branch.
 
 ---
 
 ## Shared Infrastructure Changes
 
-- Add `API_FOOTBALL_KEY` as a server/Edge-only secret.
+- Add `FOOTBALL_DATA_KEY` as a server/Edge-only secret.
 - Add optional `SYNC_TRIGGER_SECRET` or equivalent if a protected system trigger is implemented.
 - Add `scripts/seed-competition.ts` and flag asset validation/copy scripts to seed workflow.
 - Add Supabase Edge Function + scheduled sync to shared operational notes.

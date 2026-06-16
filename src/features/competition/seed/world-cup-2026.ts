@@ -16,8 +16,8 @@ export const WORLD_CUP_2026 = {
   startsAt: "2026-06-11T19:00:00.000Z",
   endsAt: "2026-07-19T23:59:59.000Z",
   timezone: "UTC",
-  provider: "API_FOOTBALL",
-  providerCompetitionId: "1",
+  provider: "FOOTBALL_DATA",
+  providerCompetitionId: "WC",
   isActive: true,
 } as const;
 

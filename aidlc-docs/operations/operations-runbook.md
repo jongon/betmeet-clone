@@ -21,7 +21,7 @@
 | H-4 | `scripts/seed-competition.ts` usaba **top-level await**; con `tsx` y sin `"type":"module"` se transpila a CJS y rompe. | Corregido: envuelto en `async function main()` (mismo patrón que `seed-admin.ts`/`seed-avatars.ts`). |
 | H-5 | El usuario admin se creó en `Authentication → Users` **antes** de existir la tabla `profiles` y el trigger `handle_new_user`. | El trigger solo dispara en *nuevos* inserts → **no hay fila en `profiles`** para ese usuario → `seed-admin` (que hace `UPDATE`) falla. |
 | H-6 | `DATABASE_URL` usa el **transaction pooler** (`...pooler.supabase.com:6543`). | Correcto para runtime. Operaciones DDL (`prisma db push` / `migrate deploy`) deben usar `DIRECT_URL` con la **direct connection** (`db.<ref>.supabase.co:5432`). |
-| H-7 | `.env` contiene `SUPABASE_SERVICE_ROLE_KEY`, el password de la BD y `API_FOOTBALL_KEY` en texto plano. | Riesgo de credenciales. Confirmar `.env` en `.gitignore` y **rotar** secretos expuestos. |
+| H-7 | `.env` contiene `SUPABASE_SERVICE_ROLE_KEY`, el password de la BD y `FOOTBALL_DATA_KEY` en texto plano. | Riesgo de credenciales. Confirmar `.env` en `.gitignore` y **rotar** secretos expuestos. |
 | H-8 | Con **PostgREST caído** (`PGRST002 – "Could not query the database for the schema cache"`), el gate de auth en `src/proxy.ts` —único punto que lee tablas vía REST de Supabase; el resto va por Prisma— recibía `{data:null}` y lo trataba como "sin nickname" → redirige a `/onboarding/profile`, que (vía Prisma sí ve el nickname) rebota a `/matches` → **loop infinito** (`Throttling navigation` + pantalla negra). Detectado 2026-06-12. | Mitigado en código: el middleware ahora hace *fail-open* ante error de lectura (`!error && !profile?.nickname_base`). La causa raíz (PostgREST degradado) se resuelve reiniciando el servicio en Supabase. Ver §6. |
 
 ---
@@ -37,7 +37,7 @@ Referencia: `.env.example`. Por entorno:
 | `NEXT_PUBLIC_SUPABASE_URL` | ✓ | ✓ (`seed-admin`, `seed-avatars`) | Debe ser **del mismo proyecto** que el service role key (H-3). |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | ✓ | Solo servidor; nunca al cliente. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✓ | — | Del mismo proyecto. |
-| `API_FOOTBALL_KEY` | sync admin | — (seed estático no lo usa) | `seed:competition` es upsert estático, no llama a la API. |
+| `FOOTBALL_DATA_KEY` | sync admin | — (seed de estructura no lo usa) | Token de football-data.org. **Requerido** para poblar partidos vía sync (§3.1); `prisma:seed:competition` solo siembra estructura. |
 | `NEXT_PUBLIC_SITE_URL`, `WORLD_CUP_KICKOFF`, `VAPID_*` | ✓ | — | Ver Unit 9/10. |
 
 ---
@@ -71,16 +71,28 @@ Pasos en una BD nueva/vacía:
 ## 3. Seed de datos iniciales
 
 ```bash
-pnpm seed:competition     # Mundial 2026: competición, fases, equipos, partidos (upsert, idempotente)
+pnpm prisma:seed:competition     # Mundial 2026: competición, fases y equipos (upsert, idempotente)
 pnpm sync:flags           # descarga/reemplaza banderas SVG requeridas desde lipis/flag-icons
 pnpm check:flags          # verifica banderas SVG por equipo (CF-2/CF-3)
 # Opcional — requiere bucket 'avatars' + scripts/avatars/ con imágenes:
 pnpm tsx scripts/seed-avatars.ts
 ```
 
-- `seed:competition` solo necesita `DATABASE_URL`; Prisma conecta como owner, RLS no lo bloquea.
-- Pertenece a **Unit 4 (Competition Data)**; el catálogo de selecciones/banderas a CF-2/CF-3.
+- `prisma:seed:competition` solo necesita `DATABASE_URL`; Prisma conecta como owner, RLS no lo bloquea.
+- **Cambio Unit 28**: el seed ahora siembra **solo la estructura** (competición + fases + equipos) vía `seedCompetitionStructure()`; **NO** siembra partidos. Los **matches se crean/actualizan desde el sync** (football-data.org) — ver §3.1. `seedWorldCup2026()` (estructura + fixture estático) se conserva exportada para tests/uso legacy, pero el script de prod ya no lo usa.
+- Pertenece a **Unit 4 (Competition Data)** + **Unit 28 (Sync Match Persistence)**; el catálogo de selecciones/banderas a CF-2/CF-3.
 - `sync:flags` no requiere credenciales; descarga los SVG de `lipis/flag-icons` a `public/flags/` y debe ejecutarse cuando cambie el seed de equipos.
+
+### 3.1 Poblar partidos vía sync (Unit 25 + Unit 28)
+
+Tras sembrar la estructura, los partidos entran por el orquestador de sync:
+
+1. Configurar `FOOTBALL_DATA_KEY` (token de football-data.org; plan gratuito = 10 req/min, cobertura FIFA World Cup).
+2. Disparar el sync como ADMIN: botón **"Sincronizar ahora"** en `/admin` (server action `triggerSync`).
+3. `syncMatchesToDB()` resuelve la phase por nombre y los teams por FIFA code, **CREA** los partidos nuevos en estado SCHEDULED/LIVE, **ACTUALIZA** por `providerMatchId` (status, marcadores, kickoff, placeholders) y **SALTA** los FINISHED inexistentes. `ProviderSyncRun.itemsUpdated` = matches procesados.
+4. Verificar: `/matches` muestra el fixture poblado; `/admin` lista el run de sync con su `itemsUpdated`.
+
+> Sin `FOOTBALL_DATA_KEY`, el sync queda FAILED y el admin recibe aviso; la BD tendrá estructura pero **0 partidos**.
 
 ---
 
@@ -110,7 +122,8 @@ Verificar: en `profiles`, `verification_status = 'ADMIN'`; y acceso a `/admin` e
 - [ ] `.env` con todas las vars del proyecto correcto; `.env` en `.gitignore`; secretos rotados (H-7).
 - [ ] Schema creado (Prisma) + RLS/triggers aplicados (§2).
 - [ ] Bucket de Storage `avatars` creado.
-- [ ] `pnpm seed:competition` OK + `pnpm sync:flags` ejecutado si cambió el seed + `pnpm check:flags` sin faltantes.
+- [ ] `pnpm prisma:seed:competition` OK (estructura: competición + fases + equipos) + `pnpm sync:flags` ejecutado si cambió el seed + `pnpm check:flags` sin faltantes.
+- [ ] `FOOTBALL_DATA_KEY` configurada y **sync admin ejecutado** ("Sincronizar ahora" en `/admin`) → partidos poblados en `/matches` (§3.1, Unit 25/28).
 - [ ] Admin registrado (con trigger ya presente) y promovido a ADMIN.
 - [ ] Conexión de runtime por pooler; migraciones por direct connection.
 

@@ -111,29 +111,22 @@ flowchart TD
 ### INCEPTION PHASE
 - [x] Workspace Detection (COMPLETED — brownfield, Units 1–10)
 - [x] Reverse Engineering (N/A)
-- [ ] Requirements Analysis — **EXECUTE (minimal)**
-  - **Rationale**: Registrar FR-SHELL-01 (app shell global) en `requirements.md` sin reabrir requisitos existentes. Petición clara → depth mínima.
-- [ ] User Stories — **EXECUTE (light)**
-  - **Rationale**: Feature user-facing con varias acciones (ver sesión, cambiar tema, ir a perfil, cerrar sesión, contexto admin). Pocas historias en una nueva épica.
-- [x] Workflow Planning — **IN PROGRESS** (este documento)
-- [ ] Application Design — **EXECUTE (light)**
-  - **Rationale**: Se introduce un componente/route-group nuevo (`AppHeader`/`(app)` layout + menú de usuario). Definir contratos, dónde se monta y matriz de cobertura de rutas.
-- [ ] Units Generation — **EXECUTE (register Unit 11)**
-  - **Rationale**: Formalizar Unit 11 en el mapa de unidades como refine.
+- [x] Requirements Analysis — **COMPLETE (minimal)** — FR-SHELL-01 (app shell global) registrado en `requirements.md`.
+- [x] User Stories — **COMPLETE (light)** — Épica 10 (US-10.1…US-10.6).
+- [x] Workflow Planning — **COMPLETE** (este documento)
+- [x] Application Design — **COMPLETE (light)** — Unit 11 en `unit-of-work.md` + secuencia #11; contratos de route-group `(app)`/`AppHeader`/menú de usuario.
+- [x] Units Generation — **COMPLETE (register Unit 11)** — Unit 11 formalizada en el mapa de unidades como refine.
 
 ### CONSTRUCTION PHASE (Unit 11)
-- [ ] Functional Design — **EXECUTE (light)**
-  - **Rationale**: Contratos de componentes, matriz de rutas con/sin shell, estados (autenticado vs admin), comportamiento móvil y criterios de accesibilidad.
-- [ ] NFR Requirements — **SKIP**
+- [x] Functional Design — **COMPLETE (light)** — `construction/unit-11-app-shell/functional-design.md` (route-group `(app)`, matriz de rutas, estados, móvil, a11y).
+- [x] NFR Requirements — **SKIP**
   - **Rationale**: Sin nuevos requisitos de performance/seguridad/escalabilidad; reutiliza auth gate existente. La a11y se trata en Functional Design.
-- [ ] NFR Design — **SKIP**
+- [x] NFR Design — **SKIP**
   - **Rationale**: NFR Requirements omitido.
-- [ ] Infrastructure Design — **SKIP**
+- [x] Infrastructure Design — **SKIP**
   - **Rationale**: Sin cambios de infraestructura/despliegue.
-- [ ] Code Generation — **EXECUTE (ALWAYS)**
-  - **Rationale**: Implementar layout `(app)`, `AppHeader`, menú de usuario, montar toggles, integrar `signOut()`; cubrir admin.
-- [ ] Build and Test — **EXECUTE (ALWAYS)**
-  - **Rationale**: Tipos, lint, tests de componente + a11y, e2e de sesión/logout/tema, build.
+- [x] Code Generation — **COMPLETE** (commit `14c4564`). Route-group `src/app/(app)/` + `app-header.tsx` (server), `primary-nav.tsx`/`user-menu.tsx` (client) y `AdminContextBadge`; rutas autenticadas movidas con `git mv` (URLs intactas); primitivas `components/ui/{dropdown-menu,sheet}.tsx` como wrappers de `@base-ui/react` (sin deps npm nuevas); claves i18n `nav`/`userMenu`. Reutiliza `signOut()`, `ThemeToggle`, `BrandToggle`, `Avatar`, `getProfile()`. No toca `src/proxy.ts` ni el root layout.
+- [x] Build and Test — **COMPLETE**. Harness de tests de componente (vitest + plugin React + jsdom): `user-menu.test.tsx` + `primary-nav.test.tsx`. Verificado al cierre (2026-06-16): **7/7** del shell verdes; en su momento tsc 0, Biome limpio, ESLint 0, 122/122 tests, `next build` OK con URLs intactas.
 
 ### OPERATIONS PHASE
 - [ ] Operations — PLACEHOLDER
@@ -150,3 +143,6 @@ flowchart TD
 ## Notas
 - Reutiliza al máximo lo existente (CF: "solo lo necesario"); evita duplicar lógica de tema/auth.
 - No toca `src/proxy.ts` (gate de sesión/onboarding) — ver memoria del proyecto.
+
+## Cierre (2026-06-16)
+- **Unit 11 CERRADA.** Todas las etapas EXECUTE completas y verificadas; NFR/Infra correctamente omitidas. Implementación en `14c4564`; tests del shell 7/7 verdes en la verificación de cierre. No reinicia etapas aprobadas (Units 1–10 intactas). Único pendiente residual = ítems de Operations (verificación visual en vivo con sesión real), no de Construction.

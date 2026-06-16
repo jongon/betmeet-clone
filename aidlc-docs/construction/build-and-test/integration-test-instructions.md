@@ -16,7 +16,7 @@ pnpm tsx scripts/seed-admin.ts <email>     # promover un usuario a ADMIN
 # 3. App
 pnpm dev
 ```
-Variables: `.env` con claves Supabase/Resend; `API_FOOTBALL_KEY` opcional; `WORLD_CUP_KICKOFF` para probar congelamiento.
+Variables: `.env` con claves Supabase/Resend; `FOOTBALL_DATA_KEY` opcional (sync football-data.org); `WORLD_CUP_KICKOFF` para probar congelamiento.
 
 ## Escenarios de integración
 
@@ -29,8 +29,8 @@ Crear pool público → aparece en `/pools/discover` y en el `PoolPreview` de la
 ### S3 — Account deletion → Pool ownership transfer (Unit 3 → Unit 1)
 Borrar cuenta de un admin de pool con miembros → el modal pide nuevo owner (orden más antiguo→nuevo); pool unipersonal se elimina.
 
-### S4 — Competition sync → Fixture (Unit 4 → Unit 5)
-Seed/sync de la competición activa → `/matches` muestra fixture por fases; estados de partido y bloqueo por kickoff.
+### S4 — Competition sync → Match persistence → Fixture (Unit 4 + 25 + 28 → Unit 5)
+Seed de la **estructura** (competition + phases + teams vía `seedCompetitionStructure()`) → `FOOTBALL_DATA_KEY` configurado → "Sincronizar ahora" en `/admin`. El sync trae matches de football-data.org y `syncMatchesToDB()` los persiste: CREA los SCHEDULED/LIVE nuevos (resolviendo phase por nombre y teams por FIFA code), ACTUALIZA por `providerMatchId` (status, scores, kickoff, placeholders) y SALTA los FINISHED inexistentes. `ProviderSyncRun.itemsUpdated` cuenta matches procesados. `/matches` muestra el fixture persistido por fases; estados y bloqueo por kickoff.
 
 ### S5 — Predictions → Scoring → Leaderboard (Unit 5 → 6)
 Predecir partidos → forzar/llegar a FINISHED → `scoreMatch` puntúa → `/pools/[id]/leaderboard` ordena por puntos (dense "1,1,2") y la vista de predicción muestra el desglose (`ScoreBreakdownExplainer`).
@@ -43,5 +43,5 @@ Usuario no-ADMIN navegando a `/admin/*` → redirigido a `/` (proxy) y las queri
 
 ## Integraciones diferidas (hardening — documentadas, no bloqueantes)
 - **Sweeper post-sync real**: invocar `scoreFinishedUnscoredMatches()` desde el entrypoint de sync de producción (la edge function `competition-sync` es un scaffold de Deno).
-- **Provider real**: `ApiFootballProvider` devuelve payload vacío (MVP); cablear llamadas reales a API-Football.
+- **Smoke del provider real**: con `FOOTBALL_DATA_KEY` de prod, validar en vivo el sync admin contra football-data.org (rate limit 10 req/min; cobertura FIFA World Cup) — ítem de Operations.
 - **CSP enforce**: pasar la CSP de report-only a enforce (hash del theme script ya documentado).

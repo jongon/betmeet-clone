@@ -6,7 +6,7 @@
 - **Environment Variables** (producción / preview):
   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
   - `RESEND_API_KEY` (emails auth)
-  - `API_FOOTBALL_KEY` (sync de competición; sin ella el sync queda FAILED y el admin recibe aviso)
+  - `FOOTBALL_DATA_KEY` (sync de competición vía football-data.org; sin ella el sync queda FAILED y el admin recibe aviso)
   - `WORLD_CUP_KICKOFF` (ISO 8601, opcional — congelamiento de pools/Unit 3; null ⇒ no congelado)
 - **System**: cualquier OS con Node 24; sin requisitos especiales de memoria.
 

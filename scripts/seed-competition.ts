@@ -1,9 +1,9 @@
 import "dotenv/config";
-import { seedWorldCup2026 } from "../src/features/competition/services/upsert-competition-data";
+import { seedCompetitionStructure } from "../src/features/competition/services/upsert-competition-data";
 
 async function main() {
-  await seedWorldCup2026();
-  console.log("Seeded World Cup 2026 competition data");
+  await seedCompetitionStructure();
+  console.log("Seeded World Cup 2026 competition structure (competition, phases, teams)");
 }
 
 main().catch((err) => {
