@@ -35,6 +35,7 @@ export function MatchesFixtureView({ pastDays, currentDays }: MatchesFixtureView
   const dictionary = useDictionary();
   const [showPast, setShowPast] = useState(false);
   const hasPast = pastDays.length > 0;
+  const pastMatchesCount = pastDays.reduce((total, day) => total + day.matches.length, 0);
 
   return (
     <div className="space-y-8" data-testid="fixture-ready">
@@ -48,7 +49,7 @@ export function MatchesFixtureView({ pastDays, currentDays }: MatchesFixtureView
         >
           {showPast
             ? dictionary.pages.matchesHidePast
-            : dictionary.pages.matchesShowPast.replace("{count}", String(pastDays.length))}
+            : dictionary.pages.matchesShowPast.replace("{count}", String(pastMatchesCount))}
         </button>
       ) : null}
 

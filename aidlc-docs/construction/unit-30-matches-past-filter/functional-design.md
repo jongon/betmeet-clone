@@ -77,8 +77,8 @@ Añadir a `pages` en `es.ts` (referencia) y `en.ts` (debe mirror para satisfacer
 | `matchesShowPast` | "Ver partidos anteriores ({count})" | "Show earlier matches ({count})" |
 | `matchesHidePast` | "Ocultar partidos anteriores" | "Hide earlier matches" |
 
-`{count}` = nº de **días** pasados ocultos. La interpolación se hace en el Server Component y se
-pasa ya resuelta al cliente (evita pasar funciones al boundary).
+`{count}` = nº de **partidos** pasados ocultos (suma de `matches` de todos los `pastDays`), no de
+días. La interpolación de `matchesShowPast` se hace en el componente cliente con `useDictionary`.
 
 ## 5. Pruebas — NFR-REFINE-30.1
 

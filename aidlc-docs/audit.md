@@ -1527,6 +1527,14 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 
 ---
 
+## Refine — Contador del botón "Ver partidos anteriores" (Unit 30)
+**Timestamp**: 2026-06-16T18:10:00Z
+**User Input**: "En /matches sale un texto de 'Ver Partidos anteriores (5)' Ese 5 se refiere a las jornadas anteriores no el número de partidos. Debería salir es el número de partidos"
+**AI Response**: Refine UI-only sobre Unit 30 (cerrada), sin reiniciar etapas aprobadas. `MatchesFixtureView` (`src/features/predictions/components/matches-fixture-view.tsx`) interpolaba `{count}` con `pastDays.length` (nº de días). Cambiado a `pastMatchesCount = pastDays.reduce((t, day) => t + day.matches.length, 0)` → el botón ahora muestra el nº de **partidos** pasados ocultos. Copy i18n (`matchesShowPast` es/en) sin cambios: mismo placeholder `{count}`, solo cambia su significado. Docs alineados: `functional-design.md` §4 (`{count}` = nº de partidos, no días; interpolación en el cliente con `useDictionary`) y `requirements.md` FR-REFINE-30.2 ("conteo de **partidos** ocultos"). Sin schema/datos/queries; tests de `partitionDaysByToday` no afectados.
+**Context**: CONSTRUCTION — Refine de Unit 30 (UI). Etapas aprobadas intactas.
+
+---
+
 ## Code Generation + Build & Test (Unit 31)
 **Timestamp**: 2026-06-16T13:20:00Z
 **User Input**: "[ExitPlanMode aprobado]" (el plan entró brevemente en plan mode; el usuario aprobó el plan)

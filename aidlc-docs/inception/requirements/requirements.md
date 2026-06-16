@@ -1097,7 +1097,7 @@ Refine UI/UX aditivo sobre Unit 16 (`groupFixtureByDay`, FR-REFINE-16.2). **No**
 - El bucket "Fecha por confirmar" (`dayKey === null`, knockouts sin fecha) se considera **futuro** y permanece visible.
 
 ### FR-REFINE-30.2 — Botón de revelado
-- Etiqueta "Ver partidos anteriores" con conteo de días/partidos ocultos (externalizada en diccionarios `es`/`en`).
+- Etiqueta "Ver partidos anteriores" con conteo de **partidos** ocultos (externalizada en diccionarios `es`/`en`).
 - Ubicado **arriba**, antes del primer día visible, para descubrirse sin scroll.
 - Al presionarlo, los días pasados se expanden **en orden cronológico, por encima** del día actual (su lugar natural). Botón alterna a "Ocultar partidos anteriores".
 - Si no hay días pasados, el botón **no se renderiza**.
