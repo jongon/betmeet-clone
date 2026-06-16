@@ -81,7 +81,7 @@ export const WORLD_CUP_2026_TEAMS: SeedTeam[] = [
   t("Spain", "ESP", "es"),
   t("Cape Verde", "CPV", "cv"),
   t("Saudi Arabia", "KSA", "sa"),
-  t("Uruguay", "URU", "uy"),
+  t("Uruguay", "URY", "uy"),
   // Group I
   t("France", "FRA", "fr"),
   t("Senegal", "SEN", "sn"),
