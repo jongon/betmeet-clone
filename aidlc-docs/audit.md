@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Verificación doc↔código (2ª pasada) — comando de seed inexistente + env vars sin documentar
+**Timestamp**: 2026-06-16T03:10:00Z
+**User Input**: "Ves alguna inconsistencia entre el código y la documentación? se que lo hiciste pero quiero asegurarme" → "Sí corrije"
+**AI Response**: "Pasada de verificación independiente (símbolos, rutas, migraciones, scripts, env vars). El tema de proveedor quedó limpio (api-football en código = 0; en docs no-históricos = 0). Dos hallazgos nuevos corregidos: (1) **Comando inexistente** — los docs invocaban `pnpm seed:competition`, que no existe; el script real es `pnpm prisma:seed:competition` (`tsx scripts/seed-competition.ts`). Corregido en `operations/operations-runbook.md` (4 sitios) y `unit-4-competition-data/code/generation-summary.md` (2 sitios); ya estaba correcto en `build-instructions.md` y `shared-infrastructure.md`. La mención en `audit.md:411` se conserva (cita histórica append-only). (2) **Env vars sin documentar** — `WORLD_CUP_KICKOFF` (`competition-lock.ts`) y `NEXT_PUBLIC_SITE_URL` (flujos de auth) están en `.env.example` y en código pero faltaban en la tabla de `shared-infrastructure.md`; añadidas. Verificado: símbolos documentados (`syncMatchesToDB`/`getStaticFixture`/`getAuthUser`/`seedCompetitionStructure`/…) existen; migraciones citadas existen; resto de scripts `pnpm` válidos. Sin cambios de código."
+**Code change**: Ninguno. Docs: `operations/operations-runbook.md`, `construction/unit-4-competition-data/code/generation-summary.md`, `construction/shared-infrastructure.md`, `audit.md` (esta entrada).
+**Context**: Segunda verificación doc↔código a petición del usuario. Corrige un comando de runbook que fallaría al ejecutarse y documenta dos variables de entorno reales del código.
+
+---
+
 ## Alineación documentación ↔ código — proveedor de sync (Unit 25 → dependent docs de Unit 4)
 **Timestamp**: 2026-06-16T02:45:00Z
 **User Input**: "Ves incoherencia entre la documentación y el código" → "Corrije todo"

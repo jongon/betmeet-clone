@@ -50,6 +50,8 @@ All units share these variables. Each environment has its own values set in the 
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public (browser + server) | Public VAPID key used by the browser to create Web Push subscriptions |
 | `VAPID_PRIVATE_KEY` | Server only | Private VAPID key used to sign Web Push send requests; never exposed to client |
 | `VAPID_SUBJECT` | Server only | Contact subject for VAPID, e.g. `mailto:admin@example.com` or app URL |
+| `NEXT_PUBLIC_SITE_URL` | Public (browser + server) | App base URL used to build `emailRedirectTo` en los flujos de auth (sign-up, change-email, resend-confirmation, google-callback) |
+| `WORLD_CUP_KICKOFF` | Server only (optional) | Override del kickoff del torneo para `competition-lock.ts`; fallback al valor del seed si no se define |
 
 ---
 

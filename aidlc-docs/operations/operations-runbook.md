@@ -37,7 +37,7 @@ Referencia: `.env.example`. Por entorno:
 | `NEXT_PUBLIC_SUPABASE_URL` | ✓ | ✓ (`seed-admin`, `seed-avatars`) | Debe ser **del mismo proyecto** que el service role key (H-3). |
 | `SUPABASE_SERVICE_ROLE_KEY` | server only | ✓ | Solo servidor; nunca al cliente. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | ✓ | — | Del mismo proyecto. |
-| `FOOTBALL_DATA_KEY` | sync admin | — (seed de estructura no lo usa) | Token de football-data.org. **Requerido** para poblar partidos vía sync (§3.1); `seed:competition` solo siembra estructura. |
+| `FOOTBALL_DATA_KEY` | sync admin | — (seed de estructura no lo usa) | Token de football-data.org. **Requerido** para poblar partidos vía sync (§3.1); `prisma:seed:competition` solo siembra estructura. |
 | `NEXT_PUBLIC_SITE_URL`, `WORLD_CUP_KICKOFF`, `VAPID_*` | ✓ | — | Ver Unit 9/10. |
 
 ---
@@ -71,14 +71,14 @@ Pasos en una BD nueva/vacía:
 ## 3. Seed de datos iniciales
 
 ```bash
-pnpm seed:competition     # Mundial 2026: competición, fases y equipos (upsert, idempotente)
+pnpm prisma:seed:competition     # Mundial 2026: competición, fases y equipos (upsert, idempotente)
 pnpm sync:flags           # descarga/reemplaza banderas SVG requeridas desde lipis/flag-icons
 pnpm check:flags          # verifica banderas SVG por equipo (CF-2/CF-3)
 # Opcional — requiere bucket 'avatars' + scripts/avatars/ con imágenes:
 pnpm tsx scripts/seed-avatars.ts
 ```
 
-- `seed:competition` solo necesita `DATABASE_URL`; Prisma conecta como owner, RLS no lo bloquea.
+- `prisma:seed:competition` solo necesita `DATABASE_URL`; Prisma conecta como owner, RLS no lo bloquea.
 - **Cambio Unit 28**: el seed ahora siembra **solo la estructura** (competición + fases + equipos) vía `seedCompetitionStructure()`; **NO** siembra partidos. Los **matches se crean/actualizan desde el sync** (football-data.org) — ver §3.1. `seedWorldCup2026()` (estructura + fixture estático) se conserva exportada para tests/uso legacy, pero el script de prod ya no lo usa.
 - Pertenece a **Unit 4 (Competition Data)** + **Unit 28 (Sync Match Persistence)**; el catálogo de selecciones/banderas a CF-2/CF-3.
 - `sync:flags` no requiere credenciales; descarga los SVG de `lipis/flag-icons` a `public/flags/` y debe ejecutarse cuando cambie el seed de equipos.
@@ -122,7 +122,7 @@ Verificar: en `profiles`, `verification_status = 'ADMIN'`; y acceso a `/admin` e
 - [ ] `.env` con todas las vars del proyecto correcto; `.env` en `.gitignore`; secretos rotados (H-7).
 - [ ] Schema creado (Prisma) + RLS/triggers aplicados (§2).
 - [ ] Bucket de Storage `avatars` creado.
-- [ ] `pnpm seed:competition` OK (estructura: competición + fases + equipos) + `pnpm sync:flags` ejecutado si cambió el seed + `pnpm check:flags` sin faltantes.
+- [ ] `pnpm prisma:seed:competition` OK (estructura: competición + fases + equipos) + `pnpm sync:flags` ejecutado si cambió el seed + `pnpm check:flags` sin faltantes.
 - [ ] `FOOTBALL_DATA_KEY` configurada y **sync admin ejecutado** ("Sincronizar ahora" en `/admin`) → partidos poblados en `/matches` (§3.1, Unit 25/28).
 - [ ] Admin registrado (con trigger ya presente) y promovido a ADMIN.
 - [ ] Conexión de runtime por pooler; migraciones por direct connection.
