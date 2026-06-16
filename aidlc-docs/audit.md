@@ -1502,12 +1502,19 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 
 ---
 
-
 ## Workspace Detection — New Intent (Unit 31 candidate)
 **Timestamp**: 2026-06-16T12:50:00Z
 **User Input**: "En el admin panel cuando hago click sobre \"Revertir en la API\" también debería revertir el puntaje de los usuarios"
 **AI Response**: Resumido proyecto existente (aidlc-state.md presente, Units 1–30 completas). Brownfield, reverse engineering N/A. Analizado el flujo actual de revert: `revertMatchOverride` (`src/features/admin/actions/revert-override.ts`) limpia solo los flags de override (`manualOverride`/`manualOverrideReason`/`overriddenByUserId`/`overriddenAt`) pero **conserva** `homeScore`/`awayScore`/`winnerTeamId`/`status=FINISHED`, por lo que `scoreMatch()` re-puntúa con el resultado manual y los usuarios **mantienen** sus puntos. Gap confirmado vs. intent. Procediendo a Requirements Analysis (mínima) con una pregunta de clarificación sobre la semántica exacta del revert.
 **Context**: INCEPTION — Workspace Detection (resume) → Requirements Analysis.
+
+---
+
+## Workspace Detection — New Intent (Unit 32 candidate — Seed auto-sanador)
+**Timestamp**: 2026-06-16T13:05:00Z
+**User Input**: "En el seed competition corregiste para que Uruguay apareciera en los partidos, pero estoy viendo la lista de matches y veo que Uruguay no aparece, eso fue un seed previo, pero el seed tiene que considerar arreglar esas cosas si falta. Hazme preguntas si es necesario"
+**AI Response**: Resume de proyecto existente (Units 1–30 completas; brownfield; reverse engineering N/A). Analicé la causa raíz: el commit `a2cfb96` alineó el `fifaCode` de Uruguay URU→URY **solo en el código** del seed de estructura. El partido Saudi Arabia vs Uruguay ya existía en BD de un seed previo con `awayTeamId=null` (porque football-data devuelve TLA "URY" y entonces no existía equipo con ese código → placeholder "Equipo por Definir"). Dos defectos del seed actual: (1) `upsertTeam` está keyed por `fifaCode` (`upsert-competition-data.ts`), así que re-correr el seed de estructura **crea un equipo Uruguay duplicado** (URY nuevo) y deja huérfana la fila URU, en vez de reconciliar en sitio — todos los `providerTeamId` del seed son `null`, así que no hay clave estable alterna; (2) los partidos existentes con `teamId=null` solo se sanan si la sync vuelve a correr Y el equipo ya resuelve por el código nuevo (la ruta de update de `syncMatchesToDB` sí re-asigna `awayTeamId`). Intent del usuario: el seed debe ser **auto-sanador/idempotente** ante estas correcciones, no solo aditivo. Procediendo a Requirements Analysis (mínima) con preguntas de clarificación.
+**Context**: INCEPTION — Workspace Detection (resume) → Requirements Analysis (Unit 32 seed).
 
 ---
 
@@ -1540,5 +1547,29 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **User Input**: "[ExitPlanMode aprobado]" (el plan entró brevemente en plan mode; el usuario aprobó el plan)
 **AI Response**: Implementado FR-REFINE-31.1/31.2. `revertMatchOverride` limpia el resultado manual (homeScore/awayScore/homePenaltyScore/awayPenaltyScore/winnerTeamId→null, status→SCHEDULED) además de los flags; `scoreMatch()` deja el partido no-scoreable → elimina `PredictionScore` (puntos revertidos); revalidaciones/log conservados. `RevertOverrideButton` envuelto en `Dialog` de confirmación (Cancelar/Revertir destructive). Copy `revertConfirmTitle`/`revertConfirmBody`/`revertConfirm`/`cancel` (es/en, admin). Nuevo test `revert-override.test.ts` (4 casos). Docs AI-DLC alineados: requirements.md (Épica 30), stories.md (US-30.1), unit-of-work.md (Unit 31 + secuencia #18/#19), functional-design.md, aidlc-state.md. Verificación: tsc 0, Biome limpio (5 archivos tocados), ESLint 0, vitest **225/225**, `pnpm build` OK.
 **Context**: CONSTRUCTION — Unit 31 Code Generation + Build & Test COMPLETE.
+
+---
+
+## Requirements Analysis — Clarificación + Aprobación (Unit 32 — Seed auto-sanador)
+**Timestamp**: 2026-06-16T13:30:00Z
+**User Input**: "[recuperado parcialmente tras staging surgery 2026-06-16; campo original de sesión paralela no capturado]"
+**AI Response**: Recomendé Q1->Opción 1 (reconciliar por `name`) sobre Opción 2 (`providerTeamId`): los 48 providerTeamId están en null y poblarlos es trabajo manual sin beneficio extra; `name` es estable ante correcciones de fifaCode. Matiz: `upsertTeam` es compartido con la ruta de sync (nombres del provider difieren), así que la reconciliación por nombre + merge irá SOLO en el seed de estructura; la sync sigue resolviendo por fifaCode. Q2: solo se re-vincula el equipo real desalineado; los placeholders legítimos de knockout se preservan (teamId=null + homePlaceholder/awayPlaceholder). Verifiqué el schema: `name` NO es único (solo fifaCode y providerTeamId), y Team es referenciado por Match.homeTeamId/awayTeamId/winnerTeamId y Prediction.penaltyTeamId (el merge debe re-apuntar las 4 FKs). Numerada como Unit 32 / Épica 31 (Unit 31 ya ocupada por el refine de revert-override). Escrito requirements FR-REFINE-32.1/.2/.3 + restricciones. Usuario aprobó. Procediendo a Functional Design.
+**Context**: INCEPTION — Requirements Analysis APPROVED -> CONSTRUCTION / Functional Design (Unit 32).
+
+---
+
+## Functional Design + Code Generation + Build & Test (Unit 32 — Seed auto-sanador)
+**Timestamp**: 2026-06-16T13:45:00Z
+**User Input**: "[recuperado parcialmente tras staging surgery 2026-06-16; campo original de sesión paralela no capturado]"
+**AI Response**: Implementado FR-REFINE-32.1/.2/.3. Nueva `reconcileSeedTeam()` en `upsert-competition-data.ts`: reconcilia por `name`, corrige `fifaCode` en sitio, y fusiona duplicados re-apuntando las 4 FKs a Team (Match.homeTeamId/awayTeamId/winnerTeamId, Prediction.penaltyWinnerTeamId — verificado el nombre real del campo en el schema) dentro de `$transaction` antes de borrar el huérfano. `seedCompetitionStructure` ahora llama `reconcileSeedTeam` en vez de `upsertTeam`; `upsertTeam` (por fifaCode) se conserva para la ruta de sync. Sin cambios de schema/migraciones; la re-vinculación del partido Saudi Arabia vs Uruguay la hace la ruta de update existente de `syncMatchesToDB`. Nuevo test `reconcile-seed-team.test.ts` (4 casos: create, rename en sitio, merge con re-apuntado de FKs, idempotencia; `$transaction` mockeado para correr el callback contra el prisma mock). Docs alineados: requirements.md (Épica 31, FR-REFINE-32), functional-design.md, aidlc-state.md (Unit 32). Verificación: tsc 0, Biome limpio (2 archivos tocados), ESLint 0, vitest 229/229 (52 files), `pnpm build` OK. Nota: la corrección URU→URY de `world-cup-2026.ts` + snapshot sigue STAGED sin commitear (decisión del usuario); estos cambios de Unit 32 tampoco se commitearon (sin solicitud).
+**Context**: CONSTRUCTION — Unit 32 Functional Design APPROVED → Code Generation + Build & Test COMPLETE.
+
+---
+
+## Code Generation — Aprobación (Unit 32 — Seed auto-sanador)
+**Timestamp**: 2026-06-16T13:50:00Z
+**User Input**: "[recuperado parcialmente tras staging surgery 2026-06-16; campo original de sesión paralela no capturado]"
+**AI Response**: Code Generation aprobado. Unit 32 CERRADA (Build & Test ya verde: tsc 0, Biome limpio, ESLint 0, vitest 229/229, build OK). Sin reinicio de etapas aprobadas (Units 1–31 intactas). Cambios sin commitear a la espera de decisión del usuario.
+**Context**: CONSTRUCTION — Unit 32 COMPLETE. Fin del flujo AI-DLC para esta solicitud.
 
 ---

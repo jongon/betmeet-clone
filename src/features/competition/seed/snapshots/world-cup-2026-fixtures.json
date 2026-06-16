@@ -190,7 +190,7 @@
       "kickoffAt": "2026-06-15T22:00:00Z",
       "status": "FINISHED",
       "homeFifaCode": "KSA",
-      "awayFifaCode": "URY",
+      "awayFifaCode": "URU",
       "homePlaceholder": null,
       "awayPlaceholder": null,
       "homeScore": 1,
@@ -501,7 +501,7 @@
       "phaseName": "Group H",
       "kickoffAt": "2026-06-21T22:00:00Z",
       "status": "SCHEDULED",
-      "homeFifaCode": "URY",
+      "homeFifaCode": "URU",
       "awayFifaCode": "CPV",
       "homePlaceholder": null,
       "awayPlaceholder": null,
@@ -813,7 +813,7 @@
       "phaseName": "Group H",
       "kickoffAt": "2026-06-27T00:00:00Z",
       "status": "SCHEDULED",
-      "homeFifaCode": "URY",
+      "homeFifaCode": "URU",
       "awayFifaCode": "ESP",
       "homePlaceholder": null,
       "awayPlaceholder": null,
@@ -1354,5 +1354,5 @@
       "awayScore": null
     }
   ],
-  "fetchedAt": "2026-06-16T12:07:47.268Z"
+  "fetchedAt": "2026-06-16T17:32:47.991Z"
 }

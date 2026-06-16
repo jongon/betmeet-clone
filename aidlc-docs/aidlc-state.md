@@ -323,3 +323,20 @@
 - **Stages to Skip**: Requirements Analysis, User Stories, Application Design, Units Generation, Functional Design, NFR, Infrastructure (ya cubiertos)
 - **Next Stage**: **✅ PROYECTO COMPLETAMENTE OPERACIONAL (2026-06-16)** — todas las unidades implementadas y verificadas. Operations cerrada. Único residual: generar el snapshot de partidos en la primera corrida del seed con `FOOTBALL_DATA_KEY`.
 - **Status**: Todas las unidades (1–29) implementadas y verificadas. Pendiente operativo: primera corrida del seed con `FOOTBALL_DATA_KEY` para generar el snapshot commiteado.
+
+---
+
+**Unit 32: Refine — Seed auto-sanador de identidad de equipos (2026-06-16)**
+Refine post-construcción (FR-REFINE-32.1/.2/.3, Épica 31); no reinicia Units 1–31. Causa raíz: `upsertTeam`
+upserta por `fifaCode`, así que la corrección de Uruguay `URU→URY` (commit `a2cfb96`) re-corría el seed
+creando un equipo **duplicado** y dejando la fila vieja huérfana; el partido Saudi Arabia vs Uruguay
+quedaba con `awayTeamId=null` ("Equipo por Definir"). Solución: nueva `reconcileSeedTeam()` (solo en el
+seed de estructura) reconcilia por `name` (identidad estable), corrige el `fifaCode` en sitio y **fusiona**
+duplicados re-apuntando las 4 FKs a `Team` (`Match.homeTeamId/awayTeamId/winnerTeamId`,
+`Prediction.penaltyWinnerTeamId`) dentro de `$transaction` antes de borrar el huérfano. `upsertTeam` (por
+`fifaCode`) se conserva para la ruta de **sync** (nombres del provider difieren). La re-vinculación del
+partido la hace la ruta de update de `syncMatchesToDB` ya existente una vez sanado el equipo; los
+placeholders legítimos de knockout se preservan. Idempotente, sin schema/migraciones, sin script aparte.
+- [x] Functional Design - COMPLETE (`construction/unit-32-seed-team-reconciliation/functional-design.md`)
+- [x] Code Generation - COMPLETE (`upsert-competition-data.ts` + test `reconcile-seed-team.test.ts` 4 casos)
+- [x] Build & Test - COMPLETE (tsc 0, Biome limpio, ESLint 0, vitest **229/229**, `pnpm build` OK)

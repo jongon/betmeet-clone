@@ -1163,3 +1163,50 @@ tags de caché existentes. Security Baseline intacto (gate `getAdminUserId()` si
 ### Decisiones registradas (AskUserQuestion, 2026-06-16)
 - **Semántica**: limpiar resultado + quitar puntos; el próximo sync de la API repone el resultado real.
 - **Confirmación**: sí, diálogo de confirmación antes de revertir.
+
+## Épica 31 — Refine Unit 32: Seed auto-sanador de identidad de equipos (2026-06-16)
+
+**Contexto**: El commit `a2cfb96` corrigió el `fifaCode` de Uruguay (`URU→URY`) solo en la lista de
+estructura (`world-cup-2026.ts`). El partido Saudi Arabia vs Uruguay, sembrado en una corrida previa,
+quedó con `awayTeamId=null` (football-data devuelve TLA `URY`; en BD el equipo estaba como `URU`) y se
+muestra como "Equipo por Definir". No es un placeholder legítimo de knockout: es un equipo real con
+desalineación de código entre el API y la BD. El seed debe **auto-sanar** estas correcciones, no solo
+ser aditivo.
+
+**Causa raíz**: `upsertTeam` (`upsert-competition-data.ts`) usa `fifaCode` como clave de upsert. Re-correr
+el seed con el código corregido **crea un equipo duplicado** (fila `URY` nueva) y deja la fila `URU`
+huérfana, en vez de actualizar en sitio. Los `providerTeamId` del seed están todos en `null`.
+
+### FR-REFINE-32.1 — Reconciliación de equipos por nombre en el seed de estructura
+El seed de estructura reconcilia cada equipo canónico por `name` (estable): si existe una fila con el
+mismo nombre y `fifaCode` distinto, **actualiza el código (y demás campos) en sitio**, sin crear duplicado.
+
+### FR-REFINE-32.2 — Merge de duplicados huérfanos
+Si ya existe un duplicado (fila huérfana con código viejo + fila canónica con código nuevo), el seed los
+**fusiona**: re-apunta todas las FKs a `Team` desde la huérfana hacia la canónica
+(`Match.homeTeamId`, `Match.awayTeamId`, `Match.winnerTeamId`, `Prediction.penaltyTeamId`) y elimina la
+huérfana. Idempotente y **sin script de migración aparte** (decisión Q3).
+
+### FR-REFINE-32.3 — Re-vinculación de partidos existentes en la sync
+Al re-correr, la ruta de update de `syncMatchesToDB` re-vincula los partidos existentes cuyo equipo ahora
+resuelve por `fifaCode` (Saudi Arabia vs Uruguay → `awayTeamId` = Uruguay). **No** se tocan placeholders
+legítimos de knockout: un partido sin equipo real conserva `homePlaceholder`/`awayPlaceholder` y
+`teamId=null` (decisión Q2). Esta ruta ya existe; el fix de FR-REFINE-32.1/.2 la habilita.
+
+### Restricciones / SKIP
+- **Sin** cambios de schema ni migraciones.
+- **No** se altera el keying por `fifaCode` de la ruta de **sync** (`upsertTeam` sigue resolviendo equipos
+  del provider por `fifaCode`); la reconciliación por nombre vive **solo** en el seed de estructura para no
+  romper el upsert de equipos del provider (cuyos nombres difieren de los nuestros).
+- Security Baseline intacto (sin rutas ni superficie nueva).
+
+### Archivos afectados (previsto)
+| Archivo | Cambio |
+|---|---|
+| `src/features/competition/services/upsert-competition-data.ts` | Reconciliación por nombre + merge de huérfanos en el seed de estructura |
+| `src/features/competition/services/__tests__/` | Tests de reconciliación/merge (rename en sitio, merge con re-apuntado de FKs, idempotencia) |
+
+### Decisiones registradas (AskUserQuestion, 2026-06-16)
+- **Q1 (identidad)**: reconciliar por `name` (recomendado) en vez de poblar `providerTeamId`.
+- **Q2 (re-vincular)**: re-vincular el equipo real desalineado; preservar placeholders legítimos de knockout.
+- **Q3 (alcance datos)**: seed idempotente, **sin** script aparte.
