@@ -45,7 +45,7 @@ All units share these variables. Each environment has its own values set in the 
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public (browser + server) | Supabase anon key for RLS-protected operations |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only (never exposed) | Supabase admin key for privileged server operations |
 | `RESEND_API_KEY` | Server only | Resend API key (used by Supabase Auth SMTP config) |
-| `API_FOOTBALL_KEY` | Supabase Edge Function secret / server only | API-Football provider key for competition sync; never `NEXT_PUBLIC` |
+| `FOOTBALL_DATA_KEY` | Server only | football-data.org provider key (`X-Auth-Token`) for competition sync; never `NEXT_PUBLIC`. (Reemplazó a `API_FOOTBALL_KEY` en Unit 25.) |
 | `SYNC_TRIGGER_SECRET` | Server only (optional) | Protects system/manual sync triggers if implemented outside admin session auth |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Public (browser + server) | Public VAPID key used by the browser to create Web Push subscriptions |
 | `VAPID_PRIVATE_KEY` | Server only | Private VAPID key used to sign Web Push send requests; never exposed to client |
@@ -145,11 +145,11 @@ Supabase seed scripts that call Admin APIs use `SUPABASE_SERVICE_ROLE_KEY`; `see
 
 | Job | Runtime | Purpose |
 |---|---|---|
-| `competition-sync` | Supabase Edge Function scheduled/cron | Sync API-Football teams, fixtures, live status and results; write `provider_sync_runs` |
+| `competition-sync` | **v1: server action admin manual** (`trigger-sync.ts` → `runCompetitionSync`). El Edge Function `supabase/functions/competition-sync/` es solo un **scaffold** (cron a futuro). | Sync football-data.org teams, fixtures, live status and results; write `provider_sync_runs` |
 | `competition-sync cleanup` | Supabase Edge Function scope or script/admin task | Remove/archive sync runs older than 90 days |
 | `notification-dispatch` | Server-side job or Supabase Edge Function | Drain pending notification events/outbox and send Web Push with retries/deduplication |
 
-Preview deployments use seed/mock competition data by default and only call API-Football when `API_FOOTBALL_KEY` is explicitly configured for that environment.
+Preview deployments use seed/mock competition data by default and only call football-data.org when `FOOTBALL_DATA_KEY` is explicitly configured for that environment.
 
 ---
 

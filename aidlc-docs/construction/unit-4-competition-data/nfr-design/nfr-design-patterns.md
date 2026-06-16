@@ -26,7 +26,7 @@
 
 ## Pattern 2: Server-Side Fixture Freshness Service (Reliability / UX) — Q2=A
 
-**Problema**: si API-Football falla, el fixture debe seguir visible pero indicando que puede estar desactualizado.
+**Problema**: si el proveedor externo (football-data.org) falla, el fixture debe seguir visible pero indicando que puede estar desactualizado.
 
 **Patrón**: servicio servidor `fixtureFreshness` que calcula freshness a partir de `ProviderSyncLog`.
 
@@ -74,7 +74,7 @@ startSync(scope, windowKey):
 
 ## Pattern 4: Bounded Retry with Exponential Backoff (Resilience / Provider Quota) — Q4=A
 
-**Problema**: API-Football puede fallar transitoriamente o rate-limitear.
+**Problema**: el proveedor externo (football-data.org) puede fallar transitoriamente o rate-limitear.
 
 **Patrón**: pocos retries por run con backoff exponencial y respeto de rate-limit.
 
@@ -92,12 +92,12 @@ startSync(scope, windowKey):
 
 ## Pattern 5: Fetch → Normalize → Validate → Upsert Pipeline (Maintainability / Integrity) — Q5=A
 
-**Problema**: mezclar payload provider y writes de dominio acopla la app a API-Football.
+**Problema**: mezclar payload provider y writes de dominio acopla la app al proveedor externo (football-data.org).
 
 **Patrón**: pipeline explícito.
 
 ```text
-API-Football fetch
+football-data.org fetch
   -> normalize to provider-neutral DTOs
   -> validate DTO shape/domain invariants
   -> idempotent upsert through domain service
@@ -170,7 +170,7 @@ API-Football fetch
 
 ## Pattern 10: Injectable Provider Interface + Test Fixtures (Testability) — Q10=A
 
-**Problema**: CI/tests no deben depender de API-Football real.
+**Problema**: CI/tests no deben depender del proveedor externo (football-data.org) real.
 
 **Patrón**: interfaz provider inyectable y fixtures JSON/TS de prueba.
 

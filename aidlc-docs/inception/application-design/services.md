@@ -27,9 +27,9 @@ Maintains internal representation of competitions, teams, phases, and matches.
 
 ## Football Sync Service
 
-Runs in Supabase Edge scheduled jobs.
+v1: se ejecuta como **server action admin manual** (`trigger-sync.ts` → `runCompetitionSync`). El Edge Function programado queda como scaffold/cron a futuro.
 
-- Uses API-Football adapter by default.
+- Uses football-data.org adapter by default (era API-Football; migrado en Unit 25).
 - Normalizes provider fixtures/results.
 - Writes sync logs and failure states.
 - Never directly calculates user scores; it updates match data and then triggers Scoring Service.

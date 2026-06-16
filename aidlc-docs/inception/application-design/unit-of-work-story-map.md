@@ -31,7 +31,7 @@
 - US-2.1: Visualización del Fixture
 - US-2.2: Estado del Partido
 - US-2.3: Desbloqueo de Llaves
-- US-6.1: Sincronización API-Football (sync foundation only)
+- US-6.1: Sincronización con el proveedor de resultados (football-data.org desde Unit 25) (sync foundation only)
 
 ## Unit 5: Predictions and Match Locking
 
@@ -50,7 +50,7 @@
 
 ## Unit 7: Admin and Observability
 
-- US-6.1: Sincronización API-Football (admin visibility)
+- US-6.1: Sincronización con el proveedor de resultados (football-data.org desde Unit 25) (admin visibility)
 - US-6.2: Forzar Resultado
 - Admin Sync Dashboard screen contract
 - Public/private pool progress visibility

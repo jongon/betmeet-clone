@@ -35,7 +35,7 @@
 **Notas / decisiones**:
 - **Aclaración de "ISO 3 caracteres"**: Unit 4 usa el **trigrama FIFA** como código visible (GER, NED, POR), no ISO 3166-1 alpha-3, para coincidir con el uso futbolístico.
 - Modelo sugerido para `Team`/`Country`: guardar `isoAlpha2` (clave de bandera), `displayCode` (3 chars, FIFA por defecto) y `name`.
-- El Mundial 2026 son **48 selecciones**. A 2026-06-10 la clasificación puede no estar 100% cerrada; el seed debe permitir altas/ajustes (y el sync por API-Football reconcilia).
+- El Mundial 2026 son **48 selecciones**. A 2026-06-10 la clasificación puede no estar 100% cerrada; el seed debe permitir altas/ajustes (y el sync por el proveedor externo —football-data.org desde Unit 25— reconcilia).
 
 ---
 
@@ -112,7 +112,8 @@ Detalle del enfoque:
 - El 404 de confirmación de email se debía a redirecciones a `/auth/sign-in` (ruta inexistente; el login vive en el route-group `(auth)` → `/sign-in`). Corregido.
 **Resiliencia (loop de redirección, `9e22350`)**: con `/matches` como home gateada, un usuario autenticado **sin fila en `profiles`** (trigger `handle_new_user` no ejecutado: usuario previo al trigger o migraciones no desplegadas) provocaba `ERR_TOO_MANY_REDIRECTS` (proxy → `/onboarding/profile` → `redirect('/sign-in')` → proxy → `/matches`). Mitigado en código: `getOrCreateProfile()` auto-crea la fila (upsert idempotente) y la página de onboarding distingue "sin sesión" (→ `/sign-in`) de "fila ausente" (auto-sana). **Deuda de datos en prod** (ver CF-6 / Operations): ejecutar `prisma migrate deploy` (instala el trigger para futuros signups) y backfill de `profiles` para usuarios de `auth.users` sin fila.
 **Pendiente (2026-06-11)**: migrar la confirmación de email del flujo PKCE a `token_hash` + `verifyOtp` para resistir Outlook SafeLinks / cross-device.
-**Actualización (2026-06-13, FR-REFINE-16.8)**: el flujo `token_hash` **ya está implementado** en código — ruta `src/app/auth/confirm/route.ts` (`verifyOtp`) + plantillas versionadas `supabase/templates/*.html` (apuntan a `/auth/confirm?token_hash=…`) + `supabase/config.toml`. **Falta DESPLEGARLO** en el proyecto Supabase de prod (hoy usa la plantilla por defecto → el enlace cae en `/auth/callback` PKCE → falso negativo "No pudimos completar la confirmación" aunque el correo sí se confirma). Acción Operations: aplicar/pushear las plantillas (token_hash) a Supabase. Mientras tanto, FR-REFINE-16.8 añadió una **red de seguridad en código**: `/auth/callback`, ante fallo de intercambio en el flujo `flow=email_confirm`, redirige a `/sign-in?confirmed=1` (mensaje correcto) en vez del error.
+**Actualización (2026-06-13, FR-REFINE-16.8)**: el flujo `token_hash` **ya está implementado** en código — ruta `src/app/auth/confirm/route.ts` (`verifyOtp`) + plantillas versionadas `supabase/templates/*.html` (apuntan a `/auth/confirm?token_hash=…`) + `supabase/config.toml`. FR-REFINE-16.8 añadió una **red de seguridad en código**: `/auth/callback`, ante fallo de intercambio en el flujo `flow=email_confirm`, redirige a `/sign-in?confirmed=1`.
+**✅ Operations COMPLETE (2026-06-16)**: plantillas token_hash desplegadas en prod — el flujo token_hash es ahora el oficial en producción. Confirmado por el usuario.
 
 ---
 
@@ -165,7 +166,7 @@ Detalle del enfoque:
 - **Compatibilidad**: requiere `@supabase/supabase-js` **≥ 2.105.0** (proyecto en 2.108.1). API marcada **experimental** → su superficie puede cambiar sin aviso; revisar en upgrades de supabase-js.
 - **Relying Party ID (bloqueante)**: debe ser el **dominio pelado** del origen — `localhost` en dev, el **dominio real** en prod — nunca el display name. Es **permanente**: cambiarlo invalida los passkeys existentes; los registrados en `localhost` no sirven en prod (y viceversa).
 - **Restricción hacia adelante**: si se añade gestión de passkeys (listar/borrar/renombrar) usar `auth.passkey.list/update/delete` (no `mfa.listFactors().webauthn`).
-**Pendiente Operations**: confirmar en el dashboard de prod "Enable Passkey authentication" ON con RP ID = dominio real y origins correctos.
+**✅ Operations COMPLETE (2026-06-16)**: "Enable Passkey authentication" habilitado en prod con RP ID real y origins correctos. Confirmado por el usuario.
 
 ---
 
@@ -209,8 +210,8 @@ como cambio de routing separado; no mezclarlo con refinements de copy.
 | CF-4 | Competition extensible | Unit 4 | Aplicado en modelo `Competition`/`CompetitionPhase`/`Match` |
 | CF-5 | Glosario copy español internacional | Transversal | Aplicado a UI/contenido/docs; mantener en futuros cambios |
 | CF-6 | Estrategia de migraciones (Prisma vs supabase/migrations) | Operations | **Aprobada + implementada**; falta `migrate deploy` en prod |
-| CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. Pendiente opcional: `token_hash`/`verifyOtp` |
+| CF-7 | Middleware `proxy.ts` (Next 16) + home autenticada `/matches` | Unit 1 + Unit 2 | **Aplicado** (`fa43333`): `proxy.ts` restaurado; destino post-auth `/matches`. **✅ token_hash desplegado en prod (2026-06-16)** |
 | CF-8 | Script inline anti-FOUC (`dangerouslySetInnerHTML`) — excepción de seguridad | Unit 8 / SECURITY-04+05 | **✅ Resuelto (FR-REFINE-16.6)**: script eliminado; marca renderizada server-side desde cookie `brand-theme`. Sin inline script → sin warning y sin constraint de CSP |
-| CF-9 | Secure email change desactivado (confirmación única del correo nuevo) — tradeoff de seguridad | Unit 19 / Auth / Security Baseline | **Aceptado (FR-REFINE-19.1)**: `secure_email_change_enabled = false`. Solo el correo nuevo confirma/recibe notificación. Pendiente Operations: replicar toggle en dashboard de prod |
-| CF-10 | Mecanismo oficial de passkeys = API de Passkeys (beta) de Supabase | Unit 20 / Auth | **Aplicado (FR-REFINE-20.1)**: `registerPasskey()`/`signInWithPasskey()` + `experimental.passkey`; reemplaza el factor MFA-WebAuthn. Requiere supabase-js ≥ 2.105.0; RP ID = dominio (localhost en dev). Pendiente Operations: confirmar dashboard de prod |
+| CF-9 | Secure email change desactivado (confirmación única del correo nuevo) — tradeoff de seguridad | Unit 19 / Auth / Security Baseline | **Aceptado (FR-REFINE-19.1)**: `secure_email_change_enabled = false`. Solo el correo nuevo confirma/recibe notificación. **✅ Operations COMPLETE (2026-06-16)**: toggle desactivado en prod |
+| CF-10 | Mecanismo oficial de passkeys = API de Passkeys (beta) de Supabase | Unit 20 / Auth | **Aplicado (FR-REFINE-20.1)**: `registerPasskey()`/`signInWithPasskey()` + `experimental.passkey`; reemplaza el factor MFA-WebAuthn. Requiere supabase-js ≥ 2.105.0; RP ID = dominio (localhost en dev). **✅ Operations COMPLETE (2026-06-16)**: habilitado en prod con RP ID real |
 | CF-11 | i18n bilingüe sin prefijo de locale | Unit 24 / Transversal | **Aprobado para Unit 24**: `es` default + `en`, cookie `locale` + `profiles.locale`, selector en `UserMenu`/Perfil, MDX bilingüe, sin `/es` ni `/en` |

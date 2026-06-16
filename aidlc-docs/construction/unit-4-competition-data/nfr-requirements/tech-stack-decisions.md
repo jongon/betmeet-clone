@@ -2,13 +2,13 @@
 
 ## Context
 
-The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreSQL, Vercel, pnpm, Biome. Unit 4 adds API-Football integration, local fixture seed data, local SVG flags, sync logs, and scheduled synchronization.
+The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreSQL, Vercel, pnpm, Biome. Unit 4 adds football-data.org integration, local fixture seed data, local SVG flags, sync logs, and scheduled synchronization.
 
 ---
 
-## Decision 1: API-Football Adapter Boundary
+## Decision 1: football-data.org Adapter Boundary
 
-**Choice**: Implement API-Football behind a provider adapter interface.
+**Choice**: Implement football-data.org behind a provider adapter interface.
 
 **Rationale**:
 - Keeps provider-specific status codes, response shapes, and IDs out of domain logic.
@@ -16,7 +16,7 @@ The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreS
 - Supports normalized idempotent upserts.
 
 **Implementation approach**:
-- `src/features/competition/services/providers/api-football/*` for provider-specific fetch/normalize code.
+- `src/features/competition/services/providers/football-data.ts` for provider-specific fetch/normalize code.
 - Domain services consume normalized DTOs only.
 - Persist `rawStatus` for diagnostics, but not raw payloads by default.
 
@@ -24,14 +24,14 @@ The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreS
 
 ## Decision 2: Server-Side Secret Handling
 
-**Choice**: `API_FOOTBALL_KEY` lives in server-side env/secret manager only.
+**Choice**: `FOOTBALL_DATA_KEY` lives in server-side env/secret manager only.
 
 **Rationale**:
 - Matches Security Baseline and avoids accidental browser exposure.
 - Simple enough for MVP pequeño.
 
 **Implementation approach**:
-- Never use `NEXT_PUBLIC_API_FOOTBALL_KEY`.
+- Never use `NEXT_PUBLIC_FOOTBALL_DATA_KEY`.
 - Provider adapter reads from server runtime only.
 - Missing key produces sanitized `ProviderSyncLog` failure.
 - Supabase Vault can be adopted later if Infrastructure Design chooses it; not required for v1.
@@ -127,7 +127,7 @@ The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreS
 
 **Implementation approach**:
 - Mock provider adapter responses.
-- Test status mapping from representative API-Football raw statuses.
+- Test status mapping from representative football-data.org raw statuses.
 - Test duplicate seed/sync upserts do not create duplicates.
 - Test manual override preservation policy.
 
@@ -137,7 +137,7 @@ The stack is fixed: Next.js 16 App Router, TypeScript, Prisma, Supabase/PostgreS
 
 | Concern | Decision |
 |---|---|
-| Provider integration | API-Football adapter boundary |
+| Provider integration | football-data.org adapter boundary |
 | Secrets | Server-side env/secret only, never `NEXT_PUBLIC` |
 | Sync execution | Supabase Edge Functions + cron as baseline |
 | Read source | Postgres normalized data, not provider direct |

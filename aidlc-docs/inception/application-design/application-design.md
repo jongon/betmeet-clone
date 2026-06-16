@@ -9,7 +9,7 @@ The application is a Next.js 16 App Router SaaS for football quinielas. It uses 
 | Area | Decision |
 |---|---|
 | Supabase usage | Official Supabase SSR helpers for Next.js App Router; Prisma for domain DB access |
-| Football provider | API-Football as v1 default behind adapter interface |
+| Football provider | football-data.org as v1 default behind adapter interface (era API-Football; migrado en Unit 25) |
 | Match sync | Supabase Edge Functions plus scheduled jobs |
 | Avatar storage | Supabase Storage bucket |
 | Nickname format | Classic `nickname#1234` discriminator |

@@ -11,7 +11,7 @@ Provider Sync Runtime
 ├── Sync Trigger Guard                  ← Pattern 9
 ├── Sync Orchestrator                   ← Patterns 3/4/5/6/7
 │   ├── Sync Lock Store                 ← Pattern 3
-│   ├── API-Football Provider Adapter   ← Patterns 5/10
+│   ├── football-data.org Provider Adapter   ← Patterns 5/10
 │   ├── Provider DTO Validator          ← Pattern 5
 │   ├── Competition Upsert Service      ← Pattern 5
 │   └── Sync Logger                     ← Pattern 6
@@ -45,7 +45,7 @@ Testing
 - **Storage**: DB-backed run/lock table or fields in sync log with uniqueness.
 - **Contract**: `acquire(scope, windowKey)`, `release(runId)`, `expireStaleLocks()`.
 
-## Component 4: API-Football Provider Adapter
+## Component 4: football-data.org Provider Adapter
 - **Responsibility**: provider-specific HTTP fetch and raw-to-normalized mapping.
 - **Inputs**: API key, scope, window.
 - **Outputs**: provider-neutral DTOs for teams/fixtures/results/status.
@@ -104,7 +104,7 @@ Testing
 | Sync Trigger Guard | 9 | Security |
 | Sync Orchestrator | 3,4,5,6,7 | Reliability, freshness, observability |
 | Sync Lock Store | 3 | Concurrency |
-| API-Football Provider Adapter | 5,10 | Maintainability, testability |
+| football-data.org Provider Adapter | 5,10 | Maintainability, testability |
 | Provider DTO Validator | 5 | Data integrity |
 | Competition Upsert Service | 5 | Idempotency, consistency |
 | Sync Logger | 6 | Observability, retention |

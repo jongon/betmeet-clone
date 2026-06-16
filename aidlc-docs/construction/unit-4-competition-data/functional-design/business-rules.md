@@ -47,7 +47,7 @@
 
 | ID | Rule |
 |---|---|
-| BR-4.24 | API-Football integration must be implemented behind an adapter interface. |
+| BR-4.24 | La integración del proveedor (football-data.org desde Unit 25; antes API-Football) debe implementarse detrás de la interfaz adapter `CompetitionProvider`. La regla del adapter sigue vigente; solo cambió la implementación concreta. |
 | BR-4.25 | Provider API keys must never be stored in source code or client-exposed variables. |
 | BR-4.26 | Sync attempts must write `ProviderSyncLog` records with sanitized errors. |
 | BR-4.27 | Sync must support at least fixtures, results, live status, and teams scopes. |

@@ -254,6 +254,44 @@
 
 ---
 
+## Épica 24: Sync con football-data.org (Unit 25 — añadida vía `/aidlc:refine`)
+
+> Reemplaza el stub `ApiFootballProvider` por `FootballDataProvider` implementando el
+> contrato `CompetitionProvider` existente. No reinicia etapas aprobadas. Detalle en
+> `construction/unit-25-football-data-sync/functional-design.md`.
+
+### US-24.1: Sincronizar resultados desde una fuente real
+**Como** administrador
+**Quiero** que la sincronización traiga fixtures y resultados desde football-data.org
+**Para** que la competición refleje datos reales sin captura manual.
+- **Criterios de Aceptación**:
+  - El provider consulta `GET /v4/competitions/WC/matches?season=2026` con `X-Auth-Token` (`FOOTBALL_DATA_KEY`).
+  - Cada match del API se mapea a `NormalizedMatch` (status vía `mapFootballDataStatus`, marcadores `score.fullTime.* ?? null`).
+  - El scope del sync (`FIXTURES`/`LIVE_STATUS`/`RESULTS`/`FULL`) filtra por `status`/`dateFrom`/`dateTo`.
+  - El orquestador escribe `provider="FOOTBALL_DATA"` en `ProviderSyncRun`; el 429 se traduce a `RATE_LIMITED`.
+  - Sin cambios de schema, migraciones ni rutas. Suite de tests verde.
+
+---
+
+## Épica 27: Persistencia de matches en sync-orchestrator (Unit 28 — añadida vía `/aidlc:build`)
+
+> El orquestador buscaba resultados pero no persistía matches en la BD. No reinicia
+> etapas aprobadas. Detalle en
+> `construction/unit-28-sync-match-persistence/functional-design/`.
+
+### US-27.1: Que la sincronización persista los partidos en la base de datos
+**Como** administrador
+**Quiero** que al sincronizar se creen y actualicen los partidos en la BD
+**Para** que el fixture y los resultados queden disponibles para los usuarios.
+- **Criterios de Aceptación**:
+  - `syncMatchesToDB()` identifica cada match por `providerMatchId` (UPDATE si existe).
+  - Un match inexistente se CREA solo si su status es `SCHEDULED` o `LIVE`; los `FINISHED`/`POSTPONED`/`CANCELLED` inexistentes se SKIPean (no se importan resultados históricos en una BD fresca).
+  - El UPDATE actualiza status y marcadores; la fase se resuelve por nombre.
+  - Las notificaciones de inicio/fin de partido se disparan best-effort; `itemsUpdated` = matches procesados.
+  - El seed separa estructura (`seedCompetitionStructure()`) de matches; backward-compat de `seedWorldCup2026()`. Suite de tests verde.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture
@@ -376,7 +414,7 @@
 
 ## Épica 6: Panel de Administración
 
-### US-6.1: Sincronización API-Football
+### US-6.1: Sincronización con el proveedor de resultados (football-data.org desde Unit 25)
 **Como** administrador del sistema
 **Quiero** ver el estado de sincronización con la API de resultados en vivo
 **Para** asegurarme de que los datos fluyen correctamente a la plataforma.

@@ -9,7 +9,10 @@ import {
   WORLD_CUP_2026_TEAMS,
 } from "../seed/world-cup-2026";
 
-export async function seedWorldCup2026() {
+export async function seedCompetitionStructure(): Promise<{
+  competition: { id: string };
+  phaseByName: Map<string, { id: string }>;
+}> {
   const competition = await prisma.competition.upsert({
     where: { slug: WORLD_CUP_2026.slug },
     update: {
@@ -33,6 +36,7 @@ export async function seedWorldCup2026() {
       providerCompetitionId: WORLD_CUP_2026.providerCompetitionId,
       isActive: WORLD_CUP_2026.isActive,
     },
+    select: { id: true },
   });
 
   for (const team of WORLD_CUP_2026_TEAMS) {
@@ -67,6 +71,11 @@ export async function seedWorldCup2026() {
     phaseByName.set(phase.name, saved);
   }
 
+  return { competition, phaseByName };
+}
+
+export async function seedWorldCup2026() {
+  const { competition, phaseByName } = await seedCompetitionStructure();
   for (const match of WORLD_CUP_2026_MATCHES) {
     const phase = phaseByName.get(match.phaseName);
     if (!phase) continue;
