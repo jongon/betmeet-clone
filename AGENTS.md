@@ -8,7 +8,7 @@ Liga Mundial SaaS para el FIFA World Cup 2026 — los usuarios se registran, se 
 |---------|-------------|
 | **Auth** | Email/password, Google OAuth, MFA (TOTP), passkeys (WebAuthn), account linking automático email+Google |
 | **Profile** | Nickname `base#discriminator`, avatar (Google photo / default set / custom upload), verificación |
-| **Competition** | Fixture por fases (grupos/knockout), datos desde API-Football, estado de partidos (SCHEDULED→LIVE→FINISHED) |
+| **Competition** | Fixture por fases (grupos/knockout), datos desde football-data.org, estado de partidos (SCHEDULED→LIVE→FINISHED) |
 | **Predictions** | Predicción de resultado exacto, editable hasta el inicio del partido, selector de ganador en penales para knockout |
 | **Ligas** | Grupos públicos/privados (hasta 100 miembros), token de invitación, directorio público, expulsión pre-partido |
 | **Scoring** | Puntaje determinístico: exacto 5pts, resultado 2pts, un equipo 1pt, fallo 0pt; +1 bonus penales |
@@ -28,7 +28,7 @@ Liga Mundial SaaS para el FIFA World Cup 2026 — los usuarios se registran, se 
 | Storage | Supabase Storage (avatars, banderas) |
 | Forms | react-hook-form + zod |
 | Content | Content Collections (MDX) |
-| Sync | API-Football (adapter pattern) |
+| Sync | football-data.org (adapter pattern) |
 
 ## Herramientas
 
@@ -70,11 +70,16 @@ pnpm prisma:generate  # Genera cliente Prisma en src/generated/prisma
 ### Seed de datos
 
 ```bash
-pnpm seed:competition                        # World Cup 2026: equipos, fases, partidos
+pnpm prisma:seed:competition                 # World Cup 2026: estructura (equipos/fases) + partidos pendientes desde football-data.org (snapshot de respaldo)
 npx tsx scripts/seed-admin.ts <user-id>      # Promover usuario a ADMIN
 npx tsx scripts/seed-avatars.ts              # Avatares default en Supabase Storage
 pnpm check:flags                             # Verificar banderas SVG
 ```
+
+> El seed de partidos hace **1 llamada** a football-data.org (toda la competición) y registra solo los partidos
+> que faltan por ocurrir (idempotente por `providerMatchId`). Requiere `FOOTBALL_DATA_KEY` para refrescar; si la
+> API no está disponible cae al snapshot commiteado (`src/features/competition/seed/snapshots/`). Sin API ni
+> snapshot, el seed falla. Ver `src/features/competition/services/seed-matches.ts`.
 
 ### Desarrollo
 

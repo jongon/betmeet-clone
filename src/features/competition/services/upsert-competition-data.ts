@@ -1,10 +1,7 @@
-import { emitMatchNotificationEvents } from "@/features/notifications/services/match-events";
-import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { NormalizedMatch, NormalizedTeam } from "../schemas";
+import type { NormalizedTeam } from "../schemas";
 import {
   WORLD_CUP_2026,
-  WORLD_CUP_2026_MATCHES,
   WORLD_CUP_2026_PHASES,
   WORLD_CUP_2026_TEAMS,
 } from "../seed/world-cup-2026";
@@ -74,15 +71,6 @@ export async function seedCompetitionStructure(): Promise<{
   return { competition, phaseByName };
 }
 
-export async function seedWorldCup2026() {
-  const { competition, phaseByName } = await seedCompetitionStructure();
-  for (const match of WORLD_CUP_2026_MATCHES) {
-    const phase = phaseByName.get(match.phaseName);
-    if (!phase) continue;
-    await upsertMatch(competition.id, phase.id, match);
-  }
-}
-
 export async function upsertTeam(team: NormalizedTeam | (typeof WORLD_CUP_2026_TEAMS)[number]) {
   return prisma.team.upsert({
     where: { fifaCode: team.fifaCode },
@@ -102,52 +90,4 @@ export async function upsertTeam(team: NormalizedTeam | (typeof WORLD_CUP_2026_T
       providerTeamId: team.providerTeamId,
     },
   });
-}
-
-export async function upsertMatch(
-  competitionId: string,
-  phaseId: string,
-  match: NormalizedMatch | (typeof WORLD_CUP_2026_MATCHES)[number],
-) {
-  const [homeTeam, awayTeam] = await Promise.all([
-    match.homeFifaCode ? prisma.team.findUnique({ where: { fifaCode: match.homeFifaCode } }) : null,
-    match.awayFifaCode ? prisma.team.findUnique({ where: { fifaCode: match.awayFifaCode } }) : null,
-  ]);
-
-  const data: Prisma.MatchUncheckedCreateInput = {
-    competitionId,
-    phaseId,
-    providerMatchId: match.providerMatchId,
-    matchNumber: match.matchNumber,
-    kickoffAt: match.kickoffAt ? new Date(match.kickoffAt) : null,
-    status: match.status,
-    homeTeamId: homeTeam?.id ?? null,
-    awayTeamId: awayTeam?.id ?? null,
-    homePlaceholder: match.homePlaceholder,
-    awayPlaceholder: match.awayPlaceholder,
-    homeScore: "homeScore" in match ? (match.homeScore ?? null) : null,
-    awayScore: "awayScore" in match ? (match.awayScore ?? null) : null,
-  };
-
-  if (match.matchNumber !== null) {
-    const where = { competitionId_matchNumber: { competitionId, matchNumber: match.matchNumber } };
-    const previous = await prisma.match.findUnique({
-      where,
-      include: { homeTeam: true, awayTeam: true },
-    });
-    const saved = await prisma.match.upsert({
-      where: { competitionId_matchNumber: { competitionId, matchNumber: match.matchNumber } },
-      update: data,
-      create: data,
-      include: { homeTeam: true, awayTeam: true },
-    });
-    try {
-      await emitMatchNotificationEvents(previous, saved);
-    } catch {
-      // Notification outbox is best-effort and must not block competition sync.
-    }
-    return saved;
-  }
-
-  return prisma.match.create({ data });
 }

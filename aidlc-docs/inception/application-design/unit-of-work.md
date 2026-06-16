@@ -252,6 +252,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Al sincronizar, los partidos quedan creados/actualizados en la BD y disponibles para el fixture y el scoring.
 
+## Unit 29: Seed de partidos desde football-data.org con snapshot
+
+**Goal**: Que `pnpm prisma:seed:competition` siembre los partidos desde football-data.org (solo los que faltan por ocurrir, idempotente), con un snapshot commiteado como respaldo offline.
+
+**Responsibilities**:
+- Added post-construction via `/aidlc:start` (2026-06-16); aditivo y no reinicia Units 1–28. Construye sobre Unit 25 (`FootballDataProvider`) y Unit 28 (`syncMatchesToDB`, `seedCompetitionStructure`).
+- Nuevo `seedMatchesFromFootballData()` (`services/seed-matches.ts`): 1 llamada `fetch("FULL", { windowKey: "seed-full" })` (toda la competición); reescribe el snapshot `seed/snapshots/world-cup-2026-fixtures.json`; persiste vía `runCompetitionSync` (idempotente por `providerMatchId`, create-only `SCHEDULED`/`LIVE` → solo partidos pendientes).
+- Fallback: API caída + snapshot → siembra desde snapshot con warning; sin API ni snapshot → falla.
+- Scope `FULL` (no `FIXTURES`) para no perder los partidos `TIMED`; el filtro por estado lo hace el persist.
+- Elimina el seed estático incorrecto (`WORLD_CUP_2026_MATCHES`, `seedWorldCup2026()`, `upsertMatch`). Knockouts en fase de grupos se registran con equipos `null` (TBD). Sin schema, migraciones ni rutas.
+
+**Primary Deliverable**: El seed registra los partidos pendientes del Mundial 2026 desde football-data.org de forma idempotente, con respaldo en snapshot cuando la API no está disponible.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -270,6 +283,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 14. Unit 26: Performance Fase 1 — Quick Wins (post-construction refine; query/cache/indexes/pool; <1s target)
 15. Unit 27: Performance Fase 2 — Estructural (post-construction refine; cache/indexes/N+1/dedup; <300ms target)
 16. Unit 28: Persistencia de matches en sync-orchestrator (post-construction; orquestador persiste matches; sin schema)
+17. Unit 29: Seed de partidos desde football-data.org con snapshot (post-construction; el seed puebla partidos pendientes desde la API con respaldo offline; sin schema)
 
 ## Security Notes
 
