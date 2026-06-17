@@ -99,6 +99,10 @@ El schema se gestiona con **migraciones Prisma versionadas** en `prisma/migratio
 - `20260611120000_rls_constraints_triggers/` — RLS, policies, CHECK, índices
   parciales/compuestos, triggers y policies de Storage (requiere los schemas
   `auth`/`storage` de Supabase y el bucket `avatars`).
+- `20260617120000_auth_access_token_hook/` — función `public.custom_access_token_hook`
+  que inyecta los claims `email_verified` y `onboarding_completed` en el JWT, con
+  grants para `supabase_auth_admin` y policy de lectura sobre `profiles`. Habilitar
+  el hook es un paso de dashboard (Authentication → Hooks), no expresable en SQL.
 
 ```bash
 npx prisma migrate deploy   # aplica migraciones pendientes (usar direct connection :5432, no el pooler :6543)
@@ -136,6 +140,7 @@ Copiar `.env.example` y completar:
 ```env
 DATABASE_URL="postgresql://..."          # PostgreSQL runtime connection string (pooler en prod)
 DIRECT_URL="postgresql://..."            # PostgreSQL direct connection para Prisma CLI/migraciones
+DB_CONNECTION_LIMIT="5"                  # Conexiones por instancia serverless (opcional; default 5)
 NEXT_PUBLIC_SUPABASE_URL="https://..."   # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY="..."      # Supabase anon key
 SUPABASE_SERVICE_ROLE_KEY="..."          # Supabase service role (solo server)
@@ -144,3 +149,32 @@ NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 WORLD_CUP_KICKOFF="2026-06-11T18:00:00Z"
 NODE_ENV="development"
 ```
+
+## Despliegue (Vercel + Supabase)
+
+La app se despliega en **Vercel** (serverless) contra **Supabase** en la **misma región**
+(us-east-1 / iad1). Tras un cambio de schema o de configuración de auth:
+
+### Supabase (una vez por entorno)
+
+1. **JWT Signing Keys asimétricas** — Authentication → JWT Keys: la clave activa debe ser
+   asimétrica (ECC/ES256), no la legacy HS256. Habilita que `getClaims()` verifique el JWT
+   localmente. Ver `docs/ARCHITECTURE.md` → Autenticación.
+2. **Custom Access Token Hook** — Authentication → Hooks → "Customize Access Token (JWT)
+   Claims": Enabled, apuntando a `public.custom_access_token_hook` (creada por la migración
+   `20260617120000_auth_access_token_hook`; aplicar con `prisma migrate deploy`).
+3. **Migraciones** — `npx prisma migrate deploy` (usa `DIRECT_URL` :5432, no el pooler).
+
+> Orden: aplica la migración/hook **antes o junto** con el deploy del código, o los claims
+> `email_verified`/`onboarding_completed` faltarán hasta el refresh del token.
+
+### Vercel
+
+| Ajuste | Dónde | Valor |
+|--------|-------|-------|
+| Fluid Compute | Settings → Functions | Enabled (reduce cold starts; reutiliza el pool `pg`) |
+| `DB_CONNECTION_LIMIT` | Settings → Environment Variables | 5 (≤ Pool Size del pooler) |
+| Node.js Version | Settings → General | 24.x (coincide con `engines.node`) |
+| Región | Settings → Functions | iad1 (misma que Supabase) |
+
+> Los cambios de env/Fluid/Node requieren un **redeploy** para aplicar.

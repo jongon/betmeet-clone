@@ -1353,3 +1353,30 @@ Si el marcador de penales es empate, el diálogo muestra un mensaje de error y d
 - **Sin** schema, migraciones ni rutas nuevas.
 - Reutiliza `derivePenaltyWinner()` de Unit 2 (ya compartido con la calculadora).
 - No cambia reglas de scoring ni flujos de predicción.
+
+---
+
+## Épica 37: Performance Fase 3 — Implementación de diferidos de Unit 22 (Post-construcción — Unit 37, 2026-06-17)
+
+**Intent del usuario**: "Esta aplicación se despliega en vercel y la base de datos está en supabase… usa Connection pooler, pero aún así la aplicación está lenta. Revisa si tengo un cuello de botella por la implementación, la forma de conexión, o configuración de Vercel/Supabase."
+
+Refine post-construcción que **implementa** los ítems que **NFR-PERF-REFINE-22** dejó diferidos (22.1 `getClaims`, 22.4 caché del leaderboard de pool, 22.5 pooling) y añade optimizaciones de cold-start y del camino de scoring. **No reinicia** etapas aprobadas. Construye sobre Units 22/26/27/35. Síntoma confirmado por el usuario: lentitud transversal (toda navegación, primera carga, páginas pesadas y mutaciones); región Vercel = Supabase (sin penalización cross-region).
+
+### NFR-PERF-REFINE-37.1 — `getClaims()` en el camino caliente (implementa 22.1, P0)
+`src/proxy.ts` y `getAuthUser` (`src/lib/supabase/current-user.ts`) verifican el JWT **localmente** con `auth.getClaims()` (JWT Signing Keys asimétricas + JWKS cacheado), eliminando el round-trip a GoTrue (`getUser()`) por request. El proxy ya **no** consulta `profiles` por PostgREST (elimina 22.2 en el middleware): lee `onboarding_completed` y `email_verified` de claims inyectados por un **Custom Access Token Hook**. Los gates fallan **abierto** ante claim ausente (tokens emitidos antes del hook) para no romper sesiones existentes. `completeOnboarding` llama `refreshSession()` para reflejar el claim al instante. La capa de acciones (`getOnboardedUserId`, Prisma) sigue siendo la defensa autoritativa de mutaciones.
+
+### NFR-PERF-REFINE-37.2 — Caché del leaderboard de pool (implementa 22.4, P2)
+`getPoolLeaderboard` (`src/features/scoring-rankings/queries.ts`) se cachea por `poolId` con `unstable_cache` + `RANKINGS_TAG`, separando el `isViewer` por request (mismo patrón que el ranking global). Elimina el over-fetch (`select` de nickname/avatar en vez de `include: { user: true }`). Las mutaciones de membresía (`leavePool`/`kickMember`/`joinPoolByToken`/`joinPublicPool`) invalidan `RANKINGS_TAG`.
+
+### NFR-PERF-REFINE-37.3 — Pooling y cold-start (implementa 22.5, P2/P3)
+`connection_limit` configurable por `DB_CONNECTION_LIMIT` (default 5, antes fijo en 3) en `src/lib/prisma.ts`. `serverExternalPackages: ["@prisma/adapter-pg", "pg"]` en `next.config.ts` (bundle más chico, menos cold start). `engines.node >= 24` en `package.json`. Config de dashboard (Operations): Vercel Fluid Compute + región; Supabase signing keys + hook. Nota: con el driver adapter `pg`, `?pgbouncer=true` es **innecesario** (es flag del query-engine clásico).
+
+### NFR-PERF-REFINE-37.4 — Camino de scoring (P3)
+`getGlobalRankSnapshot` (`src/features/notifications/services/ranking-events.ts`) suma con `groupBy _sum` en la DB en vez de traer todos los perfiles con todos sus scores y reducir en JS; conserva las posiciones (incluye perfiles con 0 puntos). Abarata las dos llamadas (antes/después) de `score-match.ts` y el sweeper.
+
+### Infraestructura
+- **Migración** `prisma/migrations/20260617120000_auth_access_token_hook/` — función `public.custom_access_token_hook` (claims `email_verified` + `onboarding_completed`), grants a `supabase_auth_admin`, policy de lectura sobre `profiles`. Habilitar el hook es paso de dashboard.
+
+### Restricciones / SKIP
+- Sin rutas nuevas; sin cambios de modelo de datos (solo la función/policy del hook).
+- No cambia reglas de scoring ni de negocio; solo cómo se computan/cachean lecturas y cómo se verifica la sesión.

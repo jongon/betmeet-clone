@@ -71,12 +71,13 @@ Aplicación full-stack Next.js 16 con Supabase como backend (auth, base de datos
 - **MFA**: TOTP (authenticator app)
 - **Passkeys**: WebAuthn via `@simplewebauthn`
 - **Sesión**: cookies gestionadas por `@supabase/ssr`
+- **Verificación de sesión**: `src/proxy.ts` (middleware) y `getAuthUser` (`src/lib/supabase/current-user.ts`) usan `auth.getClaims()` — verificación **local** del JWT con las JWT Signing Keys asimétricas (JWKS cacheado), sin round-trip a GoTrue por request. Un **Custom Access Token Hook** (migración `20260617120000_auth_access_token_hook`) inyecta los claims `email_verified` y `onboarding_completed`, que el proxy usa para los gates (estos no son claims estándar del JWT). Los gates fallan **abierto** ante un claim ausente para no romper sesiones emitidas antes del hook.
 - **Perfil**: trigger SQL en Supabase crea `profiles` row al registrarse
 - **Admin**: verificación via `verificationStatus = "ADMIN"` en profile
 
 ### Seguridad (Row Level Security)
 
-Todas las tablas tienen RLS policies definidas en `supabase/migrations/`. Los usuarios solo acceden a sus propios datos. Las ligas públicas son legibles; las ligas privadas requieren membresía.
+Todas las tablas tienen RLS policies definidas en las **migraciones Prisma** (`prisma/migrations/`, principalmente `20260611120000_rls_constraints_triggers`; las antiguas SQL de `supabase/migrations/` se portaron a Prisma — CF-6). Los usuarios solo acceden a sus propios datos. Las ligas públicas son legibles; las ligas privadas requieren membresía. El rol `supabase_auth_admin` tiene una policy de solo-lectura sobre `profiles` para el Custom Access Token Hook.
 
 ## Capa de presentación
 
@@ -135,6 +136,7 @@ Ver `.env.example` para la lista completa. Variables clave:
 |----------|-------------|
 | `DATABASE_URL` | Connection string runtime de PostgreSQL; usar transaction pooler en Supabase/producción |
 | `DIRECT_URL` | Connection string directa de PostgreSQL para Prisma CLI/migraciones |
+| `DB_CONNECTION_LIMIT` | Conexiones por instancia serverless contra el pooler (opcional; default 5) |
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave service_role (solo server/scripts) |

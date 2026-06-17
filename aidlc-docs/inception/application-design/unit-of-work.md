@@ -315,6 +315,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: `BRA 2-1 ARG` vs predicción `BRA 3-2 ARG` puntúa 3 (2 ganador + 1 gol), y la UI explica esa suma.
 
+## Unit 37: Performance Fase 3 — Implementación de diferidos de Unit 22
+
+**Goal**: Eliminar los round-trips de auth por request y la recomputación sin caché que Unit 22 dejó diferidos, más cold-start y scoring.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa NFR-PERF-REFINE-22.1/22.4/22.5. No reinicia Units 1–36.
+- `getClaims()` (verificación local del JWT) en `proxy.ts` y `getAuthUser`; gates por claims de un Custom Access Token Hook (`email_verified`, `onboarding_completed`); fail-open ante claim ausente; `refreshSession()` tras onboarding.
+- Caché del leaderboard de pool por `poolId` + `RANKINGS_TAG`, sin over-fetch; invalidación en mutaciones de membresía.
+- `DB_CONNECTION_LIMIT` (default 5), `serverExternalPackages`, `engines.node >= 24`; config de dashboard (Operations).
+- `getGlobalRankSnapshot` con `groupBy _sum` en DB.
+
+**Primary Deliverable**: una navegación autenticada normal deja de hacer round-trips a GoTrue/PostgREST por request; migración del hook (`20260617120000_auth_access_token_hook`).
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -339,6 +352,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 20. Unit 34: Códigos FIFA en `/admin/matches` (post-construction refine; UI-only; sin schema)
 21. Unit 35: Invalidación inmediata de caché tras mutaciones admin (post-construction refine; cache consistency; sin schema)
 22. Unit 36: Scoring acumulativo por ganador y goles acertados (post-construction refine; reglas de scoring; sin schema por defecto)
+23. Unit 37: Performance Fase 3 — diferidos de Unit 22 (post-construction refine; auth `getClaims`/hook, caché de leaderboard de pool, pooling/cold-start, scoring snapshot; migración del access-token hook)
 
 ## Security Notes
 
