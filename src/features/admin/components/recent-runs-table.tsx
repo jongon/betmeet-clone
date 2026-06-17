@@ -1,7 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
+import { useDictionary } from "@/i18n/dictionary-provider";
+import { formatDate } from "@/lib/format-date";
 import type { SyncRunRow } from "../types";
 
 function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | "destructive" {
@@ -12,7 +13,6 @@ function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | 
 
 export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
   const t = useDictionary().admin;
-  const locale = useLocale();
 
   if (runs.length === 0) {
     return <p className="text-sm text-muted-foreground">{t.noRuns}</p>;
@@ -38,11 +38,9 @@ export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
               <td className="p-2">
                 <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
               </td>
+              <td className="p-2 text-muted-foreground">{formatDate(run.startedAt)}</td>
               <td className="p-2 text-muted-foreground">
-                {new Date(run.startedAt).toLocaleString(locale)}
-              </td>
-              <td className="p-2 text-muted-foreground">
-                {run.finishedAt ? new Date(run.finishedAt).toLocaleString(locale) : "—"}
+                {run.finishedAt ? formatDate(run.finishedAt) : "—"}
               </td>
               <td className="p-2 text-right tabular-nums">
                 {run.itemsUpdated}/{run.itemsFetched}

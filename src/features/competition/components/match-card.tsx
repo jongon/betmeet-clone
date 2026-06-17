@@ -3,17 +3,10 @@
 import { PredictionForm } from "@/features/predictions/components/prediction-form";
 import type { PredictionMatchView } from "@/features/predictions/types";
 import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
+import { useIsoDate } from "@/lib/format-date";
 import type { MatchView } from "../types";
 import { MatchStatusBadge } from "./match-status-badge";
 import { TeamBadge } from "./team-badge";
-
-function formatLocalDate(value: string | null, locale: string, fallback: string) {
-  if (!value) return fallback;
-  return new Intl.DateTimeFormat(locale, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
 
 function score(match: MatchView) {
   if (match.homeScore === null || match.awayScore === null) return "vs";
@@ -31,6 +24,7 @@ export function MatchCard({
   const locale = useLocale();
   const { competition } = useDictionary();
   const isPredictionMatch = "canEdit" in match;
+  const formattedDate = useIsoDate(match.kickoffAt, locale, competition.kickoffTbd);
 
   return (
     <article className="rounded-xl border p-4" data-testid={`match-card-${match.id}`}>
@@ -38,7 +32,7 @@ export function MatchCard({
         <p className="text-sm text-muted-foreground">
           {contextLabel ? `${contextLabel} · ` : ""}
           {match.matchNumber ? `${competition.match}${match.matchNumber} · ` : ""}
-          {formatLocalDate(match.kickoffAt, locale, competition.kickoffTbd)}
+          {formattedDate}
         </p>
         <MatchStatusBadge status={match.status} />
       </div>

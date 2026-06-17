@@ -1,14 +1,14 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
+import { useDictionary } from "@/i18n/dictionary-provider";
+import { formatDate } from "@/lib/format-date";
 import type { AdminMatchRow } from "../types";
 import { ForceResultDialog } from "./force-result-dialog";
 import { RevertOverrideButton } from "./revert-override-button";
 
 export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
   const t = useDictionary().admin;
-  const locale = useLocale();
 
   if (matches.length === 0) {
     return <p className="text-sm text-muted-foreground">{t.noMatches}</p>;
@@ -32,7 +32,7 @@ export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
               {match.homeScore !== null && match.awayScore !== null
                 ? ` · ${match.homeScore}-${match.awayScore}`
                 : ""}
-              {match.kickoffAt ? ` · ${new Date(match.kickoffAt).toLocaleString(locale)}` : ""}
+              {match.kickoffAt ? ` · ${formatDate(match.kickoffAt)}` : ""}
             </p>
           </div>
           <div className="flex items-center gap-3">

@@ -1,12 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
+import { useDictionary } from "@/i18n/dictionary-provider";
+import { formatDate } from "@/lib/format-date";
 import type { SyncStatusView } from "../types";
 
 export function SyncStatusPanel({ data }: { data: SyncStatusView }) {
   const t = useDictionary().admin;
-  const locale = useLocale();
 
   return (
     <section className="space-y-3" data-testid="sync-status-panel">
@@ -21,7 +21,7 @@ export function SyncStatusPanel({ data }: { data: SyncStatusView }) {
                 <CardTitle className="text-sm">{scope.scope}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                <p>{scope.finishedAt ? new Date(scope.finishedAt).toLocaleString(locale) : "—"}</p>
+                <p>{scope.finishedAt ? formatDate(scope.finishedAt) : "—"}</p>
                 <p className="text-xs">
                   {scope.itemsUpdated} {t.itemsUpdated}
                 </p>

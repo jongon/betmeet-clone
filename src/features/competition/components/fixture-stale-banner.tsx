@@ -1,19 +1,16 @@
 "use client";
 
 import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
+import { useIsoDate } from "@/lib/format-date";
 import type { FixtureFreshness } from "../types";
 
 export function FixtureStaleBanner({ freshness }: { freshness: FixtureFreshness }) {
   const locale = useLocale();
   const { competition } = useDictionary();
 
-  if (!freshness.isStale) return null;
+  const last = useIsoDate(freshness.lastSyncedAt, locale, competition.noSuccessfulSync);
 
-  const last = freshness.lastSyncedAt
-    ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(
-        new Date(freshness.lastSyncedAt),
-      )
-    : competition.noSuccessfulSync;
+  if (!freshness.isStale) return null;
 
   return (
     <div
