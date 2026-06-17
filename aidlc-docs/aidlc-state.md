@@ -37,8 +37,8 @@
 
 ## Workspace State
 - **Existing Code**: Yes
-- **Reverse Engineering Needed**: No
-- **Workspace Root**: /var/www/html
+- **Reverse Engineering Needed**: No (rerun completed 2026-06-17 by explicit brownfield request)
+- **Workspace Root**: /var/www/html/main
 
 ## Code Location Rules
 - **Application Code**: Workspace root (NEVER in aidlc-docs/)
@@ -61,6 +61,7 @@
 ### 🔵 INCEPTION PHASE
 - [x] Workspace Detection
 - [x] Reverse Engineering (skipped as N/A for template-only workspace)
+- [x] Reverse Engineering rerun - COMPLETE (2026-06-17, brownfield repository baseline refreshed; artifacts in `aidlc-docs/inception/reverse-engineering/`)
 - [x] Requirements Analysis
 - [x] User Stories
 - [x] Workflow Planning
