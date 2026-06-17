@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield (post-construcción, 41 units implementadas)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: 🟡 UNIT 42 WORKFLOW PLANNING READY FOR APPROVAL (2026-06-17) — Bug de timezone en `/matches`: usuario en España ve un partido de sus 01:00 del 18 de junio bajo el bloque del 17 de junio porque el agrupamiento por día fue documentado/implementado en UTC. Execution plan creado en `inception/plans/unit-42-matches-local-day-timezone-execution-plan.md`. Pendiente aprobación explícita antes de Requirements/User Stories/Application Design/Functional Design/Code Generation. **No reinicia etapas aprobadas**.
+- **Current Stage**: ✅ UNIT 42 BUILD AND TEST COMPLETE (2026-06-17) — Bug de timezone en `/matches` corregido: los bloques de día se reagrupan en cliente con la timezone local del navegador; Unit 30 usa el mismo día local para ocultar anteriores; Unit 41 usa helpers compartidos con fallback UTC SSR. Verificado: focused Vitest 22/22, full Vitest 285/285, `tsc --noEmit` OK, Biome/ESLint enfocados OK, `pnpm build` OK. **No reinicia etapas aprobadas**.
 - **Prev Stage**: ✅ UNIT 41 COMPLETE (2026-06-17) — Predicciones visibles dentro del pool implementada y verificada. Todas las stages AI-DLC completadas: Reverse Engineering → Requirements → User Stories → Workflow Planning → Functional Design → Code Generation → Build and Test.
 - **Prev Stage**: 🟢 Unit 40 BUILD AND TEST COMPLETE (2026-06-17) — Bug visual en `/admin`: el selector de tipo/scope de sincronización camuflaba opciones no seleccionadas en modo oscuro. Refine UI-only sobre Unit 7/8. Solución: `TriggerSyncControls` usa tokens explícitos `bg-background text-foreground`, `color-scheme` light/dark y estilos de `option` para contraste. Sin cambios en scopes, `triggerSync`, permisos, schema, rutas ni providers. Verificado: `pnpm exec tsc --noEmit` OK, Biome enfocado OK, ESLint enfocado OK. AI-DLC docs actualizados como Unit 40. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 39 BUILD AND TEST COMPLETE / OPERATIONS GATE (2026-06-17) — Bug de sync en `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)" al ejecutar `prisma.team.upsert()`. Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda, pero `providerTeamId` tenía `@unique`. Solución schema-only: removido `@unique` de `providerTeamId` (`prisma/schema.prisma:236`) y nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de aplicación. Verificado: `tsc --noEmit` OK tras limpiar `.next/dev/types` stale, **265/265 tests**, `pnpm build` OK. Pendiente Operations: `prisma migrate deploy` + smoke de sync FULL en prod. **No reinicia etapas aprobadas**.
@@ -396,7 +396,7 @@
 - [x] User Stories (light) — Épica 41 / US-41.1 en `stories.md`.
 - [x] User Stories — COMPLETE (Light). Historia US-41.1 documentada y aprobada.
 - [x] Application Design delta — Unit 41 en `unit-of-work.md` con secuencia #27.
-- [x] Functional Design (light) — COMPLETE. `construction/unit-41-pool-predictions/functional-design.md` define business logic (query → transform → render), domain entities (`PoolMemberPrediction`, `PoolPredictionsViewProps`), 8 business rules (BR-41.1 membership gate, BR-41.2 visibility window, BR-41.3 member ordering by leaderboard, BR-41.4 day grouping UTC chronological, BR-41.5 cell display per state, BR-41.6 empty state, BR-41.7 tab default, BR-41.8 sidebar persistence), frontend components (tabs restructure + `PoolPredictionsView` server component with sticky-left + horizontal scroll), query contract `getPoolMemberPredictions(poolId)`, 9 i18n keys ES+EN, Security Baseline compliance.
+- [x] Functional Design (light) — COMPLETE. `construction/unit-41-pool-predictions/functional-design.md` define business logic (query → transform → render), domain entities (`PoolMemberPrediction`, `PoolPredictionsViewProps`), 8 business rules (BR-41.1 membership gate, BR-41.2 visibility window, BR-41.3 member ordering by leaderboard, BR-41.4 day grouping; superseded by Unit 42 to local-day semantics, no UTC), BR-41.5 cell display per state, BR-41.6 empty state, BR-41.7 tab default, BR-41.8 sidebar persistence), frontend components (tabs restructure + `PoolPredictionsView` server component with sticky-left + horizontal scroll), query contract `getPoolMemberPredictions(poolId)`, 9 i18n keys ES+EN, Security Baseline compliance.
 - [x] NFR Requirements — SKIP (read-only, sin nuevo perf/seguridad; la query es acotada por pool membership gate ya existente).
 - [x] NFR Design — SKIP (sin NFR requirements).
 - [x] Infrastructure — SKIP (sin schema, migraciones, env vars, routes ni deploy topology).
@@ -404,15 +404,16 @@
 - [x] Build and Test — COMPLETE. tsc 0, Biome clean (38 files), ESLint 0, vitest **281/281** (+16 Unit 41), build OK (25 routes). Instruction files generated in `construction/build-and-test/`.
 
 **Unit 42: Agrupación de partidos por día local del usuario** (added via AI-DLC refine, 2026-06-17) — bug en `/matches`: con zona horaria de España, un kickoff mostrado como 01:00 del 18 de junio aparece bajo el bloque del 17 de junio. Refine sobre Units 16, 30 y 41; no reinicia Units 1–41.
-- [ ] Workflow Planning — READY FOR APPROVAL. Plan creado en `inception/plans/unit-42-matches-local-day-timezone-execution-plan.md`; espera aprobación explícita antes de modificar requirements/user-stories/designs o código.
-- [ ] Requirements Analysis — PLANNED (Minimal). Añadir Épica 42 y actualizar/superseder cláusulas UTC en FR-REFINE-16.2, FR-REFINE-30.1/30.4 y FR-REFINE-41.3.
-- [ ] User Stories — PLANNED (Light). Añadir US-42.1 y ajustar aceptación de Unit 41 que dice UTC.
-- [ ] Application Design — PLANNED (Light). Añadir Unit 42 y actualizar dependency summary.
-- [ ] Functional Design — PLANNED (Light). Actualizar diseños dependientes de Units 16/30/41.
-- [ ] NFR Requirements / NFR Design — PLANNED SKIP formal (sin nuevos NFR; validar timezone y preservar caching).
-- [ ] Infrastructure — PLANNED SKIP (sin schema, migraciones, rutas, env vars ni providers).
-- [ ] Code Generation — PLANNED (tras approval gates).
-- [ ] Build and Test — PLANNED.
+- [x] Workflow Planning — COMPLETE. Plan aprobado por el usuario; `inception/plans/unit-42-matches-local-day-timezone-execution-plan.md`.
+- [x] Requirements Analysis — COMPLETE (Minimal). Épica 42 añadida; FR-REFINE-16.2, FR-REFINE-30.1/30.4 y FR-REFINE-41.3 actualizados/superseded para día local del usuario.
+- [x] User Stories — COMPLETE (Light). US-42.1 añadida; aceptación de Unit 41 ajustada para dejar de decir UTC.
+- [x] Application Design — COMPLETE (Light). Unit 42 añadida a `unit-of-work.md`; dependency summary actualizado.
+- [x] Functional Design — COMPLETE (Light). Nuevo `construction/unit-42-matches-local-day-timezone/functional-design.md`; diseños dependientes de Units 16/30/41 actualizados; planes/instrucciones de Unit 30/41 anotados como superseded donde mencionaban UTC.
+- [x] NFR Requirements / NFR Design — SKIP formal (sin nuevos NFR; validar timezone y preservar caching queda embebido en Functional Design).
+- [x] Infrastructure — SKIP (sin schema, migraciones, rutas, env vars ni providers).
+- [x] Code Generation Part 1 — PLAN COMPLETE. `construction/plans/unit-42-matches-local-day-timezone-code-generation-plan.md` creado; inspección confirma UTC slicing en `fixture-by-day.ts`, `matches/page.tsx` y `pool-predictions-view.tsx`.
+- [x] Code Generation Part 2 — COMPLETE. Helpers timezone-safe (`coerceTimeZone`, `formatLocalDayKey`, `formatLocalDayLabel`, `regroupFixtureDaysByTimeZone`), `/matches` reagrupa/particiona en `MatchesFixtureView` con timezone del navegador, Unit 41 extrae helpers puros y deja de usar `kickoffAt.slice(0, 10)`.
+- [x] Build and Test — COMPLETE. Focused Vitest 22/22, full Vitest 285/285, `pnpm exec tsc --noEmit` OK, Biome/ESLint enfocados OK, `pnpm build` OK.
 
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
@@ -443,9 +444,9 @@
 - [x] Preserve approved inception/Application Design stages; do not restart them for Unit 10 refine
 
 ## Execution Plan Summary
-- **Total Remaining Stages**: Unit 39 Operations + Unit 42 pipeline.
-- **Stages to Execute**: Unit 42 Requirements Analysis (Minimal) → User Stories (Light) → Application Design (Light) → Functional Design (Light) → Code Generation Part 1/2 → Build and Test.
-- **Completed (since last summary)**: Unit 41 completed and verified; Workflow Planning for Unit 42 created.
+- **Total Remaining Stages**: Unit 39 Operations + Unit 42 Operations smoke.
+- **Stages to Execute**: Operations smoke for Unit 42 in real browser timezone if desired.
+- **Completed (since last summary)**: Unit 41 completed and verified; Unit 42 completed through Build and Test.
 - **Stages to Skip**: Unit 42 Reverse Engineering rerun, Units Generation, formal NFR Requirements/Design, Infrastructure Design.
-- **Next Stage**: Await approval of Unit 42 Workflow Planning.
-- **Status**: Units 1–41 implemented and verified. Unit 39 pending production migration + sync smoke. Unit 42 at Workflow Planning approval gate.
+- **Next Stage**: Operations smoke.
+- **Status**: Units 1–42 implemented and verified. Unit 39 pending production migration + sync smoke. Unit 42 pending optional smoke in `Europe/Madrid` browser timezone.

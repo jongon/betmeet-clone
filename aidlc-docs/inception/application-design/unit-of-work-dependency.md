@@ -126,7 +126,7 @@ Foundation (1) ─────────────────────�
 8. After Unit 9: auth email templates/config are versioned and Supabase+Resend SMTP is documented.
 9. After Unit 10: users can opt into push, change preferences, receive allowed event types, and avoid duplicate sends.
 10. After Unit 15: onboarding gate enforces email confirmation + profile completion; login/register with react-hook-form; 163/163 tests.
-11. After Unit 16: onboarding enforced in depth (Prisma gate + layout redirect); fixture ordered by day with UTC; 173/173 tests.
+11. After Unit 16: onboarding enforced in depth (Prisma gate + layout redirect); fixture ordered by day; 173/173 tests.
 12. After Unit 17: avatar uploads collision-free; nickname case-insensitive; grace period post-onboarding; 179/179 tests.
 13. After Unit 20: passkey registration/sign-in works with native Supabase API; `@simplewebauthn/browser` removed.
 14. After Unit 21: account deletion purges `auth.users` via Admin API; email liberated.
@@ -137,3 +137,4 @@ Foundation (1) ─────────────────────�
 19. After Unit 36: additive scoring with breakdown; `BRA 2-1 vs BRA 3-2 = 3 points`; 255/255 tests.
 20. After Unit 37: `getClaims` eliminates GoTrue round-trips; leaderboard cached; `connection_limit` 5; 258/258 tests.
 21. After Unit 38: passkey list/delete/register in `/settings/security`; 265/265 tests.
+22. After Unit 42: `/matches` day grouping and dependent day filters use the user's local calendar day, not UTC.

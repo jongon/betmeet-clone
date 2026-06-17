@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DayMatchView,
   type FixtureDayGroup,
+  formatLocalDayKey,
   partitionDaysByToday,
 } from "../services/fixture-by-day";
 
@@ -61,5 +62,17 @@ describe("partitionDaysBytoday (FR-REFINE-30.1)", () => {
 
     expect(pastDays.map((d) => d.dayKey)).toEqual(["2026-06-11", "2026-06-12"]);
     expect(currentDays.map((d) => d.dayKey)).toEqual(["2026-06-17", null]);
+  });
+
+  it("uses the caller-provided local-day today value", () => {
+    const todayInMadrid = formatLocalDayKey(new Date("2026-06-17T23:30:00.000Z"), "Europe/Madrid");
+    const { pastDays, currentDays } = partitionDaysByToday(
+      [day("2026-06-17", "utc-day"), day("2026-06-18", "madrid-day")],
+      todayInMadrid,
+    );
+
+    expect(todayInMadrid).toBe("2026-06-18");
+    expect(pastDays.map((d) => d.dayKey)).toEqual(["2026-06-17"]);
+    expect(currentDays.map((d) => d.dayKey)).toEqual(["2026-06-18"]);
   });
 });

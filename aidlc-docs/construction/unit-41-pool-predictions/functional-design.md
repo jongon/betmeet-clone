@@ -54,7 +54,7 @@ Input: { members: PoolMemberSummary[], predictions: PredictionRow[], scores: Sco
 Output: PoolPredictionsViewData { days: DayPredictionGroup[] }
 
 Where DayPredictionGroup = {
-  dayKey: string | null,     // "2026-06-11" UTC
+  dayKey: string | null,     // "2026-06-11" in the same local-day timezone as /matches
   label: string,             // "Jueves, 11 de junio"
   matches: MatchColumn[],    // columns of the table
   memberRows: MemberRow[],   // rows of the table (ordered by leaderboard rank)
@@ -144,7 +144,7 @@ Members in the predictions table are ordered by leaderboard rank (total points d
 **Rationale**: Consistent with the leaderboard; natural for comparing predictions against performance.
 
 ### BR-41.4 — Day grouping
-Prediction days are grouped by UTC calendar date of match kickoff, matching the `/matches` fixture grouping (FR-REFINE-16.2). Days are shown in reverse chronological order (newest first = today's predictions first, older days last).
+Prediction days are grouped by the same local calendar day used by the `/matches` fixture grouping (FR-REFINE-16.2 + Unit 42), not by UTC. Days are shown in reverse chronological order (newest first = today's predictions first, older days last).
 
 **Rationale**: User decision — "El orden de las predicciones deben verse de las mas nuevas a las mas viejas. Las de hoy se ven primero, las de mañana despues."
 
@@ -232,7 +232,7 @@ interface PoolPredictionsViewProps {
 ```
 
 **Rendering logic**:
-1. Group `predictions` by member and by match day
+1. Group `predictions` by member and by match day using the same local-day timezone contract as `/matches`
 2. For each day (chronological):
    - Render day header: `<h3 className="...">{dayLabel}</h3>`
    - Render scrollable table:
@@ -387,7 +387,7 @@ export async function getPoolMemberPredictions(poolId: string) {
 | `pools.predictions.emptyTitle` | "Aún no hay predicciones disponibles" | "No predictions available yet" |
 | `pools.predictions.emptyDescription` | "Las predicciones serán visibles cuando comiencen los partidos." | "Predictions will be visible once matches begin." |
 
-**Note**: `pools.predictions.dayLabel` uses the same `Intl.DateTimeFormat` pattern as `fixture-by-day.ts`, adapted to the current locale (`es` or `en`). The locale for day formatting comes from `getRequestLocale()`.
+**Note**: `pools.predictions.dayLabel` uses the same `Intl.DateTimeFormat` pattern and timezone contract as `fixture-by-day.ts`, adapted to the current locale (`es` or `en`). The locale for day formatting comes from `getRequestLocale()`; the timezone must match `/matches` so a user's local 18 June is not grouped under 17 June.
 
 ## 7. Out of Scope
 

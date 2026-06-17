@@ -574,8 +574,11 @@ landing). **No reinicia** ninguna etapa aprobada. Cubre la **Épica 14**.
   agrupada por día** con encabezado de fecha (p. ej. "Jueves, 11 de junio") y,
   dentro de cada día, orden por hora de inicio; cada partido conserva una etiqueta
   de su grupo/ronda. Los partidos sin `kickoffAt` (eliminatorias por resolver) se
-  agrupan al final bajo "Fecha por confirmar". El agrupamiento por día usa **UTC**
-  para un orden determinista y coherente con el render por tarjeta.
+  agrupan al final bajo "Fecha por confirmar". El agrupamiento por día usa la
+  **zona horaria local del usuario** (corrige Unit 42): un partido que para el
+  usuario ocurre a las 01:00 del 18 de junio debe aparecer bajo el bloque del
+  18 de junio, aunque en UTC pertenezca al día anterior. El detalle del partido
+  mantiene su formato local existente.
 
 - **FR-REFINE-16.3 — Chrome del onboarding (cerrar sesión + tema)**: la pantalla
   de onboarding debe ofrecer **cerrar sesión** y **cambiar tema/marca**. No se
@@ -1093,7 +1096,7 @@ Refine UI/UX aditivo sobre Unit 16 (`groupFixtureByDay`, FR-REFINE-16.2). **No**
 ### FR-REFINE-30.1 — Colapso de días pasados por defecto
 `/matches` muestra por defecto solo los días **>= hoy**. Los días estrictamente **anteriores a hoy** quedan ocultos detrás de un botón "Ver partidos anteriores".
 - **Corte por DÍA, no por hora** (decisión del usuario, AskUserQuestion): el día de hoy se muestra **completo**, incluso si algunos de sus partidos ya se jugaron/bloquearon. Solo se colapsan los días con `dayKey < hoy`.
-- "Hoy" se determina en **UTC** para alinearse con la agrupación existente (`groupFixtureByDay` usa `timeZone: "UTC"`) y mantener el corte determinista con el SSR cacheado.
+- "Hoy" se determina con la **misma zona horaria local del usuario** usada por la agrupación de `/matches` (Unit 42), no en UTC. Así el filtro de "partidos anteriores" no oculta un partido que el usuario todavía ve como parte del día actual/local.
 - El bucket "Fecha por confirmar" (`dayKey === null`, knockouts sin fecha) se considera **futuro** y permanece visible.
 
 ### FR-REFINE-30.2 — Botón de revelado
@@ -1108,7 +1111,7 @@ Toggle resuelto en el navegador (decisión del usuario, AskUserQuestion): un com
 - Al recargar la página, vuelve al estado colapsado (aceptado).
 
 ### FR-REFINE-30.4 — Determinación de "pasado" en el servidor
-La partición pasado/actual+futuro se calcula en el Server Component (a partir de `dayKey` vs. hoy-UTC) y se pasa al componente cliente ya particionada, para no exponer lógica de fecha duplicada ni recalcular en cada render del cliente.
+La partición pasado/actual+futuro se calcula con el mismo `dayKey` local que produce el agrupamiento de `/matches` (Unit 42). La implementación debe evitar duplicar criterios UTC/local: si el agrupamiento depende de zona horaria del navegador, la partición usa esa misma zona horaria o recibe los grupos ya calculados de forma coherente.
 
 ### NFR-REFINE-30.1 — Sin regresión de performance
 No se añaden round-trips ni se desactiva el caché. El coste extra es una partición O(n) de ~104 elementos en el servidor.
@@ -1119,10 +1122,10 @@ El botón es un `<button>` real con estado expandido/colapsado comunicado (texto
 ### Archivos afectados (previsto)
 | Archivo | Cambio |
 |---|---|
-| `src/app/(app)/matches/page.tsx` | Particionar `days` en pasados/actuales-futuros por hoy-UTC; renderizar vía componente cliente |
+| `src/app/(app)/matches/page.tsx` | Particionar `days` en pasados/actuales-futuros por hoy local del usuario; renderizar vía componente cliente |
 | `src/features/predictions/components/*` (nuevo) | Componente cliente del toggle de días anteriores |
 | `src/i18n/dictionaries/*` | Copy `matchesShowPast` / `matchesHidePast` (es/en) |
-| `src/features/predictions/__tests__/*` | Test de partición por día (pasado vs hoy/futuro, corte UTC, bucket TBD) |
+| `src/features/predictions/__tests__/*` | Test de partición por día (pasado vs hoy/futuro, corte por timezone local, bucket TBD) |
 
 ### Decisiones registradas (AskUserQuestion, 2026-06-16)
 - **Corte**: por día — hoy se muestra completo (no por hora de kickoff).
@@ -1469,7 +1472,7 @@ Las predicciones de un miembro del pool se vuelven visibles para los demás miem
 La página `/pools/[id]` gana una tercera pestaña "Predicciones" (junto a "Clasificación" y "Miembros"). Solo los miembros del pool pueden verla (el gate de membresía de `getPoolDetail` aplica). Si el usuario no es miembro, la página retorna `notFound()`.
 
 ### FR-REFINE-41.3 — Vista por jornada/día
-Las predicciones se agrupan por día calendario (UTC), mismo criterio que `/matches` (FR-REFINE-16.2). Los días se muestran en orden cronológico inverso: las predicciones más recientes primero, las más antiguas después. Cada jornada muestra una tabla donde:
+Las predicciones se agrupan por día calendario con el mismo criterio local de `/matches` (FR-REFINE-16.2 + Unit 42), no por UTC. Los días se muestran en orden cronológico inverso: las predicciones más recientes primero, las más antiguas después. Cada jornada muestra una tabla donde:
 - **Filas**: cada miembro del pool (avatar + nickname)
 - **Columnas**: cada partido de esa jornada que ya comenzó (etiqueta `HOME vs AWAY`, scores reales si ya terminó)
 - **Celdas**: la predicción del miembro (`golesLocal - golesVisitante`) y los puntos obtenidos (badge con totalPoints). Si el partido aún no terminó (LIVE), los puntos se muestran como "—" (pendientes de scoring).
@@ -1487,3 +1490,30 @@ No se crean nuevas tablas, columnas, migraciones ni rutas. La query `getPoolMemb
 - **Sin** cambios en el leaderboard ni en el ranking global.
 - **Sin** exposición de predicciones de partidos futuros.
 - Security Baseline intacto: la query es server-authoritative; el membership gate existente en `getPoolDetail` asegura que solo miembros acceden.
+
+---
+
+### Épica 42: Agrupación de `/matches` por día local del usuario (Unit 42 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 16 (`groupFixtureByDay`), Unit 30 (filtro de partidos anteriores) y Unit 41 (predicciones por jornada). **No reinicia** etapas aprobadas. Bug reportado: usuario en zona horaria de España ve en `/matches` un partido que ocurre a sus 01:00 del 18 de junio bajo el bloque del 17 de junio. El detalle del partido ya muestra bien la hora local.
+
+### FR-REFINE-42.1 — `/matches` agrupa por día local del usuario
+Los encabezados de día en `/matches` deben calcularse con la zona horaria local del usuario, no con UTC. Un kickoff `2026-06-17T23:00:00Z` debe aparecer bajo `18 de junio` para `Europe/Madrid` y bajo `17 de junio` para `UTC`. El orden global sigue siendo cronológico por `kickoffAt` absoluto; solo cambia la clave/etiqueta de agrupamiento.
+
+### FR-REFINE-42.2 — El detalle del partido conserva su comportamiento
+La vista de detalle/tarjeta que muestra la hora del partido no cambia si ya formatea correctamente en hora local. Unit 42 corrige el bloque de día, no la hora visible ni la semántica de kickoff.
+
+### FR-REFINE-42.3 — El filtro de partidos anteriores usa el mismo día local
+La partición de Unit 30 (`pastDays` vs `currentDays`) debe usar el mismo `dayKey` local que `/matches`. Los días estrictamente anteriores al día local del usuario se ocultan; el día local actual permanece completo aunque algunos partidos ya hayan empezado o terminado.
+
+### FR-REFINE-42.4 — Vistas dependientes por jornada mantienen coherencia
+La vista de predicciones del pool (Unit 41) debe dejar de asumir UTC y usar el mismo criterio de día local que `/matches` cuando agrupa por jornada. La visibilidad de predicciones sigue basada en tiempo absoluto (`match.kickoffAt <= now`) y no cambia.
+
+### FR-REFINE-42.5 — Fallback seguro de zona horaria
+Si la zona horaria del navegador no está disponible o no es válida para `Intl.DateTimeFormat`, la implementación debe usar un fallback estable y no romper el render. La validación/coerción de timezone debe estar cubierta por tests.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas nuevas, cambios de sync, scoring, admin ni auth.
+- **Sin** cambios en `kickoffAt` almacenado: sigue siendo un instante absoluto.
+- **Sin** cambios en el lock de predicciones ni en la visibilidad por kickoff.
+- Security Baseline intacto: no hay nuevas superficies de autorización; el timezone se trata como dato de presentación validado antes de pasarlo a `Intl`.

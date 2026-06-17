@@ -1,15 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { MatchCard } from "@/features/competition/components/match-card";
-import type { FixtureDayGroup } from "@/features/predictions/queries";
-import { useDictionary } from "@/i18n/dictionary-provider";
+import {
+  coerceTimeZone,
+  type FixtureDayGroup,
+  formatLocalDayKey,
+  partitionDaysByToday,
+  regroupFixtureDaysByTimeZone,
+} from "@/features/predictions/services/fixture-by-day";
+import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 
 interface MatchesFixtureViewProps {
-  /** Days strictly before today (UTC), in chronological order. Hidden by default. */
-  pastDays: FixtureDayGroup[];
-  /** Today and upcoming days (incl. the "Fecha por confirmar" bucket). Always shown. */
-  currentDays: FixtureDayGroup[];
+  /** Server-rendered day groups. Re-grouped client-side with the browser timezone. */
+  days: FixtureDayGroup[];
+}
+
+function subscribeToTimeZone() {
+  return () => {};
+}
+
+function getBrowserTimeZone() {
+  return coerceTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone);
 }
 
 function DayGroup({ day }: { day: FixtureDayGroup }) {
@@ -26,14 +38,23 @@ function DayGroup({ day }: { day: FixtureDayGroup }) {
 }
 
 /**
- * Renders the fixture grouped by day, collapsing the already-played days behind a toggle so
- * the current day lands at the top without scrolling (FR-REFINE-30.2, FR-REFINE-30.3). The
- * past/current split is computed on the server (partitionDaysByToday); this component only
- * owns the show/hide state. Past days stay out of the DOM while collapsed.
+ * Renders the fixture grouped by the user's local calendar day, collapsing already-played
+ * days behind a toggle so the current day lands at the top without scrolling
+ * (FR-REFINE-30.2, FR-REFINE-30.3, FR-REFINE-42.1). Server groups are a UTC fallback;
+ * after mount, the browser timezone drives grouping and the past/current split.
  */
-export function MatchesFixtureView({ pastDays, currentDays }: MatchesFixtureViewProps) {
+export function MatchesFixtureView({ days }: MatchesFixtureViewProps) {
   const dictionary = useDictionary();
+  const locale = useLocale();
   const [showPast, setShowPast] = useState(false);
+  const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
+
+  const localDays = regroupFixtureDaysByTimeZone(days, {
+    locale,
+    timeZone,
+  });
+  const today = formatLocalDayKey(new Date(), timeZone);
+  const { pastDays, currentDays } = partitionDaysByToday(localDays, today);
   const hasPast = pastDays.length > 0;
   const pastMatchesCount = pastDays.reduce((total, day) => total + day.matches.length, 0);
 

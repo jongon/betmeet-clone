@@ -78,11 +78,15 @@ partido conserva una etiqueta de su grupo/ronda. Partidos sin `kickoffAt`
 - **Transform puro** `groupFixtureByDay(phases)` en
   `src/features/predictions/services/fixture-by-day.ts` (sin Prisma → unit-testable):
   aplana fases → lista; ordena por `kickoffAt` (desempate `matchNumber`); agrupa
-  por día. La clave de día y la etiqueta se calculan en **UTC**
-  (`Intl.DateTimeFormat("es", { weekday, day, month, timeZone: "UTC" })`) para un
-  orden determinista (Vercel corre en UTC) y coherente con el render por tarjeta.
-  La etiqueta de grupo es `Grupo {groupCode}` si hay grupo, si no el nombre de la
-  fase (p. ej. "Round of 16").
+  por día. **Refine Unit 42**: la clave de día y la etiqueta se calculan con la
+  zona horaria local del usuario, no con UTC. El contrato del transform debe
+  aceptar una timezone explícita (p. ej. `Europe/Madrid`) y validarla/coercerla
+  antes de usar `Intl.DateTimeFormat`; si no está disponible o es inválida, usa
+  un fallback estable. Así un kickoff `2026-06-17T23:00:00Z` cae bajo `18 de
+  junio` para España. El orden de partidos sigue usando el instante absoluto
+  `kickoffAt`; solo cambia el `dayKey`/label del grupo. La etiqueta de grupo es
+  `Grupo {groupCode}` si hay grupo, si no el nombre de la fase (p. ej. "Round of
+  16").
 - **Wrapper** `getFixtureByDayWithMyPredictions(userId)` en
   `src/features/predictions/queries.ts` reutiliza `getFixtureWithMyPredictions`
   (predicciones del usuario incluidas) y aplica `groupFixtureByDay`.
@@ -239,7 +243,7 @@ tanto.
 | `pools/actions/create-pool.ts` | mod | Exige `getOnboardedUserId()` |
 | `pools/actions/create-directed-invite.ts` | mod | Exige `getOnboardedUserId()` |
 | `predictions/actions/save-prediction.ts` | mod | Exige `getOnboardedUserId()` |
-| `predictions/services/fixture-by-day.ts` | new | `groupFixtureByDay` + tipos `DayMatchView`/`FixtureDayGroup` |
+| `predictions/services/fixture-by-day.ts` | new | `groupFixtureByDay` + tipos `DayMatchView`/`FixtureDayGroup`; Unit 42 refina el contrato para aceptar/usar timezone local del usuario en `dayKey`/label |
 | `predictions/queries.ts` `getFixtureByDayWithMyPredictions()` | new | Fixture agrupado por día |
 | `competition/components/match-card.tsx` | mod | Prop opcional `contextLabel` |
 | `app/(app)/matches/page.tsx` | mod | Render por día (en vez de por fase) |

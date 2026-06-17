@@ -713,7 +713,7 @@
 **Para** comparar mi desempeño con el de mis rivales y ver quién acertó cada resultado.
 - **Criterios de Aceptación**:
   - En `/pools/[id]` aparece una tercera pestaña "Predicciones" (junto a "Clasificación" y "Miembros").
-  - Las predicciones se agrupan por jornada/día calendario (UTC), igual que en `/matches`.
+  - Las predicciones se agrupan por jornada/día calendario con el mismo criterio local que `/matches`.
   - Cada jornada muestra una tabla: filas = miembros (avatar + nickname), columnas = partidos del día que ya comenzaron.
   - Cada celda muestra la predicción del miembro (`golesLocal - golesVisitante`) y los puntos obtenidos. Si el partido está LIVE, los puntos muestran "—".
   - Las predicciones de partidos que no han comenzado (SCHEDULED, kickoff futuro) NO se muestran.
@@ -721,3 +721,21 @@
   - Solo los miembros del pool pueden ver esta pestaña (usuarios no miembros reciben el comportamiento existente de `getPoolDetail`).
   - La pestaña no muestra timestamps de predicción.
   - La UI se adapta a mobile (scroll horizontal en la tabla si hay muchos partidos en el día).
+
+---
+
+## Épica 42: Agrupación de `/matches` por día local del usuario (Unit 42 — añadida vía refine)
+
+> Bug fix sobre Units 16, 30 y 41. No reinicia etapas aprobadas.
+
+### US-42.1: Ver cada partido bajo mi día calendario local
+**Como** usuario en España u otra zona horaria distinta de UTC
+**Quiero** que los bloques de día en `/matches` usen mi fecha local
+**Para** encontrar un partido de madrugada bajo el día que realmente veo en mi calendario.
+- **Criterios de Aceptación**:
+  - Si un partido ocurre a las 01:00 del 18 de junio para el usuario en España, aparece bajo el bloque del 18 de junio en `/matches`.
+  - El detalle/tarjeta del partido conserva la hora local que ya se muestra correctamente.
+  - El orden de partidos dentro del bloque sigue siendo cronológico por kickoff.
+  - "Ver partidos anteriores" usa el mismo día local para decidir qué bloques ocultar.
+  - Las predicciones del pool agrupadas por jornada usan el mismo criterio de día local que `/matches`.
+  - No cambian reglas de predicción, lock, scoring, sync, admin, rutas ni schema.

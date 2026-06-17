@@ -31,7 +31,7 @@ pnpm exec vitest run \
 | `buildMatchLabel` — `shows sublabel only for FINISHED with scores` | LIVE match → sublabel null |
 | `buildMatchLabel` — `fallback to placeholders when no team` | No teams → `Winner A vs Runner-up B` |
 | `buildMatchLabel` — `shows '?' for missing team and placeholder` | One missing → `? vs FRA` |
-| `buildDayGroups` — `groups matches by UTC day` | Different days → 2 groups |
+| `buildDayGroups` — `groups matches by local day` | Different local days → 2 groups; Unit 42 supersedes UTC grouping |
 | `buildDayGroups` — `keeps matches on same day in one group` | Same day → 1 group, 2 matches |
 | `buildDayGroups` — `sorts matches chronologically within a day` | Later input first → sorted ascending |
 | `buildDayGroups` — `deduplicates predictions for same match across users` | 2 users predict same match → 1 match column |

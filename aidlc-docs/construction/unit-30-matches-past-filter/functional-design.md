@@ -10,7 +10,7 @@ sin scroll. Sin schema, datos ni queries nuevas; conserva el caching (`revalidat
 ## 1. Partición pasado / actual+futuro (servidor) — FR-REFINE-30.1, 30.4
 
 Transform puro y unit-testable, sin acceso a DB. Recibe los `FixtureDayGroup[]` que ya produce
-`groupFixtureByDay` y los parte en dos listas según la fecha de hoy.
+`groupFixtureByDay` y los parte en dos listas según la fecha de hoy en la misma timezone local.
 
 ```
 partitionDaysByToday(days: FixtureDayGroup[], today: string): {
@@ -20,8 +20,9 @@ partitionDaysByToday(days: FixtureDayGroup[], today: string): {
 ```
 
 Reglas:
-- **Corte por DÍA en UTC** (decisión del usuario). `today` = `new Date().toISOString().slice(0, 10)`
-  calculado en el Server Component, alineado con el `timeZone: "UTC"` de `groupFixtureByDay`.
+- **Corte por DÍA local del usuario** (refine Unit 42). `today` debe derivarse con la misma timezone
+  que usa `groupFixtureByDay`, no con `new Date().toISOString().slice(0, 10)`. Si la timezone es
+  `Europe/Madrid`, un instante que localmente cae en 18 de junio se compara contra `2026-06-18`.
 - El día de **hoy** (`dayKey === today`) va en `currentDays` **completo**, aunque tenga partidos
   ya jugados/bloqueados.
 - El bucket "Fecha por confirmar" (`dayKey === null`, knockouts sin fecha) cuenta como **futuro**
@@ -62,7 +63,8 @@ Ubicación: `src/features/predictions/components/matches-fixture-view.tsx`.
 
 ## 3. Cambios en `page.tsx` — FR-REFINE-30.1, 30.4
 
-- Calcular `today` (UTC) y `partitionDaysByToday(fixture.days, today)`.
+- Calcular `today` con la misma timezone local usada para agrupar `fixture.days` y llamar
+  `partitionDaysByToday(fixture.days, today)`.
 - Renderizar `<MatchesFixtureView pastDays currentDays labels />` en lugar del `.map` inline
   actual. Header, estado vacío (`fixture-empty`) y `data-testid="fixture-ready"` se conservan.
 - `export const revalidate = 60` intacto. La frontera "hoy" puede quedar hasta 60 s desfasada por
@@ -85,6 +87,7 @@ días. La interpolación de `matchesShowPast` se hace en el componente cliente c
 `partitionDaysByToday` (transform puro), casos:
 - Días anteriores a hoy → `pastDays`; hoy y futuros → `currentDays`.
 - Hoy con partidos ya jugados permanece **completo** en `currentDays` (corte por día, no por hora).
+- Boundary timezone: `2026-06-17T23:00:00Z` con `Europe/Madrid` cuenta como día local `2026-06-18`.
 - Bucket `dayKey === null` (TBD) → `currentDays`.
 - Sin días pasados → `pastDays` vacío.
 - Orden cronológico preservado en ambas listas.

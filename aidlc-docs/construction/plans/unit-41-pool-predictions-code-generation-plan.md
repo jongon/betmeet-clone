@@ -48,7 +48,7 @@
 
 ### Step 5: Create component — `src/features/pools/components/pool-predictions-view.tsx`
 - [x] Create server component with `PoolPredictionsViewProps`
-- [x] Group predictions by member within each UTC match day
+- [x] Group predictions by member within each match day using the same local-day timezone contract as `/matches` (Unit 42 supersedes the original UTC grouping)
 - [x] For each day (chronological): render day header + scrollable table
 - [x] Table: sticky left column (member avatar + nickname), match columns (fifaCode labels + scores if FINISHED)
 - [x] Cells: prediction "X - Y" with points badge, or "—" for no prediction / pending scoring

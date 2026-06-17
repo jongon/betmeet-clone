@@ -386,6 +386,20 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Pestaña "Predicciones" funcional en `/pools/[id]` mostrando las predicciones de todos los miembros para partidos pasados/en curso.
 
+## Unit 42: Agrupación de partidos por día local del usuario
+
+**Goal**: Corregir `/matches` para que los encabezados de día reflejen la fecha local del usuario, no el día UTC del kickoff.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa FR-REFINE-42.1…42.5 / US-42.1. No reinicia Units 1–41.
+- Actualizar el criterio de `groupFixtureByDay` para derivar `dayKey` y label desde una timezone explícita del usuario, con fallback seguro si no está disponible.
+- Mantener el orden cronológico por `kickoffAt` absoluto y el bucket `Fecha por confirmar` para partidos sin fecha.
+- Alinear el filtro de partidos anteriores de Unit 30 con el mismo día local.
+- Alinear la agrupación por jornada de Unit 41 con el mismo criterio local que `/matches`.
+- Sin schema, migraciones, rutas nuevas, sync, scoring, admin ni auth.
+
+**Primary Deliverable**: Un partido que para el usuario ocurre a las 01:00 del 18 de junio aparece bajo el bloque del 18 de junio en `/matches`, y las vistas dependientes por jornada usan el mismo criterio.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -415,6 +429,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 25. Unit 39: Sync — unique constraint conflict en `Team.providerTeamId` (post-construction refine; schema fix; remueve `@unique` en `providerTeamId`; migración DDL-only; sin cambios de código)
 26. Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode (post-construction refine; UI-only; sin schema ni rutas nuevas)
 27. Unit 41: Predicciones visibles dentro del pool (post-construction refine; aditivo; query + componente + integración en `/pools/[id]`; sin schema, migraciones ni rutas nuevas)
+28. Unit 42: Agrupación de partidos por día local del usuario (post-construction refine; timezone/day grouping en `/matches` + dependencias Unit 30/41; sin schema, migraciones ni rutas nuevas)
 
 ## Security Notes
 

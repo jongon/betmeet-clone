@@ -1,5 +1,39 @@
 # AI-DLC Audit Log
 
+## Unit 42 — Code Generation + Build and Test Complete
+**Timestamp**: 2026-06-17T23:24:00Z
+**User Input**: "Summarize the task tool output above and continue with your task." (approval continuation from Code Generation Part 1)
+**AI Response**: "Implemented Unit 42. Added timezone-safe grouping helpers, updated `/matches` to regroup/partition day blocks with browser timezone client-side, aligned Unit 41 pool prediction grouping with shared helpers, added focused tests, and ran verification. Updated plan checkboxes, generation summary, state and audit."
+**Code change**: `src/features/predictions/services/fixture-by-day.ts`, `src/features/predictions/queries.ts`, `src/app/(app)/matches/page.tsx`, `src/features/predictions/components/matches-fixture-view.tsx`, `src/features/pools/components/pool-predictions-view.tsx`, new `src/features/pools/components/pool-predictions-view-helpers.ts`, tests `group-fixture-by-day.test.ts`, `partition-days-by-today.test.ts`, `pool-predictions-view.test.tsx`. Docs: Unit 42 codegen plan, generation summary, `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. Focused Vitest 22/22; full Vitest **285/285**; `pnpm exec tsc --noEmit` OK; focused Biome OK; focused ESLint OK; `pnpm build` OK.
+**Context**: A kickoff that is `2026-06-17T23:00:00Z` groups under `2026-06-18` for `Europe/Madrid`, while UTC still groups under `2026-06-17`. No schema, migrations, routes, auth, sync, scoring or admin changes.
+
+---
+
+## Unit 42 — Code Generation Part 1 Plan Complete / Awaiting Approval
+**Timestamp**: 2026-06-17T23:16:04Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional):"
+**AI Response**: "Loaded core workflow and construction stage rules, confirmed Unit 42 Functional Design is already complete and formal NFR/Infrastructure are skipped. Executed Code Generation Part 1 only: inspected current `/matches`, fixture grouping, and Unit 41 pool prediction grouping code; created the Unit 42 code generation plan; updated checkboxes in `aidlc-state.md`. Stopping at the required approval gate before application code changes."
+**Code change**: None in application code. Documentation updated: `aidlc-docs/construction/plans/unit-42-matches-local-day-timezone-code-generation-plan.md` (new), `aidlc-docs/aidlc-state.md`, `aidlc-docs/audit.md`.
+**Context**: Current code groups by UTC slicing in `fixture-by-day.ts`, partitions `/matches` by `new Date().toISOString().slice(0, 10)`, and duplicates UTC grouping in `pool-predictions-view.tsx`. Planned minimal fix: shared timezone-safe helpers, client-side browser timezone regrouping for `/matches`, UTC fallback for SSR, and Unit 41 helper alignment.
+
+---
+
+## Unit 42 — Requirements/User Stories/Application Design/Functional Design Complete
+**Timestamp**: 2026-06-17T23:59:30Z
+**User Input**: "Apruebo" (approval of Unit 42 workflow plan)
+**AI Response**: "Executed the approved documentary stages for Unit 42 without touching application code. Added Épica 42 requirements, US-42.1, Unit 42 in unit-of-work, dependency update, and Functional Design. Updated dependent Unit 16/30/41 designs and marked prior UTC plan references as superseded where needed. Awaiting explicit approval before Code Generation Part 1."
+**Code change**: None in application code. AI-DLC docs updated: `requirements.md`, `stories.md`, `unit-of-work.md`, `unit-of-work-dependency.md`, `construction/unit-16-onboarding-gate-fixture-order/functional-design.md`, `construction/unit-30-matches-past-filter/functional-design.md`, `construction/unit-41-pool-predictions/functional-design.md`, `construction/unit-42-matches-local-day-timezone/functional-design.md` (new), Unit 30/41 plan notes, build test instructions, `aidlc-state.md`, `audit.md`.
+**Context**: Functional decision: `/matches` day key/label, Unit 30 past-day partition, and Unit 41 pool-prediction day grouping use the user's local calendar day. Match detail time display, `kickoffAt`, prediction lock, visibility, scoring, sync, admin, schema and routes remain unchanged.
+
+---
+
 ## Workflow Planning — Unit 42 Execution Plan Created / Awaiting Approval
 **Timestamp**: 2026-06-17T23:58:00Z
 **User Input**: "Execute the Workflow Planning stage, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Load prior context from `aidlc-docs/`, decide which stages to run and at what depth, and present the plan (with validated Mermaid) for my approval. Do not proceed without confirmation."

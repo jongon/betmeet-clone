@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupFixtureByDay } from "../services/fixture-by-day";
+import { coerceTimeZone, formatLocalDayKey, groupFixtureByDay } from "../services/fixture-by-day";
 import type { PredictionMatchView } from "../types";
 
 // Minimal match stub — groupFixtureByDay only reads id, kickoffAt and matchNumber.
@@ -66,5 +66,26 @@ describe("groupFixtureByDay (FR-REFINE-16.2)", () => {
     expect(tbd.dayKey).toBeNull();
     expect(tbd.label).toBe("Fecha por confirmar");
     expect(tbd.matches.map((m) => m.id)).toEqual(["tbd"]);
+  });
+
+  it("groups by the provided local timezone instead of always using UTC", () => {
+    const phases = [
+      {
+        name: "Group A",
+        groupCode: "A",
+        matches: [match("late", "2026-06-17T23:00:00.000Z", 1)],
+      },
+    ];
+
+    expect(groupFixtureByDay(phases, { timeZone: "UTC" })[0].dayKey).toBe("2026-06-17");
+    expect(groupFixtureByDay(phases, { timeZone: "Europe/Madrid" })[0].dayKey).toBe("2026-06-18");
+  });
+
+  it("falls back to UTC for invalid or missing timezones", () => {
+    const date = new Date("2026-06-17T23:00:00.000Z");
+
+    expect(coerceTimeZone("Not/AZone")).toBe("UTC");
+    expect(formatLocalDayKey(date, "Not/AZone")).toBe("2026-06-17");
+    expect(formatLocalDayKey(date, null)).toBe("2026-06-17");
   });
 });
