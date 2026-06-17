@@ -343,6 +343,21 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: el usuario ve sus passkeys registrados en `/settings/security`, puede eliminar los que ya no use, y puede registrar nuevos sin volver al onboarding.
 
+## Unit 39: Sync — unique constraint conflict en `Team.providerTeamId`
+
+**Goal**: Eliminar el `@unique` de `Team.providerTeamId` para que el sync de football-data.org deje de fallar con "Unique constraint failed on the fields: (`provider_team_id`)" cuando el API devuelve el mismo ID numérico para equipos con distinto `fifaCode`.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa FR-REFINE-39.1…39.3. No reinicia Units 1–38.
+- Remover `@unique` de `providerTeamId` en `prisma/schema.prisma`.
+- Crear migración Prisma: `DROP INDEX IF EXISTS "teams_provider_team_id_key"`.
+- Sin cambios de código: `upsertTeam` ya usa `fifaCode` como llave correcta.
+- `providerTeamId` nunca se usa como llave de búsqueda en el código; es metadata informacional.
+- Sin cambios de UI, rutas, scoring, predicciones ni auth.
+- Security Baseline intacto: cambio de modelo de datos, no de autenticación/autorización.
+
+**Primary Deliverable**: el sync desde `/admin` se completa sin errores de unique constraint en `provider_team_id`.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -369,6 +384,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 22. Unit 36: Scoring acumulativo por ganador y goles acertados (post-construction refine; reglas de scoring; sin schema por defecto)
 23. Unit 37: Performance Fase 3 — diferidos de Unit 22 (post-construction refine; auth `getClaims`/hook, caché de leaderboard de pool, pooling/cold-start, scoring snapshot; migración del access-token hook)
 24. Unit 38: Gestión de passkeys desde Perfil → Seguridad (post-construction refine; UI/auth; lista/elimina/registra passkeys en `/settings/security`; sin schema ni rutas nuevas)
+25. Unit 39: Sync — unique constraint conflict en `Team.providerTeamId` (post-construction refine; schema fix; remueve `@unique` en `providerTeamId`; migración DDL-only; sin cambios de código)
 
 ## Security Notes
 

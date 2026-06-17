@@ -3,7 +3,8 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: 🟢 Unit 38 CODE GENERATION + BUILD AND TEST COMPLETE (2026-06-17) — Gestión de passkeys desde "Perfil → Seguridad" implementada y verificada. `passkey-management-card.tsx` con listado, registro (`registerPasskey()`) y eliminación (`passkey.delete()` + confirmación). SSR del listado vía `experimental.passkey: true` en `server.ts` + `passkey.list()` en el Server Component. 13 claves i18n ES+EN en `settings.passkey*`. Integrado en `/settings/security` entre TOTP MFA y la zona de peligro. Verificado: **265/265 tests** (+7 Unit 38), `tsc --noEmit` 0, Biome limpio, ESLint 0, `pnpm build` OK. Sin schema, migraciones ni rutas nuevas. **No reinicia etapas aprobadas**.
+- **Current Stage**: 🟡 Unit 39 FUNCTIONAL DESIGN COMPLETE + SCHEMA FIX + MIGRATION READY (2026-06-17) — Bug de sync en `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)" al ejecutar `prisma.team.upsert()`. Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda, pero `providerTeamId` tiene `@unique`. Cuando football-data.org devuelve el mismo ID numérico para dos equipos con distinto `fifaCode`, el CREATE viola la restricción. Solución: removido `@unique` de `providerTeamId` en schema (`prisma/schema.prisma:236`); nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de código. Pendiente: `prisma migrate deploy` + smoke de sync en prod. **No reinicia etapas aprobadas**.
+- **Prev Stage**: 🟢 Unit 38 CODE GENERATION + BUILD AND TEST COMPLETE (2026-06-17) — Gestión de passkeys desde "Perfil → Seguridad" implementada y verificada. `passkey-management-card.tsx` con listado, registro (`registerPasskey()`) y eliminación (`passkey.delete()` + confirmación). SSR del listado vía `experimental.passkey: true` en `server.ts` + `passkey.list()` en el Server Component. 13 claves i18n ES+EN en `settings.passkey*`. Integrado en `/settings/security` entre TOTP MFA y la zona de peligro. Verificado: **265/265 tests** (+7 Unit 38), `tsc --noEmit` 0, Biome limpio, ESLint 0, `pnpm build` OK. Sin schema, migraciones ni rutas nuevas. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 37 PERFORMANCE FASE 3 COMPLETE (2026-06-17) — Implementados los diferidos de Unit 22 (NFR-PERF-REFINE-22.1/22.4/22.5) + cold-start y scoring. **Fase 1 (auth)**: `proxy.ts` y `getAuthUser` usan `auth.getClaims()` (verificación local del JWT con signing keys asimétricas); el proxy elimina el `SELECT profiles` por PostgREST y lee `onboarding_completed`/`email_verified` de claims de un **Custom Access Token Hook** (migración `20260617120000_auth_access_token_hook`); gates **fail-open** ante claim ausente; `completeOnboarding` → `refreshSession()`. **Fase 2 (cold-start/conexión)**: `DB_CONNECTION_LIMIT` (default 5), `serverExternalPackages: [@prisma/adapter-pg, pg]`, `engines.node >= 24`. **Fase 3 (leaderboard)**: `getPoolLeaderboard` cacheado por `poolId` + `RANKINGS_TAG` sin over-fetch; mutaciones de membresía invalidan el tag. **Fase 4 (scoring)**: `getGlobalRankSnapshot` con `groupBy _sum`. Verificado: **258/258 tests**, `pnpm build` OK, Biome limpio en archivos tocados. Commit `7b42155` (rama `perf/auth-claims-y-queries`, también en `main` local, sin push). Docs humanos (`.env.example`, `docs/ARCHITECTURE.md`, `docs/WORKFLOWS.md`) y AI-DLC alineados. **Operations pendiente**: Vercel Fluid Compute + `DB_CONNECTION_LIMIT` + Node 24; Supabase signing keys asimétricas + hook habilitado (el usuario confirmó keys/hook/migración aplicados). **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 36 REFINE: penalty winner derivado del marcador (2026-06-17) — bug fix en force-result dialog: el ganador de penales se deriva automáticamente de los scores de la tanda con `derivePenaltyWinner()`; ya no se puede seleccionar un ganador contradictorio. Server action valida consistencia. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 36 BUILD AND TEST COMPLETE (2026-06-17) — Code Generation aprobado y ejecutado; Build and Test ejecutado tras continuación del usuario. Implementado scoring aditivo con `computeScore()` más `ScoreBreakdown.components`, `toBreakdown`/`deriveComponents`, explainer/copy i18n y tests. Verificado: 255/255 tests, `pnpm build` OK, tsc OK, Biome OK, ESLint OK. Unit 36 cerrada. Todas las units 1–36 implementadas y verificadas.
@@ -363,6 +364,17 @@
 - [x] Build and Test — COMPLETE. **265/265 tests** (+7 Unit 38), `tsc --noEmit` 0, Biome limpio, ESLint 0, `pnpm build` OK.
 - [ ] Operations — verificación visual en `/settings/security`: tarjeta de passkeys visible, listado correcto, registro y eliminación funcionales. Commit `ef0551f` sin push; usuario hará push y verificará.
 
+**Unit 39: Sync — unique constraint conflict en `Team.providerTeamId`** (added via AI-DLC refine, 2026-06-17) — bug en producción al sincronizar desde `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)". Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda pero `providerTeamId` tiene `@unique` en el schema. Sin cambios de código; solo schema + migración.
+- [x] Requirements (min) — FR-REFINE-39.1…39.3 (remover `@unique`, migración DDL, verificación post-migración) en `requirements.md` (Épica 39).
+- [x] User Stories — Épica 39 / US-39.1 en `stories.md`.
+- [x] Application Design delta — Unit 39 en `unit-of-work.md` con secuencia #25.
+- [x] Functional Design — COMPLETE. `construction/unit-39-sync-provider-team-id-conflict/functional-design.md` (causa raíz, solución schema, sin cambios de código; SKIP NFR/Infra formal).
+- [x] NFR Requirements / NFR Design — SKIP formal (sin impacto en performance/seguridad; cambio de modelo de datos).
+- [x] Infrastructure — Schema fix: `@unique` removido de `providerTeamId` en `prisma/schema.prisma:236`; nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`).
+- [x] Code Generation — SKIP (sin cambios de código; `upsertTeam`, `sync-orchestrator`, `football-data.ts`, `seed-matches.ts` y `trigger-sync.ts` sin tocar).
+- [ ] Build and Test — PENDIENTE. Schema regenerado (`prisma:generate` OK); migración creada manualmente (el pooler bloquea `prisma migrate dev` por RLS migration preexistente que referencia schema `auth`). Faltan: `tsc --noEmit`, `pnpm test`, `pnpm build`.
+- [ ] Operations — `prisma migrate deploy` en prod + smoke de sync FULL desde `/admin` sin errores.
+
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
 - [x] Build and Test - COMPLETE through Unit 10 implementation (0 TS errors, 115 tests, ESLint 0, Biome clean, build passing).
@@ -392,9 +404,9 @@
 - [x] Preserve approved inception/Application Design stages; do not restart them for Unit 10 refine
 
 ## Execution Plan Summary
-- **Total Remaining Stages**: None. Units 1–38 ALL implemented and verified.
-- **Stages to Execute**: None. Unit 38 cerrada.
-- **Completed (since last summary)**: Unit 38 Code Generation + Build and Test; Unit 38 Functional Design; Unit 38 requirements/design delta applied to existing artifacts.
-- **Stages to Skip**: Reverse Engineering rerun, User Stories, Application Design, NFR Requirements/Design formal, Infrastructure Design; NFR handled inside Functional Design.
-- **Next Stage**: None. Units 1–38 ALL implemented and verified. Operations: smoke visual de passkey management en prod.
-- **Status**: Units 1–38 ALL implemented and verified.
+- **Total Remaining Stages**: 1. Unit 39 pending Build and Test + Operations.
+- **Stages to Execute**: Unit 39 Build and Test (`tsc --noEmit`, `pnpm test`, `pnpm build`); Unit 39 Operations (`prisma migrate deploy` + smoke sync).
+- **Completed (since last summary)**: Unit 39 Functional Design + schema fix + migration; Unit 39 requirements/design delta applied to existing artifacts.
+- **Stages to Skip**: Code Generation (sin cambios de código); NFR Requirements/Design/Infrastructure formal.
+- **Next Stage**: Unit 39 Build and Test.
+- **Status**: Units 1–38 implemented and verified. Unit 39 schema fix ready, pending Build/Test.

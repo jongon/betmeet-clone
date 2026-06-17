@@ -1409,3 +1409,29 @@ El enlace a "Seguridad" (`/settings/security`) ya existe en el `UserMenu` del Ap
 - No cambia el flujo de onboarding ni el login con passkey (Unit 20 intacto).
 - No cambia reglas de scoring, predicciones, sync ni admin.
 - Security Baseline intacto: la gestión de passkeys opera en el cliente con sesión activa (Supabase Auth gestiona la autorización de la ceremonia WebAuthn).
+
+---
+
+### Épica 39: Sync — unique constraint conflict en `Team.providerTeamId` (Unit 39 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 25 (sync con football-data.org), Unit 33 (extracción de equipos desde API), Unit 4 (competition data) y Unit 29 (seed de partidos). **No reinicia** etapas aprobadas.
+
+**Causa raíz**: `upsertTeam()` usa `fifaCode` como llave de búsqueda (`where`), pero el modelo `Team` tiene un `@unique` sobre `providerTeamId` (migración inicial `20260609000000_init`). Cuando football-data.org devuelve el mismo `homeTeam.id`/`awayTeam.id` para dos equipos con distinto `fifaCode` (o una sync previa interrumpida dejó datos inconsistentes), el upsert no encuentra la fila por `fifaCode`, intenta un `CREATE` con ese `providerTeamId`, y viola el unique constraint.
+
+`providerTeamId` **nunca** se usa como llave de búsqueda en el código — todos los lookups de equipos (`sync-orchestrator.ts`, `upsert-competition-data.ts`, `seed-matches.ts`) usan `fifaCode`. Es metadata informacional sin propósito funcional en el sistema actual.
+
+### FR-REFINE-39.1 — Remover unique constraint en `Team.providerTeamId`
+El `@unique` sobre `providerTeamId` en `prisma/schema.prisma` debe eliminarse. El `fifaCode` es la identidad canónica del equipo; `providerTeamId` es metadata del proveedor externo (football-data.org) y no debe imponer una restricción de unicidad que entra en conflicto con `fifaCode`.
+
+### FR-REFINE-39.2 — Migración de schema
+Crear una migración Prisma (`prisma migrate dev`) que ejecute `DROP INDEX IF EXISTS "teams_provider_team_id_key"` en PostgreSQL. Sin cambios en ninguna fila existente: el índice se elimina, los datos se conservan.
+
+### FR-REFINE-39.3 — Verificación post-migración
+Tras aplicar la migración, ejecutar una sync completa (scope `FULL`) desde `/admin` debe completarse sin errores de unique constraint en `provider_team_id`. Los tests existentes que referencian `providerTeamId` (sin assert del índice) deben seguir pasando.
+
+### Restricciones / SKIP
+- **Sin** cambios de código en `upsertTeam()`, `sync-orchestrator.ts`, `football-data.ts`, `seed-matches.ts` ni `trigger-sync.ts` — la lógica de upsert por `fifaCode` ya es correcta.
+- **Sin** nuevas rutas, componentes ni cambios de UI.
+- **Sin** migraciones de datos (solo DDL: drop index).
+- **Sin** cambios en reglas de scoring, predicciones, pools ni auth.
+- Security Baseline intacto: el cambio es de modelo de datos (integridad referencial), no afecta autenticación ni autorización.

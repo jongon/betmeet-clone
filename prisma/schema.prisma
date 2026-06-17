@@ -233,7 +233,7 @@ model Team {
   isoAlpha2      String?  @map("iso_alpha2") @db.VarChar(12)
   flagKey        String   @map("flag_key") @db.VarChar(24)
   flagPath       String   @map("flag_path") @db.VarChar(120)
-  providerTeamId String?  @unique @map("provider_team_id") @db.VarChar(80)
+  providerTeamId String?  @map("provider_team_id") @db.VarChar(80)
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 

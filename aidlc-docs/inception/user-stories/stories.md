@@ -657,4 +657,29 @@
   - Las operaciones dan feedback inmediato (loading, éxito, error) con copy i18n (`es`/`en`).
   - No se puede eliminar el último método de autenticación si deja la cuenta sin acceso (email o passkey).
   - La sección de TOTP MFA existente no se modifica (son sistemas independientes, CF-10).
-  - La página sigue siendo `/settings/security`; sin cambios de ruta ni navegación.
+   - La página sigue siendo `/settings/security`; sin cambios de ruta ni navegación.
+
+---
+
+## Épica 39: Sync — unique constraint conflict en `Team.providerTeamId` (Unit 39 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 25 (sync con football-data.org) y Unit 33
+> (extracción de equipos desde API). Bug en producción: el sync falla con "Unique
+> constraint failed on the fields: (`provider_team_id`)" en `prisma.team.upsert()`.
+> Causa raíz: `upsertTeam()` usa `fifaCode` como llave, pero `providerTeamId` tiene
+> `@unique`. Cuando dos equipos comparten el mismo ID numérico del API, el upsert
+> intenta un CREATE que viola la restricción. `providerTeamId` nunca se usa como
+> llave de búsqueda en el código. No reinicia etapas aprobadas.
+
+### US-39.1: El sync deja de fallar por unique constraint en `providerTeamId`
+**Como** administrador
+**Quiero** sincronizar datos desde football-data.org sin que falle por un conflicto de `provider_team_id`
+**Para** mantener los partidos y equipos actualizados desde la API externa.
+- **Criterios de Aceptación**:
+  - Se elimina el `@unique` de `Team.providerTeamId` en el schema de Prisma.
+  - Se crea una migración que ejecuta `DROP INDEX "teams_provider_team_id_key"`.
+  - Al ejecutar una sync (scope `FULL`) desde `/admin`, esta se completa sin errores de unique constraint.
+  - Los tests existentes (Vitest) siguen pasando; el `providerTeamId` se sigue persistiendo normalmente.
+  - El `fifaCode` sigue siendo la identidad canónica del equipo; `providerTeamId` es metadata sin restricción de unicidad.
+  - Sin cambios de código en `upsertTeam`, `sync-orchestrator`, `football-data.ts`, `seed-matches.ts` ni `trigger-sync.ts`.
+  - Sin cambios de UI, rutas, scoring, predicciones ni auth.

@@ -1,5 +1,15 @@
 # AI-DLC Audit Log
 
+## Unit 39 — Functional Design Complete + Schema Fix + Migration Ready (refine delta)
+**Timestamp**: 2026-06-17T19:45:00Z
+**User Input**: "Estoy teniendo un este error al sincronizar en el /admin" → error: "Invalid `prisma.team.upsert()` invocation: Unique constraint failed on the fields: (`provider_team_id`)" → "Sí hazlo" (aprobación del plan)
+**AI Response**: "Diagnostiqué la causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda (`where`), pero `providerTeamId` tiene `@unique` en el schema. Cuando football-data.org devuelve el mismo ID numérico para dos equipos con distinto `fifaCode`, el CREATE del upsert viola la restricción. `providerTeamId` nunca se usa como llave de búsqueda en el código (todos los lookups de equipos van por `fifaCode`). Solución: removí `@unique` de `providerTeamId` en `prisma/schema.prisma:236` y creé la migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de código. La migración se creó manualmente porque el pooler de Supabase bloquea `prisma migrate dev` (la migración `20260611120000_rls_constraints_triggers` referencia el schema `auth` inexistente en el pooler). Apliqué el delta documental a los artefactos AI-DLC sin reiniciar etapas aprobadas."
+**Code change**: Schema: `prisma/schema.prisma:236` (`@unique` removido de `providerTeamId`). Migración nueva: `prisma/migrations/20260617180000_drop_provider_team_id_unique/migration.sql`. Sin cambios de código (ls acciones, servicios y providers de sync intactos).
+**Build/Test Status**: Pending. `pnpm prisma:generate` OK. Migración creada. `tsc --noEmit`, `pnpm test`, `pnpm build` pendientes.
+**Context**: Unit 39 Functional Design + schema fix ready. El sync desde `/admin` volverá a funcionar tras aplicar la migración con `prisma migrate deploy`. No se reinician Units 1–38. Unit 38 Build/Test/verification intactos.
+
+---
+
 ## Unit 38 — Code Generation + Build and Test Complete
 **Timestamp**: 2026-06-17T17:20:00Z
 **User Input**: "Summarize the task tool output above and continue with your task." (tras plan de Code Generation Part 1 creado por el agente build)
