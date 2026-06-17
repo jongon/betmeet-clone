@@ -14,8 +14,8 @@ Resultado de puntuar una `Prediction` contra el resultado real de su `Match`. Re
 | `predictionId` | uuid (FK → Prediction, **unique**) | Predicción puntuada (1:1). |
 | `matchId` | uuid (FK → Match) | Denormalizado para re-puntuar por partido y limpiar (índice). |
 | `userId` | uuid (FK → Profile) | Denormalizado para agregar el leaderboard sin join (índice). |
-| `matchedCase` | enum `EXACT \| RESULT \| PARTIAL \| MISS` | Caso base (de `ScoreBreakdown`). |
-| `basePoints` | int | Puntos del caso base (5/2/1/0). |
+| `matchedCase` | enum `EXACT \| RESULT \| PARTIAL \| MISS` | Clasificación resumida (de `ScoreBreakdown`); desde FR-REFINE-36 el caso no exacto puede representar componentes acumulados. |
+| `basePoints` | int | Puntos base (exacto 5 o suma acumulativa de resultado + goles acertados). |
 | `penaltyApplied` | bool | Si aplicó el bonus de penales. |
 | `penaltyPoints` | int | Puntos del bonus (0 o +1). |
 | `totalPoints` | int | `basePoints + penaltyPoints`. |
@@ -29,7 +29,7 @@ Resultado de puntuar una `Prediction` contra el resultado real de su `Match`. Re
 
 **Notas de denormalización**: `userId`/`matchId` también están en `Prediction`, pero como la predicción es inmutable tras el lock (Unit 5), denormalizar es seguro y evita joins en el camino caliente del leaderboard.
 
-**Mapeo a `ScoreBreakdown` (Unit 2)**: `{ matchedCase, basePoints, penaltyApplied, penaltyPoints, totalPoints, explanationKey: matchedCase }` — alimenta directamente `ScoreBreakdownExplainer`.
+**Mapeo a `ScoreBreakdown` (Unit 2)**: `{ matchedCase, basePoints, penaltyApplied, penaltyPoints, totalPoints, explanationKey: matchedCase }` — alimenta directamente `ScoreBreakdownExplainer`. Desde FR-REFINE-36, el explainer debe mostrar componentes acumulados cuando existan (resultado + goles acertados), no solo el caso resumido.
 
 ---
 

@@ -434,8 +434,9 @@
 **Para** actualizar los rankings.
 - **Criterios de Aceptación (Lógica Core)**:
   - Acertar marcador exacto = 5 puntos.
-  - Acertar resultado (ganador/empate) sin marcador exacto = 2 puntos.
-  - Acertar solo la cantidad de goles de uno de los equipos (y fallar el resultado) = 1 punto.
+  - Si no hay marcador exacto, acertar resultado (ganador/empate) suma 2 puntos.
+  - Si no hay marcador exacto, acertar la cantidad de goles de cada equipo suma 1 punto por equipo acertado; estos puntos se acumulan con los 2 puntos de resultado correcto.
+  - Ejemplo: real `BRA 2 - 1 ARG`, predicción `BRA 3 - 2 ARG` = 3 puntos (2 por ganador + 1 por gol de ARG).
   - Fallar todo = 0 puntos.
   - En fases knockout: predecir ganador de penales correcto (siendo que el partido quedó empatado) = +1 punto adicional al usuario.
 

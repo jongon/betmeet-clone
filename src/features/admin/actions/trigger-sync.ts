@@ -1,14 +1,12 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
-import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
 import { FootballDataProvider } from "@/features/competition/services/providers/football-data";
 import { runCompetitionSync } from "@/features/competition/services/sync-orchestrator";
-import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { scoreFinishedUnscoredMatches } from "@/features/scoring-rankings/services/score-sweeper";
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { getAdminUserId } from "../services/require-admin";
+import { revalidateResultViews } from "../services/revalidate-result-views";
 
 const ALLOWED_SCOPES: ProviderSyncScope[] = ["FIXTURES", "LIVE_STATUS", "RESULTS", "FULL"];
 
@@ -35,8 +33,6 @@ export async function triggerSync(scope: ProviderSyncScope) {
   }
 
   logAuthEvent("admin.sync_triggered", { userId: adminId, scope });
-  revalidatePath("/admin");
-  revalidateTag(COMPETITION_FIXTURE_TAG, "max"); // refresh the cached /matches fixture
-  revalidateTag(RANKINGS_TAG, "max"); // the sweeper may have rescored → refresh /rankings
+  revalidateResultViews({ adminDashboard: true });
   return { success: true };
 }

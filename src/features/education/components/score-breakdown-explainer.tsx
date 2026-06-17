@@ -40,6 +40,24 @@ export function ScoreBreakdownExplainer({
         {breakdown.penaltyApplied ? ` ${labels.penaltyApplied}` : ""}
       </p>
       <dl className="space-y-1">
+        {breakdown.components && breakdown.explanationKey !== "EXACT" && (
+          <div className="flex justify-between border-b pb-1 mb-1">
+            <dt className="text-muted-foreground text-xs">{labels.resultPoints}</dt>
+            <dd className="text-xs">+{breakdown.components.resultPoints}</dd>
+          </div>
+        )}
+        {breakdown.components && breakdown.components.homeGoalPoints > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground text-xs pl-3">{labels.homeGoalPoints}</dt>
+            <dd className="text-xs">+{breakdown.components.homeGoalPoints}</dd>
+          </div>
+        )}
+        {breakdown.components && breakdown.components.awayGoalPoints > 0 && (
+          <div className="flex justify-between">
+            <dt className="text-muted-foreground text-xs pl-3">{labels.awayGoalPoints}</dt>
+            <dd className="text-xs">+{breakdown.components.awayGoalPoints}</dd>
+          </div>
+        )}
         <div className="flex justify-between">
           <dt className="text-muted-foreground">{labels.base}</dt>
           <dd>{breakdown.basePoints}</dd>

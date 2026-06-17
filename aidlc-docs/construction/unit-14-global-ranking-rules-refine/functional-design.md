@@ -9,6 +9,8 @@
 - Motor de scoring (`compute-score.ts`) **ya** aplica el bonus de penales **solo**
   cuando `isKnockout && actualHome === actualAway && predictedWinner === actualWinner`
   → **FR-REFINE-14.5 ya garantizado en el engine**.
+- FR-REFINE-36 (2026-06-17) cambia el puntaje base a acumulativo para no exactos;
+  este diseño conserva el bonus de penales como +1 adicional y no altera ranking global.
 - La calculadora (`scoring-calculator.tsx`) **ya** muestra el selector de ganador de
   penales solo con empate + knockout (`showPenalty`). Falta el **marcador de tanda**.
 - Ranking por pool reutilizable: `getPoolLeaderboard`, `assignDensePositions`

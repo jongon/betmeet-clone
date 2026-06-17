@@ -35,7 +35,7 @@ Conjunto de constantes canónicas de puntuación. Es la **fuente de verdad compa
 |---|---|---|---|
 | `EXACT_SCORE` | integer | 5 | US-5.1 |
 | `CORRECT_RESULT` | integer | 2 | US-5.1 |
-| `PARTIAL_GOAL_COUNT` | integer | 1 | US-5.1 |
+| `PARTIAL_GOAL_COUNT` | integer | 1 por equipo acertado | US-5.1 / FR-REFINE-36 |
 | `MISS` | integer | 0 | US-5.1 |
 | `PENALTY_BONUS` | integer | +1 | US-5.1 |
 
@@ -67,8 +67,8 @@ Resultado estructurado de evaluar un `ScoringExample`. Lo produce la lógica de 
 
 | Atributo | Tipo | Descripción |
 |---|---|---|
-| `matchedCase` | enum (`EXACT`, `RESULT`, `PARTIAL`, `MISS`) | Caso de puntuación base que aplicó. |
-| `basePoints` | integer | Puntos del caso base. |
+| `matchedCase` | enum (`EXACT`, `RESULT`, `PARTIAL`, `MISS`) | Clasificación resumida del puntaje base; desde FR-REFINE-36 puede representar una suma de componentes no exactos. |
+| `basePoints` | integer | Puntos base: exacto 5 o, si no exacto, suma de resultado correcto + goles acertados. |
 | `penaltyApplied` | boolean | Si se otorgó el bonus de penales. |
 | `penaltyPoints` | integer | 0 ó +1. |
 | `totalPoints` | integer | `basePoints + penaltyPoints`. |

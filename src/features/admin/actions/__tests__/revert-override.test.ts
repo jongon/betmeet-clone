@@ -1,16 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({
   prisma: { match: { findUnique: vi.fn(), update: vi.fn() } },
 }));
 vi.mock("@/features/scoring-rankings/services/score-match", () => ({ scoreMatch: vi.fn() }));
 vi.mock("@/lib/auth-logger", () => ({ logAuthEvent: vi.fn() }));
+vi.mock("../../services/revalidate-result-views", () => ({ revalidateResultViews: vi.fn() }));
 vi.mock("../../services/require-admin", () => ({ getAdminUserId: vi.fn() }));
 
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { prisma } from "@/lib/prisma";
 import { getAdminUserId } from "../../services/require-admin";
+import { revalidateResultViews } from "../../services/revalidate-result-views";
 import { revertMatchOverride } from "../revert-override";
 
 describe("revertMatchOverride (FR-REFINE-31.1)", () => {
@@ -50,12 +51,19 @@ describe("revertMatchOverride (FR-REFINE-31.1)", () => {
     expect(scoreMatch).toHaveBeenCalledWith("m-1");
   });
 
+  it("revalidates result views only after a successful revert", async () => {
+    await revertMatchOverride("m-1");
+
+    expect(revalidateResultViews).toHaveBeenCalledWith({ adminMatches: true });
+  });
+
   it("rejects non-admin callers without touching the match", async () => {
     vi.mocked(getAdminUserId).mockResolvedValue(null);
     const result = await revertMatchOverride("m-1");
     expect(result).toEqual({ error: "No autorizado" });
     expect(prisma.match.update).not.toHaveBeenCalled();
     expect(scoreMatch).not.toHaveBeenCalled();
+    expect(revalidateResultViews).not.toHaveBeenCalled();
   });
 
   it("returns an error when the match does not exist", async () => {
@@ -63,5 +71,6 @@ describe("revertMatchOverride (FR-REFINE-31.1)", () => {
     const result = await revertMatchOverride("missing");
     expect(result).toEqual({ error: "Partido no encontrado" });
     expect(prisma.match.update).not.toHaveBeenCalled();
+    expect(revalidateResultViews).not.toHaveBeenCalled();
   });
 });

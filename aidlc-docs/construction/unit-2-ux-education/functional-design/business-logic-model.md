@@ -25,20 +25,19 @@ function computeScore(example) -> ScoreBreakdown:
         matchedCase = EXACT
         basePoints  = ScoringRuleSet.EXACT_SCORE        // 5
 
-    // 2. Resultado correcto (ganador/empate) sin marcador exacto
-    else if predicted_result == actual_result:
-        matchedCase = RESULT
-        basePoints  = ScoringRuleSet.CORRECT_RESULT     // 2
-
-    // 3. Acertó goles de UN equipo y falló el resultado
-    else if (p_home == a_home OR p_away == a_away):
-        matchedCase = PARTIAL
-        basePoints  = ScoringRuleSet.PARTIAL_GOAL_COUNT // 1
-
-    // 4. Falló todo
+    // 2. Sin exacto: resultado y goles acertados se suman
     else:
-        matchedCase = MISS
-        basePoints  = ScoringRuleSet.MISS               // 0
+        resultPoints = predicted_result == actual_result
+            ? ScoringRuleSet.CORRECT_RESULT             // 2
+            : 0
+        homeGoalPoints = p_home == a_home
+            ? ScoringRuleSet.PARTIAL_GOAL_COUNT         // 1
+            : 0
+        awayGoalPoints = p_away == a_away
+            ? ScoringRuleSet.PARTIAL_GOAL_COUNT         // 1
+            : 0
+        basePoints = resultPoints + homeGoalPoints + awayGoalPoints
+        matchedCase = summaryCaseFor(basePoints, resultPoints, homeGoalPoints, awayGoalPoints)
 
     // 5. Bonus de penales (solo knockout con empate en el marcador)
     penaltyApplied = false
@@ -59,7 +58,7 @@ function computeScore(example) -> ScoreBreakdown:
 
 **Notas de consistencia**:
 - `sign()` clasifica el resultado en {local, empate, visitante}.
-- La regla 3 (PARTIAL) exige que el caso 1 y 2 ya hayan fallado: acertar los goles de un equipo *y* fallar el ganador/empate. Si acertara el resultado caería en caso 2.
+- Desde FR-REFINE-36, resultado correcto y goles acertados ya no son casos excluyentes: si no hay exacto, se suman. Ejemplo: real `BRA 2-1 ARG`, predicción `BRA 3-2 ARG` ⇒ `2 + 1 = 3`.
 - **Invariante crítico**: este algoritmo y el de Unit 6 deben producir resultados idénticos para la misma entrada. Por eso ambos importan `ScoringRuleSet` y, idealmente, la misma función `computeScore`. La calculadora educativa puede vivir como función pura compartida.
 
 ---
@@ -142,7 +141,7 @@ RulesStep:
 
 **Bloques** (orden mobile-first, una propuesta de valor primero):
 1. **Hero + propuesta de valor**: qué es una quiniela, foco Mundial 2026, CTA principal `Entra a Jugar` (actualizado por Unit 18).
-2. **Teaser de puntuación**: tarjeta compacta (exacto 5 / resultado 2 / parcial 1 / penales +1). Es el único contenido de reglas público.
+2. **Teaser de puntuación**: tarjeta compacta (exacto 5 / si no exacto: resultado 2 + 1 por cada gol de equipo acertado / penales +1). Es el único contenido de reglas público.
 3. **PoolPreview**: sección cableada a la interfaz `PoolPreviewItem` (Unit 3). Renderiza skeleton mientras carga; si no hay fuente de datos (pre-Unit 3) muestra estado vacío; si falla, se oculta y mantiene la explicación estática.
 4. **CTAs secundarios**: `Iniciar sesión`, `Explorar pools públicos` (este último activo cuando Unit 3 entregue datos).
 

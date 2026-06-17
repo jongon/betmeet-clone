@@ -41,7 +41,7 @@ function scoreMatch(matchId):
 
     transaction:
         for prediction in match.predictions:
-            breakdown = computeScore(toScoringExample(prediction, match))   // Unit 2
+            breakdown = computeScore(toScoringExample(prediction, match))   // Unit 2; FR-REFINE-36 acumula resultado + goles no exactos
             upsert PredictionScore by predictionId with {
                 matchId, userId: prediction.userId,
                 matchedCase: breakdown.matchedCase,
@@ -54,6 +54,7 @@ function scoreMatch(matchId):
 ```
 - **Idempotente** (BR-6.5/6.6): re-ejecutar sobrescribe. Seguro tras override admin (US-6.2).
 - **Atómico** por partido (transacción).
+- **Regla acumulativa** (FR-REFINE-36): Unit 6 no calcula componentes propios; persiste `basePoints`/`totalPoints` desde `computeScore`. Recalcular un partido terminado actualiza los puntos al nuevo modelo.
 
 ---
 

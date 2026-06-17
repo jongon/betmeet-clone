@@ -95,7 +95,7 @@
 **Purpose**: Calculate deterministic points and rank users within each pool.
 
 **Responsibilities**:
-- Apply scoring rules: exact score 5, result 2, one team score 1, none 0.
+- Apply scoring rules: exact score 5; otherwise cumulative result 2 plus 1 point per team goal count matched; none 0.
 - Add knockout penalty winner bonus of 1 when applicable.
 - Recalculate scores after official results or admin override.
 - Rank users by pool only, allowing tied positions as shared winners.

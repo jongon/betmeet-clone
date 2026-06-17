@@ -6,11 +6,12 @@
  * module so education and real scoring can never diverge. Origin: US-5.1.
  */
 export const ScoringRuleSet = {
-  /** Exact score (home and away) correct. */
+  /** Exact score (home and away) correct. Does not stack with result/goal components. */
   EXACT_SCORE: 5,
-  /** Correct result (winner or draw) without exact score. */
+  /** Correct result (winner or draw) on a non-exact prediction. Adds to goal components. */
   CORRECT_RESULT: 2,
-  /** Correct goal count for exactly one team while missing the result. */
+  /** Correct goal count for one team. Adds to result component.
+   *  Both home and away goals can match independently (BR-36.2). */
   PARTIAL_GOAL_COUNT: 1,
   /** Nothing correct. */
   MISS: 0,

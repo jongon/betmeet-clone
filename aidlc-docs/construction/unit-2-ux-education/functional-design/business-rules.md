@@ -11,8 +11,8 @@
 | ID | Regla |
 |---|---|
 | **BR-2.1** | Acertar el marcador exacto (local y visitante) otorga **5 puntos**. |
-| **BR-2.2** | Acertar el resultado (ganador o empate) sin marcador exacto otorga **2 puntos**. |
-| **BR-2.3** | Acertar la cantidad de goles de exactamente uno de los equipos **y** fallar el resultado otorga **1 punto**. |
+| **BR-2.2** | Si no hay marcador exacto, acertar el resultado (ganador o empate) suma **2 puntos**. |
+| **BR-2.3** | Si no hay marcador exacto, acertar la cantidad de goles de cada equipo suma **1 punto por equipo acertado** (0, 1 o 2). Estos puntos se acumulan con BR-2.2. Ejemplo: real `BRA 2-1 ARG`, predicción `BRA 3-2 ARG` ⇒ 2 por ganador + 1 por gol de ARG = **3 puntos**. |
 | **BR-2.4** | Fallar todo (ni marcador, ni resultado, ni goles de un equipo) otorga **0 puntos**. |
 | **BR-2.5** | En fases knockout, si el partido terminó empatado en el marcador y el usuario predijo correctamente al ganador de penales, se otorga **+1 punto adicional** sobre el puntaje base. |
 | **BR-2.6** | El bonus de penales (BR-2.5) **solo** aplica cuando: la fase es knockout **Y** el marcador real es empate **Y** existe predicción de ganador de penales. En cualquier otro caso el bonus es 0. |

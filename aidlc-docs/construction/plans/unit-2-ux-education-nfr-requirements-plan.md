@@ -71,7 +71,7 @@ X) Otro (describe después de `[Answer]:`)
 ### Question 4 — Frontera del módulo de scoring compartido
 `computeScore` y `ScoringRuleSet` deben producir resultados idénticos a Unit 6 (invariante crítico, BR-2.7). ¿Cómo materializamos ese contrato ahora?
 
-A) **Módulo compartido único y puro** — `src/features/education/services/compute-score.ts` + `scoring-rules.ts` se crean como módulo neutral (sin dependencias de UI/DB) que Unit 6 importará tal cual. Se cubre con tests unitarios de la tabla de casos (exacto/resultado/parcial/miss/bonus).
+A) **Módulo compartido único y puro** — `src/features/education/services/compute-score.ts` + `scoring-rules.ts` se crean como módulo neutral (sin dependencias de UI/DB) que Unit 6 importará tal cual. Se cubre con tests unitarios de la tabla de casos (exacto; resultado + goles acumulables; miss; bonus).
 B) **Implementación local en Unit 2, refactor a compartido en Unit 6** — ahora vive dentro de education; Unit 6 decide la ubicación canónica cuando llegue.
 C) **Definir solo `ScoringRuleSet` compartido ahora; `computeScore` duplicado** — cada unit implementa su función pero importa las mismas constantes.
 X) Otro (describe después de `[Answer]:`)

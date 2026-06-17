@@ -43,6 +43,7 @@ supabase/functions/competition-sync/index.ts (nota de invocación del sweeper po
 ## Reutilización (invariante BR-2.7 / BR-6.1)
 - El cálculo usa **`computeScore`/`ScoringRuleSet`** de Unit 2 vía adaptador `teamId → "home"/"away"`; **no** se redefinen reglas.
 - El desglose usa **`ScoreBreakdownExplainer`** de Unit 2.
+- Refine FR-REFINE-36 (2026-06-17): cuando se implemente la nueva regla acumulativa, Unit 6 debe seguir delegando en `computeScore`; `scoreMatch` solo persistirá el nuevo `basePoints`/`totalPoints` y el desglose deberá explicar componentes acumulados.
 
 ## Notas / pendientes de integración
 - **Disparo real**: el barredor debe invocarse desde el entrypoint de sync de producción (hardening de la edge function de Unit 4) y desde el override de Unit 7.

@@ -12,6 +12,35 @@ export interface ScoreRow {
   totalPoints: number;
 }
 
+function deriveComponents(score: ScoreRow) {
+  if (score.matchedCase === "EXACT") return undefined;
+
+  const base = score.basePoints;
+  let resultPoints = 0;
+  let homeGoalPoints = 0;
+  let awayGoalPoints = 0;
+
+  if (score.matchedCase === "RESULT") {
+    resultPoints = 2;
+    const remaining = base - 2;
+    if (remaining >= 2) {
+      homeGoalPoints = 1;
+      awayGoalPoints = 1;
+    } else if (remaining >= 1) {
+      homeGoalPoints = 1;
+    }
+  } else if (score.matchedCase === "PARTIAL") {
+    if (base >= 2) {
+      homeGoalPoints = 1;
+      awayGoalPoints = 1;
+    } else if (base >= 1) {
+      homeGoalPoints = 1;
+    }
+  }
+
+  return { resultPoints, homeGoalPoints, awayGoalPoints };
+}
+
 /** Maps a persisted PredictionScore to the Unit 2 ScoreBreakdown shape. */
 export function toBreakdown(score: ScoreRow): ScoreBreakdown {
   return {
@@ -21,6 +50,7 @@ export function toBreakdown(score: ScoreRow): ScoreBreakdown {
     penaltyPoints: score.penaltyPoints,
     totalPoints: score.totalPoints,
     explanationKey: score.matchedCase,
+    components: deriveComponents(score),
   };
 }
 

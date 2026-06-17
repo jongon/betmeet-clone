@@ -100,8 +100,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 **Responsibilities**:
 - Deterministic scoring engine.
 - Exact score 5 points.
-- Correct winner/draw 2 points.
-- One team score 1 point.
+- If not exact, correct winner/draw adds 2 points.
+- If not exact, each matched team goal count adds 1 point and stacks with the winner/draw points.
 - Penalty winner bonus +1 in knockout.
 - Pool-only leaderboard.
 - Tied users share winner/rank state with no tiebreakers.
@@ -288,6 +288,33 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Los admins ven partidos como `BRA vs ARG` en `/admin/matches`, con fallback correcto para cruces TBD.
 
+## Unit 35: Invalidación inmediata de caché tras mutaciones admin
+
+**Goal**: Que después de forzar, revertir o sincronizar resultados desde admin, las vistas de usuario (`/matches`, `/rankings`, `/pools` y rankings de liga) muestren datos actualizados en la siguiente navegación/refresco normal, sin requerir dos refreshes.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); bug fix sobre Unit 7/31 + caches de Unit 22/27. No reinicia Units 1–34.
+- Centralizar la invalidación de datos afectados por resultados/scoring en un helper compartido para acciones admin.
+- Reemplazar semántica stale-while-revalidate (`revalidateTag(tag, "max")`) por expiración inmediata (`updateTag`) en Server Actions admin donde se necesita read-your-own-writes.
+- Revalidar rutas de usuario afectadas: `/matches`, `/rankings`, `/pools`, `/pools/[id]` y `/pools/[id]/leaderboard`, además de rutas admin existentes.
+- Sin schema, migraciones, rutas nuevas ni cambios de scoring matemático.
+
+**Primary Deliverable**: Mutaciones admin de resultados invalidan fixture/rankings/rutas dependientes inmediatamente y eliminan el síntoma de doble refresh.
+
+## Unit 36: Scoring acumulativo por ganador y goles acertados
+
+**Goal**: Ajustar la regla matemática de scoring para que, salvo marcador exacto, los puntos por resultado correcto y por goles acertados se sumen.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); cambio de reglas sobre Units 2/6. No reinicia Units 1–35.
+- Mantener exact score = 5 como caso máximo/base histórico.
+- Si no hay exacto, sumar 2 puntos por ganador/empate correcto + 1 punto por cada equipo cuyo gol coincida.
+- Conservar bonus de penales +1 adicional cuando aplique.
+- Actualizar calculadora educativa, copy de reglas y desgloses visibles/persistidos para mostrar componentes acumulados.
+- Sin schema/migraciones por defecto; evaluar solo si el desglose actual no puede representar componentes.
+
+**Primary Deliverable**: `BRA 2-1 ARG` vs predicción `BRA 3-2 ARG` puntúa 3 (2 ganador + 1 gol), y la UI explica esa suma.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -310,6 +337,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 18. Unit 30: Filtro de "partidos anteriores" en /matches (post-construction refine; UI-only; client-side toggle; sin schema)
 19. Unit 31: "Revertir a la API" también revierte el puntaje de los usuarios (post-construction refine; admin/scoring; sin schema)
 20. Unit 34: Códigos FIFA en `/admin/matches` (post-construction refine; UI-only; sin schema)
+21. Unit 35: Invalidación inmediata de caché tras mutaciones admin (post-construction refine; cache consistency; sin schema)
+22. Unit 36: Scoring acumulativo por ganador y goles acertados (post-construction refine; reglas de scoring; sin schema por defecto)
 
 ## Security Notes
 

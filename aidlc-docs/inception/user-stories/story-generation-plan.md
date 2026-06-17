@@ -36,7 +36,7 @@
 - **US-4.4**: Expulsar miembros del Pool (solo Admin del pool, solo antes del primer partido)
 
 ### Épica 5: Puntuación y Rankings
-- **US-5.1**: Cálculo automático de puntos por partido (5 pts exacto, 2 pts ganador/empate, 1 pt marcador parcial, +1 pt penales)
+- **US-5.1**: Cálculo automático de puntos por partido (5 pts exacto; si no exacto, 2 pts ganador/empate + 1 pt por cada equipo con goles acertados; +1 pt penales)
 - **US-5.2**: Visualización de mi puntuación acumulada
 - **US-5.3**: Visualización del Ranking (Leaderboard) dentro de un Pool
 - **US-5.4**: Gestión de empates en el ranking (compartir posición como ganadores)

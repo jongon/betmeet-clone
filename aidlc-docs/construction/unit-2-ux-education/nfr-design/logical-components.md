@@ -69,7 +69,7 @@
 - **Tipo**: módulo puro `src/features/scoring/compute-score.ts` + `scoring-rules.ts`.
 - **Responsabilidad**: `computeScore(example): ScoreBreakdown` y `ScoringRuleSet` canónico (BL-1, BR-2.7). Sin dependencias de UI/DB.
 - **Consumidores**: `ScoringCalculator` y `ScoreBreakdownExplainer` (Unit 2); motor de scoring (Unit 6).
-- **Verificación**: tests unitarios de la tabla de casos (exacto/resultado/parcial/miss/bonus penales) como contrato del invariante.
+- **Verificación**: tests unitarios de la tabla de casos (exacto; resultado + goles acumulables; miss; bonus penales) como contrato del invariante.
 
 ## Component 7: Rule Content Provider
 - **Tipo**: capa servidor que compone el contenido para cada superficie.

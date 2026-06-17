@@ -12,6 +12,7 @@
 | **BR-6.2** | Solo se puntúan partidos con `status = FINISHED` y `homeScore`/`awayScore` no nulos. |
 | **BR-6.3** | `isKnockout` se deriva de `match.phase.type === 'KNOCKOUT'`. El bonus de penales solo puede aplicar en knockout con marcador empatado (lo garantiza `computeScore`). |
 | **BR-6.4** | El ganador de penales se traduce de `teamId` a lado: `home` si `teamId === match.homeTeamId`, `away` si `=== match.awayTeamId`, `null` en otro caso. Aplica a la predicción (`penaltyWinnerTeamId`) y al real (`match.winnerTeamId`). |
+| **BR-6.20** | Desde FR-REFINE-36, el puntaje base que devuelve `computeScore` es acumulativo para predicciones no exactas: 2 por resultado correcto + 1 por cada equipo cuyo gol coincida. Ejemplo `BRA 2-1 ARG` vs `BRA 3-2 ARG` = 3. Unit 6 persiste ese `basePoints` sin recalcularlo. |
 
 ## Persistencia e idempotencia
 

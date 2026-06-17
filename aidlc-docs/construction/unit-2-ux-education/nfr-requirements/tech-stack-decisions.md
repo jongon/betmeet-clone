@@ -51,8 +51,8 @@ El stack está preseleccionado: Next.js 16 (App Router), TypeScript, Tailwind CS
 
 **Implementation approach**:
 - Ubicación neutral: `src/features/scoring/compute-score.ts` + `src/features/scoring/scoring-rules.ts` (NO bajo `education`, porque Unit 6 es el dueño natural del scoring).
-- `ScoringRuleSet` expone las constantes canónicas: `EXACT_SCORE=5`, `CORRECT_RESULT=2`, `PARTIAL_GOAL_COUNT=1`, `MISS=0`, `PENALTY_BONUS=1`.
-- `computeScore(example: ScoringExample): ScoreBreakdown` implementa BL-1 (exacto / resultado / parcial / miss + bonus de penales).
+- `ScoringRuleSet` expone las constantes canónicas: `EXACT_SCORE=5`, `CORRECT_RESULT=2`, `PARTIAL_GOAL_COUNT=1` por equipo acertado, `MISS=0`, `PENALTY_BONUS=1`.
+- `computeScore(example: ScoringExample): ScoreBreakdown` implementa BL-1 (exacto 5; si no exacto, resultado + goles acertados acumulables; bonus de penales).
 - **Tests unitarios** de la tabla de casos como contrato verificable; los reusará Unit 6.
 - La calculadora (`ScoringCalculator`) y `ScoreBreakdownExplainer` consumen este módulo; este último se entrega data-agnóstico para Unit 6 (BR-2.33).
 

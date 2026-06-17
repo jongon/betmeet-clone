@@ -22,6 +22,12 @@ export interface ScoreBreakdown {
   totalPoints: number;
   /** i18n key describing the outcome, used by ScoreBreakdownExplainer. */
   explanationKey: MatchedCase;
+  /** Additive component breakdown for non-exact predictions (BR-36.2). */
+  components?: {
+    resultPoints: number;
+    homeGoalPoints: number;
+    awayGoalPoints: number;
+  };
 }
 
 function sign(n: number): -1 | 0 | 1 {
@@ -52,19 +58,28 @@ export function computeScore(example: ScoringExample): ScoreBreakdown {
 
   let matchedCase: MatchedCase;
   let basePoints: number;
+  let components:
+    | { resultPoints: number; homeGoalPoints: number; awayGoalPoints: number }
+    | undefined;
 
   if (predictedHome === actualHome && predictedAway === actualAway) {
     matchedCase = "EXACT";
     basePoints = ScoringRuleSet.EXACT_SCORE;
-  } else if (predictedResult === actualResult) {
-    matchedCase = "RESULT";
-    basePoints = ScoringRuleSet.CORRECT_RESULT;
-  } else if (predictedHome === actualHome || predictedAway === actualAway) {
-    matchedCase = "PARTIAL";
-    basePoints = ScoringRuleSet.PARTIAL_GOAL_COUNT;
   } else {
-    matchedCase = "MISS";
-    basePoints = ScoringRuleSet.MISS;
+    const resultPoints = predictedResult === actualResult ? ScoringRuleSet.CORRECT_RESULT : 0;
+    const homeGoalPoints = predictedHome === actualHome ? ScoringRuleSet.PARTIAL_GOAL_COUNT : 0;
+    const awayGoalPoints = predictedAway === actualAway ? ScoringRuleSet.PARTIAL_GOAL_COUNT : 0;
+    basePoints = resultPoints + homeGoalPoints + awayGoalPoints;
+
+    if (resultPoints > 0) {
+      matchedCase = "RESULT";
+    } else if (homeGoalPoints > 0 || awayGoalPoints > 0) {
+      matchedCase = "PARTIAL";
+    } else {
+      matchedCase = "MISS";
+    }
+
+    components = { resultPoints, homeGoalPoints, awayGoalPoints };
   }
 
   let penaltyApplied = false;
@@ -87,5 +102,6 @@ export function computeScore(example: ScoringExample): ScoreBreakdown {
     penaltyPoints,
     totalPoints: basePoints + penaltyPoints,
     explanationKey: matchedCase,
+    ...(components ? { components } : {}),
   };
 }

@@ -58,7 +58,7 @@ PoolLeaderboard
 
 La vista "predicción vs resultado" de Unit 5 (`PredictionVsResult`) muestra, cuando `pointsStatus === "SCORED"`:
 - Los **puntos** obtenidos en ese partido.
-- El **desglose** reutilizando **`ScoreBreakdownExplainer`** (Unit 2), construido desde el `breakdown` que Unit 6 añade al read model (BL-7).
+- El **desglose** reutilizando **`ScoreBreakdownExplainer`** (Unit 2), construido desde el `breakdown` que Unit 6 añade al read model (BL-7). Desde FR-REFINE-36, el desglose muestra la suma de componentes no exactos (resultado correcto + goles acertados), por ejemplo 3 puntos = 2 + 1.
 
 | Estado | UI |
 |---|---|

@@ -148,7 +148,7 @@ La landing y el Rules Center son contenido estático servido por el CDN de Verce
 
 ## Maintainability Requirements
 
-- El módulo de scoring (`computeScore` + `ScoringRuleSet`) vive en una ruta neutral compartida y se cubre con **tests unitarios de la tabla de casos** (exacto / resultado / parcial / miss / bonus de penales). Es el contrato verificable del invariante BR-2.7.
+- El módulo de scoring (`computeScore` + `ScoringRuleSet`) vive en una ruta neutral compartida y se cubre con **tests unitarios de la tabla de casos** (exacto; resultado + goles acumulables; miss; bonus de penales). Es el contrato verificable del invariante BR-2.7.
 - El contenido de reglas (MDX) se valida en build con metadatos tipados (`audience`, `section`, `order`, `title`); un metadato inválido rompe el build, no la producción.
 - Toda copy en diccionarios tipados; agregar un idioma no debe requerir tocar componentes.
 - `ScoreBreakdownExplainer` se entrega como componente reutilizable y data-agnóstico para Unit 6 (BR-2.33); sin fetching ni contexto de pool.

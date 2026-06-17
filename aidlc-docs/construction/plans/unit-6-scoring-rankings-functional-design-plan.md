@@ -4,7 +4,7 @@
 **Scoring and Pool Rankings** — calcular puntos de las predicciones al finalizar cada partido y construir el leaderboard por pool.
 
 ## Stories
-- **US-5.1** Cálculo de Puntos (al finalizar un partido; reglas exacto 5 / resultado 2 / parcial 1 / miss 0 / +1 penales en knockout empatado).
+- **US-5.1** Cálculo de Puntos (al finalizar un partido; reglas exacto 5 / si no exacto: resultado 2 + 1 por cada equipo con goles acertados / miss 0 / +1 penales en knockout empatado).
 - **US-5.2** Ranking por Pool (orden por puntos desc; empate comparte posición sin desempate; muestra nickname + avatar).
 
 ## Contexto del modelo existente (Units 4/5)

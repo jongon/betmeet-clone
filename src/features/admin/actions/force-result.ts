@@ -1,14 +1,12 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
-import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
-import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { prisma } from "@/lib/prisma";
 import { ForceResultSchema } from "../schemas";
 import { getAdminUserId } from "../services/require-admin";
 import { resolveWinner } from "../services/resolve-winner";
+import { revalidateResultViews } from "../services/revalidate-result-views";
 
 /**
  * Admin forces a match result (US-6.2, BL-2): persists the override + audit and
@@ -69,8 +67,6 @@ export async function forceMatchResult(matchId: string, input: unknown) {
   await scoreMatch(matchId); // synchronous re-score (BR-7.5)
 
   logAuthEvent("admin.match_overridden", { userId: adminId, matchId });
-  revalidatePath("/admin/matches");
-  revalidateTag(COMPETITION_FIXTURE_TAG, "max"); // refresh the cached /matches fixture
-  revalidateTag(RANKINGS_TAG, "max"); // scoreMatch rescored → refresh /rankings
+  revalidateResultViews({ adminMatches: true });
   return { success: true };
 }

@@ -61,9 +61,9 @@ Dos formas de cumplir el espíritu de Q6=B:
 - [x] Teaser (`audience: teaser`) para el resumen de puntuación de la landing; resto `audience: full`.
 
 ### Step 5 — Módulo de scoring compartido (entregable para Unit 6)
-- [x] `src/features/scoring/scoring-rules.ts` — `ScoringRuleSet` (EXACT 5, RESULT 2, PARTIAL 1, MISS 0, PENALTY +1).
-- [x] `src/features/scoring/compute-score.ts` — `computeScore(example): ScoreBreakdown` (BL-1) y tipos `ScoringExample`, `ScoreBreakdown`.
-- [x] `src/features/scoring/__tests__/compute-score.test.ts` — tabla de casos (exacto/resultado/parcial/miss/bonus penales) — contrato del invariante BR-2.7.
+- [x] `src/features/scoring/scoring-rules.ts` — `ScoringRuleSet` (EXACT 5, RESULT 2, PARTIAL 1 por equipo acertado, MISS 0, PENALTY +1).
+- [x] `src/features/scoring/compute-score.ts` — `computeScore(example): ScoreBreakdown` (BL-1; actualizado por FR-REFINE-36 a resultado + goles acumulables cuando no hay exacto) y tipos `ScoringExample`, `ScoreBreakdown`.
+- [x] `src/features/scoring/__tests__/compute-score.test.ts` — tabla de casos (exacto; resultado + goles acumulables; miss; bonus penales) — contrato del invariante BR-2.7.
 
 ### Step 6 — Theming
 - [x] `src/app/globals.css` — ampliar tokens claro/oscuro (reusa `.dark` ya existente y `@custom-variant dark`).

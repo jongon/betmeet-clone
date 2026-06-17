@@ -1,5 +1,126 @@
 # AI-DLC Audit Log
 
+## Unit 36 — Copy, MDX y docs del scoring acumulativo (+ landing + match summary)
+**Timestamp**: 2026-06-17T01:03:00Z
+**User Input**: "No olvides los copys de las reglas tanto en el landing como en la sección de reglas" → "No olvides el resumen del match cuando termina el partido" (×3) → "Escribe el plan y ejecutalo" (×3)
+**AI Response**: "Escribí el plan y ejecuté. El algoritmo y tests ya estaban verdes del delta previo. Actualicé: i18n ES+EN (`scoring` section con `stackingHint`, `partial`→goles acumulables; `breakdown` con `resultMatched`/`homeGoalPoints`/`awayGoalPoints`), MDX bilingüe (4 archivos: scoring.mdx + scoring-teaser.mdx con regla acumulativa + ejemplo `BRA 2-1 vs BRA 3-2 = 3`), explainer ya renderizaba líneas de componentes, docs raíz (AGENTS.md, README.md, docs/PROJECT.md). Plan en `aidlc-docs/construction/plans/unit-36-scoring-cumulativo-copy-mdx-plan.md`. Verificación: tsc 0, Biome limpio (5 src files), ESLint 0 (tocados), vitest 56/56 255/255. Sin reinicio."
+**Code change**: `i18n/{es,en}.ts`, `content/rules/{es,en}/scoring.mdx`, `content/rules/{es,en}/scoring-teaser.mdx`, `AGENTS.md`, `README.md`, `docs/PROJECT.md`. Docs: plan + state + audit.
+**Context**: Cierre completo de Unit 36 — algoritmo, tests, copy i18n, MDX rules/teaser, explainer UX del match summary y docs raíz alineados con scoring acumulativo.
+
+---
+
+## Unit 36 — Build and Test Complete
+**Timestamp**: 2026-06-17T00:52:00Z
+**User Input**: "Coninue" (continue approval after Code Generation)
+**AI Response**: "Treated the user's continuation as approval to proceed through Build and Test for Unit 36. Ran the full Vitest suite and `next build`. Updated `aidlc-state.md` and this audit log. Unit 36 closed."
+**Code change**: None beyond already-generated Unit 36 changes. Documentation updated: `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. Full Vitest suite **255/255**; `pnpm build` OK (all routes generated); `pnpm exec tsc --noEmit` OK; Biome OK; ESLint OK.
+**Context**: Unit 36 Build and Test complete. All Units 1–36 implemented and verified.
+
+---
+
+## Unit 36 — Code Generation Complete
+**Timestamp**: 2026-06-17T00:48:45Z
+**User Input**: "Approve and continue" (after Unit 36 Code Generation Part 1 plan)
+**AI Response**: "Executed Unit 36 Code Generation Part 2 directly after the build tool was cancelled. Updated `scoring-rules.ts` comments to additive semantics. Extended `ScoreBreakdown` with optional `components` field. Updated `computeScore()` to compute three independent component points (result 2, home goal 1, away goal 1) summed as `basePoints` for non-exact predictions; exact score returns 5 with no components. Updated `toBreakdown()` with `deriveComponents()` to reconstruct component info from persisted summary fields. Updated `ScoreBreakdownExplainer` to render component rows, and i18n dictionaries with additive copy and new keys. Updated `compute-score.test.ts` with additive cases (exact 5, result-only 2, result+goal 3, partial 1, miss 0, penalty additive). Added 8 `toBreakdown` component derivation tests to resolve-points test file. Created generation summary. Updated plan checkboxes, state, and audit. Verified: 49/49 tests, tsc 0, Biome clean, ESLint clean."
+**Code change**: Modified `src/features/scoring/scoring-rules.ts`, `src/features/scoring/compute-score.ts`, `src/features/scoring/__tests__/compute-score.test.ts`, `src/features/scoring-rankings/services/resolve-points.ts`, `src/features/scoring-rankings/services/__tests__/resolve-points.test.ts`, `src/features/education/components/score-breakdown-explainer.tsx`, `src/i18n/dictionaries/es.ts`, `src/i18n/dictionaries/en.ts`. Docs: `construction/unit-36-scoring-accumulative/code/generation-summary.md`, `construction/plans/unit-36-scoring-accumulative-code-generation-plan.md`, `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Focused scoring/rankings/education suite **49/49** passing; `pnpm exec tsc --noEmit` OK; Biome check on 8 touched `src` files OK; ESLint on 8 touched `src` files OK.
+**Context**: Unit 36 scoring-rule implementation complete. No schema/migration required. Old persisted scores retain old totals until recalculation. Exact score remains 5; non-exact basePoints now sums result (0 or 2), home goals (0 or 1), and away goals (0 or 1).
+
+---
+
+## Unit 36 — Code Generation Plan Ready
+**Timestamp**: 2026-06-17T00:41:40Z
+**User Input**: "Summarize the task tool output above and continue with your task."
+**AI Response**: "Summarized the build-tool result: Unit 36 Functional Design was created with plan and design artifacts, NFR/Infrastructure skipped formally, no application code changed, next gate Code Generation Part 1. Treated the user's continuation as approval of the Functional Design and proceeded only to Code Generation Part 1 planning. Reviewed the scoring engine, scoring constants, persisted breakdown adapter, explainer UI, dictionaries, and tests. Created `aidlc-docs/construction/plans/unit-36-scoring-accumulative-code-generation-plan.md` covering `computeScore`, optional breakdown components, persisted `toBreakdown`, explainer/copy updates, focused tests, generation summary and verification. Updated `aidlc-state.md` and this audit log in the same interaction. No application code changed. Awaiting explicit approval before Code Generation Part 2."
+**Code change**: None. Documentation only: `construction/plans/unit-36-scoring-accumulative-code-generation-plan.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Unit 36 Code Generation Part 1 approval gate. Planned application code paths are in workspace root under `src/features/scoring`, `src/features/scoring-rankings`, `src/features/education`, and `src/i18n`.
+
+---
+
+## Unit 36 — Functional Design Complete / Approval Gate
+**Timestamp**: 2026-06-17T00:39:49Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional):"
+**AI Response**: "Loaded the AI-DLC construction workflow, mandatory common rules, Functional Design and Code Generation rule details, current state, Unit 36 requirements/unit definition, and relevant scoring code. Treated Unit 36 as the only pending construction unit and executed the next safe stage: Functional Design light. Created the Unit 36 Functional Design plan and Functional Design artifact, marked plan checkboxes, updated `aidlc-state.md`, and logged this approval gate in the same interaction. NFR Requirements/Design and Infrastructure Design are skipped formally; no application code changed. Waiting for explicit approval before Code Generation Part 1."
+**Code change**: None. Documentation only: `construction/plans/unit-36-scoring-accumulative-functional-design-plan.md`, `construction/unit-36-scoring-accumulative/functional-design.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Unit 36 scoring-rule implementation. Application code remains untouched until the Code Generation plan is created and explicitly approved. No schema/migration is planned by Functional Design.
+
+---
+
+## Unit 35 — Build and Test Complete
+**Timestamp**: 2026-06-17T00:34:55Z
+**User Input**: "Summarize the task tool output above and continue with your task."
+**AI Response**: "Summarized the build-tool result: Unit 35 Code Generation completed after approval, creating the shared `revalidateResultViews()` helper, integrating it into `forceMatchResult`, `revertMatchOverride`, and `triggerSync`, adding focused tests, updating cache-tag comments, and leaving Unit 36 unimplemented. Treated the user's continuation as approval to proceed through Build and Test. Reviewed the generated code and confirmed admin actions no longer call `revalidateTag(tag, \"max\")`; the shared helper uses `updateTag` and route revalidation for user/admin views. Re-ran the Unit 35 focused Vitest suite, TypeScript, Biome, and ESLint. Updated `aidlc-state.md` and this audit log in the same interaction."
+**Code change**: No new application code beyond the already generated Unit 35 changes. Documentation updated: `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. Focused Unit 35 Vitest suite **17/17**; `pnpm exec tsc --noEmit` OK; Biome check on touched `src` files OK; ESLint on touched `src` files OK.
+**Context**: Unit 35 Build and Test complete. Unit 36 scoring-rule implementation remains separate and pending explicit prioritization.
+
+---
+
+## Unit 35 — Code Generation Complete / Build and Test Gate
+**Timestamp**: 2026-06-17T00:32:12Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional): aprove and continue"
+**AI Response**: "Treated `aprove and continue` as explicit approval of Unit 35 Code Generation Part 1 plan and executed Part 2. Implemented shared `revalidateResultViews()` using `updateTag` for `COMPETITION_FIXTURE_TAG`/`RANKINGS_TAG` plus `revalidatePath` for `/matches`, `/rankings`, `/pools`, `/pools/[id]`, `/pools/[id]/leaderboard`, and optional admin routes. Integrated it into `forceMatchResult`, `revertMatchOverride`, and `triggerSync` only after successful mutation/scoring paths. Added focused helper/action tests, updated cache-tag comments, created generation summary, marked all Unit 35 plan checkboxes, and updated `aidlc-state.md` in the same interaction. Unit 36 was not implemented. Awaiting explicit approval to proceed to Build and Test."
+**Code change**: Created `src/features/admin/services/revalidate-result-views.ts`, `src/features/admin/services/__tests__/revalidate-result-views.test.ts`, `src/features/admin/actions/__tests__/force-result.test.ts`, `src/features/admin/actions/__tests__/trigger-sync.test.ts`; modified `src/features/admin/actions/{force-result,revert-override,trigger-sync}.ts`, `src/features/admin/actions/__tests__/revert-override.test.ts`, `src/features/competition/cache-tags.ts`, `src/features/scoring-rankings/cache-tags.ts`. Docs AI-DLC: `construction/plans/unit-35-cache-invalidation-code-generation-plan.md`, `construction/unit-35-cache-invalidation/code/generation-summary.md`, `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Focused Unit 35 Vitest suite **17/17** passing; `pnpm exec tsc --noEmit` OK; Biome check on touched `src` files OK; ESLint on touched `src` files OK.
+**Context**: Construction Phase per-unit loop for approved Unit 35. Security Baseline remains compliant: admin guards and audit logging preserved; no schema, infra, auth, scoring, UI, or Unit 36 changes.
+
+---
+
+## Unit 35 — Code Generation Plan Ready
+**Timestamp**: 2026-06-17T00:23:37Z
+**User Input**: "Summarize the task tool output above and continue with your task." → follow-up: "Continue if you have next steps, or stop and ask for clarification if you are unsure how to proceed."
+**AI Response**: "Treated the user's continuation as approval to advance Unit 35 from Functional Design to Code Generation Part 1 only. Detected a concurrent Unit 36 documentation delta in `aidlc-docs` and preserved it. Created `aidlc-docs/construction/plans/unit-35-cache-invalidation-code-generation-plan.md` with explicit Part 2 steps: shared `revalidateResultViews` helper using `updateTag` + `revalidatePath`, integration into `forceMatchResult`, `revertMatchOverride`, and `triggerSync`, cache tag comments, focused action/helper tests, generation summary, verification commands and progress tracking. Updated `aidlc-state.md` and this audit log. No application code changed. Awaiting explicit approval before Code Generation Part 2."
+**Code change**: None. Documentation only: `construction/plans/unit-35-cache-invalidation-code-generation-plan.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Code Generation Part 1 approval gate. Planned application code paths are in workspace root under `src/features/admin/...`; Unit 36 scoring-rule implementation remains separate and was not started.
+
+---
+
+## Unit 36 — Scoring acumulativo por ganador y goles acertados (`/aidlc` delta)
+**Timestamp**: 2026-06-17T00:35:00Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units, and do NOT restart already-approved stages. Log the change in `aidlc-docs/audit.md`. Change: Hay un cambio en las reglas del juego. Los puntajes de acertar el ganador y un gol se suman. Por ejemplo BRA vs ARG queda 2 -1 y mi predicción fue BRA 3 y ARG 2 me llevo 3 puntos, 1 punto por gol y 2 puntos por ganador."
+**AI Response**: "Applied the scoring-rule change as a documentation/refine delta over existing AI-DLC artifacts. New Unit 36 / Épica 35 states that exact score remains 5; if not exact, correct winner/draw adds 2 and each team goal count matched adds 1, stacking together. Canonical example recorded: real `BRA 2-1 ARG`, prediction `BRA 3-2 ARG` = 3 points (2 winner + 1 ARG goal). Penalty bonus remains +1 additional. Updated Unit 2 canonical scoring rules/algorithm, Unit 6 scoring/rankings dependent design, Unit 14 penalty note, user story US-5.1, application design, unit map/state and audit. Did not restart approved stages; Unit 35 remains Functional Design complete / awaiting approval. No application code changed."
+**Code change**: None. Docs AI-DLC only: `inception/requirements/requirements.md`, `inception/user-stories/{stories,story-generation-plan}.md`, `inception/application-design/{components,unit-of-work}.md`, Unit 2 functional/NFR docs, Unit 6 functional/code-summary docs, Unit 14 functional design, `aidlc-state.md`, `audit.md`.
+**Context**: Rule change affects future `computeScore` implementation and score breakdown copy. No schema/migration is required by default, but implementation must verify whether current `ScoreBreakdown` can represent accumulated components without schema changes.
+
+---
+
+## Unit 35 — Functional Design Complete / Approval Gate
+**Timestamp**: 2026-06-17T00:21:44Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional):"
+**AI Response**: "Loaded the AI-DLC core workflow, mandatory common rules, Unit 35 execution plan, requirements, unit-of-work definition, construction Functional Design and Code Generation rules, and enabled Security Baseline rules. Treated Unit 35 as the active approved construction target. Created the Functional Design plan with checkboxes at `aidlc-docs/construction/plans/unit-35-cache-invalidation-functional-design-plan.md` and the light Functional Design at `aidlc-docs/construction/unit-35-cache-invalidation/functional-design.md`. NFR consistency is embedded in Functional Design; NFR Requirements/Design and Infrastructure Design are skipped. No application code changed. Updated `aidlc-state.md` and this audit entry in the same interaction. Awaiting explicit approval before Code Generation Part 1."
+**Code change**: None. Documentation only under `aidlc-docs/`: Functional Design plan, Unit 35 Functional Design, `aidlc-state.md`, `audit.md`.
+**Context**: Construction Phase per-unit loop stopped at the Functional Design approval gate. Security Baseline: SECURITY-08 and SECURITY-13 compliant through existing admin guards/audit behavior; other rules N/A for cache invalidation-only design.
+
+---
+
+## Unit 35 — Workspace Detection + Requirements + Workflow Plan Ready
+**Timestamp**: 2026-06-17T00:18:40Z
+**User Input**: "Treat this as a \"Using AI-DLC, ...\" message. Read and follow `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md` (rule details resolve to `.aidlc/aidlc-rules/aws-aidlc-rule-details/`). Run Workspace Detection first, honor ALL approval gates, and log every interaction in `aidlc-docs/audit.md`. Intent: Esto es un bug, cuando ejecuto forzar resultados o revierto el resultado y luego cuando entro como un usuario a /matches tengo que refrescar el navegador dos veces para ver esa página actualizada, pasa lo mismo en el ranking y los pools. No se si es que hay un evento que hace que tarda o un tema de cache" → follow-up: "Crea el plan".
+**AI Response**: "Loaded core workflow and common rules, ran Workspace Detection, inspected cache-related code paths and Next.js documentation. Findings: existing AI-DLC brownfield project; reverse-engineering rerun skipped for scoped refine; Security Baseline enabled; no extension opt-in files found. Root-cause hypothesis: admin actions use `revalidateTag(tag, \"max\")`, which Next.js treats as stale-while-revalidate, so the first user navigation can receive stale data and the second sees fresh data. Affected routes are not explicitly invalidated. Created Unit 35 requirements and execution plan; added Unit 35 to unit-of-work and state. No application code changed."
+**Code change**: None. Docs AI-DLC only: `inception/requirements/requirements.md` (Épica 34 / FR-REFINE-35), `inception/application-design/unit-of-work.md` (Unit 35 + sequence #21), `inception/plans/unit-35-cache-invalidation-execution-plan.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Plan stops at approval gate. Proposed next stage is Functional Design (light), then Code Generation Part 1 plan, then explicit approval before application code changes.
+
+---
+
 ## Unit 34 — Code Generation Complete + Build and Test
 **Timestamp**: 2026-06-17T00:00:00Z
 **User Input**: "Summarize the task tool output above and continue with your task." (continuation approval after Code Generation Part 1 plan)

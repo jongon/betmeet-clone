@@ -52,7 +52,7 @@
 - [x] Integrar `ScoreBreakdownExplainer` (Unit 2) en `PredictionVsResult` cuando `pointsStatus === SCORED`, usando `breakdown`.
 
 ### Step 8 — Tests
-- [x] `score-match` (casos exacto/resultado/parcial/miss/penales vía adaptador; idempotencia; limpieza en cancelado), `ranking` (dense "1,1,2"), `getPoolLeaderboard` (orden + 0 puntos), `resolvePoints` (SCORED/PENDING/NOT_SCORED). Prisma mockeado.
+- [x] `score-match` (casos exacto, resultado + goles acumulables, miss y penales vía adaptador; idempotencia; limpieza en cancelado), `ranking` (dense "1,1,2"), `getPoolLeaderboard` (orden + 0 puntos), `resolvePoints` (SCORED/PENDING/NOT_SCORED). Prisma mockeado.
 
 ### Step 9 — Documentación
 - [x] `aidlc-docs/construction/unit-6-scoring-rankings/code/generation-summary.md`.

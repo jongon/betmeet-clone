@@ -1275,3 +1275,59 @@ El cambio aplica a `/admin/matches` y sus controles de override/reversión. No c
 | `src/features/admin/queries.ts` | Incluir/derivar `homeTeam.fifaCode` y `awayTeam.fifaCode` en el DTO admin si no está disponible. |
 | `src/features/admin/components/*` | Renderizar la etiqueta `BRA vs ARG` en filas y diálogos de `/admin/matches`. |
 | `src/features/admin/__tests__/*` | Verificar etiqueta por códigos y fallback a placeholders. |
+
+---
+
+## Épica 34: Refine Unit 35 — Invalidación inmediata de caché tras mutaciones admin (2026-06-17)
+
+**Intent del usuario**: "Esto es un bug, cuando ejecuto forzar resultados o revierto el resultado y luego cuando entro como un usuario a /matches tengo que refrescar el navegador dos veces para ver esa página actualizada, pasa lo mismo en el ranking y los pools. No se si es que hay un evento que hace que tarda o un tema de cache".
+
+Refine post-construcción sobre Unit 7 (Admin), Unit 31 (revert override), Unit 22/27 (performance/caché) y Unit 6 (scoring/rankings). **No** reinicia etapas aprobadas. Sin cambios de schema, migraciones ni rutas nuevas.
+
+### FR-REFINE-35.1 — Lectura inmediata tras forzar resultado
+Después de `forceMatchResult()`, las vistas de usuario afectadas deben mostrar el nuevo resultado y puntaje en la siguiente navegación/refresco normal, sin requerir dos refreshes del navegador.
+
+### FR-REFINE-35.2 — Lectura inmediata tras revertir resultado
+Después de `revertMatchOverride()`, `/matches`, `/rankings` y rankings de ligas deben reflejar la limpieza del resultado y la eliminación de puntos en la siguiente navegación/refresco normal, sin depender del stale-while-revalidate.
+
+### FR-REFINE-35.3 — Lectura inmediata tras sync admin
+Después de `triggerSync()`, las mismas vistas afectadas por resultados y scoring deben invalidarse de forma consistente, porque el sync puede modificar fixtures, estados, scores y rankings.
+
+### FR-REFINE-35.4 — Política de invalidación compartida
+Las acciones admin que mutan resultados/scoring deben usar una política común de invalidación para evitar divergencias entre `force-result`, `revert-override` y `trigger-sync`.
+
+### NFR-REFINE-35.1 — Consistencia de caché sobre latencia
+Para mutaciones admin explícitas se prioriza consistencia inmediata sobre stale-while-revalidate. En Server Actions se debe usar semántica de expiración inmediata para caches tagged de fixture/rankings (Next.js `updateTag`) y revalidar rutas de usuario afectadas (`revalidatePath`).
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas nuevas, cambios de auth ni cambios de scoring matemático.
+- No tocar cambios no relacionados del worktree (actualmente `src/features/competition/components/match-card.tsx`).
+- Security Baseline intacto: solo admins siguen pudiendo ejecutar mutaciones (`getAdminUserId()` existente).
+
+---
+
+## Épica 35: Refine Unit 36 — Scoring acumulativo por ganador y goles acertados (2026-06-17)
+
+**Intent del usuario**: "Hay un cambio en las reglas del juego. Los puntajes de acertar el ganador y un gol se suman. Por ejemplo BRA vs ARG queda 2 -1 y mi predicción fue BRA 3 y ARG 2 me llevo 3 puntos, 1 punto por gol y 2 puntos por ganador."
+
+Refine post-construcción sobre Unit 2 (educación/calculadora) y Unit 6 (scoring/rankings). **No** reinicia etapas aprobadas ni la Unit 35 en curso. Sin cambios de schema ni rutas nuevas; cambia la matemática de `computeScore` y los desgloses persistidos a partir del próximo recálculo.
+
+### FR-REFINE-36.1 — Puntaje base acumulativo
+El puntaje base deja de ser mutuamente excluyente entre resultado y goles. Se calcula como la suma de:
+- **5 puntos** si el marcador exacto coincide (local y visitante). En este caso no se suman puntos adicionales por resultado/goles, para conservar el valor máximo histórico de exacto.
+- **2 puntos** si el resultado coincide: mismo ganador o mismo empate.
+- **1 punto por cada equipo cuyo número de goles coincida** con el resultado real, cuando no haya marcador exacto. Puede otorgar 0, 1 o 2 puntos por goles acertados.
+
+### FR-REFINE-36.2 — Ejemplo canónico
+Si el resultado real es `BRA 2 - 1 ARG` y la predicción fue `BRA 3 - 2 ARG`, el usuario recibe **3 puntos**: 2 por ganador correcto (`BRA`) + 1 por acertar un gol de ARG.
+
+### FR-REFINE-36.3 — Bonus de penales se mantiene adicional
+El bonus de penales en knockout sigue siendo **+1 adicional** cuando aplica. El total final es `basePoints + penaltyPoints`, donde `basePoints` refleja el nuevo cálculo acumulativo.
+
+### FR-REFINE-36.4 — Desglose visible y persistido
+El desglose debe explicar componentes acumulados (resultado correcto, goles local, goles visitante, exacto, penales) en vez de presentar un único caso excluyente `RESULT`/`PARTIAL`. Si el schema actual conserva `matchedCase`, puede mantenerse como clasificación resumida para compatibilidad interna, pero la UI/copy debe mostrar la suma real de componentes.
+
+### Restricciones / SKIP
+- **Sin** schema/migraciones salvo que la implementación demuestre que el desglose actual no puede representar la suma de componentes.
+- No cambia locks de predicción, rankings, admin override, sync ni reglas de penales.
+- Unit 35 sigue pendiente de Functional Design; este refine no la reinicia.
