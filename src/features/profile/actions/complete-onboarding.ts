@@ -19,5 +19,11 @@ export async function completeOnboarding() {
     return { error: "Profile not found" };
   }
 
+  // Mint a fresh token so the updated `onboarding_completed` claim is reflected
+  // immediately. The Custom Access Token Hook only runs on sign-in/refresh, so
+  // without this the proxy's onboarding gate would keep bouncing the user until
+  // the token naturally refreshes.
+  await supabase.auth.refreshSession();
+
   return { success: true };
 }

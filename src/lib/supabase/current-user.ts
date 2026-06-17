@@ -1,32 +1,43 @@
-import type { User } from "@supabase/supabase-js";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * The authenticated Supabase user for the current request, or null.
+ * Identity derived from the request's JWT claims. Only the fields the app reads
+ * downstream (`id`, `email`, `emailVerified`) — not the full Supabase `User`.
+ */
+export type AuthUser = {
+  id: string;
+  email: string | null;
+  emailVerified: boolean;
+};
+
+/**
+ * The authenticated user for the current request, or null.
  *
  * Wrapped in React `cache()` so every server component, query and action in a
- * single render/request shares ONE `auth.getUser()` round-trip to the Supabase
- * Auth server (GoTrue) instead of each calling it independently
- * (NFR-PERF-REFINE-22.1, Unit 22). Before this, a single `/matches` render made
- * two sequential `getUser()` calls — the `(app)` layout via `getProfile()` and
- * the page via `getCurrentUserId()` — on top of the middleware's own call.
+ * single render/request shares ONE call instead of each calling it
+ * independently (NFR-PERF-REFINE-22.1, Unit 22).
  *
- * Scope note: the middleware in `src/proxy.ts` runs in a separate invocation and
- * is intentionally NOT deduplicated here.
+ * Uses `getClaims()` (not `getUser()`): with asymmetric JWT signing keys enabled
+ * in the Supabase project, `getClaims()` verifies the token signature LOCALLY
+ * (public JWKS, cached) instead of a network round-trip to the Auth server on
+ * every request. `email_confirmed_at` is not a standard JWT claim, so a Custom
+ * Access Token Hook injects `email_verified` (and `onboarding_completed`) — see
+ * prisma/migrations/20260617120000_auth_access_token_hook.
  *
- * Why `getUser()` and not `getClaims()`: `getUser()` validates the JWT against
- * the Auth server (it does not trust the cookie) and returns the full user,
- * including `email_confirmed_at` — which is NOT a JWT claim (see auth-js
- * `JwtPayload`). The email-confirmed gate therefore depends on this. Migrating
- * to `getClaims()` (local verification) only pays off once asymmetric JWT signing
- * keys are enabled in the Supabase project (Operations) and needs a custom claim
- * for `email_confirmed_at`; tracked as a follow-up to NFR-PERF-REFINE-22.1.
+ * Scope note: the proxy in `src/proxy.ts` runs in a separate invocation and is
+ * intentionally NOT deduplicated here.
  */
-export const getAuthUser = cache(async (): Promise<User | null> => {
+export const getAuthUser = cache(async (): Promise<AuthUser | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = error ? null : (data?.claims ?? null);
+  if (!claims || typeof claims.sub !== "string") return null;
+
+  const record = claims as Record<string, unknown>;
+  return {
+    id: claims.sub,
+    email: typeof record.email === "string" ? record.email : null,
+    emailVerified: record.email_verified === true,
+  };
 });

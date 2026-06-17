@@ -3,18 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { queueNotificationEvents } from "./events";
 
 export async function getGlobalRankSnapshot() {
-  const rows = await prisma.profile.findMany({
-    where: { deletedAt: null },
-    select: {
-      id: true,
-      predictionScores: { select: { totalPoints: true } },
-    },
-  });
+  // Sum points in the DB (one aggregated groupBy) instead of fetching every
+  // profile joined with all its prediction scores and reducing in JS. We still
+  // include all non-deleted profiles (even those with zero points, which share
+  // the last dense position) so rank positions match the previous behaviour.
+  const [profiles, totalsByUser] = await Promise.all([
+    prisma.profile.findMany({ where: { deletedAt: null }, select: { id: true } }),
+    prisma.predictionScore.groupBy({ by: ["userId"], _sum: { totalPoints: true } }),
+  ]);
 
-  const sorted = rows
-    .map((row) => ({
-      userId: row.id,
-      totalPoints: row.predictionScores.reduce((sum, score) => sum + score.totalPoints, 0),
+  const totals = new Map(totalsByUser.map((t) => [t.userId, t._sum.totalPoints ?? 0]));
+
+  const sorted = profiles
+    .map((profile) => ({
+      userId: profile.id,
+      totalPoints: totals.get(profile.id) ?? 0,
     }))
     .sort((a, b) => b.totalPoints - a.totalPoints || a.userId.localeCompare(b.userId));
 

@@ -1,6 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "../services/session";
 
@@ -41,6 +42,8 @@ export async function joinPublicPool(poolId: string) {
     return { error: "No se pudo unir a la liga." };
   }
 
+  // Membership change invalidates the cached pool leaderboard (RANKINGS_TAG).
+  updateTag(RANKINGS_TAG);
   revalidatePath("/pools");
   revalidatePath(`/pools/${poolId}`);
   // Successful join redirects straight to the pool page (FR-REFINE-13.5).

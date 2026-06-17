@@ -77,8 +77,50 @@ export async function getGlobalRanking(viewerId: string | null): Promise<Leaderb
 }
 
 /**
+ * A pool's leaderboard WITHOUT the per-viewer `isViewer` flag (always false). Like
+ * the global ranking it only changes when prediction scores or memberships change,
+ * so it is cached per `poolId` and invalidated by {@link RANKINGS_TAG} instead of
+ * re-querying every member (with a full profile row) and re-aggregating on every
+ * pool/leaderboard view. The output is serializable, so it survives the cache
+ * boundary. `unstable_cache` keys on the arguments, so each pool is cached
+ * separately.
+ */
+const getPoolLeaderboardRows = unstable_cache(
+  async (poolId: string): Promise<LeaderboardRow[]> => {
+    const members = await prisma.poolMembership.findMany({
+      where: { poolId },
+      select: {
+        userId: true,
+        user: {
+          select: { nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true },
+        },
+      },
+    });
+
+    const totals = await userTotals(members.map((m) => m.userId));
+
+    const rows = members
+      .map((m) => ({
+        userId: m.userId,
+        nickname: formatNickname(m.user.nicknameBase, m.user.nicknameDiscriminator),
+        avatarUrl: m.user.avatarUrl,
+        totalPoints: totals.get(m.userId) ?? 0,
+        isViewer: false as boolean,
+      }))
+      .sort((a, b) => b.totalPoints - a.totalPoints);
+
+    return assignDensePositions(rows);
+  },
+  ["pool-leaderboard"],
+  { tags: [RANKINGS_TAG], revalidate: 300 },
+);
+
+/**
  * Pool leaderboard (BL-5, US-5.2). Only members may view it (BR-6.16); returns
  * null for non-members. Dense ranking, members with no scores show 0.
+ *
+ * The ranking itself is cached ({@link getPoolLeaderboardRows}); only the
+ * membership check and the per-viewer `isViewer` flag run per request.
  */
 export async function getPoolLeaderboard(
   poolId: string,
@@ -89,22 +131,6 @@ export async function getPoolLeaderboard(
   });
   if (!viewerMembership) return null;
 
-  const members = await prisma.poolMembership.findMany({
-    where: { poolId },
-    include: { user: true },
-  });
-
-  const totals = await userTotals(members.map((m) => m.userId));
-
-  const rows = members
-    .map((m) => ({
-      userId: m.userId,
-      nickname: formatNickname(m.user.nicknameBase, m.user.nicknameDiscriminator),
-      avatarUrl: m.user.avatarUrl,
-      totalPoints: totals.get(m.userId) ?? 0,
-      isViewer: m.userId === viewerId,
-    }))
-    .sort((a, b) => b.totalPoints - a.totalPoints);
-
-  return assignDensePositions(rows);
+  const rows = await getPoolLeaderboardRows(poolId);
+  return rows.map((row) => ({ ...row, isViewer: row.userId === viewerId }));
 }

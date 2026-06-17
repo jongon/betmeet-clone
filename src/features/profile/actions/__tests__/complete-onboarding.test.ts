@@ -13,7 +13,10 @@ describe("completeOnboarding", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createClient).mockResolvedValue({
-      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }) },
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-1" } } }),
+        refreshSession: vi.fn().mockResolvedValue({ data: {}, error: null }),
+      },
     } as never);
     vi.mocked(prisma.profile.updateMany).mockResolvedValue({ count: 1 } as never);
   });

@@ -32,13 +32,22 @@ export const sanitizeConnectionString = (urlStr: string): string => {
   }
 };
 
+// Connections each serverless instance keeps open against the Supabase
+// transaction pooler. With Vercel Fluid Compute one instance serves several
+// concurrent requests, so too low a limit (the old hardcoded 3) queues queries
+// and shows up as latency. Tunable via env, bounded by the pooler's pool size.
+const resolveConnectionLimit = (): number => {
+  const raw = Number.parseInt(process.env.DB_CONNECTION_LIMIT ?? "", 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 5;
+};
+
 const createPrismaClient = () => {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error("DATABASE_URL is required");
   const sanitized = sanitizeConnectionString(connectionString);
-  const pooled = sanitized.includes("?connection_limit=")
+  const pooled = sanitized.includes("connection_limit=")
     ? sanitized
-    : `${sanitized}${sanitized.includes("?") ? "&" : "?"}connection_limit=3`;
+    : `${sanitized}${sanitized.includes("?") ? "&" : "?"}connection_limit=${resolveConnectionLimit()}`;
   const adapter = new PrismaPg({ connectionString: pooled });
   return new PrismaClient({ adapter });
 };

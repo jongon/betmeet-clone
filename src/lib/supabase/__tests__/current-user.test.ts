@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { getUser } = vi.hoisted(() => ({ getUser: vi.fn() }));
+const { getClaims } = vi.hoisted(() => ({ getClaims: vi.fn() }));
 
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { getUser } })),
+  createClient: vi.fn(async () => ({ auth: { getClaims } })),
 }));
 
 // `getAuthUser` is wrapped in React `cache()` (created at module eval). Reset the
@@ -15,16 +15,37 @@ describe("getAuthUser", () => {
     vi.resetModules();
   });
 
-  it("returns the authenticated user from the Auth server", async () => {
-    getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+  it("derives the user from the verified JWT claims", async () => {
+    getClaims.mockResolvedValue({
+      data: { claims: { sub: "user-1", email: "a@b.com", email_verified: true } },
+      error: null,
+    });
     const { getAuthUser } = await import("../current-user");
 
-    expect(await getAuthUser()).toEqual({ id: "user-1" });
-    expect(getUser).toHaveBeenCalledTimes(1);
+    expect(await getAuthUser()).toEqual({
+      id: "user-1",
+      email: "a@b.com",
+      emailVerified: true,
+    });
+    expect(getClaims).toHaveBeenCalledTimes(1);
+  });
+
+  it("defaults email/emailVerified when the claims omit them", async () => {
+    getClaims.mockResolvedValue({ data: { claims: { sub: "user-2" } }, error: null });
+    const { getAuthUser } = await import("../current-user");
+
+    expect(await getAuthUser()).toEqual({ id: "user-2", email: null, emailVerified: false });
   });
 
   it("returns null when there is no session", async () => {
-    getUser.mockResolvedValue({ data: { user: null } });
+    getClaims.mockResolvedValue({ data: null, error: null });
+    const { getAuthUser } = await import("../current-user");
+
+    expect(await getAuthUser()).toBeNull();
+  });
+
+  it("returns null when claim verification errors", async () => {
+    getClaims.mockResolvedValue({ data: null, error: new Error("invalid") });
     const { getAuthUser } = await import("../current-user");
 
     expect(await getAuthUser()).toBeNull();

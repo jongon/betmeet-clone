@@ -22,6 +22,11 @@ const cspHeader = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  // Keep the Postgres driver (and its native deps) out of the per-route server
+  // bundle so each serverless function stays small and cold-starts faster. The
+  // Prisma client uses the `@prisma/adapter-pg` driver adapter over `pg`, which
+  // must run in Node (it is not bundleable/edge-safe).
+  serverExternalPackages: ["@prisma/adapter-pg", "pg"],
   images: {
     remotePatterns: [{ hostname: "lh3.googleusercontent.com" }, { hostname: supabaseHostname }],
   },

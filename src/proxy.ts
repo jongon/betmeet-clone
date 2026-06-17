@@ -64,21 +64,30 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verify the JWT LOCALLY via asymmetric signing keys (no round-trip to the
+  // Auth server). A Custom Access Token Hook carries the gates we need as claims:
+  // `email_verified` and `onboarding_completed` (email_confirmed_at and the
+  // profile flag are not standard JWT claims) — see
+  // prisma/migrations/20260617120000_auth_access_token_hook.
+  const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+  const claims = claimsError ? null : (claimsData?.claims ?? null);
+  const record = claims as Record<string, unknown> | null;
+  const isAuthenticated = typeof record?.sub === "string";
 
   const { pathname, search } = request.nextUrl;
   // Original destination to return to after auth/onboarding (FR-REFINE-13.1/13.2).
   const intendedPath = `${pathname}${search}`;
 
-  // A session whose email is not yet confirmed must not reach the app. When
-  // Supabase "Confirm email" is enabled an unconfirmed user has a null
-  // `email_confirmed_at`; OAuth/confirmed users have it set (FR-REFINE-15.14).
-  const emailConfirmed = !user || Boolean(user.email_confirmed_at);
+  // A session whose email is not yet confirmed must not reach the app
+  // (FR-REFINE-15.14). Gate only on an EXPLICIT `email_verified === false`: a
+  // missing claim (e.g. a token minted before the Custom Access Token Hook was
+  // enabled, still valid until it refreshes) fails OPEN so existing sessions are
+  // not bounced en masse on deploy. Such tokens belong to users who already had
+  // a session, which requires a confirmed email to begin with.
+  const emailConfirmed = !isAuthenticated || record?.email_verified !== false;
 
   // Unauthenticated users can only access public routes
-  if (!user && !isPublic(pathname)) {
+  if (!isAuthenticated && !isPublic(pathname)) {
     const signInUrl = new URL("/sign-in", request.url);
     // Preserve the intended destination (e.g. an invite link) so the user returns
     // to it after signing in (FR-REFINE-13.1).
@@ -92,7 +101,7 @@ export async function proxy(request: NextRequest) {
   // resend / change-email). Public routes — including /verify-email itself,
   // /auth/confirm and /auth/callback — are left reachable so confirmation can
   // complete (FR-REFINE-15.14).
-  if (user && !emailConfirmed) {
+  if (isAuthenticated && !emailConfirmed) {
     if (!isPublic(pathname)) {
       return NextResponse.redirect(new URL(VERIFY_EMAIL_ROUTE, request.url));
     }
@@ -105,7 +114,7 @@ export async function proxy(request: NextRequest) {
   // /sign-in via server actions (getMfaFactors / verifyMfa). Bouncing them to
   // /matches here turns those action POSTs into redirects, surfacing as an
   // "unexpected response" error and blocking sign-in. Let aal1-pending users stay.
-  if (user && isAuthOnly(pathname)) {
+  if (isAuthenticated && isAuthOnly(pathname)) {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const mfaPending = aal?.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
     if (!mfaPending) {
@@ -114,24 +123,16 @@ export async function proxy(request: NextRequest) {
   }
 
   // Confirmed users who have not finished onboarding are gated to it, using the
-  // explicit `onboarding_completed` flag (FR-REFINE-15.13). Gate ONLY on a
-  // positively-determined incomplete profile:
-  //   - a row exists with the flag false, or
-  //   - no row exists yet (brand-new user; maybeSingle returns null, no error).
-  // A genuine READ ERROR (e.g. PostgREST schema-cache reload / PGRST002, or any
-  // data-API outage) must fail OPEN. The onboarding page reads the profile via
-  // Prisma (direct Postgres, a different data path), so if the data API is down
-  // here but Prisma sees a completed profile there, a fail-closed gate would
-  // bounce the user /matches → /onboarding → /matches forever. Failing open
-  // turns an API hiccup into "onboarding check skipped" instead of a lockout.
-  if (user && !isPublic(pathname) && pathname !== ONBOARDING_ROUTE) {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (!error && !profile?.onboarding_completed) {
+  // `onboarding_completed` claim injected by the Custom Access Token Hook
+  // (FR-REFINE-15.13). The hook emits an EXPLICIT false for a new user (profile
+  // missing or flag false), so new users are gated; the onboarding page
+  // self-heals a missing profile via Prisma. Completing onboarding refreshes the
+  // token (completeOnboarding → refreshSession) so this gate clears immediately.
+  // A MISSING claim (token minted before the hook existed) fails OPEN to avoid
+  // bouncing existing sessions on deploy; the action layer (getOnboardedUserId,
+  // Prisma) is the authoritative defense-in-depth check for mutations.
+  if (isAuthenticated && !isPublic(pathname) && pathname !== ONBOARDING_ROUTE) {
+    if (record?.onboarding_completed === false) {
       const onboardingUrl = new URL(ONBOARDING_ROUTE, request.url);
       // Continue to the intended destination once onboarding completes
       // (FR-REFINE-13.2 / 12.7).
