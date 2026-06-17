@@ -30,6 +30,11 @@ function forceMatchResult(matchId, input):
     isKnockout = match.phase.type == 'KNOCKOUT'
     tied = input.homeScore == input.awayScore
     if isKnockout and tied and input.penaltyWinnerTeamId == null: reject (BR-7.3)
+    // FR-REFINE-36.6: server-side derivation check
+    if isKnockout and tied and penalty scores present:
+        derived = derivePenaltyWinner(homePenaltyScore, awayPenaltyScore)
+        expectedTeamId = match[derived == 'home' ? 'homeTeamId' : 'awayTeamId']
+        if expectedTeamId != penaltyWinnerTeamId: reject
 
     winnerTeamId = resolveWinner(input, match)   // ganador por marcador, o penaltyWinner si knockout+empate
 

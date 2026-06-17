@@ -59,7 +59,7 @@ AdminMatchesPage
 |---|---|
 | `homeScore` / `awayScore` | enteros ≥ 0 (steppers) |
 | `homePenaltyScore` / `awayPenaltyScore` | solo si knockout |
-| `penaltyWinnerSelector` | visible solo si knockout **y** marcador empatado (BR-7.3) |
+| `penaltyWinnerDisplay` | visible solo si knockout **y** marcador empatado (BR-7.3). El ganador se **deriva automáticamente** de `homePenaltyScore`/`awayPenaltyScore` vía `derivePenaltyWinner()`; no hay selector manual. Si la tanda está empatada, muestra error y deshabilita submit (FR-REFINE-36.7). |
 | `reason` | textarea 1–500 (obligatorio) |
 
 - Submit → `forceMatchResult(matchId, input)`; al éxito refresca y muestra el nuevo marcador + badge override.

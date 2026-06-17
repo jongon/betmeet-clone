@@ -15,9 +15,10 @@
 | ID | Regla |
 |---|---|
 | **BR-7.2** | El override fija `homeScore`/`awayScore` (enteros ≥ 0), opcionalmente penales y ganador (knockout), pone `status = FINISHED`, `manualOverride = true`, y registra `overriddenByUserId`, `overriddenAt`, `manualOverrideReason` (1–500). |
-| **BR-7.3** | En knockout con marcador **empatado**, `penaltyWinnerTeamId` es **obligatorio** (debe ser home o away) para que aplique el bonus de penales del scoring. En no-empate o fase de grupos no se pide. |
+| **BR-7.3** | En knockout con marcador **empatado**, `penaltyWinnerTeamId` es **obligatorio** para que aplique el bonus de penales del scoring. En no-empate o fase de grupos no se pide. **Desde FR-REFINE-36.5, el ganador se deriva automáticamente de `homePenaltyScore`/`awayPenaltyScore` vía `derivePenaltyWinner()`; ya no se selecciona manualmente.** |
 | **BR-7.4** | Solo se puede forzar el resultado de un partido con equipos definidos (`homeTeamId` y `awayTeamId` presentes); no se fuerza sobre un partido con placeholders. |
 | **BR-7.5** | Tras forzar el resultado se dispara **`scoreMatch(matchId)` de forma síncrona** (recalcula a todos los usuarios), en la misma operación (US-6.2 AC, Q1). |
+| **BR-7.16** | Server-side: si `homePenaltyScore`/`awayPenaltyScore` están presentes, el `penaltyWinnerTeamId` recibido debe coincidir con `derivePenaltyWinner()` aplicado a esos scores. Si se recibe un ganador contradictorio, se rechaza con error (FR-REFINE-36.6). |
 
 ## Precedencia override vs API (Q2 = "La API gana")
 
