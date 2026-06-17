@@ -37,9 +37,12 @@ export async function handleGoogleCallback(userId: string) {
   const googleAvatarUrl = userData.user.user_metadata?.avatar_url as string | undefined;
 
   if (googleAvatarUrl) {
-    // Update avatar only if current source is DEFAULT_SET (don't override custom uploads)
+    // Refresh Google photo URL on every sign-in unless the user has a custom upload
     const profile = await prisma.profile.findUnique({ where: { id: userId } });
-    if (profile && profile.avatarSource === "DEFAULT_SET") {
+    if (
+      profile &&
+      (profile.avatarSource === "DEFAULT_SET" || profile.avatarSource === "GOOGLE_PHOTO")
+    ) {
       await prisma.profile.update({
         where: { id: userId },
         data: {
