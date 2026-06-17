@@ -683,3 +683,20 @@
   - El `fifaCode` sigue siendo la identidad canónica del equipo; `providerTeamId` es metadata sin restricción de unicidad.
   - Sin cambios de código en `upsertTeam`, `sync-orchestrator`, `football-data.ts`, `seed-matches.ts` ni `trigger-sync.ts`.
   - Sin cambios de UI, rutas, scoring, predicciones ni auth.
+
+---
+
+## Épica 40: Contraste del selector de tipo de sync en `/admin` dark mode (Unit 40 — añadida vía refine)
+
+> Refine UI-only sobre Unit 7 y Unit 8. Bug visual: en modo oscuro, las opciones no seleccionadas del selector de scope de sync en `/admin` se camuflan con el fondo del mismo select. No reinicia etapas aprobadas.
+
+### US-40.1: Ver claramente todos los tipos de sync en modo oscuro
+**Como** administrador
+**Quiero** que el selector de tipo de sincronización en `/admin` muestre todas sus opciones con contraste en modo oscuro
+**Para** elegir correctamente entre `FIXTURES`, `LIVE_STATUS`, `RESULTS` y `FULL` sin confusión visual.
+- **Criterios de Aceptación**:
+  - En modo oscuro, al abrir el selector `admin-sync-scope`, las opciones no seleccionadas son legibles contra su fondo.
+  - El valor seleccionado sigue siendo legible cuando el selector está cerrado.
+  - Los scopes disponibles y el scope por defecto no cambian.
+  - El botón "Sincronizar ahora" y la acción `triggerSync()` mantienen el comportamiento existente.
+  - Sin cambios de permisos, rutas, schema, providers, scoring ni copy i18n.

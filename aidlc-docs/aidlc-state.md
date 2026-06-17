@@ -3,7 +3,8 @@
 ## Project Information
 - **Project Type**: Greenfield (stack preconfigurado)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: 🟡 Unit 39 FUNCTIONAL DESIGN COMPLETE + SCHEMA FIX + MIGRATION READY (2026-06-17) — Bug de sync en `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)" al ejecutar `prisma.team.upsert()`. Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda, pero `providerTeamId` tiene `@unique`. Cuando football-data.org devuelve el mismo ID numérico para dos equipos con distinto `fifaCode`, el CREATE viola la restricción. Solución: removido `@unique` de `providerTeamId` en schema (`prisma/schema.prisma:236`); nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de código. Pendiente: `prisma migrate deploy` + smoke de sync en prod. **No reinicia etapas aprobadas**.
+- **Current Stage**: 🟢 Unit 40 BUILD AND TEST COMPLETE (2026-06-17) — Bug visual en `/admin`: el selector de tipo/scope de sincronización camuflaba opciones no seleccionadas en modo oscuro. Refine UI-only sobre Unit 7/8. Solución: `TriggerSyncControls` usa tokens explícitos `bg-background text-foreground`, `color-scheme` light/dark y estilos de `option` para contraste. Sin cambios en scopes, `triggerSync`, permisos, schema, rutas ni providers. Verificado: `pnpm exec tsc --noEmit` OK, Biome enfocado OK, ESLint enfocado OK. AI-DLC docs actualizados como Unit 40. **No reinicia etapas aprobadas**.
+- **Prev Stage**: 🟢 Unit 39 BUILD AND TEST COMPLETE / OPERATIONS GATE (2026-06-17) — Bug de sync en `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)" al ejecutar `prisma.team.upsert()`. Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda, pero `providerTeamId` tenía `@unique`. Solución schema-only: removido `@unique` de `providerTeamId` (`prisma/schema.prisma:236`) y nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de aplicación. Verificado: `tsc --noEmit` OK tras limpiar `.next/dev/types` stale, **265/265 tests**, `pnpm build` OK. Pendiente Operations: `prisma migrate deploy` + smoke de sync FULL en prod. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 38 CODE GENERATION + BUILD AND TEST COMPLETE (2026-06-17) — Gestión de passkeys desde "Perfil → Seguridad" implementada y verificada. `passkey-management-card.tsx` con listado, registro (`registerPasskey()`) y eliminación (`passkey.delete()` + confirmación). SSR del listado vía `experimental.passkey: true` en `server.ts` + `passkey.list()` en el Server Component. 13 claves i18n ES+EN en `settings.passkey*`. Integrado en `/settings/security` entre TOTP MFA y la zona de peligro. Verificado: **265/265 tests** (+7 Unit 38), `tsc --noEmit` 0, Biome limpio, ESLint 0, `pnpm build` OK. Sin schema, migraciones ni rutas nuevas. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 37 PERFORMANCE FASE 3 COMPLETE (2026-06-17) — Implementados los diferidos de Unit 22 (NFR-PERF-REFINE-22.1/22.4/22.5) + cold-start y scoring. **Fase 1 (auth)**: `proxy.ts` y `getAuthUser` usan `auth.getClaims()` (verificación local del JWT con signing keys asimétricas); el proxy elimina el `SELECT profiles` por PostgREST y lee `onboarding_completed`/`email_verified` de claims de un **Custom Access Token Hook** (migración `20260617120000_auth_access_token_hook`); gates **fail-open** ante claim ausente; `completeOnboarding` → `refreshSession()`. **Fase 2 (cold-start/conexión)**: `DB_CONNECTION_LIMIT` (default 5), `serverExternalPackages: [@prisma/adapter-pg, pg]`, `engines.node >= 24`. **Fase 3 (leaderboard)**: `getPoolLeaderboard` cacheado por `poolId` + `RANKINGS_TAG` sin over-fetch; mutaciones de membresía invalidan el tag. **Fase 4 (scoring)**: `getGlobalRankSnapshot` con `groupBy _sum`. Verificado: **258/258 tests**, `pnpm build` OK, Biome limpio en archivos tocados. Commit `7b42155` (rama `perf/auth-claims-y-queries`, también en `main` local, sin push). Docs humanos (`.env.example`, `docs/ARCHITECTURE.md`, `docs/WORKFLOWS.md`) y AI-DLC alineados. **Operations pendiente**: Vercel Fluid Compute + `DB_CONNECTION_LIMIT` + Node 24; Supabase signing keys asimétricas + hook habilitado (el usuario confirmó keys/hook/migración aplicados). **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 36 REFINE: penalty winner derivado del marcador (2026-06-17) — bug fix en force-result dialog: el ganador de penales se deriva automáticamente de los scores de la tanda con `derivePenaltyWinner()`; ya no se puede seleccionar un ganador contradictorio. Server action valida consistencia. **No reinicia etapas aprobadas**.
@@ -372,8 +373,19 @@
 - [x] NFR Requirements / NFR Design — SKIP formal (sin impacto en performance/seguridad; cambio de modelo de datos).
 - [x] Infrastructure — Schema fix: `@unique` removido de `providerTeamId` en `prisma/schema.prisma:236`; nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`).
 - [x] Code Generation — SKIP (sin cambios de código; `upsertTeam`, `sync-orchestrator`, `football-data.ts`, `seed-matches.ts` y `trigger-sync.ts` sin tocar).
-- [ ] Build and Test — PENDIENTE. Schema regenerado (`prisma:generate` OK); migración creada manualmente (el pooler bloquea `prisma migrate dev` por RLS migration preexistente que referencia schema `auth`). Faltan: `tsc --noEmit`, `pnpm test`, `pnpm build`.
+- [x] Build and Test — COMPLETE. Schema regenerado por `pnpm build` (`prisma:generate` OK); migración creada manualmente (el pooler bloquea `prisma migrate dev` por RLS migration preexistente que referencia schema `auth`). Verificado: `pnpm exec tsc --noEmit` OK tras limpiar `.next/dev/types` stale del dev server, `pnpm test` **265/265**, `pnpm build` OK.
 - [ ] Operations — `prisma migrate deploy` en prod + smoke de sync FULL desde `/admin` sin errores.
+
+**Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode** (added via AI-DLC refine, 2026-06-17) — bug visual en `/admin`: en modo oscuro, las opciones no seleccionadas del selector de scope de sync se camuflan con el fondo.
+- [x] Requirements (min) — FR-REFINE-40.1…40.2 (contraste dark mode, comportamiento de sync intacto) en `requirements.md` (Épica 40).
+- [x] User Stories — Épica 40 / US-40.1 en `stories.md`.
+- [x] Application Design delta — Unit 40 en `unit-of-work.md` con secuencia #26.
+- [x] Dependent design — Unit 7 `TriggerSyncControls` actualizado con nota de contraste para `select`/`option`.
+- [x] Functional Design — COMPLETE. `construction/unit-40-admin-sync-select-dark-mode/functional-design.md` (UI-only, sin schema/migraciones/rutas; Security Baseline intacto).
+- [x] NFR Requirements / NFR Design — SKIP formal (ajuste visual de contraste).
+- [x] Infrastructure — SKIP (sin schema, migraciones, env vars ni deploy topology).
+- [x] Code Generation — COMPLETE. `src/features/admin/components/trigger-sync-controls.tsx` usa `bg-background text-foreground`, `color-scheme` light/dark y `option` con tokens de contraste.
+- [x] Build and Test — COMPLETE. Verificado: `pnpm exec tsc --noEmit` OK; `pnpm exec biome check src/features/admin/components/trigger-sync-controls.tsx` OK; `pnpm exec eslint src/features/admin/components/trigger-sync-controls.tsx` OK. Smoke visual dark mode recomendado post-deploy o con sesión admin local.
 
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
@@ -404,9 +416,9 @@
 - [x] Preserve approved inception/Application Design stages; do not restart them for Unit 10 refine
 
 ## Execution Plan Summary
-- **Total Remaining Stages**: 1. Unit 39 pending Build and Test + Operations.
-- **Stages to Execute**: Unit 39 Build and Test (`tsc --noEmit`, `pnpm test`, `pnpm build`); Unit 39 Operations (`prisma migrate deploy` + smoke sync).
-- **Completed (since last summary)**: Unit 39 Functional Design + schema fix + migration; Unit 39 requirements/design delta applied to existing artifacts.
-- **Stages to Skip**: Code Generation (sin cambios de código); NFR Requirements/Design/Infrastructure formal.
-- **Next Stage**: Unit 39 Build and Test.
-- **Status**: Units 1–38 implemented and verified. Unit 39 schema fix ready, pending Build/Test.
+- **Total Remaining Stages**: Unit 39 Operations only.
+- **Stages to Execute**: Unit 39 Operations (`prisma migrate deploy` + smoke sync FULL desde `/admin`).
+- **Completed (since last summary)**: Unit 39 Build and Test; Unit 40 requirements/story/unit/design delta + UI code generation + Build/Test focused verification.
+- **Stages to Skip**: Unit 40 NFR Requirements/Design/Infrastructure formal (UI-only); Unit 40 schema/migrations/routes.
+- **Next Stage**: Unit 39 Operations.
+- **Status**: Units 1–40 implemented and verified locally. Unit 39 still pending production migration + sync smoke; Unit 40 smoke visual dark mode recommended post-deploy.

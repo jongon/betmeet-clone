@@ -1,5 +1,31 @@
 # AI-DLC Audit Log
 
+## Unit 40 — Build and Test Complete
+**Timestamp**: 2026-06-17T22:05:00Z
+**User Input**: "I'm mid-way through the AI-DLC workflow... Change: en el admin panel /admin el select que da las opciones de el tipo de sincronización, cuando se está en modo oscuro aquellos valores que no están seleccionados se camuflan con el background del mismo select. Hazme preguntas si no me explica muy bien." → after plan mode: "Summarize the task tool output above and continue with your task."
+**AI Response**: "Traté el reporte como un refine UI-only sobre Unit 7/8, sin reiniciar etapas aprobadas. Documenté Unit 40: requisitos FR-REFINE-40.1/40.2, user story US-40.1, unit map #26, dependent design de `TriggerSyncControls`, functional design light, state y audit. Implementé el fix mínimo en `TriggerSyncControls`: el `<select data-testid=\"admin-sync-scope\">` deja de usar `bg-transparent` y ahora usa `bg-background text-foreground`, `color-scheme` light/dark y `<option>` con `bg-background text-foreground` para asegurar contraste en modo oscuro. No cambia scopes, scope default, `triggerSync`, permisos, schema, rutas ni providers."
+**Code change**: `src/features/admin/components/trigger-sync-controls.tsx`. Docs AI-DLC: `inception/requirements/requirements.md`, `inception/user-stories/stories.md`, `inception/application-design/unit-of-work.md`, `construction/unit-7-admin-observability/functional-design/frontend-components.md`, nuevo `construction/unit-40-admin-sync-select-dark-mode/functional-design.md`, `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. `pnpm exec tsc --noEmit` OK; `pnpm exec biome check src/features/admin/components/trigger-sync-controls.tsx` OK; `pnpm exec eslint src/features/admin/components/trigger-sync-controls.tsx` OK. Smoke visual dark mode recomendado post-deploy o con sesión admin local.
+**Context**: Unit 39 ya quedó Build/Test complete por el agente; su único pendiente sigue siendo Operations. Unit 40 no depende de aplicar la migración de Unit 39 porque solo corrige contraste del control UI.
+
+---
+
+## Unit 39 — Build and Test Complete / Operations Gate
+**Timestamp**: 2026-06-17T21:48:25Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional): escribe los docs e implementa el código"
+**AI Response**: "Cargué el core workflow y verifiqué que los rule-detail files no existen en las ubicaciones estándar (`.aidlc/aidlc-rules/aws-aidlc-rule-details`, `.aidlc-rule-details`, `.kiro/aws-aidlc-rule-details`, `.amazonq/aws-aidlc-rule-details`), por lo que continué con el core workflow disponible y el estado AI-DLC vigente. Detecté Unit 39 como única unidad pendiente: Functional Design, schema fix y migración ya estaban listos; Code Generation se mantiene SKIP porque no hay cambios de aplicación, solo schema/migración. Ejecuté Build and Test: `pnpm test` pasó 265/265, `pnpm build` pasó e incluyó Prisma generate + TypeScript de producción, y `pnpm exec tsc --noEmit` pasó tras limpiar los tipos stale generados por el dev server en `.next/dev/types` (los errores previos venían solo de esos artefactos locales). Añadí `construction/unit-39-sync-provider-team-id-conflict/code/generation-summary.md`, marqué Build and Test como COMPLETE en `aidlc-state.md` y dejé Operations como único gate pendiente."
+**Code change**: Sin cambios de aplicación nuevos en esta interacción. Cambio Unit 39 existente: `prisma/schema.prisma:236` (`@unique` removido de `providerTeamId`) + `prisma/migrations/20260617180000_drop_provider_team_id_unique/migration.sql`. Docs: nuevo `construction/unit-39-sync-provider-team-id-conflict/code/generation-summary.md`, `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. `pnpm exec tsc --noEmit` OK tras limpiar `.next/dev/types` stale; Vitest **265/265**; `pnpm build` OK.
+**Context**: Unit 39 Construction local complete. Operations pendiente: ejecutar `prisma migrate deploy` en prod y smoke de sync FULL desde `/admin` para confirmar `ProviderSyncRun.status = SUCCESS` sin errores de `provider_team_id`.
+
+---
+
 ## Unit 39 — Functional Design Complete + Schema Fix + Migration Ready (refine delta)
 **Timestamp**: 2026-06-17T19:45:00Z
 **User Input**: "Estoy teniendo un este error al sincronizar en el /admin" → error: "Invalid `prisma.team.upsert()` invocation: Unique constraint failed on the fields: (`provider_team_id`)" → "Sí hazlo" (aprobación del plan)

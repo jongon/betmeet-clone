@@ -30,6 +30,7 @@ AdminDashboardPage
 - Selector de scope (FIXTURES / LIVE_STATUS / RESULTS / FULL) + botón que llama `triggerSyncNow(scope)`.
 - Estados: pending ("Sincronizando…"), éxito (refresca el panel), error (muestra mensaje).
 - `data-testid="admin-sync-trigger"`, `admin-sync-scope`.
+- Refine Unit 40: el selector `admin-sync-scope` debe usar tokens explícitos de fondo/texto para `select` y `option` en light/dark mode. En dark mode, las opciones no seleccionadas no deben camuflarse con el fondo del control.
 
 ### RecentRunsTable
 - Estado con color por `status` (SUCCESS/FAILED/RATE_LIMITED…). `data-testid="sync-run-{id}"`.

@@ -1435,3 +1435,21 @@ Tras aplicar la migración, ejecutar una sync completa (scope `FULL`) desde `/ad
 - **Sin** migraciones de datos (solo DDL: drop index).
 - **Sin** cambios en reglas de scoring, predicciones, pools ni auth.
 - Security Baseline intacto: el cambio es de modelo de datos (integridad referencial), no afecta autenticación ni autorización.
+
+---
+
+### Épica 40: Contraste del selector de tipo de sync en `/admin` dark mode (Unit 40 — añadida vía refine)
+
+> Refine UI-only sobre Unit 7 (Admin and Observability) y Unit 8 (Design System/theming). **No reinicia** etapas aprobadas. Bug visual reportado: en el admin panel `/admin`, el select que permite elegir el tipo/scope de sincronización (`FIXTURES`, `LIVE_STATUS`, `RESULTS`, `FULL`) camufla los valores no seleccionados con el background del select cuando la app está en modo oscuro.
+
+### FR-REFINE-40.1 — Opciones del select legibles en dark mode
+En `/admin`, el selector de tipo de sincronización debe mantener contraste suficiente en modo oscuro para todas sus opciones, no solo para el valor seleccionado. Las opciones no seleccionadas deben verse claramente al abrir el control.
+
+### FR-REFINE-40.2 — Comportamiento de sync intacto
+El cambio no altera los valores permitidos (`FIXTURES`, `LIVE_STATUS`, `RESULTS`, `FULL`), el scope por defecto, el botón de sincronización, el server action `triggerSync()`, los permisos admin ni el logging de `ProviderSyncRun`.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas nuevas ni cambios de datos.
+- **Sin** cambios en `trigger-sync.ts`, `sync-orchestrator.ts`, providers, scoring, predicciones ni pools.
+- **Sin** cambios de copy/i18n: los valores visibles del selector siguen siendo los scopes técnicos existentes.
+- Security Baseline intacto: el gate admin y `requireAdmin()` no cambian.

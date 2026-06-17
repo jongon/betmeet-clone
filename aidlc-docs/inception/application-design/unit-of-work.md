@@ -358,6 +358,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: el sync desde `/admin` se completa sin errores de unique constraint en `provider_team_id`.
 
+## Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode
+
+**Goal**: Corregir el contraste del selector de tipo/scope de sincronización en `/admin` para que todas las opciones sean legibles en modo oscuro.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa FR-REFINE-40.1…40.2. No reinicia Units 1–39.
+- Ajustar estilos del `<select data-testid="admin-sync-scope">` y sus `<option>` para usar tokens de fondo/texto compatibles con light/dark.
+- Mantener intactos los scopes (`FIXTURES`, `LIVE_STATUS`, `RESULTS`, `FULL`), el scope por defecto y la llamada a `triggerSync()`.
+- Sin schema, migraciones, rutas, sync logic, providers, scoring, predicciones ni auth.
+- Security Baseline intacto: no cambia el gate admin ni las acciones server-side.
+
+**Primary Deliverable**: en `/admin`, el selector de sync es legible en modo oscuro tanto cerrado como con el menú de opciones abierto.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -385,6 +398,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 23. Unit 37: Performance Fase 3 — diferidos de Unit 22 (post-construction refine; auth `getClaims`/hook, caché de leaderboard de pool, pooling/cold-start, scoring snapshot; migración del access-token hook)
 24. Unit 38: Gestión de passkeys desde Perfil → Seguridad (post-construction refine; UI/auth; lista/elimina/registra passkeys en `/settings/security`; sin schema ni rutas nuevas)
 25. Unit 39: Sync — unique constraint conflict en `Team.providerTeamId` (post-construction refine; schema fix; remueve `@unique` en `providerTeamId`; migración DDL-only; sin cambios de código)
+26. Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode (post-construction refine; UI-only; sin schema ni rutas nuevas)
 
 ## Security Notes
 

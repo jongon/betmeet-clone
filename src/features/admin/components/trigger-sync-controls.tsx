@@ -31,10 +31,10 @@ export function TriggerSyncControls() {
           value={scope}
           onChange={(e) => setScope(e.target.value as (typeof SCOPES)[number])}
           data-testid="admin-sync-scope"
-          className="h-9 rounded-md border bg-transparent px-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="h-9 rounded-md border bg-background px-2 text-sm text-foreground outline-none [color-scheme:light] focus-visible:ring-2 focus-visible:ring-ring dark:[color-scheme:dark]"
         >
           {SCOPES.map((s) => (
-            <option key={s} value={s}>
+            <option key={s} value={s} className="bg-background text-foreground">
               {s}
             </option>
           ))}
