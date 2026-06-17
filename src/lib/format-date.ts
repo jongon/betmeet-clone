@@ -1,17 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "./format-date-pure";
 
-function pad(n: number): string {
-  return String(n).padStart(2, "0");
-}
-
-/** Locale-independent date string: DD/MM HH:MM. Safe for SSR — the same
- *  output on server and client because it never touches Intl/toLocaleString. */
-export function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+export { formatDate };
 
 function formatLocalDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {

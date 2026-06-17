@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { derivePenaltyWinner } from "@/features/scoring/compute-score";
 import { useDictionary } from "@/i18n/dictionary-provider";
 import { forceMatchResult } from "../actions/force-result";
 import type { AdminMatchRow } from "../types";
@@ -52,7 +53,6 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
   const [awayScore, setAwayScore] = useState(match.awayScore ?? 0);
   const [homePenalty, setHomePenalty] = useState(0);
   const [awayPenalty, setAwayPenalty] = useState(0);
-  const [penaltyWinner, setPenaltyWinner] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -60,6 +60,14 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
   const isKnockout = match.phaseType === "KNOCKOUT";
   const tied = homeScore === awayScore;
   const showPenaltyWinner = isKnockout && tied;
+  const derivedWinner = showPenaltyWinner ? derivePenaltyWinner(homePenalty, awayPenalty) : null;
+  const resolvedTeamId =
+    derivedWinner === "home"
+      ? match.homeTeamId
+      : derivedWinner === "away"
+        ? match.awayTeamId
+        : null;
+  const penaltyShootoutTied = showPenaltyWinner && homePenalty === awayPenalty;
 
   async function handleSubmit() {
     setPending(true);
@@ -69,7 +77,7 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
       awayScore,
       homePenaltyScore: isKnockout ? homePenalty : null,
       awayPenaltyScore: isKnockout ? awayPenalty : null,
-      penaltyWinnerTeamId: showPenaltyWinner ? penaltyWinner : null,
+      penaltyWinnerTeamId: resolvedTeamId,
       reason,
     });
     if (result?.error) {
@@ -134,26 +142,15 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
           {showPenaltyWinner && (
             <div className="space-y-1">
               <span className="text-sm font-medium">{t.penaltyWinner}</span>
-              <div className="flex gap-2">
-                {[
-                  { id: match.homeTeamId, name: match.homeTeamLabel },
-                  { id: match.awayTeamId, name: match.awayTeamLabel },
-                ].map((team) => (
-                  <button
-                    key={team.id}
-                    type="button"
-                    onClick={() => setPenaltyWinner(team.id)}
-                    data-testid={`force-penalty-winner-${team.id}`}
-                    className={`rounded-md border px-3 py-1.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                      penaltyWinner === team.id
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {team.name}
-                  </button>
-                ))}
-              </div>
+              {penaltyShootoutTied ? (
+                <p className="text-sm text-destructive">
+                  La tanda de penales no puede terminar empatada. Ajusta el marcador.
+                </p>
+              ) : resolvedTeamId ? (
+                <p className="text-sm font-semibold">
+                  {resolvedTeamId === match.homeTeamId ? match.homeTeamLabel : match.awayTeamLabel}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -171,7 +168,7 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
 
           <Button
             className="w-full"
-            disabled={pending || reason.trim().length === 0}
+            disabled={pending || reason.trim().length === 0 || penaltyShootoutTied}
             onClick={handleSubmit}
             data-testid="force-result-submit"
           >

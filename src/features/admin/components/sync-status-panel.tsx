@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date";
+import { formatDate } from "@/lib/format-date-pure";
 import type { SyncStatusView } from "../types";
 
 export function SyncStatusPanel({ data }: { data: SyncStatusView }) {

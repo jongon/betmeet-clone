@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date";
+import { formatDate } from "@/lib/format-date-pure";
 import type { SyncRunRow } from "../types";
 
 function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | "destructive" {

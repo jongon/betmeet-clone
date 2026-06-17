@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date";
+import { formatDate } from "@/lib/format-date-pure";
 import type { AdminMatchRow } from "../types";
 import { ForceResultDialog } from "./force-result-dialog";
 import { RevertOverrideButton } from "./revert-override-button";
@@ -28,7 +28,7 @@ export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
               {match.isOverridden && <Badge variant="secondary">Override</Badge>}
             </p>
             <p className="text-xs text-muted-foreground">
-              {match.status}
+              {String(match.status ?? "")}
               {match.homeScore !== null && match.awayScore !== null
                 ? ` · ${match.homeScore}-${match.awayScore}`
                 : ""}

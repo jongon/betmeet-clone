@@ -1,5 +1,14 @@
 # AI-DLC Audit Log
 
+## Unit 36 — Bug fix: penalty winner derivado del marcador en force-result
+**Timestamp**: 2026-06-17T02:10:00Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to the existing artifacts in `aidlc-docs/` ... Change: He detectado un bug en admin/matches cuando fuerzo un resultado en penaltis. Al fijar resultado que da ganador a un equipo, puedo escoger a otro equipo como ganador. Un ejemplo: Si POR vs COD seleccióno que el resultado de penaltis fue POR 3 y COD 4, me está dejando seleccionar POR como ganador"
+**AI Response**: "Diagnosed UI validation gap in `ForceResultDialog`: penalty scores and winner selector were independent, allowing contradictory selection (e.g. penalty scores 3-4 but selecting the team with 3 as winner). Fix: replaced manual winner buttons with auto-derived winner from penalty scores using `derivePenaltyWinner()` from Unit 2. Added server-side validation in `forceMatchResult` rejecting contradictory data. Tied penalty scores show error and disable submit. Added test case. Updated AI-DLC docs without restarting approved stages."
+**Code change**: `src/features/admin/components/force-result-dialog.tsx` (remove manual selector, import `derivePenaltyWinner`, derive winner from scores, disable on tied), `src/features/admin/actions/force-result.ts` (import `derivePenaltyWinner`, add server-side validation), `src/features/admin/actions/__tests__/force-result.test.ts` (+1 test). Docs: `requirements.md` (Épica 36 / FR-REFINE-36.5/.6/.7), `aidlc-state.md`, `audit.md`.
+**Context**: UI-only refine over Unit 35/Unit 7. No schema, migrations or new routes. Reuses `derivePenaltyWinner` already shared by calculator.
+
+---
+
 ## Unit 36 — Copy, MDX y docs del scoring acumulativo (+ landing + match summary)
 **Timestamp**: 2026-06-17T01:03:00Z
 **User Input**: "No olvides los copys de las reglas tanto en el landing como en la sección de reglas" → "No olvides el resumen del match cuando termina el partido" (×3) → "Escribe el plan y ejecutalo" (×3)

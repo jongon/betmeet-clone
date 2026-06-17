@@ -1331,3 +1331,25 @@ El desglose debe explicar componentes acumulados (resultado correcto, goles loca
 - **Sin** schema/migraciones salvo que la implementación demuestre que el desglose actual no puede representar la suma de componentes.
 - No cambia locks de predicción, rankings, admin override, sync ni reglas de penales.
 - Unit 35 sigue pendiente de Functional Design; este refine no la reinicia.
+
+---
+
+## Épica 36: Refine Unit 35 — Penalty winner derivado del marcador de tanda en force-result (2026-06-17)
+
+**Intent del usuario**: "He detectado un bug en admin/matches cuando fuerzo un resultado en penaltis. Al fijar resultado que da ganador a un equipo, puedo escoger a otro equipo como ganador. Un ejemplo: Si POR vs COD seleccióno que el resultado de penaltis fue POR 3 y COD 4, me está dejando seleccionar POR como ganador"
+
+Refine post-construcción sobre Unit 35 (cache invalidation) y Unit 7 (Admin). **No** reinicia etapas aprobadas. Sin cambios de schema, migraciones ni rutas nuevas.
+
+### FR-REFINE-36.5 — Ganador de penales derivado del marcador
+En el diálogo de force-result del admin, cuando el partido es knockout y el marcador está empatado, el ganador de penales se deriva automáticamente del marcador de la tanda (`homePenaltyScore` vs `awayPenaltyScore`) usando `derivePenaltyWinner()`. Ya no se permite seleccionar manualmente un ganador que contradiga el marcador.
+
+### FR-REFINE-36.6 — Validación server-side
+El server action `forceMatchResult` valida que `penaltyWinnerTeamId` coincida con el ganador derivado de `homePenaltyScore`/`awayPenaltyScore`. Si se recibe un ganador que no coincide con el marcador, se rechaza con error.
+
+### FR-REFINE-36.7 — Tanda empatada inválida
+Si el marcador de penales es empate, el diálogo muestra un mensaje de error y deshabilita el botón de envío. Una tanda de penales no puede terminar empatada.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones ni rutas nuevas.
+- Reutiliza `derivePenaltyWinner()` de Unit 2 (ya compartido con la calculadora).
+- No cambia reglas de scoring ni flujos de predicción.

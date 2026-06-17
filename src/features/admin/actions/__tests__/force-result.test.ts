@@ -88,4 +88,30 @@ describe("forceMatchResult (Unit 35)", () => {
     expect(prisma.match.update).not.toHaveBeenCalled();
     expect(revalidateResultViews).not.toHaveBeenCalled();
   });
+
+  it("rejects contradictory penalty winner vs penalty scores", async () => {
+    vi.mocked(prisma.match.findUnique).mockResolvedValue({
+      id: "m-1",
+      phase: { type: "KNOCKOUT" },
+      homeTeamId,
+      awayTeamId,
+    } as never);
+
+    const result = await forceMatchResult(
+      "m-1",
+      validInput({
+        homeScore: 1,
+        awayScore: 1,
+        homePenaltyScore: 3,
+        awayPenaltyScore: 4,
+        penaltyWinnerTeamId: homeTeamId,
+      }),
+    );
+
+    expect(result).toEqual({
+      error: "El ganador de penales no coincide con el marcador de la tanda.",
+    });
+    expect(prisma.match.update).not.toHaveBeenCalled();
+    expect(revalidateResultViews).not.toHaveBeenCalled();
+  });
 });

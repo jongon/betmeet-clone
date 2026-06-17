@@ -1,5 +1,6 @@
 "use server";
 
+import { derivePenaltyWinner } from "@/features/scoring/compute-score";
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { prisma } from "@/lib/prisma";
@@ -37,6 +38,14 @@ export async function forceMatchResult(matchId: string, input: unknown) {
     data.penaltyWinnerTeamId !== match.awayTeamId
   ) {
     return { error: "El ganador de penales debe ser uno de los equipos." };
+  }
+  if (data.homePenaltyScore != null && data.awayPenaltyScore != null && data.penaltyWinnerTeamId) {
+    const derived = derivePenaltyWinner(data.homePenaltyScore, data.awayPenaltyScore);
+    const expectedTeamId =
+      derived === "home" ? match.homeTeamId : derived === "away" ? match.awayTeamId : null;
+    if (expectedTeamId && expectedTeamId !== data.penaltyWinnerTeamId) {
+      return { error: "El ganador de penales no coincide con el marcador de la tanda." };
+    }
   }
 
   const winnerTeamId = resolveWinner({
