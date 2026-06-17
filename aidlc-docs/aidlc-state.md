@@ -349,7 +349,7 @@
 - [x] Infrastructure (light) — migración `prisma/migrations/20260617120000_auth_access_token_hook/` (función `custom_access_token_hook` + grants + policy). Habilitar el hook y las signing keys asimétricas son pasos de dashboard (Operations).
 - [x] Code Generation — COMPLETE. **Auth**: `proxy.ts`/`getAuthUser` con `getClaims()`; gates por claim; `getOrCreateProfile` usa `emailVerified`; `completeOnboarding` → `refreshSession()`. **Cold-start**: `DB_CONNECTION_LIMIT` (default 5), `serverExternalPackages`, `engines.node >= 24`. **Leaderboard**: `getPoolLeaderboardRows` cacheado + invalidación en 4 mutaciones de membresía. **Scoring**: `getGlobalRankSnapshot` con `groupBy _sum`. Tests actualizados (`current-user`, `complete-onboarding`, `join-public-pool`).
 - [x] Build and Test — COMPLETE. **258/258 tests**, `pnpm build` OK (tsc OK), Biome limpio en archivos tocados. Commit `7b42155` (rama `perf/auth-claims-y-queries`; en `main` local sin push).
-- [ ] Operations — Vercel (Fluid Compute + `DB_CONNECTION_LIMIT` + Node 24 + región iad1) y Supabase (signing keys asimétricas + hook habilitado). El usuario confirmó keys/hook/migración aplicados; falta verificación post-deploy de que no hay round-trips de auth por request.
+- [x] Operations — Vercel (Fluid Compute + `DB_CONNECTION_LIMIT` + Node 24 + región iad1) y Supabase (signing keys asimétricas + hook habilitado). El usuario confirmó keys/hook/migración aplicados. **✅ COMPLETE (2026-06-17)**: usuario confirma Unit 37 cerrada.
 
 **Unit 38: Gestión de passkeys desde Perfil → Seguridad** (added via AI-DLC refine delta, 2026-06-17) — documenta el gap entre el diseño original de Unit 1 (RULE-SEC-02, WF-13) y la implementación actual; sin cambios de código.
 - [x] Requirements (min) — FR-REFINE-38.1…38.4 (listar, eliminar, registrar passkeys en `/settings/security`) en `requirements.md` (Épica 38).
@@ -361,7 +361,7 @@
 - [x] Infrastructure — SKIP (sin schema, migraciones ni rutas nuevas).
 - [x] Code Generation — COMPLETE. `server.ts` con `experimental.passkey: true`; `page.tsx` lista passkeys vía `passkey.list()` en SSR; `security-client.tsx` renderiza tarjeta; `passkey-management-card.tsx` (registro/eliminación con confirmación); `es.ts`/`en.ts` 13 claves `settings.passkey*`.
 - [x] Build and Test — COMPLETE. **265/265 tests** (+7 Unit 38), `tsc --noEmit` 0, Biome limpio, ESLint 0, `pnpm build` OK.
-- [ ] Operations — verificación visual en `/settings/security`: tarjeta de passkeys visible, listado correcto, registro y eliminación funcionales.
+- [ ] Operations — verificación visual en `/settings/security`: tarjeta de passkeys visible, listado correcto, registro y eliminación funcionales. Commit `ef0551f` sin push; usuario hará push y verificará.
 
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
