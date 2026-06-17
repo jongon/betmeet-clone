@@ -11,7 +11,7 @@ Liga Mundial SaaS para el FIFA World Cup 2026 — los usuarios se registran, se 
 | **Competition** | Fixture por fases (grupos/knockout), datos desde football-data.org, estado de partidos (SCHEDULED→LIVE→FINISHED) |
 | **Predictions** | Predicción de resultado exacto, editable hasta el inicio del partido, selector de ganador en penales para knockout |
 | **Ligas** | Grupos públicos/privados (hasta 100 miembros), token de invitación, directorio público, expulsión pre-partido |
-| **Scoring** | Puntaje determinístico: exacto 5pts, resultado 2pts, un equipo 1pt, fallo 0pt; +1 bonus penales |
+| **Scoring** | Puntaje determinístico: exacto 5pts, resultado +2pts, goles acertados +1pt c/u (acumulables), fallo 0pt; +1 bonus penales |
 | **Rankings** | Rankings por liga, posiciones empatadas, desempate por orden de predicción |
 | **Admin** | Dashboard de sync, override manual de resultados, recálculo de puntajes, visibilidad de errores |
 | **Education** | Centro de reglas (MDX via Content Collections), hints contextuales de puntuación |

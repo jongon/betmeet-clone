@@ -13,7 +13,7 @@ Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios 
 | **Ligas** | Grupos públicos/privados con token de invitación, capacidad máxima, membresías |
 | **Competition** | Sincronización de datos desde API-Football (equipos, fases, partidos), fixture con fases (grupos/knockout), estado de partidos |
 | **Predictions** | Predicción de resultado exacto por partido, selector de ganador en penales para knockout, bloqueo al inicio del partido |
-| **Scoring** | Cálculo de puntos (exacto, resultado parcial, fallo), rankings por liga, desempate por orden de predicción |
+| **Scoring** | Cálculo de puntos (exacto 5pts, resultado +2pts, goles acertados +1pt c/u acumulables, fallo 0pt), rankings por liga, desempate por orden de predicción |
 | **Admin** | Panel de administración, overrides manuales de resultados, trigger de sincronización, verificación de usuarios |
 | **Education** | Centro de reglas (MDX via Content Collections) que explica el sistema de puntuación |
 
