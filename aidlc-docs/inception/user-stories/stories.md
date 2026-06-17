@@ -634,3 +634,27 @@
   - El próximo sync de football-data.org repuebla el resultado real y vuelve a puntuar.
   - El botón pide confirmación antes de ejecutar (acción destructiva), advirtiendo que se eliminarán los puntos.
   - El gate de admin (`getAdminUserId()`) se mantiene.
+
+---
+
+## Épica 38: Gestión de passkeys desde Perfil → Seguridad (Unit 38 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 1 Foundation (WF-13, RULE-SEC-02) y Unit 20
+> (API nativa de passkeys). Cubre el gap entre el diseño original y la implementación:
+> la gestión de passkeys desde `/settings/security` nunca se construyó. No reinicia
+> etapas aprobadas.
+
+### US-38.1: Gestionar mis passkeys desde Seguridad del Perfil
+**Como** usuario verificado
+**Quiero** ver, eliminar y registrar passkeys desde `/settings/security`
+**Para** gestionar mis dispositivos de autenticación biométrica sin depender del onboarding y sin afectar mi MFA TOTP.
+- **Criterios de Aceptación**:
+  - En `/settings/security` aparece una sección "Passkeys" (bajo "Autenticación en dos pasos") con la lista de passkeys registrados.
+  - Si no hay passkeys registrados, la sección muestra un mensaje y un botón "Registrar un passkey".
+  - Si hay passkeys, cada uno muestra su nombre/etiqueta y un botón para eliminarlo (con confirmación).
+  - El botón "Registrar un passkey" (tanto el inicial como el de añadir otro) ejecuta la misma ceremonia WebAuthn del onboarding (`registerPasskey()`).
+  - Eliminar un passkey pide confirmación y usa `auth.passkey.delete(id)`.
+  - Las operaciones dan feedback inmediato (loading, éxito, error) con copy i18n (`es`/`en`).
+  - No se puede eliminar el último método de autenticación si deja la cuenta sin acceso (email o passkey).
+  - La sección de TOTP MFA existente no se modifica (son sistemas independientes, CF-10).
+  - La página sigue siendo `/settings/security`; sin cambios de ruta ni navegación.

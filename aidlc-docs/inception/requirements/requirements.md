@@ -1380,3 +1380,32 @@ Refine post-construcción que **implementa** los ítems que **NFR-PERF-REFINE-22
 ### Restricciones / SKIP
 - Sin rutas nuevas; sin cambios de modelo de datos (solo la función/policy del hook).
 - No cambia reglas de scoring ni de negocio; solo cómo se computan/cachean lecturas y cómo se verifica la sesión.
+
+---
+
+## Épica 38: Refine — Gestión de passkeys desde Perfil → Seguridad (Unit 38, 2026-06-17)
+
+**Intent del usuario**: "Los usuarios pueden hacer el management de su passkey desde la sección de 'Perfil->Seguridad'".
+
+Refine post-construcción aditivo sobre Unit 1 Foundation (WF-13, RULE-SEC-02), Unit 11 App Shell (US-10.3, enlace a `/settings/security`), Unit 4 Competencia (FR-REFINE-4), Unit 20 Passkeys (API nativa), y CF-10 (mecanismo oficial de passkeys). **No reinicia** etapas aprobadas.
+
+El diseño original de Unit 1 (RULE-SEC-02, WF-13, Unit 1 code generation plan Step 24) prescribía que la gestión de passkeys (registro, listado, eliminación) debía estar disponible desde `/settings/security`, además del paso opcional del onboarding. Unit 20 corrigió el registro y login con la API nativa de Supabase, pero **no implementó** la interfaz de gestión desde la sección de Seguridad del Perfil. Actualmente `/settings/security` solo contiene TOTP MFA y eliminación de cuenta; **no tiene sección de passkeys**.
+
+### FR-REFINE-38.1 — Listado de passkeys registrados
+En `/settings/security`, el usuario debe ver una lista de sus passkeys registrados (si tiene alguno), usando `supabase.auth.passkey.list()` (API nativa, CF-10). Cada passkey muestra su nombre/etiqueta (`friendlyName`/`displayName`) y un botón para eliminarlo.
+
+### FR-REFINE-38.2 — Eliminación de passkeys
+El usuario puede eliminar un passkey desde la lista, con confirmación previa (acción destructiva). Usa `supabase.auth.passkey.delete(id)` (API nativa, CF-10). No debe permitir eliminar el último método de autenticación si deja la cuenta sin acceso.
+
+### FR-REFINE-38.3 — Registro de nuevos passkeys desde Seguridad
+El usuario puede registrar un nuevo passkey desde `/settings/security` sin depender del onboarding (que ya pasó). Reutiliza el mismo mecanismo de `supabase.auth.registerPasskey()` que el paso de onboarding (`passkey-step.tsx`).
+
+### FR-REFINE-38.4 — Integración con el menú de navegación
+El enlace a "Seguridad" (`/settings/security`) ya existe en el `UserMenu` del App Shell (US-10.3). Sin cambios de navegación requeridos: la sección de passkeys se integra en la página de seguridad existente.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones ni rutas nuevas (la ruta `/settings/security` ya existe).
+- Usa exclusivamente la API nativa de Passkeys de Supabase (`auth.passkey.*`), no el factor MFA-WebAuthn (`mfa.listFactors()`), en cumplimiento de **CF-10**.
+- No cambia el flujo de onboarding ni el login con passkey (Unit 20 intacto).
+- No cambia reglas de scoring, predicciones, sync ni admin.
+- Security Baseline intacto: la gestión de passkeys opera en el cliente con sesión activa (Supabase Auth gestiona la autorización de la ceremonia WebAuthn).

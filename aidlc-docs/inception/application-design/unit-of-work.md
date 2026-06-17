@@ -328,6 +328,21 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: una navegación autenticada normal deja de hacer round-trips a GoTrue/PostgREST por request; migración del hook (`20260617120000_auth_access_token_hook`).
 
+## Unit 38: Gestión de passkeys desde Perfil → Seguridad
+
+**Goal**: Permitir a los usuarios listar, eliminar y registrar passkeys desde `/settings/security`, llenando el gap entre el diseño original de Unit 1 (RULE-SEC-02, WF-13) y la implementación actual.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa FR-REFINE-38.1…38.4. No reinicia Units 1–37.
+- Listar passkeys del usuario con `supabase.auth.passkey.list()` (API nativa, CF-10).
+- Eliminar passkeys con confirmación y `supabase.auth.passkey.delete(id)`.
+- Registrar nuevos passkeys desde Seguridad usando `supabase.auth.registerPasskey()` (reutiliza mecanismo del onboarding de Unit 20).
+- Sección de passkeys integrada en la página `/settings/security` existente, bajo la sección de TOTP MFA (sistemas independientes; TOTP no se toca).
+- Sin schema, migraciones ni rutas nuevas.
+- Copy i18n (`es`/`en`) para la sección de gestión de passkeys.
+
+**Primary Deliverable**: el usuario ve sus passkeys registrados en `/settings/security`, puede eliminar los que ya no use, y puede registrar nuevos sin volver al onboarding.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -353,6 +368,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 21. Unit 35: Invalidación inmediata de caché tras mutaciones admin (post-construction refine; cache consistency; sin schema)
 22. Unit 36: Scoring acumulativo por ganador y goles acertados (post-construction refine; reglas de scoring; sin schema por defecto)
 23. Unit 37: Performance Fase 3 — diferidos de Unit 22 (post-construction refine; auth `getClaims`/hook, caché de leaderboard de pool, pooling/cold-start, scoring snapshot; migración del access-token hook)
+24. Unit 38: Gestión de passkeys desde Perfil → Seguridad (post-construction refine; UI/auth; lista/elimina/registra passkeys en `/settings/security`; sin schema ni rutas nuevas)
 
 ## Security Notes
 

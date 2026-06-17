@@ -1,5 +1,42 @@
 # AI-DLC Audit Log
 
+## Unit 38 — Code Generation + Build and Test Complete
+**Timestamp**: 2026-06-17T17:20:00Z
+**User Input**: "Summarize the task tool output above and continue with your task." (tras plan de Code Generation Part 1 creado por el agente build)
+**AI Response**: "Traté la continuación del usuario como aprobación del plan. Implementé 7 archivos: `server.ts` (experimental.passkey: true), `page.tsx` (passkey.list() SSR), `security-client.tsx` (prop passkeys + tarjeta entre TOTP y Separator), `passkey-management-card.tsx` (NUEVO — client component con lista/registro/eliminación y confirmación Dialog), `passkey-management-card.test.tsx` (NUEVO — 7 tests), `es.ts`/`en.ts` (13 claves settings.passkey*). Corregí dos issues: return type de passkey.list() y test de delete con múltiples botones (within(dialog)). Verificado: tsc 0, Biome limpio, ESLint 0, **265/265 tests** (+7 Unit 38), `pnpm build` OK. Sin schema, migraciones ni rutas nuevas. Actualicé `aidlc-state.md` y este audit log. Unit 38 cerrada. Pendiente Operations: smoke visual en prod."
+**Code change**: `src/lib/supabase/server.ts`, `src/app/(app)/settings/security/page.tsx`, `src/app/(app)/settings/security/security-client.tsx`, `src/features/auth/components/passkey-management-card.tsx` (NUEVO), `src/features/auth/components/__tests__/passkey-management-card.test.tsx` (NUEVO), `src/i18n/dictionaries/es.ts`, `src/i18n/dictionaries/en.ts`.
+**Build/Test Status**: Pass. Vitest **265/265**; tsc 0; Biome clean on 7 touched src files; ESLint clean; `pnpm build` OK.
+**Context**: Unit 38 cerrada. Tarjeta de passkeys integrada en `/settings/security` entre TOTP MFA y zona de peligro. Listado SSR sin flash. Registro reutiliza registerPasskey(). Eliminación con modal de confirmación.
+
+---
+
+## Unit 38 — Code Generation Part 1 Plan Ready
+**Timestamp**: 2026-06-17T06:15:00Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the approved units. Application code goes in the workspace root, NEVER in `aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and update checkboxes + audit.md in the SAME interaction. Target unit (optional):"
+**AI Response**: "Loaded the core workflow + mandatory common rules. Detected Unit 38 as the only pending unit (Functional Design COMPLETE; NFR/Infra SKIP formal). Verified runtime API: `supabase.auth.passkey.list/delete/update` all exist in 2.108.1. Read the security page, passkey-step component, client.ts, dictionaries, and security-client. Created Code Generation Part 1 plan at `construction/plans/unit-38-passkey-security-code-generation-plan.md` with 6 steps: (1) add 13 i18n keys ES+EN under `settings.passkey*`, (2) create `passkey-management-card.tsx` client component with register/delete flows, (3) update `page.tsx` server component to call `passkey.list()`, (4) update `security-client.tsx` to render the passkey card, (5) tests for register/delete/list/empty states, (6) verification (tsc, Biome, ESLint, vitest, build). Security Baseline: SECURITY-12 compliant (auth session WebAuthn authorization). No application code changed. Updated `aidlc-state.md` (Current Stage → CODE GENERATION PART 1 PLAN READY + Unit 38 block) and this audit log."
+**Code change**: Ninguno. Documentation only: `construction/plans/unit-38-passkey-security-code-generation-plan.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Unit 38 Code Generation Part 1 approval gate. Planned application code paths in workspace root: `src/features/auth/components/passkey-management-card.tsx` (NEW), `src/features/auth/components/__tests__/passkey-management-card.test.tsx` (NEW), `src/app/(app)/settings/security/page.tsx`, `src/app/(app)/settings/security/security-client.tsx`, `src/i18n/dictionaries/{es,en}.ts`.
+
+---
+
+## Unit 38 — Functional Design Complete / Approval Gate
+**Timestamp**: 2026-06-17T05:55:00Z
+**User Input**: "Vamos al functiona design" (tras pregunta "Cuál es el siguiente paso?")
+**AI Response**: "Cargué el contexto de la página de seguridad actual (`page.tsx`, `security-client.tsx`), el componente `passkey-step.tsx` del onboarding, la configuración del cliente Supabase (`client.ts` con `auth.experimental.passkey: true`), los diccionarios i18n (`es`/`en` settings) y el patrón de la modal TOTP MFA. Creé el Functional Design light en `construction/unit-38-passkey-security-management/functional-design.md`: tarjeta 'Passkeys' en `/settings/security` bajo TOTP MFA y sobre la zona de peligro; listado vía `auth.passkey.list()` en el Server Component (SSR sin flash, mismo patrón que TOTP); eliminación con confirmación vía `auth.passkey.delete(id)`; registro reutilizando `registerPasskey()` del onboarding; 13 nuevas claves i18n ES+EN; contratos de server/client component, archivos afectados y verificación esperada. Nota sobre `auth.passkey` namespace: si no está expuesto en 2.108.1, el Code Generation usará el fallback equivalente. NFR/Infra SKIP formal; sin schema/migraciones/rutas. Actualicé `aidlc-state.md` (Current Stage + Stage Progress + Execution Plan Summary) y este audit log en la misma interacción."
+**Code change**: Ninguno. Documentation only: `construction/unit-38-passkey-security-management/functional-design.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Unit 38 Functional Design approval gate. Sin cambios de código. La implementación usará la API nativa de Passkeys (`auth.passkey.*` por CF-10) en el Server Component (`page.tsx`) para listar y en un componente cliente para mutaciones (eliminar/registrar). La sección TOTP MFA y la zona de peligro no se tocan.
+
+---
+
+## Unit 38 — Gestión de passkeys desde Perfil → Seguridad (delta documental)
+**Timestamp**: 2026-06-17T05:45:00Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units, and do NOT restart already-approved stages. Log the change in `aidlc-docs/audit.md`. Change: Los usuarios pueden hacer el management de su passkey desde la sección de 'Perfil->Seguridad'"
+**AI Response**: "Detecté el gap entre el diseño original de Unit 1 (RULE-SEC-02, WF-13: passkeys disponibles desde `/settings/security`) y la implementación actual (solo TOTP y eliminación de cuenta en la página de seguridad; sin sección de passkeys). Unit 20 corrigió el registro/login con la API nativa pero no implementó la gestión. Delta documental aplicado como **Unit 38** / **Épica 38** sin reiniciar etapas aprobadas. Artefactos actualizados: `requirements.md` (FR-REFINE-38.1…38.4: listar, eliminar y registrar passkeys en `/settings/security` usando `auth.passkey.*` por CF-10), `stories.md` (US-38.1, Épica 38), `unit-of-work.md` (Unit 38 + secuencia #24), `construction/unit-20-passkey-native-api/functional-design.md` (nota de dependencia en §8), `aidlc-state.md` (Current Stage + Stage Progress + Execution Plan Summary), `audit.md` (esta entrada). Sin cambios de código, schema, migraciones ni rutas."
+**Code change**: Ninguno. Docs AI-DLC: `inception/requirements/requirements.md`, `inception/user-stories/stories.md`, `inception/application-design/unit-of-work.md`, `construction/unit-20-passkey-native-api/functional-design.md`, `aidlc-state.md`, `audit.md`.
+**Context**: Gap entre diseño original y código: Unit 1 prescribía passkey management en `/settings/security`; Unit 20 solo arregló registro/login. CF-10 ya establece que la gestión futura use `auth.passkey.list/update/delete` (no `mfa.listFactors()`). Sin schema, migraciones ni rutas nuevas. Implementación pendiente de aprobación.
+
+---
+
 ## Unit 37 — Performance Fase 3: implementación de diferidos de Unit 22 (auth `getClaims`/hook, caché leaderboard, pooling, scoring)
 **Timestamp**: 2026-06-17T03:30:00Z
 **User Input**: "Esta aplicación se despliega en vercel y la base de datos está en supabase… usa Connection pooler, pero aún así la aplicación está lenta. Revisa si tengo un cuello de botella por la implementación, la conexión, o configuración de Vercel/Supabase." → (tras plan aprobado e implementación) "haz commit esta fase" → "ya re-apliqué la migración. Pero que debo hacer en el dashboard de supabase y vercel?" → "Actualiza toda la documentación necesaria".

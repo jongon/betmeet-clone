@@ -106,3 +106,9 @@ Código implementado y verificado en esta sesión: `tsc --noEmit` 0 errores, Bio
 limpio sobre los archivos tocados, `next build` OK (24 rutas), `pnpm install` poda
 `@simplewebauthn/browser`. Pendiente: prueba en vivo del registro/login con passkey
 (Operations) y confirmación del RP ID/origins en el dashboard de prod.
+
+**Nota (2026-06-17)**: Unit 38 (FR-REFINE-38, Épica 38) añade la gestión de passkeys
+(listar/eliminar/registrar) desde `/settings/security`, cubriendo el gap con el diseño
+original de Unit 1 (RULE-SEC-02, WF-13) que prescribía passkeys disponibles desde
+Seguridad del Perfil. Unit 20 solo abordó el registro/login; la gestión queda como
+nuevo refine documental pendiente de implementación.

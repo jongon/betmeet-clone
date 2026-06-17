@@ -14,14 +14,22 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function SecuritySettingsPage() {
   const dictionary = getDictionary(await getRequestLocale());
   const supabase = await createClient();
-  const [profile, { data: factorsData }] = await Promise.all([
+  const [profile, { data: factorsData }, { data: passkeysData }] = await Promise.all([
     getProfile(),
     supabase.auth.mfa.listFactors(),
+    supabase.auth.passkey.list(),
   ]);
 
   if (!profile) redirect("/sign-in");
 
   const totpFactors = factorsData?.totp ?? [];
+  const passkeys =
+    passkeysData?.map((p) => ({
+      id: p.id,
+      friendlyName: p.friendly_name ?? dictionary.settings.passkeyDefaultName,
+      createdAt: p.created_at,
+      lastUsedAt: p.last_used_at ?? null,
+    })) ?? [];
 
   return (
     <SecuritySettingsClient
@@ -30,6 +38,7 @@ export default async function SecuritySettingsPage() {
         id: f.id,
         friendlyName: f.friendly_name ?? dictionary.settings.authenticatorApp,
       }))}
+      passkeys={passkeys}
     />
   );
 }

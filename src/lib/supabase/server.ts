@@ -12,6 +12,7 @@ export async function createClient(cookieOptions?: Partial<CookieOptions>) {
   }
 
   return createServerClient(supabaseUrl, supabaseAnonKey, {
+    auth: { experimental: { passkey: true } },
     cookies: {
       getAll() {
         return cookieStore.getAll();

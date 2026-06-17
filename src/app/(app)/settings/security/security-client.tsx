@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { disableMfa } from "@/features/auth/actions/mfa-disable";
 import { ConfirmDeleteModal } from "@/features/auth/components/confirm-delete-modal";
 import { MFAEnrollmentModal } from "@/features/auth/components/mfa-enrollment-modal";
+import { PasskeyManagementCard } from "@/features/auth/components/passkey-management-card";
 import { useDictionary } from "@/i18n/dictionary-provider";
 
 interface TotpFactor {
@@ -16,12 +17,24 @@ interface TotpFactor {
   friendlyName: string;
 }
 
+interface PasskeyInfo {
+  id: string;
+  friendlyName: string;
+  createdAt: string;
+  lastUsedAt?: string | null;
+}
+
 interface SecuritySettingsClientProps {
   mfaEnabled: boolean;
   totpFactors: TotpFactor[];
+  passkeys: PasskeyInfo[];
 }
 
-export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySettingsClientProps) {
+export function SecuritySettingsClient({
+  mfaEnabled,
+  totpFactors,
+  passkeys,
+}: SecuritySettingsClientProps) {
   const t = useDictionary().settings;
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -71,6 +84,8 @@ export function SecuritySettingsClient({ mfaEnabled, totpFactors }: SecuritySett
           </Button>
         </CardContent>
       </Card>
+
+      <PasskeyManagementCard passkeys={passkeys} />
 
       <Separator />
 
