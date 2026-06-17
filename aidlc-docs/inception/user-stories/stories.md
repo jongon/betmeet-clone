@@ -700,3 +700,24 @@
   - Los scopes disponibles y el scope por defecto no cambian.
   - El botón "Sincronizar ahora" y la acción `triggerSync()` mantienen el comportamiento existente.
   - Sin cambios de permisos, rutas, schema, providers, scoring ni copy i18n.
+
+---
+
+## Épica 41: Predicciones visibles dentro del pool (Unit 41 — añadida vía refine)
+
+> Feature aditivo sobre Units 3, 5 y 6. Los participantes de un pool pueden ver las predicciones de otros miembros para los partidos que ya comenzaron, agrupadas por jornada/día desde una nueva pestaña en `/pools/[id]`. No reinicia etapas aprobadas.
+
+### US-41.1: Ver las predicciones de otros miembros del pool
+**Como** miembro de un pool
+**Quiero** ver las predicciones que hicieron los demás miembros para los partidos que ya empezaron
+**Para** comparar mi desempeño con el de mis rivales y ver quién acertó cada resultado.
+- **Criterios de Aceptación**:
+  - En `/pools/[id]` aparece una tercera pestaña "Predicciones" (junto a "Clasificación" y "Miembros").
+  - Las predicciones se agrupan por jornada/día calendario (UTC), igual que en `/matches`.
+  - Cada jornada muestra una tabla: filas = miembros (avatar + nickname), columnas = partidos del día que ya comenzaron.
+  - Cada celda muestra la predicción del miembro (`golesLocal - golesVisitante`) y los puntos obtenidos. Si el partido está LIVE, los puntos muestran "—".
+  - Las predicciones de partidos que no han comenzado (SCHEDULED, kickoff futuro) NO se muestran.
+  - Si un miembro no predijo un partido, su celda muestra "—" o un indicador visual de "sin predicción".
+  - Solo los miembros del pool pueden ver esta pestaña (usuarios no miembros reciben el comportamiento existente de `getPoolDetail`).
+  - La pestaña no muestra timestamps de predicción.
+  - La UI se adapta a mobile (scroll horizontal en la tabla si hay muchos partidos en el día).

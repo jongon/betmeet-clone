@@ -1453,3 +1453,37 @@ El cambio no altera los valores permitidos (`FIXTURES`, `LIVE_STATUS`, `RESULTS`
 - **Sin** cambios en `trigger-sync.ts`, `sync-orchestrator.ts`, providers, scoring, predicciones ni pools.
 - **Sin** cambios de copy/i18n: los valores visibles del selector siguen siendo los scopes técnicos existentes.
 - Security Baseline intacto: el gate admin y `requireAdmin()` no cambian.
+
+---
+
+### Épica 41: Predicciones visibles dentro del pool (Unit 41 — añadida vía refine)
+
+> Refine aditivo sobre Unit 3 (Pools and Membership), Unit 5 (Predictions and Match Locking), y Unit 6 (Scoring and Pool Rankings). **No reinicia** etapas aprobadas. Feature: los participantes de un pool pueden ver las predicciones de otros miembros para partidos que ya hayan comenzado. Las predicciones se agrupan por jornada/día y se accede desde una nueva pestaña "Predicciones" en `/pools/[id]`.
+
+**Base conceptual**: El modelo `Prediction` ya almacena `homeScore`, `awayScore`, `penaltyWinnerTeamId`, y `lockedAt`. El modelo `PredictionScore` ya almacena el desglose de puntos (`matchedCase`, `basePoints`, `totalPoints`). La RLS `prediction_scores_select_pool_peers` ya existe en la migración de constraints pero no es usada por ninguna query Prisma. La visibilidad opera por Prisma con membership gate existente; no se requiere RLS adicional porque todas las queries pasan por el server.
+
+### FR-REFINE-41.1 — Visibilidad desde el kickoff
+Las predicciones de un miembro del pool se vuelven visibles para los demás miembros desde el momento en que arranca el partido (`match.kickoffAt <= now`, que coincide con `prediction.lockedAt IS NOT NULL` porque el mecanismo de lock se dispara en el kickoff). Las predicciones de partidos que no han comenzado (`SCHEDULED` con `kickoffAt > now`) permanecen privadas (solo visibles para su autor).
+
+### FR-REFINE-41.2 — Nueva pestaña "Predicciones" en la página del pool
+La página `/pools/[id]` gana una tercera pestaña "Predicciones" (junto a "Clasificación" y "Miembros"). Solo los miembros del pool pueden verla (el gate de membresía de `getPoolDetail` aplica). Si el usuario no es miembro, la página retorna `notFound()`.
+
+### FR-REFINE-41.3 — Vista por jornada/día
+Las predicciones se agrupan por día calendario (UTC), mismo criterio que `/matches` (FR-REFINE-16.2). Los días se muestran en orden cronológico inverso: las predicciones más recientes primero, las más antiguas después. Cada jornada muestra una tabla donde:
+- **Filas**: cada miembro del pool (avatar + nickname)
+- **Columnas**: cada partido de esa jornada que ya comenzó (etiqueta `HOME vs AWAY`, scores reales si ya terminó)
+- **Celdas**: la predicción del miembro (`golesLocal - golesVisitante`) y los puntos obtenidos (badge con totalPoints). Si el partido aún no terminó (LIVE), los puntos se muestran como "—" (pendientes de scoring).
+
+### FR-REFINE-41.4 — Sin timestamps en la vista de predicciones
+La tabla de predicciones muestra solo goles predichos y puntos obtenidos. No muestra `createdAt`, `updatedAt`, ni información de cuándo se hizo la predicción. La única información temporal es la jornada/día que agrupa los partidos.
+
+### FR-REFINE-41.5 — Sin cambios en el modelo de datos
+No se crean nuevas tablas, columnas, migraciones ni rutas. La query `getPoolMemberPredictions(poolId)` lee datos existentes de `Prediction`, `PredictionScore`, `Match`, `PoolMembership` y `Profile`. La autorización es server-side: `getCurrentUserId()` verifica membresía en el pool antes de devolver datos.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones ni rutas nuevas.
+- **Sin** cambios en `save-prediction.ts`, `score-match.ts`, sync ni admin.
+- **Sin** nuevas RLS policies (Prisma opera con rol privilegiado; el gate de membresía es suficiente).
+- **Sin** cambios en el leaderboard ni en el ranking global.
+- **Sin** exposición de predicciones de partidos futuros.
+- Security Baseline intacto: la query es server-authoritative; el membership gate existente en `getPoolDetail` asegura que solo miembros acceden.

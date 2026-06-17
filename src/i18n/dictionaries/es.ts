@@ -383,6 +383,14 @@ export const es = {
     unarchive: "Desarchivar",
     leave: "Salir de la liga",
     delete: "Eliminar liga",
+    predictions: {
+      tab: "Predicciones",
+      memberHeader: "Miembro",
+      noPrediction: "—",
+      pendingScore: "—",
+      emptyTitle: "Aún no hay predicciones disponibles",
+      emptyDescription: "Las predicciones serán visibles cuando comiencen los partidos.",
+    },
   },
   pages: {
     appSubtitle: "Predicciones del FIFA World Cup",

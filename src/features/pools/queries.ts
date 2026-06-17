@@ -1,9 +1,11 @@
 import { cache } from "react";
+import { toTeamView } from "@/features/competition/queries";
 import { prisma } from "@/lib/prisma";
 import { formatNickname, getCurrentUserId } from "./services/session";
 import type {
   MyPoolSummary,
   PoolDetail,
+  PoolMemberPrediction,
   PoolMemberSummary,
   PoolPreviewItem,
   PoolType,
@@ -105,4 +107,71 @@ export async function listPublicPools(
       isPublic: true,
     }))
     .filter((p) => !onlyWithCapacity || p.memberCount < p.capacity);
+}
+
+/** Fetches predictions for all pool members for matches that have started.
+ *  Returns null if caller is not a pool member (defense-in-depth, BR-41.1).
+ *  Visibility window: match.kickoffAt <= now (BR-41.2). */
+export async function getPoolMemberPredictions(
+  poolId: string,
+): Promise<PoolMemberPrediction[] | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+
+  const membership = await prisma.poolMembership.findUnique({
+    where: { poolId_userId: { poolId, userId } },
+  });
+  if (!membership) return null;
+
+  const memberIds = (
+    await prisma.poolMembership.findMany({
+      where: { poolId },
+      select: { userId: true },
+    })
+  ).map((m) => m.userId);
+
+  const now = new Date();
+
+  const rows = await prisma.prediction.findMany({
+    where: {
+      userId: { in: memberIds },
+      match: { kickoffAt: { lte: now } },
+    },
+    include: {
+      match: {
+        include: {
+          homeTeam: true,
+          awayTeam: true,
+          phase: true,
+        },
+      },
+      user: { select: { nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true } },
+      score: { select: { totalPoints: true, matchedCase: true } },
+    },
+    orderBy: { match: { kickoffAt: "asc" } },
+  });
+
+  return rows.map((row) => ({
+    matchId: row.matchId,
+    matchNumber: row.match.matchNumber,
+    kickoffAt: row.match.kickoffAt?.toISOString() ?? null,
+    matchStatus: row.match.status,
+    homeTeam: toTeamView(row.match.homeTeam),
+    awayTeam: toTeamView(row.match.awayTeam),
+    homePlaceholder: row.match.homePlaceholder,
+    awayPlaceholder: row.match.awayPlaceholder,
+    homeScore: row.match.homeScore,
+    awayScore: row.match.awayScore,
+    phaseName: row.match.phase.groupCode
+      ? `Grupo ${row.match.phase.groupCode}`
+      : row.match.phase.name,
+    phaseType: row.match.phase.type,
+    userId: row.userId,
+    nickname: formatNickname(row.user.nicknameBase, row.user.nicknameDiscriminator),
+    avatarUrl: row.user.avatarUrl,
+    predictedHome: row.homeScore,
+    predictedAway: row.awayScore,
+    totalPoints: row.score?.totalPoints ?? null,
+    matchedCase: row.score?.matchedCase ?? null,
+  }));
 }

@@ -371,6 +371,21 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: en `/admin`, el selector de sync es legible en modo oscuro tanto cerrado como con el menú de opciones abierto.
 
+## Unit 41: Predicciones visibles dentro del pool
+
+**Goal**: Los participantes de un pool pueden ver las predicciones de otros miembros para partidos que ya comenzaron, agrupadas por jornada.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-17); implementa FR-REFINE-41.1…41.5 / US-41.1. No reinicia Units 1–40.
+- Nueva query Prisma `getPoolMemberPredictions(poolId)`: lee `Prediction` + `PredictionScore` para todos los miembros del pool, filtrada por `Match.kickoffAt <= now` (partidos ya comenzados). Gate de membresía vía `getCurrentUserId()`.
+- Nuevo server component `PoolPredictionsView`: agrupa por día, renderiza tabla (filas=miembros, columnas=partidos, celdas=goles+puntos). Adaptable a mobile con scroll horizontal.
+- Integración en `/pools/[id]`: nueva pestaña "Predicciones" en los Tabs existentes (junto a Clasificación y Miembros).
+- Claves i18n ES+EN bajo `pools.predictions.*` para labels de pestaña, encabezados de jornada, indicadores "sin predicción" y "pendiente de scoring".
+- Sin schema, migraciones, rutas nuevas, ni cambios en el modelo de datos. Reutiliza `Prediction`, `PredictionScore`, `Match`, `PoolMembership` y `Profile`.
+- Security Baseline intacto: query server-authoritative; gate de membresía existente sin cambios.
+
+**Primary Deliverable**: Pestaña "Predicciones" funcional en `/pools/[id]` mostrando las predicciones de todos los miembros para partidos pasados/en curso.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -399,6 +414,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 24. Unit 38: Gestión de passkeys desde Perfil → Seguridad (post-construction refine; UI/auth; lista/elimina/registra passkeys en `/settings/security`; sin schema ni rutas nuevas)
 25. Unit 39: Sync — unique constraint conflict en `Team.providerTeamId` (post-construction refine; schema fix; remueve `@unique` en `providerTeamId`; migración DDL-only; sin cambios de código)
 26. Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode (post-construction refine; UI-only; sin schema ni rutas nuevas)
+27. Unit 41: Predicciones visibles dentro del pool (post-construction refine; aditivo; query + componente + integración en `/pools/[id]`; sin schema, migraciones ni rutas nuevas)
 
 ## Security Notes
 

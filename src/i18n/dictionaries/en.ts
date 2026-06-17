@@ -387,6 +387,14 @@ export const en = {
     unarchive: "Unarchive",
     leave: "Leave league",
     delete: "Delete league",
+    predictions: {
+      tab: "Predictions",
+      memberHeader: "Member",
+      noPrediction: "—",
+      pendingScore: "—",
+      emptyTitle: "No predictions available yet",
+      emptyDescription: "Predictions will be visible once matches begin.",
+    },
   },
   pages: {
     appSubtitle: "FIFA World Cup predictions",

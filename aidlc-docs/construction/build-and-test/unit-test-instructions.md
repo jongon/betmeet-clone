@@ -1,36 +1,43 @@
-# Unit Test Execution
+# Unit Test Execution — Unit 41
 
-## Run Unit Tests
+## Run All Tests
 ```bash
-pnpm test                   # toda la suite (vitest run con DATABASE_URL de test)
-pnpm exec vitest            # modo watch
-```
-> Nota: el script `pnpm test` corre `vitest run` con un `DATABASE_URL` de test inyectado. El alias `@/` se resuelve vía `vitest.config.ts`.
-
-## Resultados esperados
-- **213 tests / 48 archivos — 0 fallos.**
-- Cobertura por unidad (tests generados durante Code Generation):
-
-| Área | Tests destacados |
-|---|---|
-| Unit 1 Foundation | nickname, avatar, sign-in/up/reset, delete-account |
-| Unit 2 UX | `compute-score` (tabla de casos, invariante BR-2.7), `cue-store` (fail-open) |
-| Unit 3 Pools | invite-token, competition-lock, capacidad/autorización, account-deletion transfer |
-| Unit 4 Competition | sync-orchestrator, fixture-freshness, status-mapping, seed |
-| Unit 25 Sync football-data.org | `providers/football-data` (7 casos), `mapFootballDataStatus` |
-| Unit 28 Match persistence | `sync-orchestrator` persistencia: CREATE/UPDATE/SKIP por status, phase no encontrada, competition ausente, notificaciones best-effort (6 casos) |
-| Unit 5 Predictions | eligibility, validation, lock |
-| Unit 6 Scoring | score-adapter (+ engine), ranking (dense "1,1,2"), resolve-points, score-match |
-| Unit 7 Admin | resolve-winner, require-admin |
-
-## Calidad estática (gates del proyecto)
-```bash
-pnpm exec tsc --noEmit         # 0 errores
-pnpm exec biome check src scripts  # limpio (1 warning preexistente de <img>)
-pnpm lint                      # ESLint — 0 problemas
+pnpm test
 ```
 
-## Si fallan tests
-1. Revisar la salida de vitest (archivo + caso).
-2. Corregir el código.
-3. Re-ejecutar hasta verde.
+## Run Unit 41 Focused Tests
+```bash
+pnpm exec vitest run \
+  src/features/pools/__tests__/pool-predictions.test.ts \
+  src/features/pools/components/__tests__/pool-predictions-view.test.tsx
+```
+
+## Test Cases
+
+### Query Tests (6 tests)
+| Test | Description |
+|------|-------------|
+| `returns null when not authenticated` | `getCurrentUserId()` returns null → query returns null |
+| `returns null when caller is not a pool member` | Membership check fails → query returns null |
+| `returns empty array when no predictions yet` | `findMany` returns [] → query returns [] |
+| `returns predictions only for matches with kickoffAt <= now` | 2 members predict same match → 2 results with nicknames, scores, points |
+| `includes predictions where member has no score yet (LIVE match)` | Match is LIVE → score is null, prediction exists |
+| `does NOT include predictions for matches with kickoffAt > now` | Future match → excluded by Prisma `where` clause |
+
+### Component Tests (10 tests)
+| Test | Description |
+|------|-------------|
+| `buildMatchLabel` — `uses fifaCode for resolved teams` | FINISHED match → `BRA vs ARG` + sublabel `2 - 1` |
+| `buildMatchLabel` — `shows sublabel only for FINISHED with scores` | LIVE match → sublabel null |
+| `buildMatchLabel` — `fallback to placeholders when no team` | No teams → `Winner A vs Runner-up B` |
+| `buildMatchLabel` — `shows '?' for missing team and placeholder` | One missing → `? vs FRA` |
+| `buildDayGroups` — `groups matches by UTC day` | Different days → 2 groups |
+| `buildDayGroups` — `keeps matches on same day in one group` | Same day → 1 group, 2 matches |
+| `buildDayGroups` — `sorts matches chronologically within a day` | Later input first → sorted ascending |
+| `buildDayGroups` — `deduplicates predictions for same match across users` | 2 users predict same match → 1 match column |
+| `buildDayGroups` — `handles matches with null kickoffAt` | null kickoff → `__tbd__` bucket |
+| `buildDayGroups` — `returns empty array when no predictions` | Empty input → empty output |
+
+## Expected Results
+- **16 tests pass**, 0 failures
+- **Suite total**: 281 tests pass (265 existing + 16 new)

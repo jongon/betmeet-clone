@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DirectedInviteForm } from "@/features/pools/components/directed-invite-form";
 import { InviteShare } from "@/features/pools/components/invite-share";
 import { MemberList } from "@/features/pools/components/member-list";
 import { PoolActions } from "@/features/pools/components/pool-actions";
-import { getPoolDetail } from "@/features/pools/queries";
+import { PoolPredictionsView } from "@/features/pools/components/pool-predictions-view";
+import { getPoolDetail, getPoolMemberPredictions } from "@/features/pools/queries";
 import { getCurrentUserId } from "@/features/pools/services/session";
 import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
 import { getPoolLeaderboard } from "@/features/scoring-rankings/queries";
@@ -22,9 +24,10 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   const { id } = await params;
 
   const userId = await getCurrentUserId();
-  const [pool, leaderboard] = await Promise.all([
+  const [pool, leaderboard, predictions] = await Promise.all([
     getPoolDetail(id),
     userId ? getPoolLeaderboard(id, userId) : Promise.resolve(null),
+    getPoolMemberPredictions(id),
   ]);
   if (!pool) notFound();
 
@@ -47,35 +50,55 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
         </p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="space-y-6">
-          {leaderboard && (
-            <section className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold">{dictionary.pools.ranking}</h2>
-                {leaderboard.length > 5 && (
-                  <Link
-                    className={buttonVariants({ variant: "ghost", size: "sm" })}
-                    href={`/pools/${id}/leaderboard`}
-                  >
-                    {dictionary.pools.fullRanking}
-                  </Link>
-                )}
-              </div>
-              <PoolLeaderboard rows={leaderboard} limit={5} />
-            </section>
-          )}
-          <section className="space-y-3">
-            <h2 className="text-xl font-semibold">{dictionary.pools.members}</h2>
-            <MemberList pool={pool} />
-          </section>
+      <Tabs defaultValue="ranking">
+        <TabsList>
+          <TabsTrigger value="ranking">{dictionary.pools.ranking}</TabsTrigger>
+          <TabsTrigger value="predictions">{dictionary.pools.predictions.tab}</TabsTrigger>
+          <TabsTrigger value="members">{dictionary.pools.members}</TabsTrigger>
+        </TabsList>
+
+        <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
+          <div className="space-y-6 pt-6">
+            <TabsContent value="ranking">
+              {leaderboard && (
+                <section className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-xl font-semibold">{dictionary.pools.ranking}</h2>
+                    {leaderboard.length > 5 && (
+                      <Link
+                        className={buttonVariants({ variant: "ghost", size: "sm" })}
+                        href={`/pools/${id}/leaderboard`}
+                      >
+                        {dictionary.pools.fullRanking}
+                      </Link>
+                    )}
+                  </div>
+                  <PoolLeaderboard rows={leaderboard} limit={5} />
+                </section>
+              )}
+            </TabsContent>
+
+            <TabsContent value="predictions">
+              {predictions && (
+                <PoolPredictionsView predictions={predictions} members={pool.members} />
+              )}
+            </TabsContent>
+
+            <TabsContent value="members">
+              <section className="space-y-3">
+                <h2 className="text-xl font-semibold">{dictionary.pools.members}</h2>
+                <MemberList pool={pool} />
+              </section>
+            </TabsContent>
+          </div>
+
+          <aside className="space-y-4 pt-6">
+            <InviteShare token={pool.inviteToken} />
+            {pool.isOwner && <DirectedInviteForm poolId={pool.id} />}
+            <PoolActions pool={pool} />
+          </aside>
         </div>
-        <aside className="space-y-4">
-          <InviteShare token={pool.inviteToken} />
-          {pool.isOwner && <DirectedInviteForm poolId={pool.id} />}
-          <PoolActions pool={pool} />
-        </aside>
-      </div>
+      </Tabs>
     </main>
   );
 }

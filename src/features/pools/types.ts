@@ -57,3 +57,32 @@ export interface OwnedPoolTransfer {
   /** Other members, ordered oldest → newest (F2). Empty means the pool will be deleted (F3). */
   candidates: { userId: string; nickname: string }[];
 }
+
+/** One member's prediction for one match with its score (FR-REFINE-41.1–41.5). */
+export interface PoolMemberPrediction {
+  matchId: string;
+  matchNumber: number | null;
+  kickoffAt: string | null;
+  matchStatus: string;
+  homeTeam: import("@/features/competition/types").TeamView | null;
+  awayTeam: import("@/features/competition/types").TeamView | null;
+  homePlaceholder: string | null;
+  awayPlaceholder: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  phaseName: string;
+  phaseType: string;
+  userId: string;
+  nickname: string;
+  avatarUrl: string | null;
+  predictedHome: number | null;
+  predictedAway: number | null;
+  totalPoints: number | null;
+  matchedCase: string | null;
+}
+
+/** Props for the pool predictions view component (FR-REFINE-41.3). */
+export interface PoolPredictionsViewProps {
+  predictions: PoolMemberPrediction[];
+  members: PoolMemberSummary[];
+}
