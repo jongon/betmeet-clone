@@ -277,6 +277,17 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Revertir un override deja el partido en `SCHEDULED` sin resultado y sin puntos asociados, devolviendo el control a la API.
 
+## Unit 34: Códigos FIFA en `/admin/matches`
+
+**Goal**: Que el panel `/admin/matches` identifique los partidos con códigos de 3 letras (`BRA vs ARG`) en lugar de nombres largos.
+
+**Responsibilities**:
+- Added post-construction via refine (2026-06-16); UI-only y no reinicia Units 1–33. Refine sobre Unit 7 (Admin) y reutiliza la decisión de Unit 4/CF-3 (`Team.fifaCode` como código futbolístico de 3 letras).
+- Renderizar la etiqueta admin del partido con `homeTeam.fifaCode` / `awayTeam.fifaCode` en formato `XXX vs YYY` para filas y diálogos de override/reversión.
+- Preservar placeholders existentes cuando un lado no tenga equipo resuelto; sin cambios de schema, rutas, scoring, seed ni sync.
+
+**Primary Deliverable**: Los admins ven partidos como `BRA vs ARG` en `/admin/matches`, con fallback correcto para cruces TBD.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -298,6 +309,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 17. Unit 29: Seed de partidos desde football-data.org con snapshot (post-construction; el seed puebla partidos pendientes desde la API con respaldo offline; sin schema)
 18. Unit 30: Filtro de "partidos anteriores" en /matches (post-construction refine; UI-only; client-side toggle; sin schema)
 19. Unit 31: "Revertir a la API" también revierte el puntaje de los usuarios (post-construction refine; admin/scoring; sin schema)
+20. Unit 34: Códigos FIFA en `/admin/matches` (post-construction refine; UI-only; sin schema)
 
 ## Security Notes
 

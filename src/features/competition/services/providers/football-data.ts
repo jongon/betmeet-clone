@@ -1,4 +1,5 @@
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
+import { WORLD_CUP_2026_TEAMS } from "../../seed/world-cup-2026";
 import { mapFootballDataStatus } from "../status-mapping";
 import type { CompetitionProvider, NormalizedProviderPayload, ProviderSyncWindow } from "./types";
 
@@ -22,6 +23,11 @@ type FootballDataMatch = {
     halfTime: { home: number | null; away: number | null };
   };
 };
+
+// Build a lookup map from fifaCode to canonical team data for enrichment.
+const canonicalTeamByFifaCode = new Map<string, (typeof WORLD_CUP_2026_TEAMS)[number]>(
+  WORLD_CUP_2026_TEAMS.map((t) => [t.fifaCode, t]),
+);
 
 function resolveScopeStatus(scope: ProviderSyncScope): string | null {
   switch (scope) {
@@ -96,6 +102,38 @@ export class FootballDataProvider implements CompetitionProvider {
       awayScore: match.score.fullTime.away,
     }));
 
-    return { teams: [], matches, providerRequestId: requestId };
+    // Extract unique teams from matches and enrich with canonical data (isoAlpha2, flagKey, flagPath).
+    // This ensures the sync path upserts teams, so the snapshot fallback also contains team data.
+    const teamsMap = new Map<string, { fifaCode: string; name: string; providerTeamId: string }>();
+    for (const match of data.matches) {
+      if (match.homeTeam.tla?.length === 3) {
+        teamsMap.set(match.homeTeam.tla, {
+          fifaCode: match.homeTeam.tla,
+          name: match.homeTeam.name,
+          providerTeamId: String(match.homeTeam.id),
+        });
+      }
+      if (match.awayTeam.tla?.length === 3) {
+        teamsMap.set(match.awayTeam.tla, {
+          fifaCode: match.awayTeam.tla,
+          name: match.awayTeam.name,
+          providerTeamId: String(match.awayTeam.id),
+        });
+      }
+    }
+
+    const teams = Array.from(teamsMap.values()).map((team) => {
+      const canonical = canonicalTeamByFifaCode.get(team.fifaCode);
+      return {
+        name: canonical?.name ?? team.name,
+        fifaCode: team.fifaCode,
+        isoAlpha2: canonical?.isoAlpha2 ?? null,
+        flagKey: canonical?.flagKey ?? team.fifaCode.toLowerCase(),
+        flagPath: canonical?.flagPath ?? `/flags/${team.fifaCode.toLowerCase()}.svg`,
+        providerTeamId: team.providerTeamId,
+      };
+    });
+
+    return { teams, matches, providerRequestId: requestId };
   }
 }

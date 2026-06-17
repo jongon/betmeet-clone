@@ -23,7 +23,24 @@ import { seedMatchesFromFootballData } from "../seed-matches";
 import { runCompetitionSync } from "../sync-orchestrator";
 
 const apiPayload = {
-  teams: [],
+  teams: [
+    {
+      name: "Mexico",
+      fifaCode: "MEX",
+      isoAlpha2: "mx",
+      flagKey: "mx",
+      flagPath: "/flags/mx.svg",
+      providerTeamId: "700",
+    },
+    {
+      name: "Canada",
+      fifaCode: "CAN",
+      isoAlpha2: "ca",
+      flagKey: "ca",
+      flagPath: "/flags/ca.svg",
+      providerTeamId: "800",
+    },
+  ],
   matches: [
     {
       providerMatchId: "501",
@@ -83,6 +100,9 @@ describe("seedMatchesFromFootballData", () => {
     const [provider] = vi.mocked(runCompetitionSync).mock.calls[0];
     const resolved = await provider.fetch("FULL", { windowKey: "seed-full" });
     expect(resolved.matches).toHaveLength(1);
+    // Snapshot fallback includes teams (so sync can upsert them even without API).
+    expect(resolved.teams).toHaveLength(2);
+    expect(resolved.teams[0]?.fifaCode).toBe("MEX");
   });
 
   it("throws when the API fails and there is no snapshot fallback", async () => {

@@ -46,3 +46,10 @@
 |---|---|
 | **BR-7.12** | Toda acción admin (override, revert, trigger sync) se registra con `auth-logger` (heredado de Unit 1) incluyendo el `userId` admin. |
 | **BR-7.13** | Las acciones admin son **server-side**; se valida `requireAdmin()` antes de cualquier mutación (prevención de escalada de privilegios). |
+
+## Presentación de partidos admin (refine Unit 34)
+
+| ID | Regla |
+|---|---|
+| **BR-7.14** | En `/admin/matches`, la etiqueta primaria del partido usa códigos FIFA de 3 letras (`homeTeam.fifaCode`/`awayTeam.fifaCode`) en formato `XXX vs YYY`, por ejemplo `BRA vs ARG`, cuando ambos equipos están resueltos. |
+| **BR-7.15** | Si un lado no tiene equipo resuelto, se muestra su placeholder existente (`homePlaceholder`/`awayPlaceholder`) para no confundir placeholders legítimos de knockout con equipos reales. Esta presentación no altera BR-7.4 ni la validación de overrides. |

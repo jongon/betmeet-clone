@@ -29,6 +29,8 @@ export interface AdminMatchRow {
   status: MatchStatus;
   homeTeamId: string | null;
   awayTeamId: string | null;
+  homeTeamLabel: string;
+  awayTeamLabel: string;
   homeTeamName: string | null;
   awayTeamName: string | null;
   homeScore: number | null;

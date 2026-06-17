@@ -1210,3 +1210,68 @@ legítimos de knockout: un partido sin equipo real conserva `homePlaceholder`/`a
 - **Q1 (identidad)**: reconciliar por `name` (recomendado) en vez de poblar `providerTeamId`.
 - **Q2 (re-vincular)**: re-vincular el equipo real desalineado; preservar placeholders legítimos de knockout.
 - **Q3 (alcance datos)**: seed idempotente, **sin** script aparte.
+
+---
+
+## Épica 32: Extracción de equipos desde API en seed/sync (Unit 33 — añadida vía refine)
+
+> El `FootballDataProvider` devolvía `teams: []`, por lo que el fallback del snapshot tampoco contenía
+> datos de equipos. Cuando el seed corría sin API y caía al snapshot, los partidos no podían resolver
+> `homeTeamId`/`awayTeamId` por `fifaCode` (ej. Uruguay `URY` vs snapshot con `URU`), mostrando
+> "Equipo por definir". La solución es extraer los equipos únicos de los partidos del API y enriquecerlos
+> con los datos canónicos de `WORLD_CUP_2026_TEAMS` (isoAlpha2, flagKey, flagPath).
+
+### FR-REFINE-33.1 — Extracción de equipos desde partidos
+El `FootballDataProvider.fetch()` extrae los equipos únicos de los partidos (por `tla`/`fifaCode`) y los
+devuelve en el array `teams` del payload, enriquecidos con los datos canónicos de `WORLD_CUP_2026_TEAMS`
+(`name`, `isoAlpha2`, `flagKey`, `flagPath`). El `providerTeamId` viene del API (`match.homeTeam.id`).
+
+### FR-REFINE-33.2 — Snapshot con datos de equipos
+El snapshot commiteado (`world-cup-2026-fixtures.json`) ahora incluye el array `teams` con los 48 equipos
+del Mundial 2026. El fallback offline del seed puede resolver `homeTeamId`/`awayTeamId` sin depender de la API.
+
+### FR-REFINE-33.3 — Idempotencia preservada
+Si los datos del API cambian (ej. nombre de equipo, `providerTeamId`), el siguiente seed/sync actualiza
+la fila `Team` correspondiente (keyed por `fifaCode`). Si los datos son iguales, no hay cambio (idempotente).
+
+### Restricciones / SKIP
+- **Sin** cambios de schema ni migraciones.
+- **No** se altera la reconciliación por nombre del seed de estructura (Unit 32).
+- Security Baseline intacto.
+
+### Archivos afectados
+| Archivo | Cambio |
+|---|---|
+| `src/features/competition/services/providers/football-data.ts` | Extracción de equipos únicos desde partidos + enriquecimiento con datos canónicos |
+| `src/features/competition/seed/snapshots/world-cup-2026-fixtures.json` | Snapshot regenerado con 48 equipos |
+| `src/features/competition/services/providers/__tests__/football-data.test.ts` | Test actualizado: verifica extracción de equipos |
+| `src/features/competition/services/__tests__/seed-matches.test.ts` | Test actualizado: verifica que fallback incluye equipos |
+
+---
+
+## Épica 33: Refine Unit 34 — Códigos FIFA en `/admin/matches` (2026-06-16)
+
+**Intent del usuario**: "En admin/matches los nombres de los equipos tienen que verse con sus 3 letras por ejemplo: BRA vs ARG".
+
+Refine UI-only sobre Unit 7 (Admin and Observability) y dependiente de Unit 4/CF-3: el modelo `Team` ya almacena `fifaCode` como código futbolístico de 3 letras. **No** reinicia etapas aprobadas. Sin cambios de schema, rutas ni reglas de scoring/sync.
+
+### FR-REFINE-34.1 — Etiqueta compacta de equipos en admin/matches
+En `/admin/matches`, cada fila y diálogo de administración de resultados debe identificar el partido por códigos `fifaCode` de 3 letras, no por nombres largos de equipos.
+- Formato para equipos resueltos: `HOME_CODE vs AWAY_CODE`, por ejemplo `BRA vs ARG`.
+- `HOME_CODE` y `AWAY_CODE` vienen de `match.homeTeam.fifaCode` / `match.awayTeam.fifaCode`.
+- Los códigos se muestran en mayúsculas y se tratan como identificadores visuales compactos para la operación admin.
+
+### FR-REFINE-34.2 — Fallback para placeholders legítimos
+Si un lado del partido aún no tiene equipo resuelto (`homeTeamId`/`awayTeamId` nulo), `/admin/matches` conserva el placeholder existente para ese lado (`homePlaceholder`/`awayPlaceholder`) en vez de inventar un código.
+- Ejemplo: `1ro Grupo A vs 2do Grupo B` hasta que la API/sync resuelva los equipos.
+- No cambia la regla BR-7.4: los overrides solo se fuerzan cuando ambos equipos están definidos.
+
+### FR-REFINE-34.3 — Alcance limitado a la interfaz admin
+El cambio aplica a `/admin/matches` y sus controles de override/reversión. No cambia `/matches` público, predicciones, rankings, scoring, seed ni sync.
+
+### Archivos afectados (previsto)
+| Archivo | Cambio |
+|---|---|
+| `src/features/admin/queries.ts` | Incluir/derivar `homeTeam.fifaCode` y `awayTeam.fifaCode` en el DTO admin si no está disponible. |
+| `src/features/admin/components/*` | Renderizar la etiqueta `BRA vs ARG` en filas y diálogos de `/admin/matches`. |
+| `src/features/admin/__tests__/*` | Verificar etiqueta por códigos y fallback a placeholders. |

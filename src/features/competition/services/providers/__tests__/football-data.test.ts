@@ -70,7 +70,16 @@ describe("FootballDataProvider", () => {
     const provider = new FootballDataProvider();
     const result = await provider.fetch("FULL", { windowKey: "test" });
 
-    expect(result.teams).toEqual([]);
+    // Teams are extracted from matches and enriched with canonical data.
+    expect(result.teams).toHaveLength(3);
+    const teamCodes = result.teams.map((t) => t.fifaCode).sort();
+    expect(teamCodes).toEqual(["ARG", "MEX", "RSA"]);
+    // Canonical enrichment: Mexico should have flagPath from WORLD_CUP_2026_TEAMS.
+    const mexico = result.teams.find((t) => t.fifaCode === "MEX");
+    expect(mexico?.name).toBe("Mexico");
+    expect(mexico?.flagPath).toBe("/flags/mx.svg");
+    expect(mexico?.providerTeamId).toBe("700");
+
     expect(result.matches).toHaveLength(2);
 
     const finishedMatch = result.matches[0];

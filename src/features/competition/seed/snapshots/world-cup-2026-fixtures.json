@@ -1,5 +1,390 @@
 {
-  "teams": [],
+  "teams": [
+    {
+      "name": "Mexico",
+      "fifaCode": "MEX",
+      "isoAlpha2": "mx",
+      "flagKey": "mx",
+      "flagPath": "/flags/mx.svg",
+      "providerTeamId": "769"
+    },
+    {
+      "name": "South Africa",
+      "fifaCode": "RSA",
+      "isoAlpha2": "za",
+      "flagKey": "za",
+      "flagPath": "/flags/za.svg",
+      "providerTeamId": "774"
+    },
+    {
+      "name": "South Korea",
+      "fifaCode": "KOR",
+      "isoAlpha2": "kr",
+      "flagKey": "kr",
+      "flagPath": "/flags/kr.svg",
+      "providerTeamId": "772"
+    },
+    {
+      "name": "Czechia",
+      "fifaCode": "CZE",
+      "isoAlpha2": "cz",
+      "flagKey": "cz",
+      "flagPath": "/flags/cz.svg",
+      "providerTeamId": "798"
+    },
+    {
+      "name": "Canada",
+      "fifaCode": "CAN",
+      "isoAlpha2": "ca",
+      "flagKey": "ca",
+      "flagPath": "/flags/ca.svg",
+      "providerTeamId": "828"
+    },
+    {
+      "name": "Bosnia and Herzegovina",
+      "fifaCode": "BIH",
+      "isoAlpha2": "ba",
+      "flagKey": "ba",
+      "flagPath": "/flags/ba.svg",
+      "providerTeamId": "1060"
+    },
+    {
+      "name": "United States",
+      "fifaCode": "USA",
+      "isoAlpha2": "us",
+      "flagKey": "us",
+      "flagPath": "/flags/us.svg",
+      "providerTeamId": "771"
+    },
+    {
+      "name": "Paraguay",
+      "fifaCode": "PAR",
+      "isoAlpha2": "py",
+      "flagKey": "py",
+      "flagPath": "/flags/py.svg",
+      "providerTeamId": "761"
+    },
+    {
+      "name": "Qatar",
+      "fifaCode": "QAT",
+      "isoAlpha2": "qa",
+      "flagKey": "qa",
+      "flagPath": "/flags/qa.svg",
+      "providerTeamId": "8030"
+    },
+    {
+      "name": "Switzerland",
+      "fifaCode": "SUI",
+      "isoAlpha2": "ch",
+      "flagKey": "ch",
+      "flagPath": "/flags/ch.svg",
+      "providerTeamId": "788"
+    },
+    {
+      "name": "Brazil",
+      "fifaCode": "BRA",
+      "isoAlpha2": "br",
+      "flagKey": "br",
+      "flagPath": "/flags/br.svg",
+      "providerTeamId": "764"
+    },
+    {
+      "name": "Morocco",
+      "fifaCode": "MAR",
+      "isoAlpha2": "ma",
+      "flagKey": "ma",
+      "flagPath": "/flags/ma.svg",
+      "providerTeamId": "815"
+    },
+    {
+      "name": "Haiti",
+      "fifaCode": "HAI",
+      "isoAlpha2": "ht",
+      "flagKey": "ht",
+      "flagPath": "/flags/ht.svg",
+      "providerTeamId": "836"
+    },
+    {
+      "name": "Scotland",
+      "fifaCode": "SCO",
+      "isoAlpha2": null,
+      "flagKey": "gb-sct",
+      "flagPath": "/flags/gb-sct.svg",
+      "providerTeamId": "8873"
+    },
+    {
+      "name": "Australia",
+      "fifaCode": "AUS",
+      "isoAlpha2": "au",
+      "flagKey": "au",
+      "flagPath": "/flags/au.svg",
+      "providerTeamId": "779"
+    },
+    {
+      "name": "Türkiye",
+      "fifaCode": "TUR",
+      "isoAlpha2": "tr",
+      "flagKey": "tr",
+      "flagPath": "/flags/tr.svg",
+      "providerTeamId": "803"
+    },
+    {
+      "name": "Germany",
+      "fifaCode": "GER",
+      "isoAlpha2": "de",
+      "flagKey": "de",
+      "flagPath": "/flags/de.svg",
+      "providerTeamId": "759"
+    },
+    {
+      "name": "Curaçao",
+      "fifaCode": "CUW",
+      "isoAlpha2": "cw",
+      "flagKey": "cw",
+      "flagPath": "/flags/cw.svg",
+      "providerTeamId": "9460"
+    },
+    {
+      "name": "Netherlands",
+      "fifaCode": "NED",
+      "isoAlpha2": "nl",
+      "flagKey": "nl",
+      "flagPath": "/flags/nl.svg",
+      "providerTeamId": "8601"
+    },
+    {
+      "name": "Japan",
+      "fifaCode": "JPN",
+      "isoAlpha2": "jp",
+      "flagKey": "jp",
+      "flagPath": "/flags/jp.svg",
+      "providerTeamId": "766"
+    },
+    {
+      "name": "Ivory Coast",
+      "fifaCode": "CIV",
+      "isoAlpha2": "ci",
+      "flagKey": "ci",
+      "flagPath": "/flags/ci.svg",
+      "providerTeamId": "1935"
+    },
+    {
+      "name": "Ecuador",
+      "fifaCode": "ECU",
+      "isoAlpha2": "ec",
+      "flagKey": "ec",
+      "flagPath": "/flags/ec.svg",
+      "providerTeamId": "791"
+    },
+    {
+      "name": "Sweden",
+      "fifaCode": "SWE",
+      "isoAlpha2": "se",
+      "flagKey": "se",
+      "flagPath": "/flags/se.svg",
+      "providerTeamId": "792"
+    },
+    {
+      "name": "Tunisia",
+      "fifaCode": "TUN",
+      "isoAlpha2": "tn",
+      "flagKey": "tn",
+      "flagPath": "/flags/tn.svg",
+      "providerTeamId": "802"
+    },
+    {
+      "name": "Spain",
+      "fifaCode": "ESP",
+      "isoAlpha2": "es",
+      "flagKey": "es",
+      "flagPath": "/flags/es.svg",
+      "providerTeamId": "760"
+    },
+    {
+      "name": "Cape Verde",
+      "fifaCode": "CPV",
+      "isoAlpha2": "cv",
+      "flagKey": "cv",
+      "flagPath": "/flags/cv.svg",
+      "providerTeamId": "1930"
+    },
+    {
+      "name": "Belgium",
+      "fifaCode": "BEL",
+      "isoAlpha2": "be",
+      "flagKey": "be",
+      "flagPath": "/flags/be.svg",
+      "providerTeamId": "805"
+    },
+    {
+      "name": "Egypt",
+      "fifaCode": "EGY",
+      "isoAlpha2": "eg",
+      "flagKey": "eg",
+      "flagPath": "/flags/eg.svg",
+      "providerTeamId": "825"
+    },
+    {
+      "name": "Saudi Arabia",
+      "fifaCode": "KSA",
+      "isoAlpha2": "sa",
+      "flagKey": "sa",
+      "flagPath": "/flags/sa.svg",
+      "providerTeamId": "801"
+    },
+    {
+      "name": "Uruguay",
+      "fifaCode": "URY",
+      "isoAlpha2": "uy",
+      "flagKey": "uy",
+      "flagPath": "/flags/uy.svg",
+      "providerTeamId": "758"
+    },
+    {
+      "name": "Iran",
+      "fifaCode": "IRN",
+      "isoAlpha2": "ir",
+      "flagKey": "ir",
+      "flagPath": "/flags/ir.svg",
+      "providerTeamId": "840"
+    },
+    {
+      "name": "New Zealand",
+      "fifaCode": "NZL",
+      "isoAlpha2": "nz",
+      "flagKey": "nz",
+      "flagPath": "/flags/nz.svg",
+      "providerTeamId": "783"
+    },
+    {
+      "name": "France",
+      "fifaCode": "FRA",
+      "isoAlpha2": "fr",
+      "flagKey": "fr",
+      "flagPath": "/flags/fr.svg",
+      "providerTeamId": "773"
+    },
+    {
+      "name": "Senegal",
+      "fifaCode": "SEN",
+      "isoAlpha2": "sn",
+      "flagKey": "sn",
+      "flagPath": "/flags/sn.svg",
+      "providerTeamId": "804"
+    },
+    {
+      "name": "Iraq",
+      "fifaCode": "IRQ",
+      "isoAlpha2": "iq",
+      "flagKey": "iq",
+      "flagPath": "/flags/iq.svg",
+      "providerTeamId": "8062"
+    },
+    {
+      "name": "Norway",
+      "fifaCode": "NOR",
+      "isoAlpha2": "no",
+      "flagKey": "no",
+      "flagPath": "/flags/no.svg",
+      "providerTeamId": "8872"
+    },
+    {
+      "name": "Argentina",
+      "fifaCode": "ARG",
+      "isoAlpha2": "ar",
+      "flagKey": "ar",
+      "flagPath": "/flags/ar.svg",
+      "providerTeamId": "762"
+    },
+    {
+      "name": "Algeria",
+      "fifaCode": "ALG",
+      "isoAlpha2": "dz",
+      "flagKey": "dz",
+      "flagPath": "/flags/dz.svg",
+      "providerTeamId": "778"
+    },
+    {
+      "name": "Austria",
+      "fifaCode": "AUT",
+      "isoAlpha2": "at",
+      "flagKey": "at",
+      "flagPath": "/flags/at.svg",
+      "providerTeamId": "816"
+    },
+    {
+      "name": "Jordan",
+      "fifaCode": "JOR",
+      "isoAlpha2": "jo",
+      "flagKey": "jo",
+      "flagPath": "/flags/jo.svg",
+      "providerTeamId": "8049"
+    },
+    {
+      "name": "Portugal",
+      "fifaCode": "POR",
+      "isoAlpha2": "pt",
+      "flagKey": "pt",
+      "flagPath": "/flags/pt.svg",
+      "providerTeamId": "765"
+    },
+    {
+      "name": "DR Congo",
+      "fifaCode": "COD",
+      "isoAlpha2": "cd",
+      "flagKey": "cd",
+      "flagPath": "/flags/cd.svg",
+      "providerTeamId": "1934"
+    },
+    {
+      "name": "England",
+      "fifaCode": "ENG",
+      "isoAlpha2": null,
+      "flagKey": "gb-eng",
+      "flagPath": "/flags/gb-eng.svg",
+      "providerTeamId": "770"
+    },
+    {
+      "name": "Croatia",
+      "fifaCode": "CRO",
+      "isoAlpha2": "hr",
+      "flagKey": "hr",
+      "flagPath": "/flags/hr.svg",
+      "providerTeamId": "799"
+    },
+    {
+      "name": "Ghana",
+      "fifaCode": "GHA",
+      "isoAlpha2": "gh",
+      "flagKey": "gh",
+      "flagPath": "/flags/gh.svg",
+      "providerTeamId": "763"
+    },
+    {
+      "name": "Panama",
+      "fifaCode": "PAN",
+      "isoAlpha2": "pa",
+      "flagKey": "pa",
+      "flagPath": "/flags/pa.svg",
+      "providerTeamId": "1836"
+    },
+    {
+      "name": "Uzbekistan",
+      "fifaCode": "UZB",
+      "isoAlpha2": "uz",
+      "flagKey": "uz",
+      "flagPath": "/flags/uz.svg",
+      "providerTeamId": "8070"
+    },
+    {
+      "name": "Colombia",
+      "fifaCode": "COL",
+      "isoAlpha2": "co",
+      "flagKey": "co",
+      "flagPath": "/flags/co.svg",
+      "providerTeamId": "818"
+    }
+  ],
   "matches": [
     {
       "providerMatchId": "537327",
@@ -190,7 +575,7 @@
       "kickoffAt": "2026-06-15T22:00:00Z",
       "status": "FINISHED",
       "homeFifaCode": "KSA",
-      "awayFifaCode": "URU",
+      "awayFifaCode": "URY",
       "homePlaceholder": null,
       "awayPlaceholder": null,
       "homeScore": 1,
@@ -214,26 +599,26 @@
       "matchNumber": 1,
       "phaseName": "Group I",
       "kickoffAt": "2026-06-16T19:00:00Z",
-      "status": "SCHEDULED",
+      "status": "FINISHED",
       "homeFifaCode": "FRA",
       "awayFifaCode": "SEN",
       "homePlaceholder": null,
       "awayPlaceholder": null,
-      "homeScore": null,
-      "awayScore": null
+      "homeScore": 3,
+      "awayScore": 1
     },
     {
       "providerMatchId": "537392",
       "matchNumber": 1,
       "phaseName": "Group I",
       "kickoffAt": "2026-06-16T22:00:00Z",
-      "status": "SCHEDULED",
+      "status": "LIVE",
       "homeFifaCode": "IRQ",
       "awayFifaCode": "NOR",
       "homePlaceholder": null,
       "awayPlaceholder": null,
-      "homeScore": null,
-      "awayScore": null
+      "homeScore": 1,
+      "awayScore": 2
     },
     {
       "providerMatchId": "537397",
@@ -501,7 +886,7 @@
       "phaseName": "Group H",
       "kickoffAt": "2026-06-21T22:00:00Z",
       "status": "SCHEDULED",
-      "homeFifaCode": "URU",
+      "homeFifaCode": "URY",
       "awayFifaCode": "CPV",
       "homePlaceholder": null,
       "awayPlaceholder": null,
@@ -813,7 +1198,7 @@
       "phaseName": "Group H",
       "kickoffAt": "2026-06-27T00:00:00Z",
       "status": "SCHEDULED",
-      "homeFifaCode": "URU",
+      "homeFifaCode": "URY",
       "awayFifaCode": "ESP",
       "homePlaceholder": null,
       "awayPlaceholder": null,
@@ -1354,5 +1739,5 @@
       "awayScore": null
     }
   ],
-  "fetchedAt": "2026-06-16T17:32:47.991Z"
+  "fetchedAt": "2026-06-16T23:29:10.796Z"
 }

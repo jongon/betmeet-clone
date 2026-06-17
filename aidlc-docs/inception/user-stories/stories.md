@@ -292,6 +292,44 @@
 
 ---
 
+## Épica 32: Extracción de equipos desde API en seed/sync (Unit 33 — añadida vía refine)
+
+> El `FootballDataProvider` devolvía `teams: []`, por lo que el fallback del snapshot tampoco contenía
+> datos de equipos. No reinicia etapas aprobadas. Detalle en
+> `construction/unit-29-seed-matches-football-data/functional-design.md` y
+> `construction/unit-32-seed-team-reconciliation/functional-design.md`.
+
+### US-33.1: Que el seed/sync extraiga equipos desde los partidos del API
+**Como** administrador
+**Quiero** que al ejecutar el seed o sync, los equipos se extraigan automáticamente de los partidos del API
+**Para** que el snapshot de respaldo contenga datos de equipos y los partidos puedan resolver `homeTeamId`/`awayTeamId` incluso sin API.
+- **Criterios de Aceptación**:
+  - `FootballDataProvider.fetch()` devuelve un array `teams` con los equipos únicos extraídos de los partidos.
+  - Los equipos se enriquecen con datos canónicos de `WORLD_CUP_2026_TEAMS` (`name`, `isoAlpha2`, `flagKey`, `flagPath`).
+  - El snapshot commiteado incluye el array `teams` (48 equipos del Mundial 2026).
+  - El fallback offline del seed puede resolver `homeTeamId`/`awayTeamId` sin depender de la API.
+  - Idempotente: si los datos del API cambian, el siguiente seed/sync actualiza la fila `Team` (keyed por `fifaCode`).
+  - Suite de tests verde (football-data.test.ts, seed-matches.test.ts).
+
+---
+
+## Épica 33: Códigos FIFA en `/admin/matches` (Unit 34 — añadida vía refine)
+
+> Refine UI-only sobre Unit 7. No reinicia etapas aprobadas. Detalle en
+> `construction/unit-7-admin-observability/functional-design/frontend-components.md`.
+
+### US-34.1: Ver partidos admin por código de 3 letras
+**Como** administrador
+**Quiero** que los partidos en `/admin/matches` se vean como `BRA vs ARG`
+**Para** identificar y operar resultados rápidamente sin leer nombres largos de equipos.
+- **Criterios de Aceptación**:
+  - Las filas de `/admin/matches` muestran equipos resueltos con `homeTeam.fifaCode` y `awayTeam.fifaCode` en formato `XXX vs YYY`.
+  - Los diálogos/controles de override reutilizan la misma etiqueta compacta del partido.
+  - Si un equipo aún no está resuelto, se conserva el placeholder existente para ese lado.
+  - No cambia `/matches` público, scoring, sync ni seed.
+
+---
+
 ## Épica 2: La Competición (Mundial 2026)
 
 ### US-2.1: Visualización del Fixture

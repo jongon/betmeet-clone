@@ -1,5 +1,47 @@
 # AI-DLC Audit Log
 
+## Unit 34 — Code Generation Complete + Build and Test
+**Timestamp**: 2026-06-17T00:00:00Z
+**User Input**: "Summarize the task tool output above and continue with your task." (continuation approval after Code Generation Part 1 plan)
+**AI Response**: "Summarized the task output: Code Generation Part 1 created `aidlc-docs/construction/plans/unit-34-admin-match-fifa-codes-code-generation-plan.md` and updated state/audit, with Part 2 waiting for approval. Treated the user's 'continue' as approval and executed Part 2. Implemented `/admin/matches` compact team labels: `getAdminMatches()` derives `homeTeamLabel`/`awayTeamLabel` and primary `label` from `Team.fifaCode` in `XXX vs YYY` format, preserving placeholders per side; `ForceResultDialog` uses the compact labels for score fields and penalty-winner buttons. Added tests for resolved `BRA vs ARG` and unresolved placeholders. Updated plan checkboxes, generation summary, `aidlc-state.md`, and this audit log in the same interaction."
+**Code change**: Modified `src/features/admin/queries.ts`, `src/features/admin/types.ts`, `src/features/admin/components/force-result-dialog.tsx`; added `src/features/admin/__tests__/queries.test.ts`. Docs AI-DLC: updated `construction/plans/unit-34-admin-match-fifa-codes-code-generation-plan.md`, added `construction/unit-34-admin-match-fifa-codes/code/generation-summary.md`, updated `aidlc-state.md`, `audit.md`.
+**Build/Test Status**: Pass. Focused admin Vitest suite **14/14**; Unit 34 re-run **2/2**; `pnpm exec tsc --noEmit` OK; Biome check on touched source files OK (`aidlc-docs/` ignored by Biome, reviewed by diff); ESLint on touched admin files OK.
+**Context**: UI-only refine over Unit 7. No schema, migration, route, scoring, seed, sync, auth, or public `/matches` changes. Security Baseline unchanged; existing admin guards remain in place.
+
+---
+
+## Unit 34 — Code Generation Plan Ready
+**Timestamp**: 2026-06-16T23:56:51Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit
+loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the
+approved units. Application code goes in the workspace root, NEVER in
+`aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and
+update checkboxes + audit.md in the SAME interaction.
+
+Target unit (optional):"
+**AI Response**: "Loaded the AI-DLC core workflow, mandatory common rules, code-generation rules, Security Baseline extension rules (enabled), Unit 34 state, Unit 34/Unit 7 design artifacts, and current admin match code. Functional Design is already complete for Unit 34; NFR and Infrastructure are skipped. Code Generation requires a Part 1 plan approval gate, so generation was not started. Created `aidlc-docs/construction/plans/unit-34-admin-match-fifa-codes-code-generation-plan.md`, marked plan-authoring checkboxes `[x]`, updated `aidlc-docs/aidlc-state.md` to Code Generation Part 1 PLAN READY, and logged this approval prompt. Awaiting explicit approval to execute Part 2 Generation."
+**Context**: Construction Phase resume for approved Unit 34. Application code remains untouched until the Code Generation plan is approved. Documentation-only plan created under `aidlc-docs/`; planned application code paths are under workspace root (`src/features/admin/...`). Security Baseline compliance for this UI-only change: applicable rule SECURITY-08 remains compliant through existing admin guards; other rules are N/A or unchanged.
+
+---
+
+## Unit 34 — Códigos FIFA en `/admin/matches` (`/aidlc:refine`)
+**Timestamp**: 2026-06-16T23:45:00Z
+**User Input**: "En admin/matches los nombres de los equipos tienen que verse con sus 3 letras por ejemplo: BRA vs ARG"
+**AI Response**: "Refine UI-only sobre Unit 7 (Admin and Observability), dependiente de la decisión ya existente de Unit 4/CF-3: `Team.fifaCode` es el código futbolístico de 3 letras. Se actualizan solo artefactos AI-DLC existentes, sin reiniciar etapas aprobadas. Nuevo requisito FR-REFINE-34: `/admin/matches` debe mostrar equipos resueltos como `XXX vs YYY` (ej. `BRA vs ARG`) usando `homeTeam.fifaCode`/`awayTeam.fifaCode`; si un lado no está resuelto, conserva `homePlaceholder`/`awayPlaceholder`; alcance limitado a admin, sin cambios en `/matches`, scoring, seed ni sync. Code Generation queda pendiente si el usuario continúa el workflow."
+**Code change**: Ninguno. Docs AI-DLC: `inception/requirements/requirements.md` (Épica 33 / FR-REFINE-34.1-.3), `inception/user-stories/stories.md` (US-34.1), `construction/unit-7-admin-observability/functional-design/frontend-components.md` (etiqueta `BRA vs ARG`), `construction/unit-7-admin-observability/functional-design/business-rules.md` (BR-7.14/BR-7.15), `inception/application-design/unit-of-work.md` (Unit 34 + secuencia), `aidlc-state.md` (Current Stage + bloque Unit 34), `audit.md` (esta entrada).
+**Context**: Cambio de presentación admin para identificación rápida de partidos. Reutiliza datos existentes (`Team.fifaCode`); no requiere schema ni migraciones.
+
+---
+
+## Unit 33 — Extracción de equipos desde API en seed/sync (`/aidlc:refine`)
+**Timestamp**: 2026-06-16T23:30:00Z
+**User Input**: "al ejecutar el seed pnpm prisma:seed:competitions hay un partido del pasado que en la interfaz gráfica /matches muestra 'Equipo por definir' ese equipo es Uruguay. El seed tiene que ser idenponente si los registros son los mismos pero si algo cambia desde football-data.org api debe modificarse"
+**AI Response**: "Refine post-construcción vía `/aidlc:refine` → **Unit 33** (aditivo, no reinicia Units 1–32; construye sobre Unit 29 `seedMatchesFromFootballData` y Unit 32 `reconcileSeedTeam`). **Causa raíz**: `FootballDataProvider.fetch()` devolvía `teams: []`, por lo que el fallback del snapshot tampoco contenía datos de equipos. Cuando el seed corría sin API y caía al snapshot, los partidos no podían resolver `homeTeamId`/`awayTeamId` por `fifaCode` (ej. Uruguay `URY` vs snapshot con `URU`), mostrando 'Equipo por definir'. **Solución**: `FootballDataProvider.fetch()` ahora extrae los equipos únicos de los partidos (por `tla`/`fifaCode`) y los enriquece con datos canónicos de `WORLD_CUP_2026_TEAMS` (`name`, `isoAlpha2`, `flagKey`, `flagPath`). El `providerTeamId` viene del API (`match.homeTeam.id`). Snapshot regenerado con 48 equipos (`world-cup-2026-fixtures.json`). **Idempotencia preservada**: si los datos del API cambian, el siguiente seed/sync actualiza la fila `Team` (keyed por `fifaCode`); si son iguales, no hay cambio. Verificado: tsc 0, Biome limpio, ESLint 0, **vitest 229/229** (tests actualizados: `football-data.test.ts` verifica extracción de equipos, `seed-matches.test.ts` verifica que fallback incluye equipos). Sin schema, migraciones ni rutas."
+**Code change**: Modificados `src/features/competition/services/providers/football-data.ts` (extracción de equipos únicos + enriquecimiento con datos canónicos), `src/features/competition/seed/snapshots/world-cup-2026-fixtures.json` (regenerado con 48 equipos), `src/features/competition/services/providers/__tests__/football-data.test.ts` (test actualizado), `src/features/competition/services/__tests__/seed-matches.test.ts` (test actualizado). Docs AI-DLC: `inception/requirements/requirements.md` (FR-REFINE-33.1/.2/.3, Épica 32), `inception/user-stories/stories.md` (US-33.1, Épica 32), `construction/unit-29-seed-matches-football-data/functional-design.md` (FR-SEED-29.8), `construction/unit-32-seed-team-reconciliation/functional-design.md` (nota en §4.2), `aidlc-state.md` (bloque Unit 33 + Current Stage), `audit.md` (esta entrada).
+**Context**: Refine que resuelve el "Equipo por Definir" en fallback offline, asegurando que el snapshot contenga datos de equipos completos para que la sync pueda resolver `homeTeamId`/`awayTeamId` sin depender de la API.
+
+---
+
 ## Unit 29 — Seed de partidos desde football-data.org con snapshot (`/aidlc:start`)
 **Timestamp**: 2026-06-16T12:00:00Z
 **User Input**: "Quiero que el seed de prisma de las competición de la world cup 2026 se haga desde football-data.org, que solo registre los partidos que faltan por ocurrir y que sea idenponente. Hazme las preguntas que consideres necesarias si las tuvieras."

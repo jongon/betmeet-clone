@@ -100,14 +100,14 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
           <div className="flex items-end gap-4">
             <NumberField
               id="force-result-home"
-              label={match.homeTeamName ?? t.home}
+              label={match.homeTeamLabel}
               value={homeScore}
               onChange={setHomeScore}
             />
             <span className="pb-2 text-muted-foreground">-</span>
             <NumberField
               id="force-result-away"
-              label={match.awayTeamName ?? t.away}
+              label={match.awayTeamLabel}
               value={awayScore}
               onChange={setAwayScore}
             />
@@ -136,8 +136,8 @@ export function ForceResultDialog({ match }: { match: AdminMatchRow }) {
               <span className="text-sm font-medium">{t.penaltyWinner}</span>
               <div className="flex gap-2">
                 {[
-                  { id: match.homeTeamId, name: match.homeTeamName ?? t.home },
-                  { id: match.awayTeamId, name: match.awayTeamName ?? t.away },
+                  { id: match.homeTeamId, name: match.homeTeamLabel },
+                  { id: match.awayTeamId, name: match.awayTeamLabel },
                 ].map((team) => (
                   <button
                     key={team.id}

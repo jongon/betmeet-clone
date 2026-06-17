@@ -30,6 +30,7 @@
 | FR-SEED-29.5 | **Idempotente**: persistencia keyed por `providerMatchId` (UPDATE si existe, CREATE solo de pendientes). Correr N veces converge al mismo estado. |
 | FR-SEED-29.6 | Se **elimina** el seed estático incorrecto (`WORLD_CUP_2026_MATCHES`, `seedWorldCup2026()`, `upsertMatch`); el snapshot lo reemplaza como respaldo offline. |
 | FR-SEED-29.7 | **Knockouts con equipos TBD**: en fase de grupos los partidos de eliminatorias vienen sin equipos resueltos; se registran igual (estado pendiente) con `homeTeamId`/`awayTeamId` = `null`. Futuros syncs los completan. |
+| FR-SEED-29.8 | **Extracción de equipos desde partidos** (añadido en Unit 33): `FootballDataProvider.fetch()` extrae los equipos únicos de los partidos (por `tla`/`fifaCode`) y los enriquece con datos canónicos de `WORLD_CUP_2026_TEAMS`. El snapshot incluye el array `teams` (48 equipos), permitiendo que el fallback offline resuelva `homeTeamId`/`awayTeamId` sin API. |
 
 ## Diseño
 
@@ -60,7 +61,7 @@ corrida exitosa). Se genera en la primera corrida con `FOOTBALL_DATA_KEY` válid
 
 ## Fuera de alcance
 
-- Alinear `fifaCode` sembrado ↔ `tla` de football-data (equipos cuyo `tla` difiera quedan con team `null`).
+- Alinear `fifaCode` sembrado ↔ `tla` de football-data (equipos cuyo `tla` difiera quedan con team `null`). **Resuelto parcialmente en Unit 33**: el provider ahora extrae equipos desde los partidos y los enriquece con datos canónicos.
 - Capturar placeholders de knockout ("Winner Group A") desde football-data (hoy `null`).
 - Cron/automatización del refresco del snapshot (sigue siendo manual al correr el seed).
 

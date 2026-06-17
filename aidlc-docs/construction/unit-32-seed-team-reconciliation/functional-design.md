@@ -83,6 +83,11 @@ No requiere cambio: la ruta de update de `syncMatchesToDB` (`sync-orchestrator.t
 `awayFifaCode="URY"` → fila Uruguay y actualiza el partido existente. El seed corre estructura **antes** de la
 sync (`seedMatchesFromFootballData` lo exige), así que un único `pnpm prisma:seed:competition` sana todo.
 
+**Nota (Unit 33)**: El `FootballDataProvider` ahora extrae equipos desde los partidos y los enriquece con
+datos canónicos, por lo que la sync también upserts equipos (no solo partidos). Esto asegura que el snapshot
+de respaldo contenga datos de equipos completos, permitiendo que el fallback offline resuelva
+`homeTeamId`/`awayTeamId` sin depender de la API.
+
 ### 4.3 Preservación de placeholders legítimos (FR-REFINE-32.3 / Q2)
 
 Los partidos de knockout sin equipo real **no** tienen fila en `teams`; el provider envía

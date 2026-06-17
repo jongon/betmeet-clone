@@ -43,10 +43,16 @@ AdminDashboardPage
 ```
 AdminMatchesPage
 └── AdminMatchList
-    └── AdminMatchRow[]   (label · estado · marcador actual · badge "Override")
+    └── AdminMatchRow[]   (label `BRA vs ARG` · estado · marcador actual · badge "Override")
         ├── ForceResultDialog   (abre formulario)
         └── RevertOverrideButton (solo si isOverridden)
 ```
+
+### Etiqueta de partido (refine Unit 34)
+- `/admin/matches` muestra equipos resueltos con códigos `fifaCode` de 3 letras: `homeTeam.fifaCode + " vs " + awayTeam.fifaCode` (ej. `BRA vs ARG`).
+- La misma etiqueta compacta se usa en la fila y en los diálogos/controles de override/reversión para evitar inconsistencias visuales.
+- Si un lado aún no está resuelto, se conserva el placeholder existente de ese lado (`homePlaceholder`/`awayPlaceholder`), sin inventar códigos.
+- Alcance limitado a admin: no cambia la presentación pública de `/matches`, predicciones ni rankings.
 
 ### ForceResultDialog (cliente) — BL-2
 | Campo | Regla |

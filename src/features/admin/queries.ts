@@ -35,6 +35,10 @@ function toRunRow(run: {
   };
 }
 
+function teamAdminLabel(team: { fifaCode: string } | null, placeholder: string | null) {
+  return team?.fifaCode.toUpperCase() ?? placeholder ?? "?";
+}
+
 /** Sync dashboard read model (BL-4, US-6.1). Returns null for non-admins. */
 export async function getSyncDashboard(): Promise<SyncStatusView | null> {
   if (!(await getAdminUserId())) return null;
@@ -78,19 +82,26 @@ export async function getAdminMatches(): Promise<AdminMatchRow[] | null> {
     orderBy: [{ kickoffAt: "asc" }, { matchNumber: "asc" }],
   });
 
-  return matches.map((m) => ({
-    id: m.id,
-    label: `${m.homeTeam?.name ?? m.homePlaceholder ?? "?"} vs ${m.awayTeam?.name ?? m.awayPlaceholder ?? "?"}`,
-    phaseType: m.phase.type,
-    status: m.status,
-    homeTeamId: m.homeTeamId,
-    awayTeamId: m.awayTeamId,
-    homeTeamName: m.homeTeam?.name ?? null,
-    awayTeamName: m.awayTeam?.name ?? null,
-    homeScore: m.homeScore,
-    awayScore: m.awayScore,
-    isOverridden: m.manualOverride,
-    overriddenAt: m.overriddenAt?.toISOString() ?? null,
-    kickoffAt: m.kickoffAt?.toISOString() ?? null,
-  }));
+  return matches.map((m) => {
+    const homeTeamLabel = teamAdminLabel(m.homeTeam, m.homePlaceholder);
+    const awayTeamLabel = teamAdminLabel(m.awayTeam, m.awayPlaceholder);
+
+    return {
+      id: m.id,
+      label: `${homeTeamLabel} vs ${awayTeamLabel}`,
+      phaseType: m.phase.type,
+      status: m.status,
+      homeTeamId: m.homeTeamId,
+      awayTeamId: m.awayTeamId,
+      homeTeamLabel,
+      awayTeamLabel,
+      homeTeamName: m.homeTeam?.name ?? null,
+      awayTeamName: m.awayTeam?.name ?? null,
+      homeScore: m.homeScore,
+      awayScore: m.awayScore,
+      isOverridden: m.manualOverride,
+      overriddenAt: m.overriddenAt?.toISOString() ?? null,
+      kickoffAt: m.kickoffAt?.toISOString() ?? null,
+    };
+  });
 }
