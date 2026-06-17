@@ -1,14 +1,25 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { getDictionary } from "@/i18n/get-dictionary";
-import { getRequestLocale } from "@/lib/locale";
+import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { PoolPredictionsViewProps } from "../types";
 import { buildDayGroups } from "./pool-predictions-view-helpers";
 
-export async function PoolPredictionsView({ predictions, members }: PoolPredictionsViewProps) {
-  const dictionary = getDictionary(await getRequestLocale());
+function subscribeToTimeZone() {
+  return () => {};
+}
+
+function getBrowserTimeZone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+export function PoolPredictionsView({ predictions, members }: PoolPredictionsViewProps) {
+  const dictionary = useDictionary();
   const t = dictionary.pools.predictions;
-  const locale = await getRequestLocale();
+  const locale = useLocale();
+  const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
 
   if (predictions.length === 0) {
     return (
@@ -19,7 +30,7 @@ export async function PoolPredictionsView({ predictions, members }: PoolPredicti
     );
   }
 
-  const days = buildDayGroups(predictions, members, locale);
+  const days = buildDayGroups(predictions, members, locale, timeZone);
 
   return (
     <div className="space-y-8">
