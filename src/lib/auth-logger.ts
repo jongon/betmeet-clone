@@ -6,7 +6,8 @@ type AuthEvent =
   | "auth.change_unconfirmed_email_succeeded"
   | "admin.match_overridden"
   | "admin.override_reverted"
-  | "admin.sync_triggered";
+  | "admin.sync_triggered"
+  | "pool.settings_changed";
 
 export function redactEmail(email: string): string {
   const atIndex = email.indexOf("@");

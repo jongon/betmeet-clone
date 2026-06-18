@@ -2133,3 +2133,85 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Context**: Endurecimiento del sync (Unit 28) contra sobreescritura de overrides manuales del admin. No altera el flujo de `forceMatchResult` (US-6.2); solo blinda los syncs posteriores.
 
 ---
+
+## CONSTRUCTION PHASE — Unit 45 (Pool member invites permission) request
+**Timestamp**: 2026-06-18T05:45:00Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the approved units. Application code goes in the workspace root, NEVER in `aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and update checkboxes + audit.md in the SAME interaction. Target unit (optional):"
+**AI Response**: "Loaded core workflow + per-stage rules (functional-design.md, code-generation.md, build-and-test.md) and prior state. Unit 45 Workflow Planning ya aprobado ('Aprobar y continuar', 2026-06-18T04:35Z) y Functional Design (Light) ya creado en `construction/unit-45-pool-member-invites-permission/functional-design.md` (638 lines, 9 BRs, planes de archivo completos, i18n ES+EN, Security Baseline 4/15 APPLICABLE COMPLIANT). NFR Requirements/Design e Infrastructure en SKIP formal (1 columna con default TRUE; sin triggers/RLS/Storage/deploy/env vars). Decisión: ejecutar Functional Design → Code Generation Part 1 → Code Generation Part 2 → Build and Test en una sola interacción, con 2-option messages en cada transition gate (FD, CG Part 1, CG Part 2, B&T), actualizando checkboxes en aidlc-state.md y audit.md en el mismo turn."
+**Code change**: Ninguno en esta entrada. Ejecución pendiente en las siguientes entradas.
+**Context**: Unit 45 supersede FR-REFINE-44.7 con un toggle `Pool.membersCanInvite` configurable al crear el pool y editable en una nueva sección 'Configuración' en `/pools/[id]`. Default `true` (alineado con Unit 44). Solo aplica a pools PRIVATE. Dependencias: Units 3, 13, 44.
+
+---
+
+## Unit 45 — Functional Design (Light) — APPROVED via blanket approval
+**Timestamp**: 2026-06-18T05:50:00Z
+**User Input**: (no input; "Execute the CONSTRUCTION PHASE" implica aprobación de Functional Design pendiente)
+**AI Response**: "Functional Design (Light) marcado como COMPLETE / approved-by-continuation. artifact en `construction/unit-45-pool-member-invites-permission/functional-design.md` (638 lines, 9 BRs trazados, plan de archivos 19 entradas, i18n ES+EN, Security Baseline 4/15 APPLICABLE COMPLIANT, verification plan exhaustivo)."
+**Code change**: Ninguno (artefacto AI-DLC only).
+**Context**: Continuation a Code Generation Part 1 bajo la aprobación blanket 'Execute the CONSTRUCTION PHASE'.
+
+---
+
+## Unit 45 — Code Generation Part 1 (Planning) — COMPLETE
+**Timestamp**: 2026-06-18T05:55:00Z
+**AI Response**: "Code Generation Part 1 plan creado y aprobado por continuación. artifact en `construction/plans/unit-45-pool-member-invites-permission-code-generation-plan.md` (15 pasos, 8 archivos modified, 8 archivos created, 5 archivos de test, 9 BRs trazados, Security Baseline 4/15 COMPLIANT). Decisión: ejecutar Part 2 inmediatamente bajo la aprobación blanket 'Execute the CONSTRUCTION PHASE'."
+**Code change**: Ninguno (artefacto AI-DLC only — `construction/plans/unit-45-pool-member-invites-permission-code-generation-plan.md`).
+**Context**: Plan ejecutable paso a paso, source of truth único para Part 2.
+
+---
+
+## Unit 45 — Code Generation Part 2 (Generation) — COMPLETE
+**Timestamp**: 2026-06-18T06:10:00Z
+**User Input**: (no input; continuation under blanket approval)
+**AI Response**: "Ejecutados 15/15 pasos del plan. Schema + migración + auth-logger + schemas + types + queries + createPool + createPoolForm + updatePoolMembersCanInvite + createDirectedInvite (gate ampliado) + PoolSettingsCard/Client + PoolDetailPage + i18n ES+EN + 2 referencias a t.invite actualizadas + 5 archivos de tests. Verificación: tsc 0, biome 0, eslint 0 en archivos tocados, vitest 78/78 en `src/features/pools/` (13 archivos, +23 de Unit 45), vitest full 341/341 (66 archivos), `pnpm build` OK (25 rutas). Total: 8 archivos modified + 8 archivos created + 1 schema + 1 migración."
+**Code change**: 
+- **Schema/migration**: `prisma/schema.prisma` (+`membersCanInvite Boolean @default(true) @map("members_can_invite")` al model Pool), `prisma/migrations/20260618010000_unit45_pool_members_can_invite/migration.sql` (NEW, `ALTER TABLE pools ADD COLUMN members_can_invite BOOLEAN NOT NULL DEFAULT TRUE`).
+- **Modified (12)**: `src/lib/auth-logger.ts` (+`"pool.settings_changed"` al union `AuthEvent`), `src/features/pools/schemas.ts` (+`membersCanInvite: z.boolean().default(true)` a CreatePoolSchema, +UpdatePoolMembersCanInviteSchema), `src/features/pools/types.ts` (+`membersCanInvite: boolean` a MyPoolSummary y PoolDetail), `src/features/pools/queries.ts` (getMyPools select + map, getPoolDetail select con type/membersCanInvite + return), `src/features/pools/actions/create-pool.ts` (input con `membersCanInvite`, persist en `Pool.create`), `src/features/pools/actions/create-directed-invite.ts` (select ampliado + gate ampliado BR-3.33/3.34/45.6), `src/features/pools/components/create-pool-form.tsx` (state membersCanInvite + Switch condicional type===PRIVATE + reset en PUBLIC + pasa al createPool), `src/app/(app)/pools/[id]/page.tsx` (gate UI DirectedInviteForm + mount PoolSettingsCard solo si isOwner), `src/i18n/dictionaries/es.ts` (renombrar `invite`→`invitationTitle`, +objeto `invite: { membersBlockedHint }`, +`membersCanInvite`/`membersCanInviteDescription` top-level, +`settings: { ... }`), `src/i18n/dictionaries/en.ts` (mismo), `src/features/pools/components/invite-share.tsx` (`t.invite`→`t.invitationTitle`), `src/app/(app)/pools/join/[token]/page.tsx` (`dictionary.pools.invite`→`dictionary.pools.invitationTitle`), `src/features/pools/actions/__tests__/create-directed-invite.test.ts` (+3 casos: membersCanInvite=false bloquea, owner siempre puede, PUBLIC bloquea).
+- **Created (8)**: `src/features/pools/actions/update-pool-members-can-invite.ts` (NEW server action), `src/features/pools/components/pool-settings-card.tsx` (NEW server component), `src/features/pools/components/pool-settings-card-client.tsx` (NEW client component), `src/features/pools/actions/__tests__/update-pool-members-can-invite.test.ts` (NEW, 8 tests), `src/features/pools/actions/__tests__/create-pool.test.ts` (NEW, 6 tests), `src/features/pools/components/__tests__/create-pool-form.test.tsx` (NEW, 5 tests), `src/features/pools/components/__tests__/pool-settings-card.test.tsx` (NEW, 5 tests), + el archivo de migración Prisma.
+**Build/Test Status**: Pass. tsc 0, biome clean, eslint 0, vitest 341/341, `pnpm build` OK.
+**Context**: Unit 45 implementación completa. 8 archivos created + 12 modified + 1 schema + 1 migración. BR-3.33/3.34/3.35/3.36/45.1–45.9 trazados. SECURITY-05/08/09 COMPLIANT. 23 tests nuevos (+8 update-pool-members-can-invite +6 create-pool +5 create-pool-form +5 pool-settings-card, ajustados -1 en create-directed-invite por mejor cobertura). `pnpm prisma:generate` regeneró el cliente.
+
+---
+
+## Unit 45 — Build and Test — COMPLETE
+**Timestamp**: 2026-06-18T06:20:00Z
+**User Input**: (no input; continuation under blanket approval)
+**AI Response**: "Build and Test ejecutado tras Code Generation Part 2. Instruction files refrescados en `aidlc-docs/construction/build-and-test/`: `build-instructions.md` (Unit 45, 6 pasos con comandos exactos y troubleshooting), `unit-test-instructions.md` (cobertura de los 23 tests nuevos, fixing instructions), `integration-test-instructions.md` (4 escenarios cross-feature), `performance-test-instructions.md` (N/A — no perf-sensitive path), `build-and-test-summary.md` (inventario de archivos + Security Baseline + Operations steps). Resumen: Build ✅, tsc 0, biome clean, eslint 0 en archivos tocados, vitest 341/341 (66 archivos, +23 Unit 45), `pnpm build` OK (25 rutas). Security: 4/15 reglas aplicables COMPLIANT (SECURITY-01 N/A, SECURITY-05/08/09 ✅). Unit 45 cerrada — lista para Operations."
+**Code change**: 
+- **AI-DLC**: `aidlc-docs/construction/build-and-test/build-instructions.md` (overwritten para Unit 45), `unit-test-instructions.md` (overwritten para Unit 45), `integration-test-instructions.md` (overwritten para Unit 45), `performance-test-instructions.md` (overwritten para Unit 45), `build-and-test-summary.md` (overwritten para Unit 45).
+- **Application**: ninguno nuevo.
+**Build/Test Status**: Pass. tsc 0, biome clean, eslint 0, vitest 341/341, `pnpm build` OK.
+**Context**: Unit 45 CONSTRUCTION PHASE completa. Functional Design (Light) + Code Generation Part 1 + Code Generation Part 2 + Build and Test ejecutados en una sola interacción bajo la aprobación blanket 'Execute the CONSTRUCTION PHASE'. Operaciones pendientes: `prisma migrate deploy` (aditiva, default TRUE) + smoke test en prod (verificar Settings card visible, toggle persiste, gate UI para no-owner, owner siempre puede invitar).
+
+---
+
+## Post-Unit-45 — Refine del usuario: gating consistente en PUBLIC pools
+**Timestamp**: 2026-06-18T02:32:00Z
+**User Input** (composite de dos mensajes en la misma sesion):
+1. "En los pools publicos se asume que los miembros pueden invitar. Lo comento porque sale la card de configuración en un pool público"
+2. "Tampoco debería pasar que un miembro de un pool privado que no puede invitar a otros miembros tampoco puede ver el card que tiene el código de invitación o el código"
+
+**AI Response** (resumen del refine): "Dos bugs reportados en uso real de Unit 45 (post-Build and Test). Ambos son defectos de **gating en el gate**: la implementación inicial exponía UI/server actions que no deberían ser accesibles en ciertos estados. Refine aplicado como parche quirúrgico sin reiniciar etapas.
+
+**Fix 1 — `PoolSettingsCard` no debe aparecer en pools PUBLIC**: la card se renderizaba en `src/app/(app)/pools/[id]/page.tsx` cuando `pool.isOwner === true`, sin filtrar por `type`. El functional design original de Unit 45 explicitaba este comportamiento como aceptable ('En pools PUBLIC se muestra igualmente aunque el flag no tenga efecto') — el usuario lo marcó como confuso. Fix: condicionar a `pool.isOwner && pool.type === "PRIVATE"`. El flag `Pool.membersCanInvite` no tiene efecto en PUBLIC (el directorio es la vía principal de unión, no hay invitación dirigida), por lo que mostrar el toggle es ruido.
+
+**Fix 2 — `InviteShare` debe respetar el mismo gate que `DirectedInviteForm`**: el `InviteShare` (token + link + código de invitación) se renderizaba siempre para todos los miembros. El token/link es en sí mismo un mecanismo de invitación: si un miembro no-owner no puede invitar (porque el owner desactivó `membersCanInvite`), no debería tener acceso al token/link tampoco. Fix: condicionar `<InviteShare token={...} />` a `canInvite` (mismo gate que el `DirectedInviteForm`). El `membersBlockedHint` se muestra solo cuando NO se tiene acceso, ocultando tanto el form como el share.
+
+**Fix 3 — `updatePoolMembersCanInvite` rechaza pools PUBLIC (defense in depth)**: aunque la UI ya no expone el toggle en PUBLIC, un cliente API podría intentar llamar al server action directamente. Fix: el `select` del `prisma.pool.findUnique` añade `type: true`; después del gate de owner, valida `pool.type === "PRIVATE"` y retorna error 'Esta configuración solo aplica a ligas privadas' sin persistir ni loguear. Test nuevo: 'rejects the call for PUBLIC pools (the toggle only applies to PRIVATE)'.
+
+**Archivos cambiados (workspace root)**:
+- `src/app/(app)/pools/[id]/page.tsx` (line 108: gate `&& pool.type === "PRIVATE"` para SettingsCard; line 100: gate `canInvite` para InviteShare).
+- `src/features/pools/actions/update-pool-members-can-invite.ts` (line 27: `select: { id, ownerId, type }`; nuevo guard de type).
+- `src/features/pools/actions/__tests__/update-pool-members-can-invite.test.ts` (beforeEach incluye `type: "PRIVATE"`; nuevo test 'rejects the call for PUBLIC pools').
+
+**Archivos AI-DLC actualizados (no reinicio de etapas)**:
+- `aidlc-docs/construction/unit-45-pool-member-invites-permission/functional-design.md`: BR-45.7 ampliado (InviteShare bajo mismo gate); BR-45.8 corregido (`pool.type === "PRIVATE"`); contract de `updatePoolMembersCanInvite` con guard + note; sección `PoolDetailPage` actualizada; verification plan con el nuevo test; plan de archivos actualizado.
+- `aidlc-docs/construction/plans/unit-45-pool-member-invites-permission-code-generation-plan.md`: Step 8 con guard de `type`; Step 11 con gate de InviteShare; Step 14 con test 9 (PUBLIC guard).
+- `aidlc-state.md`: nota de refine en bloque Unit 45 (este turno).
+- `aidlc-docs/audit.md`: esta entrada.
+
+**Verificacion**: `pnpm test` → **342/342 passed** (66 archivos, +1 nuevo test del PUBLIC guard). `pnpm exec tsc --noEmit` 0. `pnpm exec biome check` sobre 3 archivos tocados OK.
+
+**Context**: refine post-implementación de Unit 45 sin reinicio de etapas aprobadas. No hay cambios de schema, migraciones, rutas, ni i18n. Risk: low (defense in depth + corrección de UX confusa). Sin commit todavía — el usuario decide cuando commitear/pushear (patrón establecido en Unit 28, Unit 31, Unit 39, Unit 46).
+
+---

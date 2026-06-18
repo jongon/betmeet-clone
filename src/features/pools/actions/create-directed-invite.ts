@@ -67,7 +67,14 @@ export async function createDirectedInvite(input: unknown) {
 
   const pool = await prisma.pool.findUnique({
     where: { id: parsed.data.poolId },
-    select: { id: true, name: true, inviteToken: true, ownerId: true },
+    select: {
+      id: true,
+      name: true,
+      inviteToken: true,
+      ownerId: true,
+      type: true, // Unit 45: BR-3.34
+      membersCanInvite: true, // Unit 45: BR-3.34
+    },
   });
   if (!pool) return { error: "Liga no encontrada" };
 
@@ -76,6 +83,15 @@ export async function createDirectedInvite(input: unknown) {
     select: { userId: true },
   });
   if (!membership) return { error: "Debes ser miembro de la liga para invitar" };
+
+  // Unit 45: gate ampliado (BR-3.33, BR-3.34, BR-45.6).
+  // Owner siempre puede invitar; miembros no-owner solo si la liga es PRIVATE
+  // y el flag `membersCanInvite` está activo.
+  if (pool.ownerId !== userId) {
+    if (pool.type !== "PRIVATE" || !pool.membersCanInvite) {
+      return { error: "El administrador no permite que los miembros inviten" };
+    }
+  }
 
   const resolved = await resolveUserByTarget(parsed.data.target);
   if (!resolved.invitedUserId && !resolved.invitedEmailHash) {

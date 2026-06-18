@@ -8,6 +8,7 @@ import { InviteShare } from "@/features/pools/components/invite-share";
 import { MemberList } from "@/features/pools/components/member-list";
 import { PoolActions } from "@/features/pools/components/pool-actions";
 import { PoolPredictionsView } from "@/features/pools/components/pool-predictions-view";
+import { PoolSettingsCard } from "@/features/pools/components/pool-settings-card";
 import { getPoolDetail, getPoolMemberPredictions } from "@/features/pools/queries";
 import { getCurrentUserId } from "@/features/pools/services/session";
 import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
@@ -30,6 +31,9 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
     getPoolMemberPredictions(id),
   ]);
   if (!pool) notFound();
+
+  // Unit 45: BR-3.34 / BR-45.7 — gate UI del DirectedInviteForm.
+  const canInvite = pool.isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite);
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -93,8 +97,17 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
           </div>
 
           <aside className="space-y-4 pt-6">
-            <InviteShare token={pool.inviteToken} />
-            <DirectedInviteForm poolId={pool.id} />
+            {canInvite && <InviteShare token={pool.inviteToken} />}
+            {canInvite ? (
+              <DirectedInviteForm poolId={pool.id} />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {dictionary.pools.invite.membersBlockedHint}
+              </p>
+            )}
+            {pool.isOwner && pool.type === "PRIVATE" && (
+              <PoolSettingsCard poolId={pool.id} initialMembersCanInvite={pool.membersCanInvite} />
+            )}
             <PoolActions pool={pool} />
           </aside>
         </div>

@@ -367,7 +367,11 @@ export const es = {
     searchPlaceholder: "Nombre de la liga",
     hasCapacity: "Con cupo",
     search: "Buscar",
-    invite: "Invitación",
+    invitationTitle: "Invitación", // Unit 45: renombrado de `invite` (string) para liberar la clave para el objeto anidado.
+    invite: {
+      // Unit 45: BR-45.7 — pista cuando el miembro no-owner no puede invitar.
+      membersBlockedHint: "Solo el administrador puede invitar en esta liga.",
+    },
     inviteCode: "Código:",
     inviteLink: "Link de invitación",
     copyLink: "Copiar link",
@@ -385,6 +389,18 @@ export const es = {
     inviteSubmit: "Invitar",
     inviteSentPush: "Invitación enviada con push.",
     inviteSaved: "Invitación guardada. El link sigue disponible.",
+    // Unit 45: US-45.1 — toggle al crear el pool.
+    membersCanInvite: "Los miembros pueden invitar",
+    membersCanInviteDescription:
+      "Permite que los miembros no administradores inviten a otros usuarios.",
+    // Unit 45: US-45.2 — sección Configuración en /pools/[id].
+    settings: {
+      title: "Configuración",
+      subtitle: "Opciones de la liga que solo tú puedes cambiar.",
+      membersCanInvite: "Los miembros pueden invitar",
+      membersCanInviteDescription: "Si lo desactivas, solo tú podrás invitar a otros jugadores.",
+      saved: "Configuración guardada",
+    },
     kick: "Expulsar",
     kicking: "Expulsando…",
     since: "Desde",

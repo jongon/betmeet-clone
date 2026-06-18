@@ -16,12 +16,14 @@ Grupo donde compiten los usuarios (US-4.1).
 | `capacity` | int (2–100) | Límite de miembros elegido por el creador (Q2). |
 | `inviteToken` | string (único, ~8 chars) | Sirve como **código** y como **link** `/pools/join/{token}` (Q1=A). |
 | `ownerId` | uuid (FK → Profile) | Admin/creador. Fuente de verdad de la propiedad. No transferible salvo borrado de cuenta (Q5/Q9). |
+| `membersCanInvite` | boolean @default(true) | **(Unit 45, 2026-06-18)** Toggle de permiso de invitación por miembros. Solo aplica a `type = PRIVATE`. Default `true` (alineado con Unit 44). El owner puede editarlo en cualquier momento (US-45.2). |
 | `createdAt` | timestamptz | Creación. |
 
 **Derivados**:
 - `memberCount` = nº de `PoolMembership` del pool.
 - `isFull` = `memberCount >= capacity`.
 - `isFrozen` = `now() >= getCompetitionLockTime()` (ver entidad 3).
+- `canNonOwnerInvite` (UI helper, server-eval) = `type === "PRIVATE" && membersCanInvite === true`.
 
 **Relaciones**:
 - 1 `Pool` → N `PoolMembership` (cascade on delete del pool).
@@ -31,6 +33,7 @@ Grupo donde compiten los usuarios (US-4.1).
 - Índice único parcial: `UNIQUE(name) WHERE type = 'PUBLIC'` (BR-3.2).
 - `UNIQUE(inviteToken)` (BR-3.4).
 - `CHECK(capacity BETWEEN 2 AND 100)` (BR-3.1).
+- `NOT NULL` en `membersCanInvite` con `DEFAULT TRUE` (Postgres, sin CHECK adicional).
 
 ---
 

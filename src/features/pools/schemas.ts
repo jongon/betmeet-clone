@@ -13,6 +13,7 @@ export const CreatePoolSchema = z.object({
     .int("La capacidad debe ser un número entero")
     .min(2, "El mínimo es 2 participantes")
     .max(100, "El máximo es 100 participantes"),
+  membersCanInvite: z.boolean().default(true), // Unit 45: BR-3.36, FR-REFINE-45.1
 });
 
 export type CreatePoolInput = z.infer<typeof CreatePoolSchema>;
@@ -45,3 +46,11 @@ export const SearchNicknameSchema = z.object({
 });
 
 export type SearchNicknameInput = z.infer<typeof SearchNicknameSchema>;
+
+/** Update pool membersCanInvite flag (FR-REFINE-45.4, BR-3.35, BR-45.4). */
+export const UpdatePoolMembersCanInviteSchema = z.object({
+  poolId: z.string().uuid(),
+  membersCanInvite: z.boolean(),
+});
+
+export type UpdatePoolMembersCanInviteInput = z.infer<typeof UpdatePoolMembersCanInviteSchema>;

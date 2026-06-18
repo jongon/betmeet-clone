@@ -11,7 +11,7 @@
 | 13.1 Preservar destino en auth | `proxy.ts` redirige a `/sign-in` **sin** `next`; `signIn`/`signUp` van fijo a `/matches`; `auth/callback` y `auth/confirm` **ya leen** `next` | Propagar `next` por proxy → sign-in/sign-up → callback/confirm |
 | 13.2 Onboarding antes de invitación | Onboarding ya preserva `next` (Unit 12); proxy gatea a onboarding **sin** `next` | Proxy pasa `next` al redirigir a onboarding |
 | 13.3 Confirmación explícita | `JoinConfirm` ya exige clic; no hay auto-join por link | Sin cambio funcional; se documenta y prueba |
-| 13.4 Invitaciones dirigidas | **Ya implementado** (Unit 10): `create-directed-invite` resuelve nickname/email y encola push solo si el destinatario existe | Verificar/probar; sin reescritura |
+| 13.4 Invitaciones dirigidas | **Ya implementado** (Unit 10): `create-directed-invite` resuelve nickname/email y encola push solo si el destinatario existe | Verificar/probar; sin reescritura. **Unit 45 (2026-06-18)**: gate ampliado con `isOwner || (PRIVATE && membersCanInvite)`. |
 | 13.5 Join público exitoso | `joinPublicPool` devuelve `{ success }`; el card no redirige | Redirigir directo a `/pools/[id]` al unirse |
 | 13.6 Ya miembro en público | `joinPublicPool` trata "ya miembro" como **error fatal** | Convertir en estado informativo, permanecer en el directorio |
 
@@ -65,6 +65,8 @@ reescritura. Si la verificación detecta un hueco (p. ej. push disparado sin
 destinatario), se corrige puntualmente.
 
 > **Unit 44 (2026-06-18)**: `DirectedInviteForm` gana autocompletar de nickname (búsqueda por `startsWith` sobre `nicknameBase`). El server action `createDirectedInvite` y el flujo de resolución/push no cambian. Ver `construction/unit-44-nickname-autocomplete-invite/`.
+
+> **Unit 45 (2026-06-18) — supersede de FR-REFINE-44.7**: el comportamiento de "cualquier miembro puede invitar" introducido en Unit 44 (corrección del usuario) queda **restringido** por el nuevo toggle `Pool.membersCanInvite`. Regla final: el owner del pool siempre puede invitar; los miembros no-owner solo pueden invitar si `pool.type === "PRIVATE" && pool.membersCanInvite === true`. El server action `createDirectedInvite` (Unit 10) recibe este gate ampliado (BR-3.34). El flujo de resolución (`resolveUserByTarget`), el push (`queueNotificationEvent`) y la persistencia en `PoolDirectedInvite` no cambian. El `DirectedInviteForm` (UI, Unit 13 + Unit 44) se renderiza condicionalmente según el flag (visible para owner siempre; para miembros no-owner solo si `PRIVATE && membersCanInvite`). Ver `construction/unit-45-pool-member-invites-permission/`.
 
 ## 3. Contratos (nuevos / modificados)
 

@@ -793,3 +793,37 @@
   - La búsqueda es case-insensitive y solo busca por inicio del nickname base (no por discriminator).
   - El botón "Invitar" y el envío del formulario funcionan igual que antes, sin cambios.
   - Si no hay coincidencias o escribo menos de 2 caracteres, no se muestra ningún dropdown.
+
+---
+
+## Épica 45: Permiso configurable de invitación por miembros en pools privados (Unit 45 — añadida vía refine)
+
+> Refine sobre Unit 3 (Pools), Unit 13 (Invitaciones), Unit 44 (Autocompletar). El owner de un pool **privado** decide si los miembros (no-owner) pueden invitar a otros usuarios; el owner siempre puede invitar. El permiso se elige al crear el pool y es editable en un pool en progreso. No reinicia etapas aprobadas.
+
+### US-45.1: Decidir el permiso de invitación al crear un pool privado
+
+**Como** owner de un pool privado recién creado
+**Quiero** decidir si los miembros pueden invitar a otros usuarios
+**Para** mantener el control sobre quién trae gente a mi liga.
+
+- **Criterios de Aceptación**:
+  - Al crear un pool `PRIVATE` desde `/pools/new`, aparece un nuevo control (Switch) "Los miembros pueden invitar", con default `true`.
+  - El control solo es visible si el tipo del pool es `PRIVATE`; en `PUBLIC` se oculta (no aplica).
+  - Al guardar el pool, el valor del Switch se persiste como `Pool.membersCanInvite`.
+  - El default `true` mantiene el comportamiento de Unit 44 (cualquier miembro puede invitar) hasta que el owner decida restringir.
+  - Tras crear el pool, el owner es redirigido a `/pools/[id]` y puede cambiar la preferencia en cualquier momento (ver US-45.2).
+
+### US-45.2: Cambiar el permiso de invitación en un pool en progreso
+
+**Como** owner de un pool privado
+**Quiero** activar o desactivar el permiso de los miembros para invitar en cualquier momento
+**Para** adaptar el control de la liga según la confianza y dinámica del grupo.
+
+- **Criterios de Aceptación**:
+  - En `/pools/[id]`, dentro de una sección "Configuración" (visible solo para el owner), hay un Switch "Los miembros pueden invitar" con el valor actual.
+  - Al cambiar el Switch, la preferencia se persiste vía `updatePoolMembersCanInvite` y la UI se actualiza sin recargar.
+  - Si el owner activa el permiso (`true`): los miembros no-owner ven el `DirectedInviteForm` y pueden usarlo.
+  - Si el owner desactiva el permiso (`false`): los miembros no-owner dejan de ver el `DirectedInviteForm` y, si intentan invitar por API, reciben el error "El administrador no permite que los miembros inviten".
+  - El owner siempre puede invitar, independientemente del valor del toggle.
+  - El cambio aplica inmediatamente (no requiere esperar al próximo partido ni reiniciar la liga).
+  - El cambio se puede hacer en cualquier momento del ciclo de vida del pool (no hay congelamiento que lo bloquee).

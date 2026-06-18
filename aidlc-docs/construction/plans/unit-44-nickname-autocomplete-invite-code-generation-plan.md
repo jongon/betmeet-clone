@@ -100,7 +100,7 @@ Replace:
 if (pool.ownerId !== userId) return { error: "Solo el administrador puede invitar" };
 ```
 
-With:
+With (v1 — alineado con Unit 44 BR-44.8, queda superseded por Unit 45):
 ```typescript
 const membership = await prisma.poolMembership.findUnique({
   where: { poolId_userId: { poolId: pool.id, userId } },
@@ -109,8 +109,27 @@ const membership = await prisma.poolMembership.findUnique({
 if (!membership) return { error: "Debes ser miembro de la liga para invitar" };
 ```
 
+> **Unit 45 (2026-06-18) — supersede de BR-44.8**: si Unit 45 está implementada antes que Unit 44, o si se aplican juntas, el gate final es:
+> ```typescript
+> if (pool.ownerId === userId) {
+>   // owner siempre puede invitar (BR-3.33)
+> } else {
+>   // miembro no-owner: solo si PRIVATE && membersCanInvite (BR-3.34)
+>   const membership = await prisma.poolMembership.findUnique({
+>     where: { poolId_userId: { poolId: pool.id, userId } },
+>     select: { userId: true },
+>   });
+>   if (!membership) return { error: "Debes ser miembro de la liga para invitar" };
+>   if (pool.type !== "PRIVATE" || !pool.membersCanInvite) {
+>     return { error: "El administrador no permite que los miembros inviten" };
+>   }
+> }
+> ```
+> Cuando se implemente Unit 45, este `select` en el `pool.findUnique` (Step 4 actual) debe ampliarse a `{ id, name, inviteToken, ownerId, type, membersCanInvite }`.
+
 - [x] Replace owner gate with membership gate (single line change + membership lookup)
 - [x] Error message: "Debes ser miembro de la liga para invitar"
+- [ ] **(Unit 45 follow-up)** Si Unit 45 se implementa antes: ampliar el `select` y el gate con la lógica de `isOwner || (PRIVATE && membersCanInvite)`.
 
 ### Step 5: Cambiar gate UI en `page.tsx`
 
@@ -121,13 +140,24 @@ Replace:
 {pool.isOwner && <DirectedInviteForm poolId={pool.id} />}
 ```
 
-With:
+With (v1 — alineado con Unit 44 BR-44.8):
 ```tsx
 <DirectedInviteForm poolId={pool.id} />
 ```
 
+> **Unit 45 (2026-06-18) — supersede de BR-44.8**: cuando se implemente Unit 45, el gate UI final es:
+> ```tsx
+> {(pool.isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite)) ? (
+>   <DirectedInviteForm poolId={pool.id} />
+> ) : (
+>   <p className="text-sm text-muted-foreground">{t.invite.membersBlockedHint}</p>
+> )}
+> ```
+> Requiere que `getPoolDetail` exponga `type` y `membersCanInvite` (Unit 3 `domain-entities.md` y `types.ts` ya están actualizados con la columna).
+
 - [x] Remove `pool.isOwner &&` gate — page already gates by membership
 - [x] `DirectedInviteForm` always rendered for members
+- [ ] **(Unit 45 follow-up)** Si Unit 45 se implementa antes: condicionar el render al flag; mostrar `membersBlockedHint` cuando el miembro no puede invitar.
 
 ### Step 6: Modificar `directed-invite-form.tsx` con dropdown de autocompletar
 

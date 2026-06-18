@@ -26,6 +26,7 @@ export interface MyPoolSummary {
   capacity: number;
   isOwner: boolean;
   isArchived: boolean;
+  membersCanInvite: boolean; // Unit 45: FR-REFINE-45.5
 }
 
 /** A member row in the pool detail view (identity from Unit 1 Profile). */
@@ -47,6 +48,7 @@ export interface PoolDetail {
   inviteToken: string;
   isOwner: boolean;
   isArchived: boolean;
+  membersCanInvite: boolean; // Unit 45: FR-REFINE-45.5
   members: PoolMemberSummary[];
 }
 

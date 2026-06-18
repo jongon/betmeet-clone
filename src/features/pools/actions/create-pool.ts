@@ -7,7 +7,12 @@ import { prisma } from "@/lib/prisma";
 import { CreatePoolSchema } from "../schemas";
 import { generateUniqueInviteToken } from "../services/invite-token";
 
-export async function createPool(input: { name: string; type: string; capacity: number }) {
+export async function createPool(input: {
+  name: string;
+  type: string;
+  capacity: number;
+  membersCanInvite?: boolean; // Unit 45: BR-3.36
+}) {
   const parsed = CreatePoolSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
@@ -17,7 +22,7 @@ export async function createPool(input: { name: string; type: string; capacity: 
   const userId = await getOnboardedUserId();
   if (!userId) return { error: "Completa tu perfil para crear una liga." };
 
-  const { name, type, capacity } = parsed.data;
+  const { name, type, capacity, membersCanInvite } = parsed.data;
 
   // Name must be unique among public pools (BR-3.2); the DB partial index is the
   // final guard, this is the friendly pre-check.
@@ -35,7 +40,14 @@ export async function createPool(input: { name: string; type: string; capacity: 
   try {
     const pool = await prisma.$transaction(async (tx) => {
       const created = await tx.pool.create({
-        data: { name, type, capacity, inviteToken, ownerId: userId },
+        data: {
+          name,
+          type,
+          capacity,
+          inviteToken,
+          ownerId: userId,
+          membersCanInvite, // Unit 45: BR-45.3
+        },
       });
       await tx.poolMembership.create({ data: { poolId: created.id, userId } });
       return created;

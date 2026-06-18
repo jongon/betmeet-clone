@@ -32,6 +32,7 @@ export const getMyPools = cache(async (): Promise<MyPoolSummary[]> => {
     capacity: m.pool.capacity,
     isOwner: m.pool.ownerId === userId,
     isArchived: m.archivedAt !== null,
+    membersCanInvite: m.pool.membersCanInvite, // Unit 45: BR-45.9
   }));
 });
 
@@ -42,7 +43,14 @@ export const getPoolDetail = cache(async (poolId: string): Promise<PoolDetail | 
 
   const pool = await prisma.pool.findUnique({
     where: { id: poolId },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
+      capacity: true,
+      inviteToken: true,
+      ownerId: true,
+      membersCanInvite: true, // Unit 45: BR-45.9
       memberships: {
         include: { user: true },
         orderBy: { joinedAt: "asc" },
@@ -71,6 +79,7 @@ export const getPoolDetail = cache(async (poolId: string): Promise<PoolDetail | 
     inviteToken: pool.inviteToken,
     isOwner: pool.ownerId === userId,
     isArchived: own.archivedAt !== null,
+    membersCanInvite: pool.membersCanInvite, // Unit 45: FR-REFINE-45.5
     members,
   };
 });

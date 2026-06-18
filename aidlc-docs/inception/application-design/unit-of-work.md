@@ -432,8 +432,27 @@ Feature modules should own their server actions, schemas, services, and feature-
 - Sin cambios en `resolveUserByTarget`, `PoolDirectedInvite` ni el flujo de push.
 - Sin schema, migraciones ni rutas nuevas.
 - Security Baseline intacto: `searchNicknames` solo devuelve datos públicos de perfil (nickname, avatar); sin exponer emails ni relaciones.
+- **Superseded (Unit 45, 2026-06-18)**: FR-REFINE-44.7 ("cualquier miembro puede invitar") queda reemplazado por el modelo configurable de la **Unit 45**. El cambio de Unit 44 sigue vigente como **default** (`membersCanInvite = true`), pero ahora el owner puede restringir el permiso. El code-gen plan de Unit 44 se ajusta para condicionar el gate al flag cuando se implemente Unit 45.
 
 **Primary Deliverable**: El owner de una liga escribe parte del nickname y ve sugerencias en un dropdown; al seleccionar una, el campo se rellena automáticamente con el nickname completo listo para invitar.
+
+## Unit 45: Permiso configurable de invitación por miembros en pools privados
+
+**Goal**: Permitir al owner de un pool **privado** decidir si los miembros (no-owner) pueden invitar a otros usuarios, configurando el permiso al crear el pool y pudiendo cambiarlo en cualquier momento desde la página del pool.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-18); implementa FR-REFINE-45.1…45.5 / US-45.1, US-45.2. No reinicia Units 1–44.
+- **Schema**: nueva columna `Pool.membersCanInvite Boolean @default(true)` con migración Prisma `20260618000000_unit45_pool_members_can_invite`. La columna existe en todos los pools (PUBLIC y PRIVATE) pero solo se usa/evalúa en PRIVATEs; pools existentes quedan con `true` (default, preserva el comportamiento de Unit 44).
+- **Permisos refinados**: el owner del pool siempre puede invitar. Los miembros no-owner solo pueden invitar si `pool.type === "PRIVATE" && pool.membersCanInvite === true`. En pools `PUBLIC` el flag no aplica (no usan invitación dirigida). Supersede explícito de `FR-REFINE-44.7`: ya no es "cualquier miembro puede invitar sin condiciones", sino "el owner decide".
+- **UI en `/pools/[id]`**: nueva sección "Configuración" visible solo para el owner, con un Switch "Los miembros pueden invitar" enlazado al server action `updatePoolMembersCanInvite`. El `DirectedInviteForm` (de Unit 44) se condiciona a `isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite)`. En pools donde el flag es `false`, los miembros no-owner ven un mensaje informativo "Solo el administrador puede invitar en esta liga".
+- **UI en `/pools/new`**: el `CreatePoolForm` (Unit 3) gana un Switch "Los miembros pueden invitar" visible solo si `type === "PRIVATE"`, default `true`. Se persiste en `Pool.membersCanInvite` al crear el pool.
+- **Server actions**: `updatePoolMembersCanInvite({ poolId, membersCanInvite })` (NUEVO, valida owner, persiste, revalida `/pools/[id]`). Modificación a `createPool` (NUEVO input `membersCanInvite`). Modificación a `createDirectedInvite` (gate ampliado: `isOwner || (type === "PRIVATE" && membersCanInvite)`).
+- **i18n**: nuevas claves `pools.settings.{title,membersCanInvite,membersCanInviteDescription,saved,membersBlockedHint}` (ES+EN).
+- **Sin** cambios en `resolveUserByTarget`, `PoolDirectedInvite`, push, scoring, predicciones, auth, sync, admin.
+- **Sin** nuevas rutas: la sección "Configuración" se renderiza dentro de `/pools/[id]`.
+- Security Baseline intacto: `updatePoolMembersCanInvite` valida `pool.ownerId === userId` server-side; el Switch de la UI es puramente cosmético.
+
+**Primary Deliverable**: El owner de un pool privado ve un Switch "Los miembros pueden invitar" en `/pools/[id]` (sección Configuración) y en el formulario de creación; al cambiarlo, la UI y el server action se actualizan inmediatamente para reflejar quién puede invitar a quién.
 
 ## Recommended Implementation Sequence
 
@@ -467,6 +486,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 28. Unit 42: Agrupación de partidos por día local del usuario (post-construction refine; timezone/day grouping en `/matches` + dependencias Unit 30/41; sin schema, migraciones ni rutas nuevas)
 29. Unit 43: Web Push — Onboarding step + dispatch en sync admin (post-construction refine; onboarding + dispatch trigger; sin schema, migraciones ni rutas nuevas)
 30. Unit 44: Autocompletar nickname en invitación dirigida (post-construction refine; UI/new server action; autocompletar nickname mientras se escribe en `DirectedInviteForm`; sin schema, migraciones ni rutas nuevas)
+31. Unit 45: Permiso configurable de invitación por miembros en pools privados (post-construction refine; schema + UI; `Pool.membersCanInvite` configurable al crear y editable en `/pools/[id]`; supersede `FR-REFINE-44.7`; migración Prisma; nueva sección "Configuración" en `/pools/[id]`)
 
 ## Security Notes
 

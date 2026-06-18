@@ -86,3 +86,14 @@
 | **BR-3.30** | Unit 10 puede agregar invitaciones dirigidas por nickname/email sobre el flujo existente de `inviteToken`. Si se resuelve un usuario destinatario, puede emitir `POOL_INVITE`; el evento es aditivo, deduplicable y no cambia la semántica de tokens/links de invitación aprobada en Unit 3. |
 | **BR-3.31** | Los links/códigos de invitación compartidos sin destinatario conocido se mantienen y no generan push, porque no hay receptor autorizado. |
 | **BR-3.32** | Invitar por email sin cuenta existente puede crear una invitación pendiente vinculada al email normalizado, pero no genera web push hasta que exista un usuario resuelto. |
+
+## Permiso de invitación por miembros (Unit 45, 2026-06-18)
+
+> Reglas añadidas por Unit 45 sobre Unit 3, Unit 13 y Unit 44. Superseden el comportamiento de `FR-REFINE-44.7` ("cualquier miembro puede invitar") en favor de un toggle controlado por el owner. El default `membersCanInvite = true` mantiene la regla anterior como punto de partida.
+
+| ID | Regla |
+|---|---|
+| **BR-3.33** | El owner de un pool puede **siempre** invitar, independientemente del valor de `membersCanInvite` o del `type` del pool. Gate server-side: `pool.ownerId === userId` ⇒ permitir sin más checks. El `DirectedInviteForm` siempre se renderiza para el owner. |
+| **BR-3.34** | Un miembro **no-owner** puede invitar **solo si** `pool.type === "PRIVATE" && pool.membersCanInvite === true`. En cualquier otro caso (`PUBLIC`, o `PRIVATE` con `membersCanInvite = false`), el server action `createDirectedInvite` retorna error "El administrador no permite que los miembros inviten" y la UI oculta el `DirectedInviteForm` mostrando el hint "Solo el administrador puede invitar en esta liga". |
+| **BR-3.35** | El owner puede cambiar el valor de `membersCanInvite` en **cualquier momento** del ciclo de vida del pool, vía server action `updatePoolMembersCanInvite({ poolId, membersCanInvite })`. No hay congelamiento ni ventana de edición restringida. El cambio aplica inmediatamente (revalidación de `/pools/[id]`). La acción registra `logAuthEvent({ type: "POOL_SETTINGS_CHANGED" })` para auditoría ligera. |
+| **BR-3.36** | El toggle `membersCanInvite` se muestra en `CreatePoolForm` solo si `type === "PRIVATE"`, con default `true` y label "Los miembros pueden invitar". Se persiste al crear el pool (`Pool.membersCanInvite`). En pools `PUBLIC` el control se oculta (no aplica; la invitación dirigida no se usa en PUBLIC, el directorio es la vía principal). |

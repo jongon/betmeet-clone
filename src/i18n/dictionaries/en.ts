@@ -371,7 +371,11 @@ export const en = {
     searchPlaceholder: "League name",
     hasCapacity: "With space",
     search: "Search",
-    invite: "Invitation",
+    invitationTitle: "Invitation", // Unit 45: renamed from `invite` (string) to free the key for the nested object.
+    invite: {
+      // Unit 45: BR-45.7 — hint when a non-owner member cannot invite.
+      membersBlockedHint: "Only the administrator can invite in this league.",
+    },
     inviteCode: "Code:",
     inviteLink: "Invitation link",
     copyLink: "Copy link",
@@ -389,6 +393,17 @@ export const en = {
     inviteSubmit: "Invite",
     inviteSentPush: "Invitation sent with push.",
     inviteSaved: "Invitation saved. The link remains available.",
+    // Unit 45: US-45.1 — toggle when creating a pool.
+    membersCanInvite: "Members can invite",
+    membersCanInviteDescription: "Allow non-admin members to invite other users.",
+    // Unit 45: US-45.2 — Settings section in /pools/[id].
+    settings: {
+      title: "Settings",
+      subtitle: "League options that only you can change.",
+      membersCanInvite: "Members can invite",
+      membersCanInviteDescription: "If you turn this off, only you can invite other players.",
+      saved: "Settings saved",
+    },
     kick: "Remove",
     kicking: "Removing…",
     since: "Since",

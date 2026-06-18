@@ -50,9 +50,12 @@ MyPoolsPage
 | `name` | 3–60 chars; si público, unicidad se valida en servidor (BR-3.2) |
 | `type` | `PUBLIC` \| `PRIVATE` (toggle/segmented) |
 | `capacity` | entero 2–100 (slider/stepper; sugerencia 20) — BR-3.1 |
+| `membersCanInvite` | **(Unit 45, 2026-06-18)** boolean, default `true`, **visible solo si `type === "PRIVATE"`** (BR-3.36). Switch con label "Los miembros pueden invitar". Si `type === "PUBLIC"`, el control se oculta (no aplica). |
 
 - Al crear, redirige a `/pools/[id]` y muestra el `InviteShare`.
-- `data-testid`: `create-pool-name`, `create-pool-type`, `create-pool-capacity`, `create-pool-submit`.
+- `data-testid`: `create-pool-name`, `create-pool-type`, `create-pool-capacity`, `create-pool-members-can-invite` (solo PRIVATE), `create-pool-submit`.
+
+> **Unit 45 (2026-06-18)**: el `CreatePoolForm` gana un Switch opcional de "Los miembros pueden invitar" cuando el pool es privado. Por default, viene activado (alineado con Unit 44). Ver `construction/unit-45-pool-member-invites-permission/functional-design.md` para el diseño completo del toggle y su edición posterior.
 
 ---
 
@@ -84,8 +87,12 @@ PoolDirectoryPage
 PoolDetailPage   (solo miembros; 403/redirect si no lo es)
 ├── PoolDetailHeader   (nombre, tipo, memberCount/capacity)  // badge "Congelado" eliminado (FR-REFINE-23)
 ├── InviteShare        (token: copiar link, copiar código, compartir WhatsApp) — Q1=A
+├── DirectedInviteForm (Unit 13/44)  // solo si isOwner || (PRIVATE && membersCanInvite)
+│   ├── NicknameAutocomplete dropdown  (Unit 44)
+│   └── hint "Solo el administrador puede invitar" si el usuario no puede invitar
 ├── MemberList         (MemberRow[] con nickname/avatar de Unit 1)
 │   └── KickButton      (solo owner, no a sí mismo) — US-4.3  // FR-REFINE-23: sin gate de congelamiento
+├── PoolSettingsCard   (Unit 45, solo owner)   // sección "Configuración" con Switch de permiso
 └── PoolActions        (Archivar/Desarchivar; Salir; Eliminar según rol)
 ```
 
@@ -99,6 +106,26 @@ PoolDetailPage   (solo miembros; 403/redirect si no lo es)
 - `data-testid`: `invite-copy-link`, `invite-copy-code`, `invite-share-whatsapp`.
 
 > **Unit 44 (2026-06-18)**: `DirectedInviteForm` gana autocompletar de nickname mientras se escribe (dropdown con avatar + `base#discriminator`, debounce ≈250ms, activado a partir de 2 caracteres si no es email). Ver `construction/unit-44-nickname-autocomplete-invite/` para el diseño funcional detallado. Sin cambios en el contrato de `InviteShare` ni en el resto de componentes de Unit 3.
+
+> **Unit 45 (2026-06-18)**: el `DirectedInviteForm` ahora se renderiza condicionalmente. Reglas de visibilidad:
+> - `pool.isOwner` → siempre visible (BR-3.33).
+> - `pool.type === "PRIVATE" && pool.membersCanInvite === true` → visible para el miembro no-owner (BR-3.34).
+> - En otro caso → no se renderiza; en su lugar se muestra el hint `pools.invite.membersBlockedHint` ("Solo el administrador puede invitar en esta liga").
+
+### PoolSettingsCard (Unit 45) — visible solo para el owner
+
+Sección "Configuración" dentro de `/pools/[id]`. Render condicional: `pool.isOwner === true`.
+
+| Elemento | Comportamiento |
+|---|---|
+| Título | "Configuración" (`pools.settings.title`). |
+| Subtítulo | "Opciones de la liga que solo tú puedes cambiar." |
+| Switch "Los miembros pueden invitar" | Estado actual: `pool.membersCanInvite` (default `true`). Label: `pools.settings.membersCanInvite`. Descripción: `pools.settings.membersCanInviteDescription`. Al cambiar: `updatePoolMembersCanInvite({ poolId, membersCanInvite })`; mientras `pending` se deshabilita; en éxito → toast (`sonner`) `pools.settings.saved`; en error → `FormError` con el mensaje devuelto. |
+| Visibilidad | Solo si `pool.isOwner`. En pools `PUBLIC` se muestra igualmente (aunque el flag no tenga efecto, la UI lo muestra y la acción lo permite; el server action acepta el cambio aunque no afecte el render del `DirectedInviteForm`). |
+
+- `data-testid`: `pool-settings-card`, `pool-settings-members-can-invite-switch`.
+
+> El `PoolSettingsCard` se renderiza al final de la página del pool, después de `PoolActions` y antes del footer. Ver `construction/unit-45-pool-member-invites-permission/functional-design.md` para los contratos completos.
 
 ### MemberList / MemberRow
 - Muestra avatar + nickname (datos de Unit 1). Badge "Admin" para el owner.
@@ -145,6 +172,8 @@ La pantalla de **borrado de cuenta** (Unit 1, `security` settings / `ConfirmDele
 | `getMyPools(userId)` | MyPoolsPage | — |
 | `getPoolDetail(poolId, userId)` | PoolDetailPage | autorización BR-3.28 |
 | `getOwnedPoolsNeedingTransfer(userId)` / `transferOwnershipOnAccountDeletion(userId, assignments)` | Unit 1 delete-account | BL-9 |
+| `updatePoolMembersCanInvite({ poolId, membersCanInvite })` **(Unit 45)** | PoolSettingsCard | BR-3.35 (owner-only, persiste `Pool.membersCanInvite`, `revalidatePath("/pools/[id]")`) |
+| `createPool` modificado **(Unit 45)** | CreatePoolForm | input `membersCanInvite` (default `true`); persiste en creación. |
 
 ## Componentes nuevos (orientativo para code generation)
 

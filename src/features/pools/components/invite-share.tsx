@@ -23,7 +23,7 @@ export function InviteShare({ token }: { token: string }) {
   return (
     <div className="space-y-3 rounded-xl border p-4" data-testid="invite-share">
       <div>
-        <p className="font-medium">{t.invite}</p>
+        <p className="font-medium">{t.invitationTitle}</p>
         <p className="text-sm text-muted-foreground">
           {t.inviteCode} {token}
         </p>

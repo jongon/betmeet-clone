@@ -1,57 +1,66 @@
-# Integration Test Instructions — Unit 41
+# Integration Test Instructions — Unit 45
 
 ## Purpose
-Validate that the new "Predicciones" tab integrates correctly with the existing pool detail page and adjacent features.
+
+Verify the cross-feature interactions introduced or affected by Unit 45:
+- **Pools ↔ Profile** (auth): `updatePoolMembersCanInvite` and `createDirectedInvite` both depend on `getOnboardedUserId()` (FR-REFINE-16.1).
+- **Pools ↔ Notifications**: `createDirectedInvite` enqueues a push notification when the invitee resolves to an existing user; the gating in Unit 45 must NOT break this.
+- **Pools ↔ i18n**: the rename `pools.invite` → `pools.invitationTitle` + nested `pools.invite: { membersBlockedHint }` must be coherent in both `es.ts` and `en.ts`.
 
 ## Test Scenarios
 
-### Scenario 1: Pool detail page renders with Tabs
-- **Description**: Page loads with three tabs (Clasificación/Predicciones/Miembros), default tab is Clasificación
-- **Setup**: Authenticated user who is a member of at least one pool
+### Scenario 1 — Unit 45 gate is enforced end-to-end
+- **Description**: A non-owner member of a PRIVATE pool with `membersCanInvite = false` cannot send a directed invite.
+- **Setup**: A pool with `type = "PRIVATE"`, `membersCanInvite = false`, two members (`owner`, `member`).
 - **Test Steps**:
-  1. Navigate to `/pools/[id]`
-  2. Verify three tabs render: Clasificación, Predicciones, Miembros
-  3. Verify Clasificación tab is active by default
-  4. Verify leaderboard renders
-- **Expected Results**: Existing leaderboard + member list + sidebar all intact. Tabs visible.
-- **Cleanup**: None needed
+  1. `member` calls `createDirectedInvite({ poolId, target: "Other#1234" })`.
+  2. Server returns `{ error: "El administrador no permite que los miembros inviten" }`.
+  3. `poolDirectedInvite` row is not created.
+  4. `queueNotificationEvent` is not called.
+- **Covered by**: `src/features/pools/actions/__tests__/create-directed-invite.test.ts` ("rejects a non-owner member when membersCanInvite=false").
 
-### Scenario 2: Predictions tab shows member predictions
-- **Description**: Clicking "Predicciones" tab shows by-day table of member predictions for started matches
-- **Setup**: Pool with multiple members who have made predictions on started matches
+### Scenario 2 — Unit 45 gate is reflected in the UI
+- **Description**: `/pools/[id]` shows the `PoolSettingsCard` only to the owner, and shows the `membersBlockedHint` text to a non-owner member when the gate is closed.
+- **Setup**: A pool with `type = "PRIVATE"`, `membersCanInvite = false`; a non-owner member visits the page.
 - **Test Steps**:
-  1. Click "Predicciones" tab
-  2. Verify day groups render chronologically
-  3. Verify member avatars + nicknames in left column
-  4. Verify prediction cells show `X - Y` format
-  5. Verify points badges on scored matches
-  6. Verify "—" for pending scores on LIVE matches
-- **Expected Results**: Table renders with correct data per functional design BR-41.5
-- **Cleanup**: None needed
+  1. SSR: `getPoolDetail(poolId)` returns `membersCanInvite: false`, `isOwner: false`.
+  2. Page renders `<p>{t.invite.membersBlockedHint}</p>` instead of `<DirectedInviteForm />`.
+  3. `PoolSettingsCard` is NOT rendered.
+- **Covered by**: visual check post-deploy; the gate logic is in `src/app/(app)/pools/[id]/page.tsx` and the schema/types in queries.ts.
 
-### Scenario 3: Non-member cannot access predictions
-- **Description**: User who is not a pool member gets `notFound()`
-- **Setup**: Authenticated user not in the pool
+### Scenario 3 — Owner can flip the toggle and the UI re-renders
+- **Description**: The owner toggles `membersCanInvite` from `true` to `false` via the Switch; the page reflects the new value after revalidation.
+- **Setup**: A pool with `type = "PRIVATE"`, `membersCanInvite = true`; the owner is signed in.
 - **Test Steps**:
-  1. Navigate to `/pools/[id]` where user is not a member
-  2. Verify page returns 404
-- **Expected Results**: 404, no data leaked
-- **Cleanup**: None needed
+  1. `PoolSettingsCardClient` is rendered with `initialMembersCanInvite={true}`.
+  2. User clicks the Switch.
+  3. `updatePoolMembersCanInvite({ poolId, membersCanInvite: false })` is called.
+  4. Server persists the change, calls `revalidatePath("/pools/<id>")`, and logs `pool.settings_changed`.
+  5. `toast.success(settings.saved)` appears.
+  6. Non-owner members now see `membersBlockedHint` instead of the invite form.
+- **Covered by**: `src/features/pools/components/__tests__/pool-settings-card.test.tsx` ("clicking the Switch calls updatePoolMembersCanInvite and toasts on success") + `src/features/pools/actions/__tests__/update-pool-members-can-invite.test.ts` (8 cases).
 
-### Scenario 4: Empty state when no matches started
-- **Description**: Pool created before tournament begins
-- **Setup**: Pool with members but no matches with `kickoffAt <= now`
+### Scenario 4 — i18n consistency
+- **Description**: Both `es.ts` and `en.ts` expose the same `pools` shape; no client component fails to resolve a key.
+- **Setup**: tsc type check on `Dictionary = WidenStrings<EsDictionary>`.
 - **Test Steps**:
-  1. Click "Predicciones" tab
-  2. Verify empty state message
-- **Expected Results**: `emptyTitle` + `emptyDescription` rendered
-- **Cleanup**: None needed
+  1. `pnpm exec tsc --noEmit` returns 0 errors.
+  2. `en.ts`'s `pools: { ...es.pools, ... }` does not omit any required key.
+- **Covered by**: tsc 0 (compile-time check).
 
-## Integration Points Verified
-| From | To | Status |
-|------|----|--------|
-| `page.tsx` → `getPoolMemberPredictions()` | `pools/queries.ts` | ✅ Promise.all with existing queries |
-| `PoolPredictionsView` → `getRequestLocale()` | `i18n/get-dictionary` | ✅ Locale-aware day formatting |
-| `MemberList` → `PoolDetail.members` | `pools/types.ts` | ✅ Untouched, existing functionality |
-| `PoolLeaderboard` → `getPoolLeaderboard()` | `scoring-rankings/queries.ts` | ✅ Untouched, existing functionality |
-| Sidebar (InviteShare, DirectedInviteForm, PoolActions) | `pools/components/` | ✅ Untouched, wraps outside Tabs |
+## Setup Integration Test Environment
+
+These tests run in-process via Vitest; no external services are required beyond the existing Prisma mocks. The full integration test environment is the same as for any other unit (Vitest + jsdom for components).
+
+## Run Integration Tests
+
+```bash
+pnpm exec vitest run src/features/pools/
+pnpm test
+```
+
+**Expected**: 78/78 in `src/features/pools/`, 341/341 in full suite.
+
+## Cleanup
+
+No additional cleanup is required — Vitest resets mocks per test via `vi.clearAllMocks()` in `beforeEach`.

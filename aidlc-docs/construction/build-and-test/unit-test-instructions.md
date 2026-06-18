@@ -1,43 +1,45 @@
-# Unit Test Execution — Unit 41
+# Unit Test Instructions — Unit 45
 
-## Run All Tests
+## Run Unit Tests
+
+### 1. Pools feature (focused)
+```bash
+pnpm exec vitest run src/features/pools/
+```
+**Expected**: 78 tests passing across 13 files.
+- New tests (Unit 45):
+  - `src/features/pools/actions/__tests__/update-pool-members-can-invite.test.ts` — 8 tests (owner true→false, owner false→true, non-owner, pool inexistente, sin onboarding, validación UUID, validación boolean, revalidatePath + log).
+  - `src/features/pools/actions/__tests__/create-pool.test.ts` — 6 tests (PRIVATE con false persiste, PRIVATE default true, PUBLIC default true, onboarding error, transaction failure, redirect success).
+  - `src/features/pools/components/__tests__/create-pool-form.test.tsx` — 5 tests (Switch no visible en PUBLIC, visible en PRIVATE, hidden+reset al cambiar a PUBLIC, sends default true, sends false cuando se apaga).
+  - `src/features/pools/components/__tests__/pool-settings-card.test.tsx` — 5 tests (render inicial true, render inicial false, click→action+toast, error→rollback+FormError, disabled mientras pending).
+- Modified tests (Unit 45):
+  - `src/features/pools/actions/__tests__/create-directed-invite.test.ts` — +3 tests (non-owner blocked when membersCanInvite=false, owner always allowed even when membersCanInvite=false, PUBLIC blocks non-owner member).
+
+### 2. Full test suite
 ```bash
 pnpm test
 ```
+**Expected**: 341 tests passing across 66 files (no regressions; +23 new tests from Unit 45).
 
-## Run Unit 41 Focused Tests
+### 3. Verify no regressions in adjacent features
 ```bash
-pnpm exec vitest run \
-  src/features/pools/__tests__/pool-predictions.test.ts \
-  src/features/pools/components/__tests__/pool-predictions-view.test.tsx
+pnpm exec vitest run src/features/admin/ src/features/notifications/ src/features/auth/ src/features/competition/
 ```
+**Expected**: All passing. (These features interact with Pool via FK or notifications, but Unit 45 does not change their interfaces.)
 
-## Test Cases
+## Test Coverage
 
-### Query Tests (6 tests)
-| Test | Description |
-|------|-------------|
-| `returns null when not authenticated` | `getCurrentUserId()` returns null → query returns null |
-| `returns null when caller is not a pool member` | Membership check fails → query returns null |
-| `returns empty array when no predictions yet` | `findMany` returns [] → query returns [] |
-| `returns predictions only for matches with kickoffAt <= now` | 2 members predict same match → 2 results with nicknames, scores, points |
-| `includes predictions where member has no score yet (LIVE match)` | Match is LIVE → score is null, prediction exists |
-| `does NOT include predictions for matches with kickoffAt > now` | Future match → excluded by Prisma `where` clause |
+- **Business logic (server actions)**: `updatePoolMembersCanInvite` (8 tests) + `createPool` (6) + `createDirectedInvite` (9, 3 new from Unit 45) = 23 tests.
+- **UI behavior (client components)**: `CreatePoolForm` (5) + `PoolSettingsCardClient` (5) = 10 tests.
+- **i18n**: not unit-tested; verified by tsc 0 errors on `Dictionary` type (compile-time check).
+- **Total Unit 45 tests**: 23 new + 0 modified apart from the 3 added to create-directed-invite.
 
-### Component Tests (10 tests)
-| Test | Description |
-|------|-------------|
-| `buildMatchLabel` — `uses fifaCode for resolved teams` | FINISHED match → `BRA vs ARG` + sublabel `2 - 1` |
-| `buildMatchLabel` — `shows sublabel only for FINISHED with scores` | LIVE match → sublabel null |
-| `buildMatchLabel` — `fallback to placeholders when no team` | No teams → `Winner A vs Runner-up B` |
-| `buildMatchLabel` — `shows '?' for missing team and placeholder` | One missing → `? vs FRA` |
-| `buildDayGroups` — `groups matches by local day` | Different local days → 2 groups; Unit 42 supersedes UTC grouping |
-| `buildDayGroups` — `keeps matches on same day in one group` | Same day → 1 group, 2 matches |
-| `buildDayGroups` — `sorts matches chronologically within a day` | Later input first → sorted ascending |
-| `buildDayGroups` — `deduplicates predictions for same match across users` | 2 users predict same match → 1 match column |
-| `buildDayGroups` — `handles matches with null kickoffAt` | null kickoff → `__tbd__` bucket |
-| `buildDayGroups` — `returns empty array when no predictions` | Empty input → empty output |
+## Fixing Failing Tests
 
-## Expected Results
-- **16 tests pass**, 0 failures
-- **Suite total**: 281 tests pass (265 existing + 16 new)
+If `src/features/pools/actions/__tests__/create-pool.test.ts` fails:
+- Verify `redirect` is mocked to throw (`vi.mock("next/navigation", () => ({ redirect: vi.fn(() => { throw new Error("REDIRECT"); }) }))`).
+- Verify `prisma.$transaction` is re-mocked per test with the right `txCreate`/`txMembership` spies.
+- Verify `generateUniqueInviteToken` is mocked to return a stable string.
+
+If `src/features/pools/components/__tests__/pool-settings-card.test.tsx` fails on the "disables while pending" test:
+- Verify the assertion uses `hasAttribute("disabled") || getAttribute("aria-disabled") === "true"` (base-ui Switch may not render a `button`).

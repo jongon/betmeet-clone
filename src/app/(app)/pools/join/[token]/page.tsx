@@ -18,7 +18,7 @@ export default async function JoinPoolPage({ params }: JoinPoolPageProps) {
         {dictionary.pools.back}
       </Link>
       <header>
-        <p className="text-sm font-medium text-primary">{dictionary.pools.invite}</p>
+        <p className="text-sm font-medium text-primary">{dictionary.pools.invitationTitle}</p>
         <h1 className="text-3xl font-semibold tracking-tight">
           {dictionary.pools.joinInviteTitle}
         </h1>

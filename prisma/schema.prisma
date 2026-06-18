@@ -126,6 +126,7 @@ model Pool {
   capacity    Int
   inviteToken String   @unique @map("invite_token") @db.VarChar(12)
   ownerId     String   @map("owner_id") @db.Uuid
+  membersCanInvite Boolean @default(true) @map("members_can_invite")
   createdAt   DateTime @default(now()) @map("created_at")
 
   owner       Profile          @relation("PoolOwner", fields: [ownerId], references: [id])

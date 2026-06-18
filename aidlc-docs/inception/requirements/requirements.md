@@ -1608,3 +1608,71 @@ El gate de invitación cambia de "solo el owner" a "cualquier miembro del pool":
 - El owner sigue pudiendo invitar (es miembro).
 - El resto del flujo (`resolveUserByTarget`, envío de push, persistencia en `PoolDirectedInvite`) no cambia.
 - El server action rechaza la auto-invitación: si el `invitedUserId` resuelto es igual al `userId` del inviter, retorna error "No puedes invitarte a ti mismo."
+
+> **Nota (Unit 45, 2026-06-18)**: `FR-REFINE-44.7` queda **superseded** por la **Épica 45** (`FR-REFINE-45.1…45.5`). El nuevo comportamiento no es "cualquier miembro puede invitar" sin condiciones, sino: **el owner siempre puede invitar; los demás miembros solo si el owner lo permite** mediante el toggle `Pool.membersCanInvite` (configurable al crear el pool y editable en un pool en progreso). La regla de Unit 44 (cualquier miembro) se mantiene como **default** (alineado con `membersCanInvite: true` por default) hasta que el owner restrinja el permiso. Ver Épica 45.
+
+---
+
+### Épica 45: Permiso configurable de invitación por miembros en pools privados (Unit 45 — añadida vía refine, 2026-06-18)
+
+> Refine post-construcción sobre Unit 3 (Pools), Unit 13 (Invitaciones), Unit 44 (Autocompletar). El owner de un pool **privado** decide si los miembros (no-owner) pueden invitar a otros usuarios. El owner siempre puede invitar; el resto solo si el owner lo permite. El permiso se elige al crear el pool y es editable en un pool en progreso. Solo aplica a pools `PRIVATE` (los `PUBLIC` no tienen flujo de invitación dirigida, solo directorio público). **No reinicia** etapas aprobadas.
+
+#### FR-REFINE-45.1 — Toggle al crear el pool privado
+
+Cuando el owner crea un pool `PRIVATE` desde `/pools/new`, se le muestra una opción de configuración adicional:
+
+- **"Los miembros pueden invitar"** (Switch, default `true`).
+- Visible solo si `type === "PRIVATE"`; en pools `PUBLIC` el control se oculta (no aplica).
+- Al cambiar el toggle, se persiste en `Pool.membersCanInvite` al crear el pool.
+- Default `true` (alineado con el comportamiento de Unit 44 / FR-REFINE-44.7 antes de este cambio: cualquier miembro puede invitar; el owner que quiera restringir debe activar el toggle explícitamente).
+
+#### FR-REFINE-45.2 — El owner siempre puede invitar
+
+Independientemente del valor de `membersCanInvite`:
+
+- El owner del pool puede usar el `DirectedInviteForm` y el server action `createDirectedInvite` sin restricción.
+- Gate server-side: si `pool.ownerId === userId` → permitir, sin consultar `membersCanInvite`.
+- Gate UI: el `DirectedInviteForm` se renderiza para el owner en cualquier caso.
+
+#### FR-REFINE-45.3 — Los miembros solo pueden invitar si el owner lo permite
+
+Para usuarios no-owner del pool:
+
+- Si `pool.type === "PRIVATE"` y `pool.membersCanInvite === true` → pueden invitar (cualquier miembro).
+- Si `pool.type === "PRIVATE"` y `pool.membersCanInvite === false` → **no** pueden invitar. El server action retorna error "El administrador no permite que los miembros inviten" y la UI oculta el `DirectedInviteForm` con un mensaje informativo ("Solo el administrador puede invitar en esta liga").
+- Si `pool.type === "PUBLIC"` → el flag no aplica visualmente (los pools públicos no usan invitación dirigida; el directorio es la vía principal). El server action `createDirectedInvite` no se llama desde la UI en pools públicos, pero si se invocara, el flag se ignora.
+
+#### FR-REFINE-45.4 — El toggle es editable en un pool en progreso
+
+El owner puede cambiar el valor de `membersCanInvite` en cualquier momento desde una nueva sección **"Configuración"** dentro de `/pools/[id]`:
+
+- Sección visible solo para `pool.isOwner` (los miembros no-owner no la ven).
+- Contiene el Switch "Los miembros pueden invitar" con estado actual + descripción corta del efecto.
+- Al cambiarlo: server action `updatePoolMembersCanInvite({ poolId, membersCanInvite })` valida owner, persiste, y revalida `/pools/[id]`.
+- El cambio aplica inmediatamente: la UI del `DirectedInviteForm` y los permisos del server action se actualizan sin necesidad de recargar.
+- El owner puede alternar el toggle cuantas veces quiera (sin historial, sin auditoría detallada — solo `logAuthEvent` con tipo `POOL_SETTINGS_CHANGED`).
+- El cambio está disponible en cualquier momento del ciclo de vida del pool (no hay congelamiento que bloquee; consistente con FR-REFINE-23).
+
+#### FR-REFINE-45.5 — Schema: `Pool.membersCanInvite`
+
+Nueva columna en `Pool`:
+
+- `membersCanInvite: Boolean @default(true)` — Postgres `NOT NULL DEFAULT TRUE`.
+- No requiere `@@index` (el `findUnique` por `id` ya está indexado; la columna se lee junto al pool).
+- Migración Prisma: `prisma/migrations/20260618000000_unit45_pool_members_can_invite/`.
+- La columna existe en **todos** los pools (PUBLIC y PRIVATE), pero solo se usa / muestra en PRIVATEs.
+- Pools existentes al momento de la migración quedan con `membersCanInvite = true` (default), preservando el comportamiento de Unit 44.
+
+#### Restricciones / SKIP
+
+- **Sin** cambios en el flujo de push, `resolveUserByTarget`, `PoolDirectedInvite` ni el campo `inviteToken` (compartido siempre).
+- **Sin** cambios en `kick-member`, `leave-pool`, `join-public-pool`, `join-pool-by-token` (no tocan invitaciones).
+- **Sin** nuevas rutas: la sección "Configuración" es un componente dentro de `/pools/[id]`.
+- **Sin** nuevos NFR: el cambio es lógico y no afecta performance ni seguridad más allá del control de acceso ya implementado.
+- Security Baseline intacto: el server action `updatePoolMembersCanInvite` valida `pool.ownerId === userId` server-side; no se confía en el client.
+
+#### NFR-REFINE-45.1 — Compatibilidad con Unit 44
+
+- El cambio es **backward-compatible** con el código de Unit 44: pools existentes con `membersCanInvite = true` por default siguen permitiendo que cualquier miembro invite.
+- La UI de Unit 44 (`DirectedInviteForm` con autocompletar) se mantiene y ahora se condiciona al flag.
+- Si el owner de un pool pre-Unit-45 desactiva `membersCanInvite`, los miembros dejan de ver el form y el server action les retorna error; ningún dato de invitaciones existentes se ve afectado (las invitaciones ya enviadas siguen pendientes o aceptadas).
