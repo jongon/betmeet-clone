@@ -1,9 +1,8 @@
 "use client";
 
 import { Undo2 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useState, useSyncExternalStore } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { startTransition, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,8 @@ import { savePrediction } from "@/features/predictions/actions/save-prediction";
 import { PredictionScoreControls } from "@/features/predictions/components/prediction-score-controls";
 import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { PoolPredictionsViewProps } from "../types";
-import { buildDayGroups, type MatchColumn } from "./pool-predictions-view-helpers";
+import type { MemberPredictionRow } from "./pool-predictions-view-helpers";
+import { buildDayGroups, type MatchColumn, paginateDays } from "./pool-predictions-view-helpers";
 
 function subscribeToTimeZone() {
   return () => {};
@@ -36,22 +36,150 @@ function formatKickoff(kickoffAt: string | null, locale: string): string {
   }
 }
 
+function MatchCard({
+  col,
+  members,
+  viewerId,
+  t,
+  onStartEdit,
+  onStartDualSave,
+  onReset,
+}: {
+  col: MatchColumn;
+  members: MemberPredictionRow[];
+  viewerId: string;
+  t: ReturnType<typeof useDictionary>["pools"]["predictions"];
+  onStartEdit: (col: MatchColumn, h: number | null, a: number | null) => void;
+  onStartDualSave: (col: MatchColumn) => void;
+  onReset: (matchId: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border bg-card">
+      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
+        <div className="flex items-center gap-1.5 min-w-0">
+          {col.homeFlag && (
+            // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
+            <img src={col.homeFlag} alt="" className="size-4 shrink-0 object-contain" />
+          )}
+          <span className="text-sm font-semibold truncate">{col.homeLabel}</span>
+          <span className="text-xs text-muted-foreground shrink-0">
+            {col.sublabel ? `${col.sublabel}` : "vs"}
+          </span>
+          <span className="text-sm font-semibold truncate">{col.awayLabel}</span>
+          {col.awayFlag && (
+            // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
+            <img src={col.awayFlag} alt="" className="size-4 shrink-0 object-contain" />
+          )}
+        </div>
+        {col.kickoffAt && (
+          <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+            {formatKickoff(col.kickoffAt, "es")}
+          </span>
+        )}
+      </div>
+      <div className="divide-y">
+        {members.map((member) => {
+          const cell = member.cells[col.matchId];
+          const isViewer = member.userId === viewerId;
+          const hasPrediction = cell?.predictedHome != null && cell?.predictedAway != null;
+          const hasPoints = cell?.totalPoints != null;
+          const canEdit =
+            isViewer &&
+            col.matchStatus === "SCHEDULED" &&
+            col.kickoffAt &&
+            new Date(col.kickoffAt) > new Date();
+
+          return (
+            <div
+              key={member.userId}
+              className="flex items-center gap-2 px-3 py-1.5"
+              data-testid={`prediction-cell-${member.userId}-${col.matchId}`}
+            >
+              <Avatar className="size-5 shrink-0">
+                <AvatarImage src={member.avatarUrl ?? undefined} alt="" />
+                <AvatarFallback className="text-[10px]">
+                  {member.nickname.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm truncate min-w-0 flex-1">{member.nickname}</span>
+              <span className="text-sm tabular-nums shrink-0">
+                {hasPrediction ? `${cell.predictedHome} - ${cell.predictedAway}` : t.noPrediction}
+              </span>
+              {cell?.isOverride && (
+                <Badge variant="outline" className="text-[10px] shrink-0">
+                  {t.overrideBadge}
+                </Badge>
+              )}
+              {hasPoints ? (
+                <Badge variant="secondary" className="text-[10px] shrink-0">
+                  {cell.totalPoints} pts
+                </Badge>
+              ) : (
+                <span className="text-[10px] text-muted-foreground shrink-0">{t.pendingScore}</span>
+              )}
+              {canEdit && (
+                <div className="flex items-center gap-1 shrink-0">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] cursor-pointer hover:bg-muted transition-colors"
+                    onClick={() =>
+                      hasPrediction
+                        ? onStartEdit(col, cell?.predictedHome ?? null, cell?.predictedAway ?? null)
+                        : onStartDualSave(col)
+                    }
+                  >
+                    {t.saveForThisPool}
+                  </Badge>
+                  {cell?.isOverride && cell?.hasGlobal && (
+                    <button
+                      type="button"
+                      onClick={() => onReset(col.matchId)}
+                      className="text-muted-foreground hover:text-foreground shrink-0"
+                      data-testid={`reset-override-${col.matchId}`}
+                      title={t.useGlobalPrediction}
+                    >
+                      <Undo2 className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function PoolPredictionsView({
   predictions,
+  matches,
   members,
   poolId,
   viewerId,
+  initialPage,
 }: PoolPredictionsViewProps) {
   const dictionary = useDictionary();
   const t = dictionary.pools.predictions;
   const locale = useLocale();
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
   const [editingMatch, setEditingMatch] = useState<MatchColumn | null>(null);
   const [isDualSave, setIsDualSave] = useState(false);
   const [editHome, setEditHome] = useState(0);
   const [editAway, setEditAway] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  const currentPage = useMemo(() => {
+    const raw = searchParams.get("page");
+    if (raw !== null) {
+      const parsed = parseInt(raw, 10);
+      return Number.isFinite(parsed) ? parsed : Number.NaN;
+    }
+    return initialPage ?? Number.NaN;
+  }, [searchParams, initialPage]);
 
   const handleStartEdit = useCallback(
     (col: MatchColumn, currentHome: number | null, currentAway: number | null) => {
@@ -133,7 +261,21 @@ export function PoolPredictionsView({
     [poolId, t.usingGlobalToast, router],
   );
 
-  if (predictions.length === 0) {
+  const navigateToPage = useCallback(
+    (page: number) => {
+      const params = new URLSearchParams(searchParams);
+      params.set("page", String(page));
+      router.replace(`${pathname}?${params.toString()}`);
+    },
+    [searchParams, pathname, router],
+  );
+
+  const allDays = buildDayGroups(predictions, members, locale, timeZone, matches);
+  const { visibleDays: paginatedDays, ...pageInfo } = paginateDays(allDays, timeZone, currentPage);
+  const { currentPage: resolvedPage, totalPages, hasPrev, hasNext } = pageInfo;
+  const visibleDays = paginatedDays;
+
+  if (matches.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
         <p className="text-lg font-semibold text-muted-foreground">{t.emptyTitle}</p>
@@ -142,144 +284,57 @@ export function PoolPredictionsView({
     );
   }
 
-  const days = buildDayGroups(predictions, members, locale, timeZone);
-
   return (
     <>
-      <div className="space-y-8">
-        {days.map((day) => (
-          <section key={day.dayKey} className="space-y-3">
-            <h3 className="text-lg font-semibold">{day.label}</h3>
-            <div className="overflow-x-auto rounded-xl border">
-              <table className="w-full text-sm" data-testid="pool-predictions-table">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th
-                      className="sticky left-0 z-10 bg-muted/50 px-3 py-2 text-left font-medium whitespace-nowrap"
-                      data-testid="pool-predictions-member-header"
-                    >
-                      {t.memberHeader}
-                    </th>
-                    {day.matches.map((col) => (
-                      <th
-                        key={col.matchId}
-                        className="px-3 py-2 text-center font-medium whitespace-nowrap"
-                      >
-                        <div>{col.label}</div>
-                        {col.sublabel && (
-                          <div className="text-xs font-normal text-muted-foreground">
-                            {col.sublabel}
-                          </div>
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {day.memberRows.map((member) => {
-                    const isViewer = member.userId === viewerId;
-                    return (
-                      <tr key={member.userId} className="border-b last:border-b-0">
-                        <td className="sticky left-0 z-10 bg-background px-3 py-2 whitespace-nowrap">
-                          <div className="flex items-center gap-2">
-                            <Avatar className="size-6">
-                              <AvatarImage src={member.avatarUrl ?? undefined} alt="" />
-                              <AvatarFallback>
-                                {member.nickname.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="truncate font-medium">{member.nickname}</span>
-                          </div>
-                        </td>
-                        {day.matches.map((col) => {
-                          const cell = member.cells[col.matchId];
-                          const hasPrediction =
-                            cell?.predictedHome != null && cell?.predictedAway != null;
-                          const hasPoints = cell?.totalPoints != null;
-                          const canEdit =
-                            isViewer &&
-                            col.matchStatus === "SCHEDULED" &&
-                            col.kickoffAt &&
-                            new Date(col.kickoffAt) > new Date();
-
-                          return (
-                            <td
-                              key={col.matchId}
-                              className="px-3 py-2 text-center whitespace-nowrap"
-                              data-testid={`prediction-cell-${member.userId}-${col.matchId}`}
-                            >
-                              <div className="flex flex-col items-center gap-1">
-                                <span className="tabular-nums-display">
-                                  {hasPrediction
-                                    ? `${cell.predictedHome} - ${cell.predictedAway}`
-                                    : t.noPrediction}
-                                </span>
-                                {cell?.isOverride && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {t.overrideBadge}
-                                  </Badge>
-                                )}
-                                {hasPoints ? (
-                                  <Badge variant="secondary" className="text-xs">
-                                    {cell.totalPoints} pts
-                                  </Badge>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">
-                                    {t.pendingScore}
-                                  </span>
-                                )}
-                                {canEdit && (
-                                  <div className="flex gap-1 mt-0.5">
-                                    <Badge
-                                      variant="outline"
-                                      className="text-xs cursor-pointer hover:bg-muted transition-colors"
-                                      onClick={() =>
-                                        hasPrediction
-                                          ? handleStartEdit(
-                                              col,
-                                              cell?.predictedHome ?? null,
-                                              cell?.predictedAway ?? null,
-                                            )
-                                          : handleStartDualSave(col)
-                                      }
-                                    >
-                                      {hasPrediction ? t.saveForThisPool : t.saveForThisPool}
-                                    </Badge>
-                                    {cell?.isOverride && cell?.hasGlobal && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleReset(col.matchId)}
-                                        className="text-xs text-muted-foreground hover:text-foreground"
-                                        data-testid={`reset-override-${col.matchId}`}
-                                        title={t.useGlobalPrediction}
-                                      >
-                                        <Undo2 className="inline size-3" />
-                                        <span className="sr-only">{t.useGlobalPrediction}</span>
-                                      </button>
-                                    )}
-                                    {!hasPrediction && (
-                                      <Link
-                                        href="/matches"
-                                        className="text-xs text-muted-foreground underline hover:text-foreground"
-                                        title="Ir a /partidos"
-                                      >
-                                        Ir a /partidos
-                                      </Link>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        ))}
+      <div className="space-y-4">
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(resolvedPage - 1)}
+              disabled={!hasPrev}
+            >
+              Anterior
+            </Button>
+            <span className="text-sm text-muted-foreground tabular-nums">
+              {t.pageIndicator
+                .replace("{current}", String(resolvedPage + 1))
+                .replace("{total}", String(totalPages))}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => navigateToPage(resolvedPage + 1)}
+              disabled={!hasNext}
+            >
+              Siguiente
+            </Button>
+          </div>
+        )}
+        <div className="space-y-8">
+          {visibleDays.map((day) => (
+            <section key={day.dayKey} className="space-y-3">
+              <h3 className="text-lg font-semibold">{day.label}</h3>
+              <div className="flex flex-col gap-3">
+                {day.matches.map((col) => (
+                  <MatchCard
+                    key={col.matchId}
+                    col={col}
+                    members={day.memberRows}
+                    viewerId={viewerId}
+                    t={t}
+                    onStartEdit={handleStartEdit}
+                    onStartDualSave={handleStartDualSave}
+                    onReset={handleReset}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
 
       {editingMatch && (

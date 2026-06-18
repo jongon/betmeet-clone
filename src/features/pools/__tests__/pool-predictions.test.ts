@@ -6,6 +6,9 @@ vi.mock("@/lib/prisma", () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
+    match: {
+      findMany: vi.fn(),
+    },
     prediction: {
       findMany: vi.fn(),
     },
@@ -20,6 +23,9 @@ import { formatNickname, getCurrentUserId } from "../services/session";
 const prismaMock = prisma as unknown as {
   poolMembership: {
     findUnique: ReturnType<typeof vi.fn>;
+    findMany: ReturnType<typeof vi.fn>;
+  };
+  match: {
     findMany: ReturnType<typeof vi.fn>;
   };
   prediction: {
@@ -50,23 +56,24 @@ describe("getPoolMemberPredictions", () => {
     expect(result).toBeNull();
   });
 
-  it("returns empty array when no predictions yet (no matches started)", async () => {
+  it("returns empty predictions array when no predictions exist (FR-REFINE-48.9: all matches still present)", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
     prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
     prismaMock.poolMembership.findMany.mockResolvedValue([
       { userId: memberId },
       { userId: "member-2" },
     ]);
+    prismaMock.match.findMany.mockResolvedValue([]);
     prismaMock.prediction.findMany.mockResolvedValue([]);
     vi.mocked(formatNickname).mockImplementation((base, disc) =>
       disc ? `${base}#${disc}` : (base ?? "Jugador"),
     );
 
     const result = await getPoolMemberPredictions(poolId);
-    expect(result).toEqual([]);
+    expect(result).toEqual({ matches: [], predictions: [] });
   });
 
-  it("returns predictions only for matches with kickoffAt <= now", async () => {
+  it("returns all predictions (no kickoffAt filter, FR-REFINE-48.9)", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
     vi.mocked(formatNickname).mockImplementation((base, disc) =>
       disc ? `${base}#${disc}` : (base ?? "Jugador"),
@@ -77,7 +84,7 @@ describe("getPoolMemberPredictions", () => {
       { userId: "member-2" },
     ]);
 
-    const matchStarted = {
+    const match1 = {
       id: "match-1",
       matchNumber: 1,
       kickoffAt: new Date("2026-06-11T18:00:00Z"),
@@ -91,36 +98,41 @@ describe("getPoolMemberPredictions", () => {
       phase: { name: "Group Stage", groupCode: "A", type: "GROUP" },
     };
 
+    prismaMock.match.findMany.mockResolvedValue([match1]);
     prismaMock.prediction.findMany.mockResolvedValue([
       {
         matchId: "match-1",
-        match: matchStarted,
+        match: match1,
         userId: memberId,
         homeScore: 2,
         awayScore: 1,
+        poolId: null,
         user: { nicknameBase: "Test", nicknameDiscriminator: "1234", avatarUrl: null },
         score: { totalPoints: 5, matchedCase: "EXACT" },
       },
       {
         matchId: "match-1",
-        match: matchStarted,
+        match: match1,
         userId: "member-2",
         homeScore: 1,
         awayScore: 0,
+        poolId: null,
         user: { nicknameBase: "Other", nicknameDiscriminator: "5678", avatarUrl: "/a.png" },
         score: { totalPoints: 2, matchedCase: "RESULT" },
       },
     ]);
 
     const result = await getPoolMemberPredictions(poolId);
-    expect(result).toHaveLength(2);
-    expect(result?.[0].nickname).toBe("Test#1234");
-    expect(result?.[0].predictedHome).toBe(2);
-    expect(result?.[0].predictedAway).toBe(1);
-    expect(result?.[0].totalPoints).toBe(5);
-    expect(result?.[0].matchedCase).toBe("EXACT");
-    expect(result?.[1].nickname).toBe("Other#5678");
-    expect(result?.[1].totalPoints).toBe(2);
+    expect(result).toBeTruthy();
+    expect(result?.predictions).toHaveLength(2);
+    expect(result?.matches).toHaveLength(1);
+    expect(result?.predictions[0].nickname).toBe("Test#1234");
+    expect(result?.predictions[0].predictedHome).toBe(2);
+    expect(result?.predictions[0].predictedAway).toBe(1);
+    expect(result?.predictions[0].totalPoints).toBe(5);
+    expect(result?.predictions[0].matchedCase).toBe("EXACT");
+    expect(result?.predictions[1].nickname).toBe("Other#5678");
+    expect(result?.predictions[1].totalPoints).toBe(2);
   });
 
   it("includes predictions where member has no score yet (LIVE match)", async () => {
@@ -145,6 +157,7 @@ describe("getPoolMemberPredictions", () => {
       phase: { name: "Group Stage", groupCode: "B", type: "GROUP" },
     };
 
+    prismaMock.match.findMany.mockResolvedValue([liveMatch]);
     prismaMock.prediction.findMany.mockResolvedValue([
       {
         matchId: "match-live",
@@ -152,27 +165,87 @@ describe("getPoolMemberPredictions", () => {
         userId: memberId,
         homeScore: 1,
         awayScore: 1,
+        poolId: null,
         user: { nicknameBase: "Test", nicknameDiscriminator: "1234", avatarUrl: null },
         score: null,
       },
     ]);
 
     const result = await getPoolMemberPredictions(poolId);
-    expect(result).toHaveLength(1);
-    expect(result?.[0].totalPoints).toBeNull();
-    expect(result?.[0].matchedCase).toBeNull();
-    expect(result?.[0].predictedHome).toBe(1);
+    expect(result?.predictions).toHaveLength(1);
+    expect(result?.predictions[0].totalPoints).toBeNull();
+    expect(result?.predictions[0].matchedCase).toBeNull();
+    expect(result?.predictions[0].predictedHome).toBe(1);
   });
 
-  it("does NOT include predictions for matches with kickoffAt > now", async () => {
+  it("includes FUTURE predictions — kickoffAt filter removed (FR-REFINE-48.9)", async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
+    vi.mocked(formatNickname).mockImplementation((base, disc) =>
+      disc ? `${base}#${disc}` : (base ?? "Jugador"),
+    );
+    prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
+    prismaMock.poolMembership.findMany.mockResolvedValue([{ userId: memberId }]);
+
+    const futureMatch = {
+      id: "match-future",
+      matchNumber: 45,
+      kickoffAt: new Date("2026-07-15T00:00:00Z"),
+      status: "SCHEDULED",
+      homeScore: null,
+      awayScore: null,
+      homePlaceholder: null,
+      awayPlaceholder: null,
+      homeTeam: { id: "team-e", name: "Spain", fifaCode: "ESP", flagPath: "/flags/es.svg" },
+      awayTeam: { id: "team-f", name: "Italy", fifaCode: "ITA", flagPath: "/flags/it.svg" },
+      phase: { name: "Semi-final", groupCode: null, type: "KNOCKOUT" },
+    };
+
+    prismaMock.match.findMany.mockResolvedValue([futureMatch]);
+    prismaMock.prediction.findMany.mockResolvedValue([
+      {
+        matchId: "match-future",
+        match: futureMatch,
+        userId: memberId,
+        homeScore: 2,
+        awayScore: 1,
+        poolId: null,
+        user: { nicknameBase: "Test", nicknameDiscriminator: "1234", avatarUrl: null },
+        score: null,
+      },
+    ]);
+
+    const result = await getPoolMemberPredictions(poolId);
+    expect(result?.predictions).toHaveLength(1);
+    expect(result?.matches).toHaveLength(1);
+    expect(result?.predictions[0].matchStatus).toBe("SCHEDULED");
+  });
+
+  it("returns match headers even when no predictions (FR-REFINE-48.9)", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
     prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
     prismaMock.poolMembership.findMany.mockResolvedValue([{ userId: memberId }]);
+
+    const futureMatch = {
+      id: "match-future",
+      matchNumber: 45,
+      kickoffAt: new Date("2026-07-15T00:00:00Z"),
+      status: "SCHEDULED",
+      homeScore: null,
+      awayScore: null,
+      homePlaceholder: null,
+      awayPlaceholder: null,
+      homeTeam: { id: "team-e", name: "Spain", fifaCode: "ESP", flagPath: "/flags/es.svg" },
+      awayTeam: { id: "team-f", name: "Italy", fifaCode: "ITA", flagPath: "/flags/it.svg" },
+      phase: { name: "Semi-final", groupCode: null, type: "KNOCKOUT" },
+    };
+
+    prismaMock.match.findMany.mockResolvedValue([futureMatch]);
     prismaMock.prediction.findMany.mockResolvedValue([]);
 
-    // The filter is in the Prisma where clause (kickoffAt <= now);
-    // findMany returns empty array when Prisma's mock resolves to [].
     const result = await getPoolMemberPredictions(poolId);
-    expect(result).toEqual([]);
+    expect(result?.predictions).toHaveLength(0);
+    expect(result?.matches).toHaveLength(1);
+    expect(result?.matches[0].matchId).toBe("match-future");
+    expect(result?.matches[0].matchStatus).toBe("SCHEDULED");
   });
 });

@@ -2,15 +2,19 @@ import {
   formatLocalDayKey,
   formatLocalDayLabel,
 } from "@/features/predictions/services/fixture-by-day";
-import type { PoolMemberPrediction, PoolPredictionsViewProps } from "../types";
+import type { MatchView, PoolMemberPrediction, PoolPredictionsViewProps } from "../types";
 
 export interface MatchColumn {
   matchId: string;
   label: string;
+  homeLabel: string;
+  awayLabel: string;
   sublabel: string | null;
   kickoffAt: string | null;
   matchStatus: string;
   phaseType: string;
+  homeFlag: string | null;
+  awayFlag: string | null;
 }
 
 export interface DayGroup {
@@ -36,18 +40,23 @@ export interface MemberPredictionRow {
   >;
 }
 
-export function buildMatchLabel(prediction: PoolMemberPrediction): {
-  label: string;
-  sublabel: string | null;
-} {
-  const home = prediction.homeTeam?.fifaCode ?? prediction.homePlaceholder ?? "?";
-  const away = prediction.awayTeam?.fifaCode ?? prediction.awayPlaceholder ?? "?";
+export const DAYS_PER_PAGE = 1;
+
+export function buildMatchLabel(match: {
+  homeTeam: { fifaCode: string } | null;
+  awayTeam: { fifaCode: string } | null;
+  homePlaceholder: string | null;
+  awayPlaceholder: string | null;
+  matchStatus: string;
+  homeScore: number | null;
+  awayScore: number | null;
+}): { label: string; sublabel: string | null } {
+  const home = match.homeTeam?.fifaCode ?? match.homePlaceholder ?? "?";
+  const away = match.awayTeam?.fifaCode ?? match.awayPlaceholder ?? "?";
   const label = `${home} vs ${away}`;
   const scored =
-    prediction.matchStatus === "FINISHED" &&
-    prediction.homeScore != null &&
-    prediction.awayScore != null;
-  const sublabel = scored ? `${prediction.homeScore} - ${prediction.awayScore}` : null;
+    match.matchStatus === "FINISHED" && match.homeScore != null && match.awayScore != null;
+  const sublabel = scored ? `${match.homeScore} - ${match.awayScore}` : null;
   return { label, sublabel };
 }
 
@@ -56,12 +65,19 @@ export function buildDayGroups(
   members: PoolPredictionsViewProps["members"],
   locale: string,
   timeZone = "UTC",
+  allMatches?: MatchView[],
 ): DayGroup[] {
-  const matchSet = new Map<string, PoolMemberPrediction>();
-  for (const p of predictions) {
-    if (!matchSet.has(p.matchId)) matchSet.set(p.matchId, p);
-  }
-  const uniqueMatches = [...matchSet.values()].sort((a, b) => {
+  const matchData =
+    allMatches ??
+    (() => {
+      const matchSet = new Map<string, PoolMemberPrediction>();
+      for (const p of predictions) {
+        if (!matchSet.has(p.matchId)) matchSet.set(p.matchId, p);
+      }
+      return [...matchSet.values()] as unknown as MatchView[];
+    })();
+
+  const sorted = [...matchData].sort((a, b) => {
     const ta = a.kickoffAt ? Date.parse(a.kickoffAt) : Number.POSITIVE_INFINITY;
     const tb = b.kickoffAt ? Date.parse(b.kickoffAt) : Number.POSITIVE_INFINITY;
     if (ta !== tb) return ta - tb;
@@ -69,7 +85,7 @@ export function buildDayGroups(
   });
 
   const byDay = new Map<string, DayGroup>();
-  for (const match of uniqueMatches) {
+  for (const match of sorted) {
     const kickoff = match.kickoffAt ? new Date(match.kickoffAt) : null;
     const dayKey = kickoff ? formatLocalDayKey(kickoff, timeZone) : "__tbd__";
     let group = byDay.get(dayKey);
@@ -86,6 +102,10 @@ export function buildDayGroups(
       kickoffAt: match.kickoffAt,
       matchStatus: match.matchStatus,
       phaseType: match.phaseType,
+      homeFlag: match.homeTeam?.flagPath ?? null,
+      awayFlag: match.awayTeam?.flagPath ?? null,
+      homeLabel: match.homeTeam?.fifaCode ?? match.homePlaceholder ?? "?",
+      awayLabel: match.awayTeam?.fifaCode ?? match.awayPlaceholder ?? "?",
     });
   }
 
@@ -129,5 +149,42 @@ export function buildDayGroups(
     });
   }
 
-  return days.reverse();
+  return days;
+}
+
+export function paginateDays(
+  days: DayGroup[],
+  timeZone: string,
+  page: number,
+): {
+  visibleDays: DayGroup[];
+  currentPage: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+} {
+  if (days.length === 0) {
+    return { visibleDays: [], currentPage: 0, totalPages: 0, hasPrev: false, hasNext: false };
+  }
+
+  const totalPages = Math.ceil(days.length / DAYS_PER_PAGE);
+
+  const now = new Date();
+  const todayKey = formatLocalDayKey(now, timeZone);
+  const todayIndex = days.findIndex((d) => d.dayKey === todayKey);
+  const defaultPage = todayIndex >= 0 ? Math.floor(todayIndex / DAYS_PER_PAGE) : 0;
+
+  const resolvedPage = Number.isFinite(page) ? page : defaultPage;
+  const clampedPage = Math.max(0, Math.min(totalPages - 1, resolvedPage));
+
+  const start = clampedPage * DAYS_PER_PAGE;
+  const end = Math.min(start + DAYS_PER_PAGE, days.length);
+
+  return {
+    visibleDays: days.slice(start, end),
+    currentPage: clampedPage,
+    totalPages,
+    hasPrev: clampedPage > 0,
+    hasNext: clampedPage < totalPages - 1,
+  };
 }

@@ -18,19 +18,23 @@ import { getRequestLocale } from "@/lib/locale";
 
 interface PoolDetailPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }
 
-export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
+export default async function PoolDetailPage({ params, searchParams }: PoolDetailPageProps) {
   const dictionary = getDictionary(await getRequestLocale());
   const { id } = await params;
+  const { page: pageRaw } = await searchParams;
 
   const userId = await getCurrentUserId();
-  const [pool, leaderboard, predictions] = await Promise.all([
+  const [pool, leaderboard, predictionsData] = await Promise.all([
     getPoolDetail(id),
     userId ? getPoolLeaderboard(id, userId) : Promise.resolve(null),
     getPoolMemberPredictions(id),
   ]);
   if (!pool) notFound();
+
+  const initialPage = pageRaw != null ? parseInt(pageRaw, 10) || 0 : undefined;
 
   // Unit 47: BR-47.4 — gate UI. PUBLIC pools siempre permiten invitar/compartir.
   // PRIVATE pools dependen del toggle `membersCanInvite`. Owner siempre puede.
@@ -84,12 +88,14 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
             </TabsContent>
 
             <TabsContent value="predictions">
-              {predictions && (
+              {predictionsData && (
                 <PoolPredictionsView
-                  predictions={predictions}
+                  predictions={predictionsData.predictions}
+                  matches={predictionsData.matches}
                   members={pool.members}
                   poolId={pool.id}
                   viewerId={userId ?? ""}
+                  initialPage={initialPage}
                 />
               )}
             </TabsContent>

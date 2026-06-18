@@ -886,3 +886,21 @@
   - El leaderboard no distingue visualmente si los puntos vienen de overrides o globales.
   - Las predicciones de otros miembros no son editables (solo lectura).
   - Antes del kickoff, solo el dueño de la predicción ve sus propias predicciones (privacidad pre-partido, BR-5.25). Después del kickoff, son visibles para todos los miembros del pool.
+
+### US-48.3: Ver partidos futuros y navegar entre días
+
+**Como** miembro de un pool
+**Quiero** poder ver los partidos del día siguiente y explorar partidos futuros de forma paginada
+**Para** ajustar mis predicciones con anticipación sin abrumarme con todos los partidos del torneo de una vez.
+
+- **Criterios de Aceptación**:
+  - Al abrir la tab "Predicciones" de `/pools/[id]`, por defecto se muestran los partidos pasados, los de hoy y los del día siguiente (mañana). **FR-REFINE-48.9**.
+  - Los partidos futuros más allá de mañana están ocultos inicialmente. Se muestra un botón "Ver más partidos futuros" al final de la lista de días.
+  - Al presionar "Ver más partidos futuros", se revelan los siguientes N días de partidos (ej. 5 días), manteniendo visibles los días ya mostrados.
+  - El botón "Ver más partidos futuros" se sigue mostrando mientras queden días futuros por revelar.
+  - Cuando todos los días futuros están visibles, el botón desaparece (o cambia a estado "Todos los partidos visibles").
+  - Si no hay partidos futuros más allá de mañana, el botón no aparece.
+  - Las columnas de partidos futuros sin predicciones muestran celdas vacías ("—") para cada miembro.
+  - Para el usuario actual (viewer), las celdas de partidos futuros SCHEDULED son editables (modal con PredictionScoreControls).
+  - Si el usuario no tiene predicción global para un partido futuro, al editar desde el pool se muestra el diálogo de dual-save (US-48.1).
+  - Recargar la página o navegar a otra tab y volver reinicia la paginación (solo pasados + hoy + mañana visibles).

@@ -420,6 +420,7 @@ export const es = {
       usingGlobalToast: "Usando tu predicción global",
       saveForThisPool: "Guardar para esta liga",
       overrideSaved: "Predicción guardada para esta liga",
+      pageIndicator: "Página {current} de {total}",
     },
   },
   pages: {

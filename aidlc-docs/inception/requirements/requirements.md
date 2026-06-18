@@ -1796,10 +1796,19 @@ El gate de `createDirectedInvite` y la UI en `/pools/[id]` se simplifican:
 - El usuario es responsable de mantener la consistencia si asi lo desea (reseteando el override manualmente con FR-REFINE-48.4).
 - Si se elimina un pool, los overrides asociados se eliminan en cascada (`ON DELETE CASCADE` de la FK `poolId → Pool.id`). La prediccion global no se ve afectada.
 
+#### FR-REFINE-48.9 — Visibilidad de partidos futuros con paginación (refine delta, 2026-06-18)
+
+- La tab "Predicciones" de `/pools/[id]` actualmente muestra solo partidos pasados + hoy (`kickoffAt <= now` en la query). Esto impide que el usuario gestione predicciones futuras.
+- **Por defecto**: mostrar partidos pasados + hoy + día siguiente (mañana). Esto permite a los usuarios ver y editar predicciones para el siguiente día de partidos sin acción adicional.
+- **Partidos futuros más allá de mañana**: ocultos por defecto con un control "Ver más partidos futuros" que los revela de forma paginada (N días por página, ej. 5). Esto evita abrumar al usuario con todos los partidos futuros del torneo de una sola vez.
+- **Paginación client-side**: los datos de todos los partidos se cargan en la query (sin filtro `kickoffAt <= now`), y el particionamiento en pasados/hoy/mañana/futuro + la paginación de los días futuros se hace en el componente. Esto mantiene la simplicidad del backend (una sola query) y evita múltiples round-trips para paginación.
+- **Independencia de predicciones**: la query ya no filtra por `kickoffAt <= now`, por lo que si un miembro ya ha hecho predicciones para partidos futuros, esas predicciones aparecerán en la columna correspondiente. Si nadie ha predicho un partido futuro, la columna se muestra con celdas vacías.
+- **Estado vacío**: el estado vacío actual ("Aún no hay predicciones disponibles" / "Las predicciones serán visibles cuando comiencen los partidos") se mantiene como fallback cuando la query de predicciones retorna 0 filas (pool sin predicciones en absoluto), aunque ahora es menos probable porque los partidos futuros también se incluyen.
+
 #### Dependencias y backward-compatibility
 
 - **Depende de**: Unit 3 (membresia para validar `poolId`), Unit 5 (modelo `Prediction` y `savePrediction`), Unit 6 (scoring y leaderboard), Unit 41 (vista de predicciones en pool).
-- **No afecta**: `/matches` (siempre global), sync, admin, auth, onboarding, notificaciones, seed, competencia.
+- **No afecta**: `/matches` (siempre global), sync, admin, auth, onboarding, notificaciones, seed, competencia, leaderboard/scoring (el motor de scoring ya puntúa todas las filas, globales y overrides, sin cambios).
 - **Supersede parcial de Unit 5**: BR-5.2 ("la misma prediccion cuenta para cada pool") y BR-5.3 ("pool-specific predictions are explicitly deferred") quedan **derogadas** y reemplazadas por las reglas de Unit 48. BR-5.1 ("v1 stores one prediction per authenticated user and match") se actualiza a "one prediction per authenticated user, match, and optional pool".
 - **Supersede parcial de Unit 6**: BR-6.11 ("el total de un usuario es global... es el mismo en todos sus pools") queda **derogada** para el contexto de pool. El total global sigue siendo `poolId IS NULL`; el total por pool se calcula con resolucion override-vs-global.
 - Pools existentes sin overrides: comportamiento identico al actual (todos los miembros usan sus predicciones globales). Sin regresion.

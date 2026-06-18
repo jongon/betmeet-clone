@@ -85,12 +85,31 @@ export interface PoolMemberPrediction {
   hasGlobal: boolean;
 }
 
-/** Props for the pool predictions view component (FR-REFINE-41.3). */
+/** Props for the pool predictions view component (FR-REFINE-41.3, FR-REFINE-48.9). */
 export interface PoolPredictionsViewProps {
   predictions: PoolMemberPrediction[];
+  matches: MatchView[];
   members: PoolMemberSummary[];
   poolId: string;
   viewerId: string;
+  initialPage?: number;
+}
+
+/** Match header for pool predictions grid columns (FR-REFINE-48.9).
+ *  Separate from PoolMemberPrediction so matches without predictions still have columns. */
+export interface MatchView {
+  matchId: string;
+  matchNumber: number | null;
+  kickoffAt: string | null;
+  matchStatus: string;
+  homeTeam: import("@/features/competition/types").TeamView | null;
+  awayTeam: import("@/features/competition/types").TeamView | null;
+  homePlaceholder: string | null;
+  awayPlaceholder: string | null;
+  homeScore: number | null;
+  awayScore: number | null;
+  phaseName: string;
+  phaseType: string;
 }
 
 /** Public profile summary for nickname autocomplete (FR-REFINE-44.1–44.6). */

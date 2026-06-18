@@ -3,6 +3,7 @@ import { toTeamView } from "@/features/competition/queries";
 import { prisma } from "@/lib/prisma";
 import { formatNickname, getCurrentUserId } from "./services/session";
 import type {
+  MatchView,
   MyPoolSummary,
   PoolDetail,
   PoolMemberPrediction,
@@ -118,12 +119,13 @@ export async function listPublicPools(
     .filter((p) => !onlyWithCapacity || p.memberCount < p.capacity);
 }
 
-/** Fetches predictions for all pool members for matches that have started.
+/** Fetches predictions for all pool members for ALL matches (past + future).
  *  Returns null if caller is not a pool member (defense-in-depth, BR-41.1).
- *  Visibility window: match.kickoffAt <= now (BR-41.2). */
+ *  FR-REFINE-48.9: removed kickoffAt <= now filter; added match headers for
+ *  columns even when no member has predicted that match yet. */
 export async function getPoolMemberPredictions(
   poolId: string,
-): Promise<PoolMemberPrediction[] | null> {
+): Promise<{ matches: MatchView[]; predictions: PoolMemberPrediction[] } | null> {
   const userId = await getCurrentUserId();
   if (!userId) return null;
 
@@ -139,29 +141,46 @@ export async function getPoolMemberPredictions(
     })
   ).map((m) => m.userId);
 
-  const now = new Date();
-
-  const rows = await prisma.prediction.findMany({
-    where: {
-      userId: { in: memberIds },
-      match: { kickoffAt: { lte: now } },
-      OR: [{ poolId }, { poolId: null }],
-    },
-    include: {
-      match: {
-        include: {
-          homeTeam: true,
-          awayTeam: true,
-          phase: true,
-        },
+  const [allMatches, rows] = await Promise.all([
+    prisma.match.findMany({
+      include: { homeTeam: true, awayTeam: true, phase: true },
+      orderBy: { kickoffAt: "asc" },
+    }),
+    prisma.prediction.findMany({
+      where: {
+        userId: { in: memberIds },
+        OR: [{ poolId }, { poolId: null }],
       },
-      user: { select: { nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true } },
-      score: { select: { totalPoints: true, matchedCase: true } },
-    },
-    orderBy: { match: { kickoffAt: "asc" } },
-  });
+      include: {
+        match: {
+          include: {
+            homeTeam: true,
+            awayTeam: true,
+            phase: true,
+          },
+        },
+        user: { select: { nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true } },
+        score: { select: { totalPoints: true, matchedCase: true } },
+      },
+      orderBy: { match: { kickoffAt: "asc" } },
+    }),
+  ]);
 
-  // Build set of (userId, matchId) pairs that have global predictions (poolId = null)
+  const matches: MatchView[] = allMatches.map((m) => ({
+    matchId: m.id,
+    matchNumber: m.matchNumber,
+    kickoffAt: m.kickoffAt?.toISOString() ?? null,
+    matchStatus: m.status,
+    homeTeam: toTeamView(m.homeTeam),
+    awayTeam: toTeamView(m.awayTeam),
+    homePlaceholder: m.homePlaceholder,
+    awayPlaceholder: m.awayPlaceholder,
+    homeScore: m.homeScore,
+    awayScore: m.awayScore,
+    phaseName: m.phase.groupCode ? `Grupo ${m.phase.groupCode}` : m.phase.name,
+    phaseType: m.phase.type,
+  }));
+
   const globalPairs = new Set<string>();
   for (const row of rows) {
     if (row.poolId === null) {
@@ -169,7 +188,7 @@ export async function getPoolMemberPredictions(
     }
   }
 
-  return rows.map((row) => ({
+  const predictions: PoolMemberPrediction[] = rows.map((row) => ({
     matchId: row.matchId,
     matchNumber: row.match.matchNumber,
     kickoffAt: row.match.kickoffAt?.toISOString() ?? null,
@@ -194,4 +213,6 @@ export async function getPoolMemberPredictions(
     isOverride: row.poolId === poolId,
     hasGlobal: row.poolId === poolId && globalPairs.has(`${row.userId}::${row.matchId}`),
   }));
+
+  return { matches, predictions };
 }

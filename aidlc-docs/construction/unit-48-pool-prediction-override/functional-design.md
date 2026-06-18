@@ -19,6 +19,8 @@
 | DD-48.3 | workflow | Leaderboard transparente |
 | DD-48.4 | workflow | Global y override independientes |
 | DD-48.5 | workflow | Boton "Usar prediccion global" |
+| FR-REFINE-48.9 | requirements | Visibilidad de partidos futuros con paginacion |
+| US-48.3 | stories | Ver partidos futuros y navegar entre dias |
 
 ## 1. Domain Entities
 
@@ -92,6 +94,10 @@ interface PoolMemberPrediction {
 | **BR-48.11** | Editar la prediccion global no afecta los overrides existentes. Editar un override no afecta la prediccion global. | FR-REFINE-48.8, DD-48.4 |
 | **BR-48.12** | Si se elimina un pool, sus overrides se eliminan en cascada (`ON DELETE CASCADE`). Las predicciones globales no se ven afectadas. | FR-REFINE-48.7 |
 | **BR-48.13** | `scoreMatch(matchId)` puntua todas las filas de `Prediction` del partido (globales y overrides). El motor es idempotente (BR-6.5/6.6) y no requiere cambios. | FR-REFINE-48.7 |
+| **BR-48.14** | Los partidos se muestran paginados por dias: 1 dia por pagina. El usuario navega con controles Anterior/Siguiente + indicador de pagina. Pasados y futuros comparten el mismo continuo de paginas (una sola secuencia). | FR-REFINE-48.9 |
+| **BR-48.15** | La pagina por defecto (al entrar al pool sin `?page` en la URL) es la pagina que contiene el dia de hoy. Si hoy no esta en el calendario de partidos, se muestra la primera pagina. | FR-REFINE-48.9 |
+| **BR-48.16** | La query `getPoolMemberPredictions` carga todos los matches (sin filtro `kickoffAt`) y devuelve `{ matches, predictions }`. El componente agrupa por dia via `buildDayGroups(allMatches)`, pagina via `paginateDays(days, timeZone, page)`, y renderiza solo la pagina activa. Las columnas de matches sin predicciones se muestran con celdas vacias. | FR-REFINE-48.9 |
+| **BR-48.17** | El estado de pagina se persiste en la URL via `searchParams.page` (entero, default = pagina que contiene hoy). El componente lee `useSearchParams` para el valor actual y usa `router.replace` con `?page=N` al navegar. Los controles muestran "Pagina X de Y". | FR-REFINE-48.9 |
 
 ## 3. Business Logic Model
 
@@ -229,6 +235,50 @@ function resetPredictionOverride(userId, matchId, poolId):
     return success
 ```
 
+### BL-48.6: Paginacion de dias por pagina (refine delta, 2026-06-18)
+
+> Reemplaza el diseno anterior de particion cliente-side. Ahora es paginacion real: 1 dia por pagina, navegacion Anterior/Siguiente, pagina default centrada en hoy.
+
+```
+const DAYS_PER_PAGE = 1
+
+function paginateDays(
+    days: DayGroup[],
+    timeZone: string,
+    page: number
+): { visibleDays: DayGroup[]; currentPage: number; totalPages: number; hasPrev: boolean; hasNext: boolean } {
+
+    if (days.length === 0) return { visibleDays: [], currentPage: 0, totalPages: 0, hasPrev: false, hasNext: false }
+
+    totalPages = Math.ceil(days.length / DAYS_PER_PAGE)
+
+    // Find which page contains today (default page)
+    now = new Date()
+    todayKey = formatLocalDayKey(now, timeZone)
+    todayIndex = days.findIndex(d -> d.dayKey === todayKey)
+    if (todayIndex === -1) todayIndex = 0
+
+    defaultPage = Math.floor(todayIndex / DAYS_PER_PAGE)
+
+    // Clamp page to valid range
+    resolvedPage = page ?? defaultPage
+    clampedPage = Math.max(0, Math.min(totalPages - 1, resolvedPage))
+
+    start = clampedPage * DAYS_PER_PAGE
+    end = Math.min(start + DAYS_PER_PAGE, days.length)
+
+    return {
+        visibleDays: days.slice(start, end),
+        currentPage: clampedPage,
+        totalPages,
+        hasPrev: clampedPage > 0,
+        hasNext: clampedPage < totalPages - 1
+    }
+}
+```
+
+> **URL persistence**: el servidor lee `searchParams.page` (entero, default = pagina que contiene hoy) y lo pasa como `initialPage` al componente. El componente usa `useSearchParams` para sincronizar y `router.replace` con `?page=N` al navegar. El indicador muestra "Pagina X de Y".
+
 ## 4. Components
 
 ### 4.1 `PoolPredictionsView` (modificado)
@@ -246,6 +296,7 @@ function resetPredictionOverride(userId, matchId, poolId):
   - Boton "Guardar como global tambien" → `savePrediction({ ..., poolId, alsoSaveAsGlobal: true })`.
   - Boton "Solo para esta liga" → cierra dialogo, toast "Primero guarda tu prediccion global en /partidos".
 - Si la celda ya tiene prediccion global, el editor inline normal aparece sin dialogo (comportamiento actual).
+- **Paginacion por pagina (BR-48.14/48.15/48.17, FR-REFINE-48.9)**: la pagina `pools/[id]` lee `searchParams.page`, lo parsea a entero, y lo pasa como `initialPage` al componente. El componente usa `paginateDays()` para obtener el dia de la pagina actual. Controles Anterior/Siguiente + indicador "Pagina X de Y" en la parte superior derecha. Navegacion via `router.replace` con `?page=N`. La pagina por defecto (sin `page` en URL) es la que contiene hoy.
 
 **Estados visuales por celda (viewer)**:
 
@@ -327,6 +378,9 @@ CREATE UNIQUE INDEX predictions_user_match_pool_uk
 | `pools.predictions.usingGlobalToast` | "Usando tu prediccion global" | "Using your global prediction" |
 | `pools.predictions.saveForThisPool` | "Guardar para esta liga" | "Save for this pool" |
 | `pools.predictions.overrideSaved` | "Prediccion guardada para esta liga" | "Prediction saved for this pool" |
+| `pools.predictions.showMoreFuture` | "Ver mas partidos futuros" | "Show more future matches" |
+| `pools.predictions.allFutureVisible` | "Todos los partidos visibles" | "All matches visible" |
+| `pools.predictions.pageIndicator` | "Pagina {current} de {total}" | "Page {current} of {total}" |
 
 ## 7. File Plan
 
@@ -338,7 +392,23 @@ src/features/predictions/actions/reset-prediction-override.ts
 src/features/predictions/actions/__tests__/reset-prediction-override.test.ts
 ```
 
-### Archivos modificados
+### Archivos modificados (refine delta 2026-06-18)
+
+> FR-REFINE-48.9: se añaden cambios de visibilidad de partidos futuros + paginacion.
+
+```
+src/features/pools/queries.ts                        (getPoolMemberPredictions: eliminar kickoffAt <= now + añadir findMany matches + merge matches sin predicciones)
+src/features/pools/components/pool-predictions-view.tsx (initialPage prop + controles Anterior/Siguiente + indicador "Pagina X de Y" + router.replace con ?page=N)
+src/features/pools/components/pool-predictions-view-helpers.ts (paginateDays + DAYS_PER_PAGE + buildDayGroups acepta matches independientes)
+src/features/pools/types.ts                           (PoolPredictionsViewProps + initialPage?: number)
+src/features/pools/__tests__/pool-predictions.test.ts (casos: matches sin predicciones)
+src/features/pools/components/__tests__/pool-predictions-view.test.tsx (+casos paginateDays)
+src/app/(app)/pools/[id]/page.tsx                     (leer searchParams.page + pasarlo al componente)
+src/i18n/dictionaries/es.ts                          (+1 key: pageIndicator)
+src/i18n/dictionaries/en.ts                          (+1 key: pageIndicator)
+```
+
+### Archivos modificados (original Code Generation Part 2)
 
 ```
 prisma/schema.prisma                              (Prediction model: poolId + pool relation; remove @@unique)
@@ -441,6 +511,14 @@ src/features/auth/                                  (sin cambios)
 - Reset → toast + router.refresh.
 - Celda locked → read-only.
 - Otros miembros: solo lectura, badge "Ajustada" si override.
+- Paginacion: por defecto muestra pasados + hoy + mañana.
+- Paginacion: boton "Ver mas" visible si hay dias futuros mas alla de mañana.
+- Paginacion: boton desaparece cuando todos los dias futuros visibles.
+- Paginacion: al hacer click, se revelan `FUTURE_DAYS_PER_PAGE` dias adicionales via `router.replace`.
+- Paginacion: sin dias futuros mas alla de mañana → boton no aparece.
+- Paginacion: `searchParams.futureDays` persiste el estado en URL.
+- Paginacion: `initialVisibleFutureDays` prop recibido de la pagina.
+- Matches sin predicciones: columnas visibles con celdas vacias ("—") para cada miembro.
 
 ### i18n
 - 5 nuevas claves en ES y EN.

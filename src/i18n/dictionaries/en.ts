@@ -423,6 +423,7 @@ export const en = {
       usingGlobalToast: "Using your global prediction",
       saveForThisPool: "Save for this pool",
       overrideSaved: "Prediction saved for this pool",
+      pageIndicator: "Page {current} of {total}",
     },
   },
   pages: {
