@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date-pure";
+import { LocalDate } from "@/lib/format-date";
 import type { SyncRunRow } from "../types";
 
 function statusVariant(status: SyncRunRow["status"]): "default" | "secondary" | "destructive" {
@@ -38,9 +38,11 @@ export function RecentRunsTable({ runs }: { runs: SyncRunRow[] }) {
               <td className="p-2">
                 <Badge variant={statusVariant(run.status)}>{run.status}</Badge>
               </td>
-              <td className="p-2 text-muted-foreground">{formatDate(run.startedAt)}</td>
               <td className="p-2 text-muted-foreground">
-                {run.finishedAt ? formatDate(run.finishedAt) : "—"}
+                <LocalDate value={run.startedAt} />
+              </td>
+              <td className="p-2 text-muted-foreground">
+                <LocalDate value={run.finishedAt} />
               </td>
               <td className="p-2 text-right tabular-nums">
                 {run.itemsUpdated}/{run.itemsFetched}

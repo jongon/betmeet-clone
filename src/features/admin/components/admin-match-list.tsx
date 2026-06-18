@@ -2,7 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date-pure";
+import { LocalDate } from "@/lib/format-date";
 import type { AdminMatchRow } from "../types";
 import { ForceResultDialog } from "./force-result-dialog";
 import { RevertOverrideButton } from "./revert-override-button";
@@ -32,7 +32,14 @@ export function AdminMatchList({ matches }: { matches: AdminMatchRow[] }) {
               {match.homeScore !== null && match.awayScore !== null
                 ? ` · ${match.homeScore}-${match.awayScore}`
                 : ""}
-              {match.kickoffAt ? ` · ${formatDate(match.kickoffAt)}` : ""}
+              {match.kickoffAt ? (
+                <>
+                  {" · "}
+                  <LocalDate value={match.kickoffAt} />
+                </>
+              ) : (
+                ""
+              )}
             </p>
           </div>
           <div className="flex items-center gap-3">

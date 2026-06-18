@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useDictionary } from "@/i18n/dictionary-provider";
-import { formatDate } from "@/lib/format-date-pure";
+import { LocalDate } from "@/lib/format-date";
 import type { SyncStatusView } from "../types";
 
 export function SyncStatusPanel({ data }: { data: SyncStatusView }) {
@@ -21,7 +21,9 @@ export function SyncStatusPanel({ data }: { data: SyncStatusView }) {
                 <CardTitle className="text-sm">{scope.scope}</CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-muted-foreground">
-                <p>{scope.finishedAt ? formatDate(scope.finishedAt) : "—"}</p>
+                <p>
+                  <LocalDate value={scope.finishedAt} />
+                </p>
                 <p className="text-xs">
                   {scope.itemsUpdated} {t.itemsUpdated}
                 </p>
