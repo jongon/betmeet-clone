@@ -81,12 +81,16 @@ export interface PoolMemberPrediction {
   predictedAway: number | null;
   totalPoints: number | null;
   matchedCase: string | null;
+  isOverride: boolean;
+  hasGlobal: boolean;
 }
 
 /** Props for the pool predictions view component (FR-REFINE-41.3). */
 export interface PoolPredictionsViewProps {
   predictions: PoolMemberPrediction[];
   members: PoolMemberSummary[];
+  poolId: string;
+  viewerId: string;
 }
 
 /** Public profile summary for nickname autocomplete (FR-REFINE-44.1–44.6). */

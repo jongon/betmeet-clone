@@ -8,17 +8,14 @@ import { getPredictionEligibility } from "../services/eligibility";
 import { lockExistingPrediction } from "../services/lock";
 import { validatePredictionInput } from "../services/validation";
 
-/**
- * BL-5.1: Create or update a prediction for the authenticated user.
- * Re-checks eligibility, validates input, upserts, and returns success or a domain error.
- */
 export async function savePrediction(input: {
   matchId: string;
   homeScore: number;
   awayScore: number;
   penaltyWinnerTeamId: string | null;
+  poolId?: string;
+  alsoSaveAsGlobal?: boolean;
 }): Promise<{ success: true } | { error: string }> {
-  // Onboarding is mandatory (FR-REFINE-16.1): no nickname → cannot predict.
   const userId = await getOnboardedUserId();
   if (!userId) return { error: "Completa tu perfil para predecir." };
 
@@ -27,16 +24,30 @@ export async function savePrediction(input: {
     return { error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { matchId, homeScore, awayScore, penaltyWinnerTeamId } = parsed.data;
+  const { matchId, homeScore, awayScore, penaltyWinnerTeamId, poolId } = parsed.data;
+  const alsoSaveAsGlobal = input.alsoSaveAsGlobal === true;
 
-  // Load match with phase and teams for server-authoritative eligibility check
+  if (poolId) {
+    const membership = await prisma.poolMembership.findUnique({
+      where: { poolId_userId: { poolId, userId } },
+    });
+    if (!membership) {
+      return { error: "No eres miembro de esta liga." };
+    }
+  }
+
   const match = await prisma.match.findUnique({
     where: { id: matchId },
     include: {
       phase: { select: { type: true } },
       homeTeam: { select: { id: true } },
       awayTeam: { select: { id: true } },
-      predictions: { where: { userId } },
+      predictions: {
+        where: {
+          userId,
+          poolId: poolId ?? null,
+        },
+      },
     },
   });
 
@@ -44,7 +55,6 @@ export async function savePrediction(input: {
 
   const existing = match.predictions[0] ?? null;
 
-  // Re-check eligibility server-side (BL-5.0)
   const eligibility = getPredictionEligibility(
     {
       homeTeamId: match.homeTeam?.id ?? null,
@@ -56,11 +66,9 @@ export async function savePrediction(input: {
   );
 
   if (!eligibility.editable) {
-    // If not editable and user had an existing unlocked prediction, lock it (BL-5.3)
     if (existing && !existing.lockedAt) {
-      await lockExistingPrediction(userId, matchId, eligibility.reason);
+      await lockExistingPrediction(userId, matchId, eligibility.reason, poolId);
     }
-    // Return 403-style domain error; do NOT create implicit prediction
     if (existing) {
       return {
         error: "El partido ya no acepta cambios. Se mantiene tu última predicción guardada.",
@@ -69,7 +77,6 @@ export async function savePrediction(input: {
     return { error: "El partido ya no acepta predicciones. No suma puntos en este partido." };
   }
 
-  // Validate input against match context (BL-5.2)
   const validation = validatePredictionInput(
     {
       phaseType: match.phase.type,
@@ -83,29 +90,65 @@ export async function savePrediction(input: {
     return { error: validation.errors[0]?.message ?? "Datos inválidos." };
   }
 
-  // Upsert: create or update the unlocked prediction
+  const data = {
+    homeScore: validation.valid.homeScore,
+    awayScore: validation.valid.awayScore,
+    penaltyWinnerTeamId: validation.valid.penaltyWinnerTeamId,
+  };
+
   try {
-    await prisma.prediction.upsert({
-      where: {
-        userId_matchId: { userId, matchId },
-      },
-      create: {
-        userId,
-        matchId,
-        homeScore: validation.valid.homeScore,
-        awayScore: validation.valid.awayScore,
-        penaltyWinnerTeamId: validation.valid.penaltyWinnerTeamId,
-      },
-      update: {
-        homeScore: validation.valid.homeScore,
-        awayScore: validation.valid.awayScore,
-        penaltyWinnerTeamId: validation.valid.penaltyWinnerTeamId,
-      },
-    });
+    if (alsoSaveAsGlobal && poolId) {
+      const globalRow = await prisma.prediction.findFirst({
+        where: { userId, matchId, poolId: null },
+      });
+      if (globalRow) {
+        await prisma.prediction.update({ where: { id: globalRow.id }, data });
+      } else {
+        await prisma.prediction.create({
+          data: { userId, matchId, poolId: null, ...data },
+        });
+      }
+
+      const overrideRow = await prisma.prediction.findFirst({
+        where: { userId, matchId, poolId },
+      });
+      if (overrideRow) {
+        await prisma.prediction.update({ where: { id: overrideRow.id }, data });
+      } else {
+        await prisma.prediction.create({
+          data: { userId, matchId, poolId, ...data },
+        });
+      }
+    } else if (poolId) {
+      const row = await prisma.prediction.findFirst({
+        where: { userId, matchId, poolId },
+      });
+      if (row) {
+        await prisma.prediction.update({ where: { id: row.id }, data });
+      } else {
+        await prisma.prediction.create({
+          data: { userId, matchId, poolId, ...data },
+        });
+      }
+    } else {
+      const row = await prisma.prediction.findFirst({
+        where: { userId, matchId, poolId: null },
+      });
+      if (row) {
+        await prisma.prediction.update({ where: { id: row.id }, data });
+      } else {
+        await prisma.prediction.create({
+          data: { userId, matchId, poolId: null, ...data },
+        });
+      }
+    }
   } catch {
     return { error: "No se pudo guardar la predicción. Inténtalo de nuevo." };
   }
 
-  revalidatePath("/matches");
+  revalidatePath("/matches", "page");
+  if (poolId) {
+    revalidatePath(`/pools/${poolId}`, "page");
+  }
   return { success: true };
 }

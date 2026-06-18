@@ -20,9 +20,9 @@ describe("revalidateResultViews (Unit 35)", () => {
   it("revalidates user-facing result routes", () => {
     revalidateResultViews();
 
-    expect(revalidatePath).toHaveBeenCalledWith("/matches");
-    expect(revalidatePath).toHaveBeenCalledWith("/rankings");
-    expect(revalidatePath).toHaveBeenCalledWith("/pools");
+    expect(revalidatePath).toHaveBeenCalledWith("/matches", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/rankings", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/pools", "page");
     expect(revalidatePath).toHaveBeenCalledWith("/pools/[id]", "page");
     expect(revalidatePath).toHaveBeenCalledWith("/pools/[id]/leaderboard", "page");
   });
@@ -30,13 +30,13 @@ describe("revalidateResultViews (Unit 35)", () => {
   it("revalidates optional admin routes only when requested", () => {
     revalidateResultViews();
 
-    expect(revalidatePath).not.toHaveBeenCalledWith("/admin");
-    expect(revalidatePath).not.toHaveBeenCalledWith("/admin/matches");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/admin", "page");
+    expect(revalidatePath).not.toHaveBeenCalledWith("/admin/matches", "page");
 
     vi.clearAllMocks();
     revalidateResultViews({ adminDashboard: true, adminMatches: true });
 
-    expect(revalidatePath).toHaveBeenCalledWith("/admin");
-    expect(revalidatePath).toHaveBeenCalledWith("/admin/matches");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin", "page");
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/matches", "page");
   });
 });

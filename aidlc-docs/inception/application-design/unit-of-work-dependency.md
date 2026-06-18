@@ -56,6 +56,7 @@
 | 43. Web Push — Onboarding + Dispatch | Units 10, 7, 2 | None | Onboarding notifications step + dispatch on sync |
 | 44. Autocompletar nickname en invitación | Units 3, 10, 13 | None | UI/new server action; autocompletar en `DirectedInviteForm` |
 | 45. Permiso configurable de invitación por miembros | Units 3, 13, 44 | None | Schema (`Pool.membersCanInvite`); UI (Switch en `CreatePoolForm` y nueva sección "Configuración" en `/pools/[id]`); server action `updatePoolMembersCanInvite`; supersede `FR-REFINE-44.7` |
+| 48. Predicciones con override por pool | Units 3, 5, 6, 41 | None | Schema (`Prediction.poolId` + partial unique indexes); save/read scope-aware; leaderboard override resolution; botón "Usar predicción global"; migración Prisma |
 
 ---
 

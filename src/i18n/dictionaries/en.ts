@@ -418,6 +418,11 @@ export const en = {
       pendingScore: "—",
       emptyTitle: "No predictions available yet",
       emptyDescription: "Predictions will be visible once matches begin.",
+      overrideBadge: "Adjusted",
+      useGlobalPrediction: "Use global prediction",
+      usingGlobalToast: "Using your global prediction",
+      saveForThisPool: "Save for this pool",
+      overrideSaved: "Prediction saved for this pool",
     },
   },
   pages: {

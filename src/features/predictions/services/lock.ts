@@ -1,14 +1,11 @@
 import type { PredictionLockReason } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
-/**
- * BL-5.3: Lock an existing unlocked prediction for a user/match pair.
- * Called when the match is no longer editable (kickoff reached, status locked, etc.).
- */
 export async function lockExistingPrediction(
   userId: string,
   matchId: string,
   reason: PredictionLockReason,
+  poolId?: string,
 ): Promise<boolean> {
   const now = new Date();
 
@@ -16,6 +13,7 @@ export async function lockExistingPrediction(
     where: {
       userId,
       matchId,
+      poolId: poolId ?? null,
       lockedAt: null,
     },
     data: {

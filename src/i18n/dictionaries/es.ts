@@ -415,6 +415,11 @@ export const es = {
       pendingScore: "—",
       emptyTitle: "Aún no hay predicciones disponibles",
       emptyDescription: "Las predicciones serán visibles cuando comiencen los partidos.",
+      overrideBadge: "Ajustada",
+      useGlobalPrediction: "Usar predicción global",
+      usingGlobalToast: "Usando tu predicción global",
+      saveForThisPool: "Guardar para esta liga",
+      overrideSaved: "Predicción guardada para esta liga",
     },
   },
   pages: {

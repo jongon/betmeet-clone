@@ -13,6 +13,12 @@ export const PredictionInputSchema = z.object({
     .max(20, "El máximo es 20 goles"),
   penaltyWinnerTeamId: z.string().uuid().nullable(),
   matchId: z.string().uuid(),
+  poolId: z.string().uuid().optional(),
+});
+
+export const ResetPredictionOverrideSchema = z.object({
+  matchId: z.string().uuid(),
+  poolId: z.string().uuid(),
 });
 
 export type PredictionInput = z.infer<typeof PredictionInputSchema>;

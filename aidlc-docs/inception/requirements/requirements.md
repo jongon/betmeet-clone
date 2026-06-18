@@ -1720,3 +1720,87 @@ El gate de `createDirectedInvite` y la UI en `/pools/[id]` se simplifican:
 - Unit 3 (Pools), Unit 13 (Invitaciones Refine): sin cambios en la estructura de pools/membresía/invitaciones.
 - Pools existentes con `membersCanInvite = true` (default) permiten que miembros inviten, en coherencia con el comportamiento anterior (Unit 45 no restringía pools existentes).
 - **No reinicia** Units 1-46.
+
+---
+
+### Épica 48: Predicciones con override por pool (Unit 48 — añadida vía refine, 2026-06-18)
+
+> Refine post-construccion sobre Unit 5 (Predictions), Unit 6 (Scoring), Unit 3 (Pools) y Unit 41 (Pool Predictions). El modelo actual solo soporta **una prediccion global por usuario y partido** (`UNIQUE(userId, matchId)`, BR-5.2). Esta Epica introduce la capacidad de ajustar la prediccion para un pool especifico (override), manteniendo la prediccion global como default. **No reinicia** etapas aprobadas. Schema nuevo: columna `poolId` en `Prediction` + 2 partial unique indexes.
+
+#### FR-REFINE-48.1 — Override por pool desde el contexto del pool
+
+- El usuario puede guardar/editar una prediccion especifica para un pool desde la tab "Predicciones" de `/pools/[id]`.
+- `/matches` no cambia: sigue guardando predicciones globales (`poolId = NULL`).
+- La accion `savePrediction` acepta un `poolId` opcional. Si se provee, valida que el usuario es miembro del pool. Si no se provee, guarda como global (comportamiento actual, sin regresion).
+- **DD-48.1**: override solo desde el pool. No hay selector de pool en `/matches`.
+
+#### FR-REFINE-48.2 — Override requiere prediccion global previa (dual-save UX)
+
+> **DD-48.2 original (override standalone) SUPERSEDED por DD-48.2-revised (2026-06-18).**
+
+- No se permite crear un override sin prediccion global previa. El override siempre existe junto a una prediccion global para el mismo partido.
+- Si el usuario intenta guardar desde un pool y no tiene prediccion global para ese partido, se le ofrece un dialogo: "No tienes prediccion global para este partido. Guardar este resultado tambien como tu prediccion global?"
+  - Boton "Guardar como global tambien" → crea la global (`poolId: null`) + el override (`poolId: <poolId>`) con los mismos scores.
+  - Boton "Solo para esta liga" → cierra el dialogo con un toast "Primero guarda tu prediccion global en /partidos".
+- Si el usuario ya tiene prediccion global para ese partido, guardar desde el pool solo crea/actualiza el override (sin dialogo, sin duplicar la global).
+- **DD-48.2-revised**: override requiere global; dual-save UX ofrecida.
+
+#### FR-REFINE-48.3 — Resolucion override-vs-global en vistas de predicciones del pool
+
+- En la tab "Predicciones" de `/pools/[id]`, para cada miembro y partido:
+  - Si el miembro tiene un override para ese partido en ese pool → mostrar el override.
+  - Si no tiene override pero tiene prediccion global → mostrar la global.
+  - Si no tiene ninguna → mostrar "Sin prediccion" (celda vacia).
+- El DTO de `PoolMemberPrediction` expone `isOverride: boolean` y `hasGlobal: boolean` para que la UI pueda mostrar hints contextuales.
+- Para el usuario actual (viewer), la celda es editable si el partido esta `SCHEDULED` antes de `kickoffAt`.
+
+#### FR-REFINE-48.4 — Boton "Usar prediccion global" para resetear override
+
+- Si el usuario actual tiene un override activo para un partido y ademas tiene una prediccion global para ese mismo partido, se muestra un boton "Usar prediccion global" en su celda dentro de `PoolPredictionsView`.
+- El boton elimina el override (`DELETE Prediction WHERE userId+matchId+poolId`) y la vista recarga mostrando la prediccion global en su lugar.
+- Si no existe prediccion global, el boton no se muestra.
+- **DD-48.5**: reset via boton explicito.
+
+#### FR-REFINE-48.5 — Leaderboard del pool con totales override-aware
+
+- El leaderboard de `/pools/[id]` calcula los puntos de cada miembro resolviendo override-vs-global:
+  - Para cada (miembro, match), si existe override en ese pool → sumar puntos del override.
+  - Si no existe override pero existe global → sumar puntos de la global.
+  - Si no existe ninguna → 0 puntos.
+  - **No hay doble conteo**: la global se excluye para matches donde existe override.
+- **DD-48.3**: leaderboard transparente. El DTO `LeaderboardRow` no distingue visualmente si los puntos vienen de overrides o globales. Solo se ven puntos totales.
+- Los empates (dense ranking "1,1,2") se mantienen sin cambios (BR-6.13).
+
+#### FR-REFINE-48.6 — Ranking global excluye overrides
+
+- El ranking global (`/rankings`) solo considera predicciones con `poolId IS NULL`.
+- Las predicciones con `poolId` no nulo (overrides) no contribuyen al ranking global.
+- **DD-48.4**: global y overrides son independientes. Editar la global no afecta los overrides existentes.
+
+#### FR-REFINE-48.7 — Schema: `Prediction.poolId` + partial unique indexes
+
+| Cambio | Detalle |
+|---|---|
+| `Prediction.poolId` | `String? @map("pool_id")`, FK → `Pool.id`. `NULL` = prediccion global. |
+| Global unique | `CREATE UNIQUE INDEX predictions_user_match_global_uk ON predictions(user_id, match_id) WHERE pool_id IS NULL`. Una sola prediccion global por usuario y partido. |
+| Override unique | `CREATE UNIQUE INDEX predictions_user_match_pool_uk ON predictions(user_id, match_id, pool_id) WHERE pool_id IS NOT NULL`. Un solo override por pool, usuario y partido. |
+| Migracion | Nueva migracion Prisma `YYYYMMDDHHMMSS_unit48_prediction_pool_id`. `ALTER TABLE predictions ADD COLUMN pool_id UUID REFERENCES pools(id);` + los 2 `CREATE UNIQUE INDEX`. |
+
+- Backward-compatible: filas existentes tienen `poolId = NULL` y siguen siendo predicciones globales. El `UNIQUE(userId, matchId)` actual se reemplaza por el partial unique index; no hay conflicto porque las filas existentes cumplen `pool_id IS NULL`.
+- El motor de scoring (`scoreMatch`) puntua todas las filas de `Prediction` del partido sin cambios (idempotente, BR-6.5/6.6). Cada fila (global u override) genera su propio `PredictionScore`.
+
+#### FR-REFINE-48.8 — Independencia global vs override
+
+- Editar la prediccion global desde `/matches` **no** invalida ni modifica los overrides existentes en pools.
+- Editar un override desde un pool **no** modifica la prediccion global.
+- El usuario es responsable de mantener la consistencia si asi lo desea (reseteando el override manualmente con FR-REFINE-48.4).
+- Si se elimina un pool, los overrides asociados se eliminan en cascada (`ON DELETE CASCADE` de la FK `poolId → Pool.id`). La prediccion global no se ve afectada.
+
+#### Dependencias y backward-compatibility
+
+- **Depende de**: Unit 3 (membresia para validar `poolId`), Unit 5 (modelo `Prediction` y `savePrediction`), Unit 6 (scoring y leaderboard), Unit 41 (vista de predicciones en pool).
+- **No afecta**: `/matches` (siempre global), sync, admin, auth, onboarding, notificaciones, seed, competencia.
+- **Supersede parcial de Unit 5**: BR-5.2 ("la misma prediccion cuenta para cada pool") y BR-5.3 ("pool-specific predictions are explicitly deferred") quedan **derogadas** y reemplazadas por las reglas de Unit 48. BR-5.1 ("v1 stores one prediction per authenticated user and match") se actualiza a "one prediction per authenticated user, match, and optional pool".
+- **Supersede parcial de Unit 6**: BR-6.11 ("el total de un usuario es global... es el mismo en todos sus pools") queda **derogada** para el contexto de pool. El total global sigue siendo `poolId IS NULL`; el total por pool se calcula con resolucion override-vs-global.
+- Pools existentes sin overrides: comportamiento identico al actual (todos los miembros usan sus predicciones globales). Sin regresion.
+- **No reinicia** Units 1-47.

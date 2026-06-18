@@ -11,12 +11,12 @@ export function revalidateResultViews(options: RevalidateResultViewsOptions = {}
   updateTag(COMPETITION_FIXTURE_TAG);
   updateTag(RANKINGS_TAG);
 
-  revalidatePath("/matches");
-  revalidatePath("/rankings");
-  revalidatePath("/pools");
+  revalidatePath("/matches", "page");
+  revalidatePath("/rankings", "page");
+  revalidatePath("/pools", "page");
   revalidatePath("/pools/[id]", "page");
   revalidatePath("/pools/[id]/leaderboard", "page");
 
-  if (options.adminDashboard) revalidatePath("/admin");
-  if (options.adminMatches) revalidatePath("/admin/matches");
+  if (options.adminDashboard) revalidatePath("/admin", "page");
+  if (options.adminMatches) revalidatePath("/admin/matches", "page");
 }

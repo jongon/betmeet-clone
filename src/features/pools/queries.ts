@@ -145,6 +145,7 @@ export async function getPoolMemberPredictions(
     where: {
       userId: { in: memberIds },
       match: { kickoffAt: { lte: now } },
+      OR: [{ poolId }, { poolId: null }],
     },
     include: {
       match: {
@@ -159,6 +160,14 @@ export async function getPoolMemberPredictions(
     },
     orderBy: { match: { kickoffAt: "asc" } },
   });
+
+  // Build set of (userId, matchId) pairs that have global predictions (poolId = null)
+  const globalPairs = new Set<string>();
+  for (const row of rows) {
+    if (row.poolId === null) {
+      globalPairs.add(`${row.userId}::${row.matchId}`);
+    }
+  }
 
   return rows.map((row) => ({
     matchId: row.matchId,
@@ -182,5 +191,7 @@ export async function getPoolMemberPredictions(
     predictedAway: row.awayScore,
     totalPoints: row.score?.totalPoints ?? null,
     matchedCase: row.score?.matchedCase ?? null,
+    isOverride: row.poolId === poolId,
+    hasGlobal: row.poolId === poolId && globalPairs.has(`${row.userId}::${row.matchId}`),
   }));
 }

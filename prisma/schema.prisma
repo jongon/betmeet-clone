@@ -132,6 +132,7 @@ model Pool {
   owner       Profile          @relation("PoolOwner", fields: [ownerId], references: [id])
   memberships PoolMembership[]
   directedInvites PoolDirectedInvite[]
+  predictions Prediction[]
 
   @@index([ownerId])
   @@index([type])
@@ -323,6 +324,7 @@ model Prediction {
   id                   String                @id @default(uuid()) @db.Uuid
   userId               String                @map("user_id") @db.Uuid
   matchId              String                @map("match_id") @db.Uuid
+  poolId               String?               @map("pool_id") @db.Uuid
   homeScore            Int                   @map("home_score")
   awayScore            Int                   @map("away_score")
   penaltyWinnerTeamId  String?               @map("penalty_winner_team_id") @db.Uuid
@@ -333,12 +335,13 @@ model Prediction {
 
   user         Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   match        Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  pool         Pool?   @relation(fields: [poolId], references: [id], onDelete: Cascade)
   penaltyTeam  Team?   @relation("PredictionPenaltyTeam", fields: [penaltyWinnerTeamId], references: [id])
   score        PredictionScore?
 
-  @@unique([userId, matchId])
   @@index([userId])
   @@index([matchId])
+  @@index([poolId])
   @@index([lockedAt])
   @@map("predictions")
 }

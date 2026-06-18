@@ -9,3 +9,5 @@
  * mutations.
  */
 export const RANKINGS_TAG = "rankings";
+
+export const POOL_LEADERBOARD_TAG_PREFIX = "pool-leaderboard-";

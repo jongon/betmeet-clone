@@ -845,3 +845,44 @@
   - El gate de invitación es `isOwner || membersCanInvite` (sin restricción por `type`).
   - El `InviteShare` (token/link de invitación) también se oculta cuando `membersCanInvite === false` para un miembro no-owner, en cualquier tipo de pool.
   - Pools existentes (públicos y privados) mantienen `membersCanInvite = true` por el default de la migración de Unit 45, preservando el comportamiento actual hasta que el owner decida cambiarlo.
+
+---
+
+## Épica 48: Predicciones con override por pool (Unit 48 — añadida vía refine, 2026-06-18)
+
+> Refine sobre Units 5 (Predictions), 6 (Scoring), 3 (Pools) y 41 (Pool Predictions). El usuario puede opcionalmente ajustar su predicción para un pool específico. La predicción global sigue siendo el default. El override reemplaza la global solo dentro de ese pool. Sin reiniciar etapas aprobadas.
+
+### US-48.1: Ajustar mi predicción para una liga específica
+
+**Como** miembro de un pool
+**Quiero** poder ajustar mi predicción de un partido para ese pool en particular, diferente a mi predicción global
+**Para** adaptar mi estrategia según con quién estoy compitiendo en cada liga.
+
+- **Criterios de Aceptación**:
+  - Desde la tab "Predicciones" de `/pools/[id]`, el usuario ve sus propias predicciones con posibilidad de editarlas (si el partido está `SCHEDULED` antes de `kickoffAt`).
+  - Al guardar desde el pool, se crea una predicción con `poolId = <poolId>`. Si ya existía un override previo, se actualiza (upsert).
+  - Si el usuario NO tiene predicción global para ese partido, se muestra un diálogo: "No tienes predicción global para este partido. ¿Guardar este resultado también como tu predicción global?" con dos botones: "Guardar como global también" (crea ambas) y "Solo para esta liga" (cancela con mensaje). **DD-48.2-revised**.
+  - Si YA tiene predicción global, guardar desde el pool solo crea/actualiza el override sin diálogo.
+  - La predicción global (guardada desde `/matches`) no se modifica al guardar un override desde el pool cuando ya existe global. Si se eligió "Guardar como global también", se crean ambas filas con los mismos scores.
+  - Si el usuario no es miembro del pool, el server action rechaza el guardado con error de membresía.
+  - Las reglas de lock por `kickoffAt` aplican igual que para predicciones globales: solo se puede editar antes del inicio del partido.
+  - La validación de scores (0-20, enteros) y penalty winner (solo knockout empatado) aplica igual que en predicciones globales.
+
+### US-48.2: Ver predicciones de la liga y volver a mi predicción global
+
+**Como** miembro de un pool
+**Quiero** ver las predicciones de todos los miembros y, si yo ajusté la mía para esta liga, poder volver a usar mi predicción global como base
+**Para** comparar estrategias y decidir si mi ajuste fue acertado.
+
+- **Criterios de Aceptación**:
+  - En la tab "Predicciones" de `/pools/[id]`, para cada miembro y partido se muestra:
+    - El override del pool si existe.
+    - La predicción global si no existe override.
+    - Celda vacía ("Sin predicción") si no existe ninguna.
+  - Para el usuario actual, si tiene un override activo y además tiene una predicción global para ese partido, se muestra un botón "Usar predicción global" en su celda.
+  - Al presionar "Usar predicción global", el override se elimina y la celda muestra la predicción global.
+  - Si no existe predicción global, el botón no se muestra (no hay nada a lo que volver).
+  - El leaderboard del pool (`/pools/[id]`, tab "Clasificación") calcula los puntos de cada miembro usando el override si existe, o la global si no existe override, sin doble conteo.
+  - El leaderboard no distingue visualmente si los puntos vienen de overrides o globales.
+  - Las predicciones de otros miembros no son editables (solo lectura).
+  - Antes del kickoff, solo el dueño de la predicción ve sus propias predicciones (privacidad pre-partido, BR-5.25). Después del kickoff, son visibles para todos los miembros del pool.

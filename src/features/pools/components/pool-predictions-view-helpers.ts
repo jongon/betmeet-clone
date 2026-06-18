@@ -8,6 +8,9 @@ export interface MatchColumn {
   matchId: string;
   label: string;
   sublabel: string | null;
+  kickoffAt: string | null;
+  matchStatus: string;
+  phaseType: string;
 }
 
 export interface DayGroup {
@@ -27,6 +30,8 @@ export interface MemberPredictionRow {
       predictedHome: number | null;
       predictedAway: number | null;
       totalPoints: number | null;
+      isOverride: boolean;
+      hasGlobal: boolean;
     }
   >;
 }
@@ -78,19 +83,24 @@ export function buildDayGroups(
     group.matches.push({
       matchId: match.matchId,
       ...buildMatchLabel(match),
+      kickoffAt: match.kickoffAt,
+      matchStatus: match.matchStatus,
+      phaseType: match.phaseType,
     });
   }
 
   const days = [...byDay.values()];
 
-  const predictionsByUser = new Map<string, Map<string, PoolMemberPrediction>>();
+  const predictionsByUser = new Map<string, Map<string, PoolMemberPrediction[]>>();
   for (const p of predictions) {
     let byMatch = predictionsByUser.get(p.userId);
     if (!byMatch) {
       byMatch = new Map();
       predictionsByUser.set(p.userId, byMatch);
     }
-    byMatch.set(p.matchId, p);
+    const existing = byMatch.get(p.matchId) ?? [];
+    existing.push(p);
+    byMatch.set(p.matchId, existing);
   }
 
   for (const day of days) {
@@ -98,11 +108,16 @@ export function buildDayGroups(
       const userPredictions = predictionsByUser.get(m.userId);
       const cells: MemberPredictionRow["cells"] = {};
       for (const col of day.matches) {
-        const p = userPredictions?.get(col.matchId);
+        const preds = userPredictions?.get(col.matchId) ?? [];
+        const override = preds.find((p) => p.isOverride);
+        const global = preds.find((p) => !p.isOverride);
+        const chosen = override ?? global ?? null;
         cells[col.matchId] = {
-          predictedHome: p?.predictedHome ?? null,
-          predictedAway: p?.predictedAway ?? null,
-          totalPoints: p?.totalPoints ?? null,
+          predictedHome: chosen?.predictedHome ?? null,
+          predictedAway: chosen?.predictedAway ?? null,
+          totalPoints: chosen?.totalPoints ?? null,
+          isOverride: chosen?.isOverride ?? false,
+          hasGlobal: global != null && override != null,
         };
       }
       return {

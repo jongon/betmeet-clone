@@ -85,7 +85,12 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
 
             <TabsContent value="predictions">
               {predictions && (
-                <PoolPredictionsView predictions={predictions} members={pool.members} />
+                <PoolPredictionsView
+                  predictions={predictions}
+                  members={pool.members}
+                  poolId={pool.id}
+                  viewerId={userId ?? ""}
+                />
               )}
             </TabsContent>
 

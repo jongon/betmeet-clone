@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     match: { findUnique: vi.fn() },
-    prediction: { upsert: vi.fn(), updateMany: vi.fn() },
+    poolMembership: { findUnique: vi.fn() },
+    prediction: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
   },
 }));
 
@@ -65,7 +71,7 @@ describe("savePrediction", () => {
   it("creates a new prediction", async () => {
     stubAuth(USER_ID);
     vi.mocked(prisma.match.findUnique).mockResolvedValue(mockMatch() as never);
-    vi.mocked(prisma.prediction.upsert).mockResolvedValue({ id: "pred-1" } as never);
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: "pred-1" } as never);
 
     const result = await savePrediction({
       matchId: MATCH_ID,
@@ -75,7 +81,7 @@ describe("savePrediction", () => {
     });
 
     expect(result).toEqual({ success: true });
-    expect(prisma.prediction.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.prediction.create).toHaveBeenCalledTimes(1);
   });
 
   it("updates an existing unlocked prediction", async () => {
@@ -85,7 +91,7 @@ describe("savePrediction", () => {
         predictions: [{ id: "pred-1", homeScore: 1, awayScore: 0, lockedAt: null }],
       }) as never,
     );
-    vi.mocked(prisma.prediction.upsert).mockResolvedValue({ id: "pred-1" } as never);
+    vi.mocked(prisma.prediction.update).mockResolvedValue({ id: "pred-1" } as never);
 
     const result = await savePrediction({
       matchId: MATCH_ID,
@@ -118,7 +124,7 @@ describe("savePrediction", () => {
     expect("error" in result).toBe(true);
     expect(prisma.prediction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { userId: USER_ID, matchId: MATCH_ID, lockedAt: null },
+        where: { userId: USER_ID, matchId: MATCH_ID, poolId: null, lockedAt: null },
         data: expect.objectContaining({ lockReason: "KICKOFF_REACHED" }),
       }),
     );
@@ -138,7 +144,7 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
-    expect(prisma.prediction.upsert).not.toHaveBeenCalled();
+    expect(prisma.prediction.create).not.toHaveBeenCalled();
   });
 
   it("rejects update to an already-locked prediction", async () => {
@@ -166,7 +172,8 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
-    expect(prisma.prediction.upsert).not.toHaveBeenCalled();
+    expect(prisma.prediction.create).not.toHaveBeenCalled();
+    expect(prisma.prediction.update).not.toHaveBeenCalled();
   });
 
   it("rejects validation errors server-side", async () => {
@@ -181,7 +188,7 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
-    expect(prisma.prediction.upsert).not.toHaveBeenCalled();
+    expect(prisma.prediction.create).not.toHaveBeenCalled();
   });
 
   it("saves knockout draw with penalty winner", async () => {
@@ -189,7 +196,7 @@ describe("savePrediction", () => {
     vi.mocked(prisma.match.findUnique).mockResolvedValue(
       mockMatch({ phase: { type: "KNOCKOUT" } }) as never,
     );
-    vi.mocked(prisma.prediction.upsert).mockResolvedValue({ id: "pred-2" } as never);
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: "pred-2" } as never);
 
     const result = await savePrediction({
       matchId: MATCH_ID,
@@ -199,5 +206,80 @@ describe("savePrediction", () => {
     });
 
     expect(result).toEqual({ success: true });
+  });
+
+  it("saves pool-scoped prediction for a member", async () => {
+    const POOL_ID = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+    stubAuth(USER_ID);
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue({
+      userId: USER_ID,
+      poolId: POOL_ID,
+    } as never);
+    vi.mocked(prisma.match.findUnique).mockResolvedValue(mockMatch() as never);
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: "pred-pool" } as never);
+
+    const result = await savePrediction({
+      matchId: MATCH_ID,
+      homeScore: 3,
+      awayScore: 0,
+      penaltyWinnerTeamId: null,
+      poolId: POOL_ID,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(prisma.poolMembership.findUnique).toHaveBeenCalledWith({
+      where: { poolId_userId: { poolId: POOL_ID, userId: USER_ID } },
+    });
+    expect(prisma.prediction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ poolId: POOL_ID }),
+      }),
+    );
+  });
+
+  it("dual-saves global + override when alsoSaveAsGlobal is set", async () => {
+    const POOL_ID = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+    stubAuth(USER_ID);
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue({
+      userId: USER_ID,
+      poolId: POOL_ID,
+    } as never);
+    vi.mocked(prisma.match.findUnique).mockResolvedValue(mockMatch() as never);
+    vi.mocked(prisma.prediction.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.prediction.create).mockResolvedValue({ id: "pred-x" } as never);
+
+    const result = await savePrediction({
+      matchId: MATCH_ID,
+      homeScore: 2,
+      awayScore: 1,
+      penaltyWinnerTeamId: null,
+      poolId: POOL_ID,
+      alsoSaveAsGlobal: true,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(prisma.prediction.create).toHaveBeenCalledTimes(2);
+    expect(prisma.prediction.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ poolId: null }) }),
+    );
+    expect(prisma.prediction.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ poolId: POOL_ID }) }),
+    );
+  });
+
+  it("rejects pool-scoped prediction for a non-member", async () => {
+    const POOL_ID = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
+    stubAuth(USER_ID);
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue(null);
+
+    const result = await savePrediction({
+      matchId: MATCH_ID,
+      homeScore: 3,
+      awayScore: 0,
+      penaltyWinnerTeamId: null,
+      poolId: POOL_ID,
+    });
+
+    expect(result).toEqual({ error: "No eres miembro de esta liga." });
   });
 });

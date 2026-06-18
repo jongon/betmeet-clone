@@ -10,6 +10,7 @@ export interface PredictionInput {
   homeScore: number;
   awayScore: number;
   penaltyWinnerTeamId: string | null;
+  poolId?: string;
 }
 
 export interface PredictionView {

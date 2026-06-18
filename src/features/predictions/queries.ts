@@ -261,3 +261,69 @@ export async function getFixtureByDayWithMyPredictions(userId: string | null): P
     days: groupFixtureByDay(fixture.phases),
   };
 }
+
+export interface ResolvedPrediction {
+  userId: string;
+  matchId: string;
+  predictedHome: number | null;
+  predictedAway: number | null;
+  isOverride: boolean;
+  hasGlobal: boolean;
+}
+
+export function resolvePoolPredictions(
+  predictions: {
+    userId: string;
+    matchId: string;
+    poolId: string | null;
+    homeScore: number;
+    awayScore: number;
+  }[],
+  members: string[],
+  matchIds: string[],
+  poolId: string,
+): ResolvedPrediction[] {
+  const result: ResolvedPrediction[] = [];
+
+  for (const userId of members) {
+    for (const matchId of matchIds) {
+      const override = predictions.find(
+        (p) => p.userId === userId && p.matchId === matchId && p.poolId === poolId,
+      );
+      const global = predictions.find(
+        (p) => p.userId === userId && p.matchId === matchId && p.poolId === null,
+      );
+
+      if (override) {
+        result.push({
+          userId,
+          matchId,
+          predictedHome: override.homeScore,
+          predictedAway: override.awayScore,
+          isOverride: true,
+          hasGlobal: global != null,
+        });
+      } else if (global) {
+        result.push({
+          userId,
+          matchId,
+          predictedHome: global.homeScore,
+          predictedAway: global.awayScore,
+          isOverride: false,
+          hasGlobal: false,
+        });
+      } else {
+        result.push({
+          userId,
+          matchId,
+          predictedHome: null,
+          predictedAway: null,
+          isOverride: false,
+          hasGlobal: false,
+        });
+      }
+    }
+  }
+
+  return result;
+}

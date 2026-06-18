@@ -465,6 +465,17 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El owner de cualquier pool (público o privado) controla quién puede invitar mediante el toggle `membersCanInvite`. Los miembros de un pool público pueden invitar a otros si el owner lo permite, igual que en pools privados.
 
+## Unit 48 — Predicciones con override por pool (refine sobre Units 3, 5, 6, 41)
+
+- **Dependencias**: Unit 3 (membresía para validar `poolId`), Unit 5 (modelo `Prediction`, `savePrediction`), Unit 6 (scoring, leaderboard), Unit 41 (vista de predicciones en pool).
+- **Alcance**: añadir columna `poolId` (nullable FK → Pool) al modelo `Prediction` con partial unique indexes. Permitir guardar predicciones pool-scoped desde `/pools/[id]` (tab Predicciones). Resolver override-vs-global en vistas de pool y leaderboard. Botón "Usar predicción global" para resetear override. `/matches` sin cambios (siempre global).
+- **Schema**: migración Prisma para `poolId` + 2 partial unique indexes (`UNIQUE WHERE pool_id IS NULL` y `UNIQUE WHERE pool_id IS NOT NULL`).
+- **Sin** nuevas rutas (se modifica `/pools/[id]` existente).
+- **Sin** cambios en `/matches`, sync, admin, auth, onboarding, notificaciones.
+- Security Baseline intacto: validación de membresía server-side en `savePrediction` cuando se provee `poolId`.
+
+**Primary Deliverable**: Miembros de un pool pueden ajustar su predicción para ese pool sin afectar su predicción global. El leaderboard del pool calcula puntos usando overrides donde existen, con fallback a predicciones globales. El ranking global solo considera predicciones globales.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -499,6 +510,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 30. Unit 44: Autocompletar nickname en invitación dirigida (post-construction refine; UI/new server action; autocompletar nickname mientras se escribe en `DirectedInviteForm`; sin schema, migraciones ni rutas nuevas)
 31. Unit 45: Permiso configurable de invitación por miembros en pools privados (post-construction refine; schema + UI; `Pool.membersCanInvite` configurable al crear y editable en `/pools/[id]`; supersede `FR-REFINE-44.7`; migración Prisma; nueva sección "Configuración" en `/pools/[id]`)
 32. Unit 47: Extensión del permiso de invitación a pools públicos (post-construction refine; sobre Unit 45; elimina la restricción `type === "PRIVATE"` del toggle `membersCanInvite` para que aplique a pools `PUBLIC` también; sin schema ni migraciones; solo cambios de lógica/UI)
+33. Unit 48: Predicciones con override por pool (post-construction refine; sobre Units 3/5/6/41; schema `Prediction.poolId` + partial unique indexes; leaderboard override-aware; botón "Usar predicción global"; migración Prisma)
 
 ## Security Notes
 
