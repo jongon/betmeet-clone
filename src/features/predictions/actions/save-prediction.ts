@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getOnboardedUserId } from "@/features/profile/queries";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { PredictionInputSchema } from "../schemas";
 import { getPredictionEligibility } from "../services/eligibility";
@@ -24,27 +25,28 @@ type PredictionScoreData = {
  * `lockedAt` is null.
  */
 async function upsertPredictionForScope(
+  db: Prisma.TransactionClient,
   userId: string,
   matchId: string,
   poolId: string | null,
   data: PredictionScoreData,
 ): Promise<void> {
-  const existing = await prisma.prediction.findFirst({
+  const existing = await db.prediction.findFirst({
     where: { userId, matchId, poolId },
   });
 
   if (!existing) {
-    await prisma.prediction.create({ data: { userId, matchId, poolId, ...data } });
+    await db.prediction.create({ data: { userId, matchId, poolId, ...data } });
     return;
   }
 
   if (existing.lockedAt) {
-    await prisma.prediction.update({
+    await db.prediction.update({
       where: { id: existing.id },
       data: { lockedAt: null, lockReason: null },
     });
   }
-  await prisma.prediction.update({ where: { id: existing.id }, data });
+  await db.prediction.update({ where: { id: existing.id }, data });
 }
 
 export async function savePrediction(input: {
@@ -139,11 +141,14 @@ export async function savePrediction(input: {
     };
 
     if (alsoSaveAsGlobal && poolId) {
-      // Dual-save: write the global prediction and the pool override together.
-      await upsertPredictionForScope(userId, matchId, null, data);
-      await upsertPredictionForScope(userId, matchId, poolId, data);
+      // Dual-save atómico: la global y el override del pool, todo o nada. Si la
+      // segunda escritura falla, la transacción revierte también la global.
+      await prisma.$transaction(async (tx) => {
+        await upsertPredictionForScope(tx, userId, matchId, null, data);
+        await upsertPredictionForScope(tx, userId, matchId, poolId, data);
+      });
     } else {
-      await upsertPredictionForScope(userId, matchId, poolId ?? null, data);
+      await upsertPredictionForScope(prisma, userId, matchId, poolId ?? null, data);
     }
   } catch (err) {
     const detail =

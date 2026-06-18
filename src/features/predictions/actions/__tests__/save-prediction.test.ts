@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
+vi.mock("@/lib/prisma", () => {
+  const client = {
     match: { findUnique: vi.fn() },
     poolMembership: { findUnique: vi.fn() },
     prediction: {
@@ -10,8 +10,10 @@ vi.mock("@/lib/prisma", () => ({
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-  },
-}));
+    $transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(client)),
+  };
+  return { prisma: client };
+});
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),

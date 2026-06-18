@@ -100,6 +100,7 @@ interface PoolMemberPrediction {
 | **BR-48.17** | El estado de pagina se persiste en la URL via `searchParams.page` (entero, default = pagina que contiene hoy). El componente lee `useSearchParams` para el valor actual y usa `router.replace` con `?page=N` al navegar. Los controles muestran "Pagina X de Y". | FR-REFINE-48.9 |
 | **BR-48.18** | La unicidad por scope la garantizan **solo** los índices parciales `predictions_user_match_global_uk` / `predictions_user_match_pool_uk`. El índice legacy `predictions_user_id_match_id_key` (creado en el init como `CREATE UNIQUE INDEX`) debe eliminarse con `DROP INDEX` — `DROP CONSTRAINT IF EXISTS` no lo borra y deja un `(user_id, match_id)` global que rompe el primer override. Corregido por la migración `20260618110000_unit48_drop_legacy_prediction_unique_index`. | FR-REFINE-48.7 |
 | **BR-48.19** | `PredictionScore` no tiene `poolId` (es 1:1 con `Prediction`, `@unique(predictionId)`): tanto la global como el override reciben su propio score. La selección override-sobre-global es **solo en lectura** (`getPoolLeaderboardRows` dedup por `(user, match)`; `getGlobalRankingRows` filtra `poolId IS NULL`). Cualquier consumidor nuevo que sume `PredictionScore` sin esa dedup duplicaría puntos. | FR-REFINE-48.5, FR-REFINE-48.6 |
+| **BR-48.20** | El dual-save (`alsoSaveAsGlobal: true`) escribe la global y el override en una **transacción atómica** (`prisma.$transaction`): o persisten ambas filas o ninguna. Si la segunda escritura falla, la primera se revierte, evitando el estado inconsistente "global guardada, override no". El helper `upsertPredictionForScope(db, …)` recibe el cliente Prisma (`Prisma.TransactionClient`) como parámetro; el camino de un solo scope sigue usando `prisma` directamente (escritura única, sin transacción). El patrón "desbloquear-primero-luego-escribir-scores" del trigger `prediction_lock_guard` se conserva dentro de la transacción. | FR-REFINE-48.2, DD-48.2-revised |
 
 ## 3. Business Logic Model
 
@@ -123,18 +124,13 @@ savePrediction(userId, input: { matchId, homeScore, awayScore, penaltyWinnerTeam
         if not membership: return forbidden("No eres miembro de esta liga")
 
         IF input.alsoSaveAsGlobal:
-            // Crear/actualizar prediccion global primero
-            globalExisting = findFirst Prediction where userId, matchId, poolId IS NULL
-            if globalExisting:
-                update globalExisting with validated scores
-            else:
-                create Prediction with poolId: null, validated scores
-            // Luego crear/actualizar override
-            overrideExisting = findFirst Prediction where userId, matchId, poolId
-            if overrideExisting:
-                update overrideExisting with validated scores
-            else:
-                create Prediction with poolId, validated scores
+            // Dual-save ATOMICO (BR-48.20): ambas filas o ninguna
+            transaction(tx):
+                // Crear/actualizar prediccion global primero
+                upsertPredictionForScope(tx, userId, matchId, poolId: null, validated)
+                // Luego crear/actualizar override
+                upsertPredictionForScope(tx, userId, matchId, poolId, validated)
+            // Si la 2a escritura falla, la transaccion revierte la global
         ELSE:
             // Comportamiento normal: upsert override por (userId, matchId, poolId)
             existing = findFirst Prediction where userId, matchId, poolId

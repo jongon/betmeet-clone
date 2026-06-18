@@ -2418,3 +2418,16 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `functional-design.md` (nota de bug en §5.2, bullet de banderas en el editor, BR-48.18 y BR-48.19), `aidlc-state.md` (Current Stage), `audit.md` (estas entradas). Sin reinicio de etapas aprobadas.
 
 ---
+
+## Unit 48 Hardening — Workflow Planning + Dual-save atómico (BR-48.20)
+**Timestamp**: 2026-06-18T23:45:00Z
+**AI Prompt**: "Ready to proceed with this plan?" (Workflow Planning stage, `/aidlc:plan`)
+**User Response**: "Approve & continue"
+**Status**: Approved
+**Context**: Workflow Planning para robustecer el dual-save de Unit 48. Plan creado en `inception/plans/unit-48-atomic-dual-save-execution-plan.md` (riesgo Low; EXECUTE Functional Design delta + Code Generation + Build and Test; SKIP Reverse Engineering, Requirements [delta mínimo en FD], User Stories, Application Design, Units Generation, NFR Requirements/Design, Infrastructure). Mermaid revisado manualmente (mermaid-cli sin Chrome headless en el entorno). Security Baseline: compliant; Property-Based Testing: N/A (deshabilitada).
+
+**Implementación (post-aprobación)**: el dual-save (`alsoSaveAsGlobal: true`) ejecutaba dos escrituras secuenciales independientes (`upsertPredictionForScope` para la global y para el override) sin transacción → ante fallo de la segunda quedaba estado inconsistente sin rollback. Fix: las dos escrituras se envuelven en `prisma.$transaction(async (tx) => …)`; `upsertPredictionForScope(db, userId, matchId, poolId, data)` recibe el cliente Prisma (`Prisma.TransactionClient`) como primer parámetro; el camino de un solo scope pasa `prisma` directo (escritura única). Mock de `@/lib/prisma` en el test ampliado con `$transaction: vi.fn(async (cb) => cb(client))`. Sin cambio de comportamiento en el caso feliz.
+**Verificación**: `tsc --noEmit` 0, Biome limpio (tras fix de orden de import), ESLint 0, **Vitest 351/351**, `pnpm build` OK.
+**Archivos**: código — `src/features/predictions/actions/save-prediction.ts`, `src/features/predictions/actions/__tests__/save-prediction.test.ts`. AI-DLC — `inception/plans/unit-48-atomic-dual-save-execution-plan.md` (nuevo), `construction/unit-48-pool-prediction-override/functional-design.md` (BR-48.20 + BL-48.1 actualizado), `aidlc-state.md` (Current Stage), `audit.md` (esta entrada). Sin commit/push. Sin reinicio de etapas aprobadas.
+
+---
