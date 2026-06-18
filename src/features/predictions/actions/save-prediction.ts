@@ -8,6 +8,45 @@ import { getPredictionEligibility } from "../services/eligibility";
 import { lockExistingPrediction } from "../services/lock";
 import { validatePredictionInput } from "../services/validation";
 
+type PredictionScoreData = {
+  homeScore: number;
+  awayScore: number;
+  penaltyWinnerTeamId: string | null;
+  lockedAt: null;
+  lockReason: null;
+};
+
+/**
+ * Upserts the prediction for a single scope (global when `poolId` is null, a
+ * pool override otherwise). When a previous row exists and is locked, the lock
+ * is cleared in a separate update first: the `prediction_lock_guard` trigger
+ * rejects score changes on a locked row, so scores can only be written once
+ * `lockedAt` is null.
+ */
+async function upsertPredictionForScope(
+  userId: string,
+  matchId: string,
+  poolId: string | null,
+  data: PredictionScoreData,
+): Promise<void> {
+  const existing = await prisma.prediction.findFirst({
+    where: { userId, matchId, poolId },
+  });
+
+  if (!existing) {
+    await prisma.prediction.create({ data: { userId, matchId, poolId, ...data } });
+    return;
+  }
+
+  if (existing.lockedAt) {
+    await prisma.prediction.update({
+      where: { id: existing.id },
+      data: { lockedAt: null, lockReason: null },
+    });
+  }
+  await prisma.prediction.update({ where: { id: existing.id }, data });
+}
+
 export async function savePrediction(input: {
   matchId: string;
   homeScore: number;
@@ -100,73 +139,11 @@ export async function savePrediction(input: {
     };
 
     if (alsoSaveAsGlobal && poolId) {
-      const globalRow = await prisma.prediction.findFirst({
-        where: { userId, matchId, poolId: null },
-      });
-      if (globalRow) {
-        if (globalRow.lockedAt) {
-          await prisma.prediction.update({
-            where: { id: globalRow.id },
-            data: { lockedAt: null, lockReason: null },
-          });
-        }
-        await prisma.prediction.update({ where: { id: globalRow.id }, data });
-      } else {
-        await prisma.prediction.create({
-          data: { userId, matchId, poolId: null, ...data },
-        });
-      }
-
-      const overrideRow = await prisma.prediction.findFirst({
-        where: { userId, matchId, poolId },
-      });
-      if (overrideRow) {
-        if (overrideRow.lockedAt) {
-          await prisma.prediction.update({
-            where: { id: overrideRow.id },
-            data: { lockedAt: null, lockReason: null },
-          });
-        }
-        await prisma.prediction.update({ where: { id: overrideRow.id }, data });
-      } else {
-        await prisma.prediction.create({
-          data: { userId, matchId, poolId, ...data },
-        });
-      }
-    } else if (poolId) {
-      const row = await prisma.prediction.findFirst({
-        where: { userId, matchId, poolId },
-      });
-      if (row) {
-        if (row.lockedAt) {
-          await prisma.prediction.update({
-            where: { id: row.id },
-            data: { lockedAt: null, lockReason: null },
-          });
-        }
-        await prisma.prediction.update({ where: { id: row.id }, data });
-      } else {
-        await prisma.prediction.create({
-          data: { userId, matchId, poolId, ...data },
-        });
-      }
+      // Dual-save: write the global prediction and the pool override together.
+      await upsertPredictionForScope(userId, matchId, null, data);
+      await upsertPredictionForScope(userId, matchId, poolId, data);
     } else {
-      const row = await prisma.prediction.findFirst({
-        where: { userId, matchId, poolId: null },
-      });
-      if (row) {
-        if (row.lockedAt) {
-          await prisma.prediction.update({
-            where: { id: row.id },
-            data: { lockedAt: null, lockReason: null },
-          });
-        }
-        await prisma.prediction.update({ where: { id: row.id }, data });
-      } else {
-        await prisma.prediction.create({
-          data: { userId, matchId, poolId: null, ...data },
-        });
-      }
+      await upsertPredictionForScope(userId, matchId, poolId ?? null, data);
     }
   } catch (err) {
     const detail =

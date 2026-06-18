@@ -36,6 +36,12 @@ function formatKickoff(kickoffAt: string | null, locale: string): string {
   }
 }
 
+function TeamFlag({ src }: { src: string | null }) {
+  if (!src) return null;
+  // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
+  return <img src={src} alt="" className="size-4 shrink-0 object-contain" />;
+}
+
 function MatchCard({
   col,
   members,
@@ -57,19 +63,13 @@ function MatchCard({
     <div className="rounded-xl border bg-card">
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
         <div className="flex items-center gap-1.5 min-w-0">
-          {col.homeFlag && (
-            // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
-            <img src={col.homeFlag} alt="" className="size-4 shrink-0 object-contain" />
-          )}
+          <TeamFlag src={col.homeFlag} />
           <span className="text-sm font-semibold truncate">{col.homeLabel}</span>
           <span className="text-xs text-muted-foreground shrink-0">
             {col.sublabel ? `${col.sublabel}` : "vs"}
           </span>
           <span className="text-sm font-semibold truncate">{col.awayLabel}</span>
-          {col.awayFlag && (
-            // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
-            <img src={col.awayFlag} alt="" className="size-4 shrink-0 object-contain" />
-          )}
+          <TeamFlag src={col.awayFlag} />
         </div>
         {col.kickoffAt && (
           <span className="text-xs text-muted-foreground shrink-0 ml-auto">
@@ -343,27 +343,13 @@ export function PoolPredictionsView({
             <DialogHeader>
               <DialogTitle className="text-base">
                 <span className="flex items-center justify-center gap-1.5">
-                  {editingMatch.homeFlag && (
-                    // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
-                    <img
-                      src={editingMatch.homeFlag}
-                      alt=""
-                      className="size-4 shrink-0 object-contain"
-                    />
-                  )}
+                  <TeamFlag src={editingMatch.homeFlag} />
                   <span>{editingMatch.homeLabel}</span>
                   <span className="text-xs text-muted-foreground">
                     {editingMatch.sublabel ? editingMatch.sublabel : "vs"}
                   </span>
                   <span>{editingMatch.awayLabel}</span>
-                  {editingMatch.awayFlag && (
-                    // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
-                    <img
-                      src={editingMatch.awayFlag}
-                      alt=""
-                      className="size-4 shrink-0 object-contain"
-                    />
-                  )}
+                  <TeamFlag src={editingMatch.awayFlag} />
                 </span>
               </DialogTitle>
               {editingMatch.sublabel && (
