@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     match: { findUnique: vi.fn() },
-    predictionScore: { deleteMany: vi.fn(), upsert: vi.fn((args) => args) },
-    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
+    predictionScore: { deleteMany: vi.fn() },
+    $executeRaw: vi.fn(() => Promise.resolve(0)),
   },
 }));
 
@@ -29,16 +29,15 @@ const baseMatch = {
 describe("scoreMatch (BL-2)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("upserts a score per prediction for a finished match", async () => {
+  it("bulk-upserts every prediction of a finished match in one atomic write", async () => {
     vi.mocked(prisma.match.findUnique).mockResolvedValue(baseMatch as never);
 
     const result = await scoreMatch("m1");
 
     expect(result.scored).toBe(2);
-    expect(prisma.predictionScore.upsert).toHaveBeenCalledTimes(2);
-    const firstCall = vi.mocked(prisma.predictionScore.upsert).mock.calls[0][0];
-    expect(firstCall.where).toEqual({ predictionId: "p1" });
-    expect(firstCall.create.totalPoints).toBe(5);
+    // Single INSERT ... ON CONFLICT for the whole match (all-or-nothing).
+    expect(prisma.$executeRaw).toHaveBeenCalledTimes(1);
+    expect(prisma.predictionScore.deleteMany).not.toHaveBeenCalled();
   });
 
   it("removes existing scores when the match is not scoreable (BR-6.7)", async () => {
@@ -51,7 +50,7 @@ describe("scoreMatch (BL-2)", () => {
 
     expect(result.scored).toBe(0);
     expect(prisma.predictionScore.deleteMany).toHaveBeenCalledWith({ where: { matchId: "m1" } });
-    expect(prisma.predictionScore.upsert).not.toHaveBeenCalled();
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 
   it("returns 0 when the match does not exist", async () => {

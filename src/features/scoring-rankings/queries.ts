@@ -7,16 +7,20 @@ import type { LeaderboardRow } from "./types";
 
 const getGlobalRankingRows = unstable_cache(
   async (): Promise<LeaderboardRow[]> => {
-    const scores = await prisma.predictionScore.findMany({
+    // Aggregate per user in the database (SUM ... GROUP BY user_id) instead of
+    // streaming every (user, match) score row into the process and summing in
+    // JS — keeps the payload to one row per user as the table grows.
+    const grouped = await prisma.predictionScore.groupBy({
+      by: ["userId"],
       where: { prediction: { poolId: null } },
-      select: { userId: true, totalPoints: true },
+      _sum: { totalPoints: true },
     });
 
-    if (scores.length === 0) return [];
+    if (grouped.length === 0) return [];
 
     const totals = new Map<string, number>();
-    for (const s of scores) {
-      totals.set(s.userId, (totals.get(s.userId) ?? 0) + s.totalPoints);
+    for (const g of grouped) {
+      totals.set(g.userId, g._sum.totalPoints ?? 0);
     }
 
     const profiles = await prisma.profile.findMany({
@@ -78,6 +82,16 @@ const getPoolLeaderboardRows = unstable_cache(
       },
     });
 
+    // Pre-index which (user, match) pairs have a pool-scoped override in one
+    // pass, so the global-vs-override resolution below is O(n) instead of the
+    // previous O(n²) `.some()` scan per row.
+    const overrideKeys = new Set<string>();
+    for (const row of scoreRows) {
+      if (row.prediction.poolId === poolId) {
+        overrideKeys.add(`${row.userId}:${row.prediction.matchId}`);
+      }
+    }
+
     const totals = new Map<string, number>();
 
     for (const row of scoreRows) {
@@ -89,14 +103,9 @@ const getPoolLeaderboardRows = unstable_cache(
         continue;
       }
 
-      const overridden = scoreRows.some(
-        (r) =>
-          r.userId === userId &&
-          r.prediction.matchId === row.prediction.matchId &&
-          r.prediction.poolId === poolId,
-      );
-
-      if (!overridden) {
+      // Global score: count it only when this member has no pool override for
+      // the same match (the override already added its points above).
+      if (!overrideKeys.has(`${userId}:${row.prediction.matchId}`)) {
         totals.set(userId, (totals.get(userId) ?? 0) + row.totalPoints);
       }
     }

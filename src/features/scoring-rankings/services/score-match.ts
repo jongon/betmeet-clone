@@ -1,9 +1,10 @@
+import { randomUUID } from "node:crypto";
 import {
   emitGlobalRankImprovedEvents,
   getGlobalRankSnapshot,
 } from "@/features/notifications/services/ranking-events";
 import { computeScore } from "@/features/scoring/compute-score";
-import type { ScoreMatchedCase } from "@/generated/prisma/enums";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { type ScoreableMatch, toScoringExample } from "./score-adapter";
 
@@ -39,26 +40,32 @@ export async function scoreMatch(matchId: string): Promise<{ scored: number }> {
     isKnockout: match.phase.type === "KNOCKOUT",
   };
 
-  await prisma.$transaction(
-    match.predictions.map((prediction) => {
+  if (match.predictions.length > 0) {
+    // One atomic `INSERT ... ON CONFLICT` for the whole match instead of N
+    // upserts inside a transaction: still all-or-nothing (a single statement),
+    // but a single round-trip that scales with match size. Still idempotent —
+    // re-running overwrites every row (safe after an admin override, BR-6.6).
+    const scoredAt = new Date();
+    const valueRows = match.predictions.map((prediction) => {
       const breakdown = computeScore(toScoringExample(prediction, scoreableMatch));
-      const data = {
-        matchId,
-        userId: prediction.userId,
-        matchedCase: breakdown.matchedCase as ScoreMatchedCase,
-        basePoints: breakdown.basePoints,
-        penaltyApplied: breakdown.penaltyApplied,
-        penaltyPoints: breakdown.penaltyPoints,
-        totalPoints: breakdown.totalPoints,
-        scoredAt: new Date(),
-      };
-      return prisma.predictionScore.upsert({
-        where: { predictionId: prediction.id },
-        create: { predictionId: prediction.id, ...data },
-        update: data,
-      });
-    }),
-  );
+      return Prisma.sql`(${randomUUID()}::uuid, ${prediction.id}::uuid, ${matchId}::uuid, ${prediction.userId}::uuid, ${breakdown.matchedCase}::"ScoreMatchedCase", ${breakdown.basePoints}, ${breakdown.penaltyApplied}, ${breakdown.penaltyPoints}, ${breakdown.totalPoints}, ${scoredAt})`;
+    });
+
+    await prisma.$executeRaw`
+      INSERT INTO prediction_scores
+        (id, prediction_id, match_id, user_id, matched_case, base_points, penalty_applied, penalty_points, total_points, scored_at)
+      VALUES ${Prisma.join(valueRows)}
+      ON CONFLICT (prediction_id) DO UPDATE SET
+        match_id = EXCLUDED.match_id,
+        user_id = EXCLUDED.user_id,
+        matched_case = EXCLUDED.matched_case,
+        base_points = EXCLUDED.base_points,
+        penalty_applied = EXCLUDED.penalty_applied,
+        penalty_points = EXCLUDED.penalty_points,
+        total_points = EXCLUDED.total_points,
+        scored_at = EXCLUDED.scored_at
+    `;
+  }
 
   if (previousGlobalRanks) {
     try {

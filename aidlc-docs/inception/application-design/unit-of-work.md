@@ -476,6 +476,15 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Miembros de un pool pueden ajustar su predicción para ese pool sin afectar su predicción global. El leaderboard del pool calcula puntos usando overrides donde existen, con fallback a predicciones globales. El ranking global solo considera predicciones globales.
 
+## Unit 49 — Performance hardening de scoring-rankings (refine sobre Units 6, 37, 48)
+
+- **Dependencias**: Unit 6 (scoring/leaderboard), Unit 37 (caché de leaderboard), Unit 48 (override por pool, `Prediction.poolId`).
+- **Alcance**: tres arreglos quirúrgicos de eficiencia en la capa de queries/servicios, sin cambio de comportamiento observable: (1) `getGlobalRankingRows` agrega en SQL con `groupBy` + `_sum` (una fila por usuario) en vez de sumar en JS todas las filas; (2) `getPoolLeaderboardRows` resuelve override-vs-global en O(n) con un `Set` de overrides en vez del `.some()` O(n²); (3) `scoreMatch` persiste el partido con un único `INSERT ... ON CONFLICT` atómico (`$executeRaw` + `Prisma.sql`/`Prisma.join`) en vez de N upserts en transacción.
+- **Sin** schema, migraciones, rutas, i18n ni cambios en `computeScore`/`ScoringRuleSet`.
+- Security Baseline intacto: `INSERT` parametrizado (RULE-SEC-04), misma conexión/rol y RLS que el upsert previo, membresía de viewer conservada.
+
+**Primary Deliverable**: El ranking global y el leaderboard de pool escalan con muchos usuarios sin cambiar resultados; el scoring de un partido se escribe en una sola operación atómica e idempotente.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -511,6 +520,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 31. Unit 45: Permiso configurable de invitación por miembros en pools privados (post-construction refine; schema + UI; `Pool.membersCanInvite` configurable al crear y editable en `/pools/[id]`; supersede `FR-REFINE-44.7`; migración Prisma; nueva sección "Configuración" en `/pools/[id]`)
 32. Unit 47: Extensión del permiso de invitación a pools públicos (post-construction refine; sobre Unit 45; elimina la restricción `type === "PRIVATE"` del toggle `membersCanInvite` para que aplique a pools `PUBLIC` también; sin schema ni migraciones; solo cambios de lógica/UI)
 33. Unit 48: Predicciones con override por pool (post-construction refine; sobre Units 3/5/6/41; schema `Prediction.poolId` + partial unique indexes; leaderboard override-aware; botón "Usar predicción global"; migración Prisma)
+34. Unit 49: Performance hardening de scoring-rankings (post-construction refine; sobre Units 6/37/48; agregación SQL del ranking global vía `groupBy`, leaderboard de pool O(n) con `Set` de overrides, bulk upsert atómico de scoring vía `INSERT ... ON CONFLICT`; sin schema, migraciones, rutas ni i18n; sin cambio de comportamiento)
 
 ## Security Notes
 

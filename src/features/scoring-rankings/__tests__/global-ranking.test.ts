@@ -6,7 +6,7 @@ vi.mock("next/cache", () => ({
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
-    predictionScore: { findMany: vi.fn() },
+    predictionScore: { groupBy: vi.fn() },
     profile: { findMany: vi.fn() },
   },
 }));
@@ -14,8 +14,14 @@ vi.mock("@/lib/prisma", () => ({
 import { prisma } from "@/lib/prisma";
 import { getGlobalRanking } from "../queries";
 
-const scoreFindMany = () => vi.mocked(prisma.predictionScore.findMany);
+const scoreGroupBy = () =>
+  vi.mocked(prisma.predictionScore.groupBy as unknown as (...args: unknown[]) => unknown);
 const profileFindMany = () => vi.mocked(prisma.profile.findMany);
+
+// Shape returned by `groupBy({ by: ["userId"], _sum: { totalPoints } })`.
+function grouped(userId: string, totalPoints: number) {
+  return { userId, _sum: { totalPoints } };
+}
 
 function profile(id: string, base: string, avatarUrl = "/a.png") {
   return { id, nicknameBase: base, nicknameDiscriminator: "0001", avatarUrl };
@@ -25,16 +31,13 @@ describe("getGlobalRanking", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("returns empty when no one has scored", async () => {
-    scoreFindMany().mockResolvedValue([] as never);
+    scoreGroupBy().mockResolvedValue([] as never);
     expect(await getGlobalRanking("viewer")).toEqual([]);
     expect(profileFindMany()).not.toHaveBeenCalled();
   });
 
   it("only requests verified, non-deleted users with at least one score", async () => {
-    scoreFindMany().mockResolvedValue([
-      { userId: "u1", totalPoints: 10 },
-      { userId: "u2", totalPoints: 7 },
-    ] as never);
+    scoreGroupBy().mockResolvedValue([grouped("u1", 10), grouped("u2", 7)] as never);
     profileFindMany().mockResolvedValue([profile("u1", "Ana"), profile("u2", "Beto")] as never);
 
     await getGlobalRanking("u1");
@@ -52,10 +55,7 @@ describe("getGlobalRanking", () => {
   });
 
   it("orders by points desc and marks the viewer", async () => {
-    scoreFindMany().mockResolvedValue([
-      { userId: "u1", totalPoints: 5 },
-      { userId: "u2", totalPoints: 12 },
-    ] as never);
+    scoreGroupBy().mockResolvedValue([grouped("u1", 5), grouped("u2", 12)] as never);
     profileFindMany().mockResolvedValue([profile("u1", "Ana"), profile("u2", "Beto")] as never);
 
     const rows = await getGlobalRanking("u1");
@@ -65,10 +65,10 @@ describe("getGlobalRanking", () => {
   });
 
   it("breaks ties deterministically by nickname and shares the dense position", async () => {
-    scoreFindMany().mockResolvedValue([
-      { userId: "u1", totalPoints: 8 },
-      { userId: "u2", totalPoints: 8 },
-      { userId: "u3", totalPoints: 3 },
+    scoreGroupBy().mockResolvedValue([
+      grouped("u1", 8),
+      grouped("u2", 8),
+      grouped("u3", 3),
     ] as never);
     profileFindMany().mockResolvedValue([
       profile("u2", "Zoe"),
