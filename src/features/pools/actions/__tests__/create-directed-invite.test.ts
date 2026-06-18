@@ -123,7 +123,7 @@ describe("createDirectedInvite (FR-REFINE-13.4 + Unit 45 gate ampliado)", () => 
     );
   });
 
-  it("Unit 45: PUBLIC pool — non-owner member is blocked (membership required first)", async () => {
+  it("Unit 47: PUBLIC pool — non-owner member can always invite (BR-47.3)", async () => {
     vi.mocked(getOnboardedUserId).mockResolvedValue("member-1");
     vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue({ userId: "member-1" } as never);
     vi.mocked(prisma.pool.findUnique).mockResolvedValue({
@@ -131,13 +131,16 @@ describe("createDirectedInvite (FR-REFINE-13.4 + Unit 45 gate ampliado)", () => 
       name: "Mi Liga",
       inviteToken: "ABC123",
       ownerId: "owner-1",
-      type: "PUBLIC", // PUBLIC: el flag se ignora en el gate
-      membersCanInvite: false, // tendría que ser true en PUBLIC, pero el flag se ignora
+      type: "PUBLIC",
+      membersCanInvite: false, // PUBLIC ignora el flag, siempre permite
+    } as never);
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue({ id: "user-2" } as never);
+    vi.mocked(prisma.poolDirectedInvite.upsert).mockResolvedValue({
+      invitedUserId: "user-2",
     } as never);
 
-    // No es owner, sí es miembro, pero el pool es PUBLIC → bloqueado por BR-45.6
     const result = await createDirectedInvite({ poolId: POOL_ID, target: "Pedro#1234" });
-    expect(result).toEqual({ error: "El administrador no permite que los miembros inviten" });
+    expect(result).toEqual({ success: true, pushQueued: true });
   });
 
   it("rejects self-invite by nickname", async () => {

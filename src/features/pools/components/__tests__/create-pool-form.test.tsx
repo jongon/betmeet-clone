@@ -23,7 +23,7 @@ vi.mock("@/i18n/dictionary-provider", () => ({
 import { createPool } from "../../actions/create-pool";
 import { CreatePoolForm } from "../create-pool-form";
 
-describe("CreatePoolForm (Unit 45, US-45.1, BR-45.2)", () => {
+describe("CreatePoolForm (Unit 47 — supersede BR-45.2 restrictions)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(createPool).mockResolvedValue({} as never);
@@ -43,18 +43,6 @@ describe("CreatePoolForm (Unit 45, US-45.1, BR-45.2)", () => {
     const select = screen.getByLabelText("Visibilidad") as HTMLSelectElement;
     fireEvent.change(select, { target: { value: "PRIVATE" } });
     expect(screen.getByTestId("create-pool-members-can-invite")).toBeDefined();
-  });
-
-  it("hides the Switch and resets value when type changes back to PUBLIC", () => {
-    render(<CreatePoolForm />);
-    const select = screen.getByLabelText("Visibilidad") as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: "PRIVATE" } });
-    const toggle = screen.getByTestId("create-pool-members-can-invite");
-    // Click to set membersCanInvite=false
-    fireEvent.click(toggle);
-    // Switch back to PUBLIC
-    fireEvent.change(select, { target: { value: "PUBLIC" } });
-    expect(screen.queryByTestId("create-pool-members-can-invite")).toBeNull();
   });
 
   it("sends membersCanInvite=true to createPool by default for PRIVATE pools", async () => {

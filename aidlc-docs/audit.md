@@ -1,5 +1,34 @@
 # AI-DLC Audit Log
 
+## Unit 47 — Code Generation + Build and Test Complete
+**Timestamp**: 2026-06-18T08:22:00Z
+**User Input**: "Summarize the task tool output above and continue with your task." (approval continuation from Code Gen Part 1) + clarification: "Lo que sucedió es que cuando la unit 45 se pasó a producción ningún miembro podía invitar a otro."
+**AI Response**: "Executed Code Generation Part 2 (7/7 steps): (1) `create-directed-invite.ts` gate simplified `pool.type !== 'PRIVATE' || !pool.membersCanInvite` → `!pool.membersCanInvite`, (2) `update-pool-members-can-invite.ts` removed PUBLIC rejection, (3) `create-pool-form.tsx` Switch always visible, (4) `page.tsx` canInvite simplified + PoolSettingsCard for any type, (5-7) 3 test files updated. Verified: tsc 0, biome clean, eslint 0, vitest 342/342, build OK."
+**Code change**: 4 source + 3 test files modified. No schema, migrations, routes, i18n keys, or new files.
+**Build/Test Status**: Pass. Vitest **342/342** (+1 PUBLIC invite test), tsc 0, Biome/ESLint clean, build OK.
+**Context**: Unit 47 closed. Gate now `isOwner || membersCanInvite` for both PUBLIC and PRIVATE pools.
+
+---
+
+## Unit 47 — Functional Design Approved / Code Generation Part 1 Plan
+
+**Timestamp**: 2026-06-18T07:15:00Z
+**User Input**: "Execute the CONSTRUCTION PHASE, following `.aidlc/aidlc-rules/aws-aidlc-rules/core-workflow.md`. Walk the per-unit loop (Functional/NFR/Infra Design as applicable -> Code Generation) for the approved units. Application code goes in the workspace root, NEVER in `aidlc-docs/`. Use the 2-option completion messages, honor approval gates, and update checkboxes + audit.md in the SAME interaction. Target unit (optional):"
+**AI Response**: "Treated as approval of Unit 47 Functional Design (per established project pattern, Units 43/44 precedent). Logged approval, marked Functional Design COMPLETE in state. NFR Requirements, NFR Design, Infrastructure all SKIP (no schema, migrations, or new NFRs — delta on existing Unit 45 implementation). Created Code Generation Part 1 plan at `construction/plans/unit-47-public-pool-invites-permission-code-generation-plan.md` with 8 steps: (1) create-directed-invite gate simplification, (2) update-pool-members-can-invite PUBLIC guard removal, (3) create-pool-form Switch always visible, (4) page.tsx gate UI simplification, (5) create-directed-invite.test.ts PUBLIC cases, (6) update-pool-members-can-invite.test.ts PUBLIC case, (7) create-pool-form.test.tsx Switch visibility, (8) verification. Updated aidlc-state.md and audit.md. Awaiting explicit approval before Part 2 (code changes)."
+**Code change**: None. Documentation only: `construction/plans/unit-47-public-pool-invites-permission-code-generation-plan.md` (new), `aidlc-state.md`, `audit.md`.
+**Context**: Unit 47 at Code Generation Part 1 approval gate. Scope: 4 MODIFIED source + 3 MODIFIED test files. No new files, schema, migrations, routes, or i18n keys. Risk: low (removes restrictions, additively extends Unit 45 behavior).
+
+---
+
+## Unit 47 — Delta documental: Extensión del permiso de invitación a pools públicos
+**Timestamp**: 2026-06-18T07:00:00Z
+**User Input**: "I'm mid-way through the AI-DLC workflow. Apply the following change to the existing artifacts in `aidlc-docs/` (requirements, user-stories, units, or per-unit design), update `aidlc-docs/aidlc-state.md` and any dependent units, and do NOT restart already-approved stages. Log the change in `aidlc-docs/audit.md`. Change: Necesito una migración que permita que los pools públicos que otros miembros puedan invitar a otros y no solo el administrador."
+**AI Response**: "Analicé el estado actual de Unit 45: el toggle `Pool.membersCanInvite` se implementó con `DEFAULT TRUE` pero restringido a pools `PRIVATE` en todos los gates, UI y validaciones. En pools `PUBLIC`, solo el owner puede invitar; el `PoolSettingsCard` no se muestra; el `CreatePoolForm` Switch está oculto; y `updatePoolMembersCanInvite` rechaza pools `PUBLIC` con error. El usuario quiere que los miembros de pools públicos también puedan invitar. Delta documental aplicado como **Unit 47 / Épica 47** sin reiniciar etapas aprobadas. Sin cambios de schema ni migraciones (la columna `membersCanInvite` ya existe desde Unit 45 con `DEFAULT TRUE`). Artefactos actualizados: `requirements.md` (Épica 47 / FR-REFINE-47.1…47.4: toggle visible en cualquier tipo, gate simplificado a `isOwner || membersCanInvite`, `PoolSettingsCard` para cualquier tipo, sin schema nuevo), `stories.md` (Épica 47 / US-47.1: configurar permiso de invitación en cualquier tipo de pool), `unit-of-work.md` (Unit 47 description + secuencia #32), Unit 45 `functional-design.md` (annotado como superseded en BR-45.1/45.2/45.6/45.7/45.8 y guard de `updatePoolMembersCanInvite`), nuevo `construction/unit-47-public-pool-invites-permission/functional-design.md` (8 BRs, 7 archivos modified, 0 archivos created, sin i18n nuevo, Security Baseline, verification plan), `aidlc-state.md` (Current Stage → Unit 47 FUNCTIONAL DESIGN COMPLETE; Unit 47 block en Stage Progress; Execution Plan Summary), y `audit.md` (esta entrada). Sin cambios de código."
+**Code change**: Ninguno. Delta documental sin cambios de código.
+**Context**: Unit 45 implementó `membersCanInvite` con todas las restricciones a PRIVATE: (1) gate server-side `pool.type !== "PRIVATE" || !pool.membersCanInvite` en `create-directed-invite.ts:91`, (2) gate UI `canInvite = pool.isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite)` en `page.tsx:36`, (3) `PoolSettingsCard` solo si `pool.type === "PRIVATE"` en `page.tsx:108`, (4) Switch en `CreatePoolForm` solo si `type === "PRIVATE"`, (5) `updatePoolMembersCanInvite` rechaza PUBLIC. Unit 47 documenta la eliminación de todas estas restricciones. El cambio es backward-compatible: pools existentes tienen `membersCanInvite = true` (default de la migración), por lo que los miembros de pools públicos podrán invitar inmediatamente tras aplicar los cambios de código, sin migración adicional.
+
+---
+
 ## Unit 44 — Build and Test Complete
 **Timestamp**: 2026-06-18T03:58:00Z
 **User Input**: (N/A — Build and Test execution)

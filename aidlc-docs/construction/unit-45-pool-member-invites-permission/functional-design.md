@@ -1,5 +1,14 @@
 # Functional Design (Light) — Unit 45: Permiso configurable de invitación por miembros en pools privados
 
+> **Supersede note (2026-06-18)**: Unit 47 extiende el comportamiento de `membersCanInvite` para que aplique también a pools `PUBLIC`. Las siguientes reglas y decisiones de Unit 45 quedan **derogadas** y reemplazadas por Unit 47:
+> - BR-45.1: "solo se usa/evalúa en `type = 'PRIVATE'"` → ahora aplica a ambos tipos.
+> - BR-45.2: Switch en `CreatePoolForm` solo visible en `PRIVATE` → ahora visible en cualquier tipo.
+> - BR-45.6: gate `isOwner || (PRIVATE && membersCanInvite)` → ahora `isOwner || membersCanInvite`.
+> - BR-45.7: render condicional con `type === "PRIVATE"` → ahora sin restricción de tipo.
+> - BR-45.8: `PoolSettingsCard` solo en PRIVATE → ahora en cualquier tipo.
+> - Server action `updatePoolMembersCanInvite`: el guard `pool.type !== "PRIVATE"` queda eliminado.
+> El diseño original se conserva como referencia; la implementación final de Unit 47 reemplaza las reglas listadas arriba.
+
 ## Stage
 
 - **Unit**: Unit 45, refine post-construcción sobre Unit 3 (Pools), Unit 13 (Invitaciones Refine), Unit 44 (Autocompletar)

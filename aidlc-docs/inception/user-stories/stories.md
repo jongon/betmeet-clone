@@ -827,3 +827,21 @@
   - El owner siempre puede invitar, independientemente del valor del toggle.
   - El cambio aplica inmediatamente (no requiere esperar al próximo partido ni reiniciar la liga).
   - El cambio se puede hacer en cualquier momento del ciclo de vida del pool (no hay congelamiento que lo bloquee).
+
+## Épica 47: Extensión del permiso de invitación a pools públicos (Unit 47 — añadida vía refine)
+
+> Refine sobre Unit 45. El toggle `membersCanInvite` se extiende para que aplique a pools `PUBLIC`, no solo `PRIVATE`. Los miembros de cualquier tipo de pool pueden invitar si el owner lo permite. Sin cambios de schema ni migraciones. No reinicia etapas aprobadas.
+
+### US-47.1: Configurar el permiso de invitación en cualquier tipo de pool
+
+**Como** owner de un pool (público o privado)
+**Quiero** decidir si los miembros pueden invitar a otros usuarios, sin importar el tipo de pool
+**Para** tener el mismo nivel de control sobre quién invita gente, ya sea en una liga pública o privada.
+
+- **Criterios de Aceptación**:
+  - Al crear un pool de cualquier tipo (`PUBLIC` o `PRIVATE`) desde `/pools/new`, el Switch "Los miembros pueden invitar" es visible con default `true`.
+  - En `/pools/[id]`, la sección "Configuración" con el toggle `membersCanInvite` se muestra para el owner sin importar si el pool es `PUBLIC` o `PRIVATE`.
+  - El owner de un pool público puede desactivar `membersCanInvite` y los miembros no-owner dejarán de ver el `DirectedInviteForm` en ese pool.
+  - El gate de invitación es `isOwner || membersCanInvite` (sin restricción por `type`).
+  - El `InviteShare` (token/link de invitación) también se oculta cuando `membersCanInvite === false` para un miembro no-owner, en cualquier tipo de pool.
+  - Pools existentes (públicos y privados) mantienen `membersCanInvite = true` por el default de la migración de Unit 45, preservando el comportamiento actual hasta que el owner decida cambiarlo.

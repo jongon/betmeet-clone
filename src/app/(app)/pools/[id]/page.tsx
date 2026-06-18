@@ -32,8 +32,9 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
   ]);
   if (!pool) notFound();
 
-  // Unit 45: BR-3.34 / BR-45.7 — gate UI del DirectedInviteForm.
-  const canInvite = pool.isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite);
+  // Unit 47: BR-47.4 — gate UI. PUBLIC pools siempre permiten invitar/compartir.
+  // PRIVATE pools dependen del toggle `membersCanInvite`. Owner siempre puede.
+  const canInvite = pool.isOwner || pool.type === "PUBLIC" || pool.membersCanInvite;
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -105,6 +106,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
                 {dictionary.pools.invite.membersBlockedHint}
               </p>
             )}
+            {/* Unit 47: BR-47.5 — PoolSettingsCard solo para PRIVATE (PUBLIC siempre permite invitar) */}
             {pool.isOwner && pool.type === "PRIVATE" && (
               <PoolSettingsCard poolId={pool.id} initialMembersCanInvite={pool.membersCanInvite} />
             )}

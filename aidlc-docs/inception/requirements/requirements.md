@@ -1676,3 +1676,47 @@ Nueva columna en `Pool`:
 - El cambio es **backward-compatible** con el código de Unit 44: pools existentes con `membersCanInvite = true` por default siguen permitiendo que cualquier miembro invite.
 - La UI de Unit 44 (`DirectedInviteForm` con autocompletar) se mantiene y ahora se condiciona al flag.
 - Si el owner de un pool pre-Unit-45 desactiva `membersCanInvite`, los miembros dejan de ver el form y el server action les retorna error; ningún dato de invitaciones existentes se ve afectado (las invitaciones ya enviadas siguen pendientes o aceptadas).
+
+### Épica 47: Extensión del permiso de invitación a pools públicos (Unit 47 — añadida vía refine, 2026-06-18)
+
+> Refine post-construcción sobre Unit 45. El toggle `Pool.membersCanInvite` actualmente solo aplica a pools `PRIVATE`, dejando a los pools `PUBLIC` sin la capacidad de que sus miembros (no-owner) inviten a otros. Esta Épica extiende el comportamiento para que el toggle aplique también a pools `PUBLIC`, eliminando la restricción `type === "PRIVATE"`. **No reinicia** etapas aprobadas. Sin cambios de schema ni migraciones (la columna `membersCanInvite` ya existe con `DEFAULT TRUE` en todos los pools desde Unit 45).
+
+#### FR-REFINE-47.1 — Toggle de invitación visible también en pools públicos
+
+El Switch "Los miembros pueden invitar" debe mostrarse en:
+
+- **`CreatePoolForm`**: visible para cualquier `type` (ya no está condicionado a `type === "PRIVATE"`). Default `true`.
+- **`PoolSettingsCard` en `/pools/[id]`**: visible para `pool.isOwner` en cualquier `type` (ya no está condicionado a `pool.type === "PRIVATE"`).
+- **Server action `updatePoolMembersCanInvite`**: acepta pools de cualquier `type` (ya no rechaza `PUBLIC`). El gate owner-only se mantiene.
+
+#### FR-REFINE-47.2 — Gate de invitación sin restricción de tipo
+
+El gate de `createDirectedInvite` y la UI en `/pools/[id]` se simplifican:
+
+- **Antes**: `isOwner || (pool.type === "PRIVATE" && pool.membersCanInvite)`
+- **Después**: `isOwner || pool.membersCanInvite`
+- El owner siempre puede invitar, sin importar `type` ni `membersCanInvite`.
+- Los miembros no-owner pueden invitar si `membersCanInvite === true`, sin importar si el pool es `PUBLIC` o `PRIVATE`.
+- Si `membersCanInvite === false`, solo el owner puede invitar (aplica a ambos tipos).
+- El `InviteShare` (token/link) también se condiciona al nuevo gate simplificado: solo visible si `isOwner || membersCanInvite`.
+
+#### FR-REFINE-47.3 — El owner puede configurar el permiso en pools públicos desde `/pools/[id]`
+
+- La sección "Configuración" con `PoolSettingsCard` se renderiza para `pool.isOwner` sin importar `pool.type`.
+- El owner de un pool público puede alternar el toggle `membersCanInvite` en cualquier momento.
+- Si desactiva `membersCanInvite` en un pool público, los miembros no-owner dejan de ver el `DirectedInviteForm` y el server action les retorna error ("El administrador no permite que los miembros inviten").
+- El default `true` (desde la migración de Unit 45) mantiene el comportamiento previo para pools existentes: cualquier miembro puede invitar hasta que el owner lo restrinja.
+
+#### FR-REFINE-47.4 — Sin cambios de schema
+
+- La columna `Pool.membersCanInvite` ya existe desde la migración `20260618000000_unit45_pool_members_can_invite` (`BOOLEAN NOT NULL DEFAULT TRUE`).
+- No se requiere nueva migración ni modificación del schema Prisma.
+- El cambio es puramente de lógica de aplicación (gates, condiciones de renderizado, validaciones).
+
+#### Dependencias y backward-compatibility
+
+- **Supersede parcial de Unit 45**: BR-45.1 ("solo se usa/evalúa en `type = 'PRIVATE'"), BR-45.2 (Switch solo visible en PRIVATE), BR-45.6 (gate `PRIVATE && membersCanInvite`), BR-45.7 (render condicional con `type === "PRIVATE"`), BR-45.8 (`PoolSettingsCard` solo en PRIVATE) y la validación de `updatePoolMembersCanInvite` quedan **derogadas** y reemplazadas por las reglas de Unit 47.
+- Unit 44 (autocompletar nickname) no se ve afectada: el `DirectedInviteForm` mantiene su comportamiento de autocompletar; solo cambia la condición que decide si el componente se renderiza.
+- Unit 3 (Pools), Unit 13 (Invitaciones Refine): sin cambios en la estructura de pools/membresía/invitaciones.
+- Pools existentes con `membersCanInvite = true` (default) permiten que miembros inviten, en coherencia con el comportamiento anterior (Unit 45 no restringía pools existentes).
+- **No reinicia** Units 1-46.

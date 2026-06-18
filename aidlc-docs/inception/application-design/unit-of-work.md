@@ -452,7 +452,18 @@ Feature modules should own their server actions, schemas, services, and feature-
 - **Sin** nuevas rutas: la sección "Configuración" se renderiza dentro de `/pools/[id]`.
 - Security Baseline intacto: `updatePoolMembersCanInvite` valida `pool.ownerId === userId` server-side; el Switch de la UI es puramente cosmético.
 
-**Primary Deliverable**: El owner de un pool privado ve un Switch "Los miembros pueden invitar" en `/pools/[id]` (sección Configuración) y en el formulario de creación; al cambiarlo, la UI y el server action se actualizan inmediatamente para reflejar quién puede invitar a quién.
+**Primary Deliverable**: El owner de un pool privado ve un Switch "Los miembros pueden invitar" en `/pools/[id]` (sección Configuración) y en el formulario de creación; al cambiarlo, la UI y el server action se actualizan inmediatamente para reflejar quién puede invitar a quién. **Supersedido parcialmente por Unit 47** (el toggle ahora aplica también a pools `PUBLIC`).
+
+## Unit 47 — Extensión del permiso de invitación a pools públicos (refine sobre Unit 45)
+
+- **Dependencias**: Unit 45 (columna `Pool.membersCanInvite`, `PoolSettingsCard`, `updatePoolMembersCanInvite`, `CreatePoolForm`, `createDirectedInvite`, `page.tsx` gate UI), Unit 44 (autocompletar nickname), Unit 3 (Pools), Unit 13 (Invitaciones Refine).
+- **Alcance**: eliminar la restricción `type === "PRIVATE"` de todos los gates y condiciones de renderizado del toggle `membersCanInvite`. El toggle, el `PoolSettingsCard`, el `CreatePoolForm` Switch y los gates de `createDirectedInvite`/UI aplican a cualquier tipo de pool (`PUBLIC` y `PRIVATE`). El gate se simplifica a `isOwner || membersCanInvite`.
+- **Sin** cambios de schema ni migraciones (la columna ya existe desde Unit 45 con `DEFAULT TRUE`).
+- **Sin** nuevas rutas ni componentes (se modifican componentes existentes).
+- **Sin** nuevas claves i18n (se reutilizan las de Unit 45).
+- Security Baseline intacto: los gates owner-only y de membresía se mantienen server-side.
+
+**Primary Deliverable**: El owner de cualquier pool (público o privado) controla quién puede invitar mediante el toggle `membersCanInvite`. Los miembros de un pool público pueden invitar a otros si el owner lo permite, igual que en pools privados.
 
 ## Recommended Implementation Sequence
 
@@ -487,6 +498,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 29. Unit 43: Web Push — Onboarding step + dispatch en sync admin (post-construction refine; onboarding + dispatch trigger; sin schema, migraciones ni rutas nuevas)
 30. Unit 44: Autocompletar nickname en invitación dirigida (post-construction refine; UI/new server action; autocompletar nickname mientras se escribe en `DirectedInviteForm`; sin schema, migraciones ni rutas nuevas)
 31. Unit 45: Permiso configurable de invitación por miembros en pools privados (post-construction refine; schema + UI; `Pool.membersCanInvite` configurable al crear y editable en `/pools/[id]`; supersede `FR-REFINE-44.7`; migración Prisma; nueva sección "Configuración" en `/pools/[id]`)
+32. Unit 47: Extensión del permiso de invitación a pools públicos (post-construction refine; sobre Unit 45; elimina la restricción `type === "PRIVATE"` del toggle `membersCanInvite` para que aplique a pools `PUBLIC` también; sin schema ni migraciones; solo cambios de lógica/UI)
 
 ## Security Notes
 

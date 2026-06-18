@@ -84,11 +84,11 @@ export async function createDirectedInvite(input: unknown) {
   });
   if (!membership) return { error: "Debes ser miembro de la liga para invitar" };
 
-  // Unit 45: gate ampliado (BR-3.33, BR-3.34, BR-45.6).
-  // Owner siempre puede invitar; miembros no-owner solo si la liga es PRIVATE
-  // y el flag `membersCanInvite` está activo.
+  // Unit 47: gate ampliado (BR-47.3). Owner siempre puede invitar.
+  // PUBLIC pool → cualquier miembro puede invitar (no hay toggle, siempre permitido).
+  // PRIVATE pool → miembros solo si `membersCanInvite` está activo.
   if (pool.ownerId !== userId) {
-    if (pool.type !== "PRIVATE" || !pool.membersCanInvite) {
+    if (pool.type !== "PUBLIC" && !pool.membersCanInvite) {
       return { error: "El administrador no permite que los miembros inviten" };
     }
   }

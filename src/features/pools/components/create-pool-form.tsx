@@ -21,9 +21,6 @@ export function CreatePoolForm() {
 
   function handleTypeChange(next: PoolType) {
     setType(next);
-    if (next === "PUBLIC") {
-      setMembersCanInvite(true); // reset: PUBLIC no persiste false (BR-45.2)
-    }
   }
 
   function submit() {

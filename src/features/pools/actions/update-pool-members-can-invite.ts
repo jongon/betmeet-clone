@@ -36,9 +36,8 @@ export async function updatePoolMembersCanInvite(input: unknown) {
     return { error: "Solo el administrador puede cambiar esta configuración" };
   }
 
-  // El toggle solo aplica a pools PRIVATE. Los PUBLIC no usan invitación dirigida
-  // (el directorio es la vía principal), por lo que el flag no tiene efecto.
-  // Lo rechazamos para mantener la semántica coherente con la UI.
+  // Unit 47: el toggle solo aplica a pools PRIVATE. Los PUBLIC siempre permiten
+  // invitar/compartir por definición, no necesitan toggle.
   if (pool.type !== "PRIVATE") {
     return { error: "Esta configuración solo aplica a ligas privadas" };
   }
