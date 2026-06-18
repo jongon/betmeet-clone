@@ -2394,3 +2394,27 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Context**: Operations phase — schema deployment verified. Migration deploy complete.
 
 ---
+
+## Unit 48 Bug Fix — Override de pool no se guardaba ("No se pudo guardar la predicción") (BR-48.18)
+**Timestamp**: 2026-06-18T22:10:00Z
+**User Input**: "En la sección /pools en la tab de predicción al pulsar el botón de 'Guardar para esta liga' y ajustar una predicción para ese pool y continuo me sale el error 'No se pudo guardar la predicción. Inténtalo de nuevo.'"
+**AI Response**: "Causa raíz identificada y corregida con migración. El error venía del `try/catch` de `savePrediction` tragándose un error de Postgres."
+**Root cause**: El índice legacy `predictions_user_id_match_id_key` seguía vivo. La migración de Unit 48 (`20260618100000_unit48_prediction_pool_id`) intentó eliminarlo con `ALTER TABLE ... DROP CONSTRAINT IF EXISTS predictions_user_id_match_id_key`, pero ese objeto se creó en el init (`20260609000000_init`) como `CREATE UNIQUE INDEX` — es un índice, no una constraint de tabla — así que `DROP CONSTRAINT IF EXISTS` fue un no-op silencioso (con `IF EXISTS` ni siquiera lanza error). El índice global `(user_id, match_id)` **sin** predicado de `pool_id` sobrevivió y prohibía que coexistieran la predicción global (`pool_id NULL`) y el override de pool (`pool_id` no nulo) del mismo `(user, match)`. Efecto: el **primer** guardado de un override (un `create`) fallaba con `duplicate key value violates unique constraint "predictions_user_id_match_id_key"` → mensaje genérico "No se pudo guardar la predicción.".
+**Diagnóstico**: `prisma migrate status` = "up to date" (la migración constaba aplicada). Query a la BD: 0 filas con `pool_id` no nulo (ningún override se había guardado nunca). Reproducción del `create` exacto dentro de una transacción con rollback → confirmó el `P2002` sobre `predictions_user_id_match_id_key`. `pg_indexes` mostró el índice presente; `pg_constraint` NO lo listaba → confirmado que es índice, no constraint.
+**Fix**: Nueva migración `20260618110000_unit48_drop_legacy_prediction_unique_index` con `DROP INDEX IF EXISTS predictions_user_id_match_id_key;` (no se editó la migración ya aplicada — rompería los checksums de historial). Aplicada con `prisma migrate deploy`. Verificado: el índice legacy desaparece (quedan los dos parciales correctos `predictions_user_match_global_uk` / `predictions_user_match_pool_uk`) y el `create` del override que antes fallaba ahora persiste (probado en transacción con rollback, sin escribir datos).
+**Archivos**: `prisma/migrations/20260618110000_unit48_drop_legacy_prediction_unique_index/migration.sql` (nuevo). Nota: en el working tree, `save-prediction.ts` ya traía cambios previos (lógica unlock-first para overrides bloqueados + `console.error` con detalle del error) que son correctos y se conservan; no eran la causa.
+**Decisión de diseño**: nueva migración en vez de editar la existente (checksums) — mismo patrón que Unit 39 (`drop_provider_team_id_unique`).
+
+## Unit 48 UI — Banderas de equipos en el modal de predicción del pool
+**Timestamp**: 2026-06-18T22:20:00Z
+**User Input**: "En el modal que sale en la predicción de un pool pon las banderas de los equipos."
+**AI Response**: "Añadidas las banderas de ambos equipos al encabezado del modal, con el mismo estilo que la cabecera de MatchCard."
+**Code change**: `src/features/pools/components/pool-predictions-view.tsx` — el `DialogTitle` del modal de edición renderiza `homeFlag`/`awayFlag` (ya presentes en `MatchColumn`) junto a los nombres; separador central = `sublabel` (marcador real) si existe, si no "vs"; mismo patrón `img` + `biome-ignore` del resto del componente. Sin cambios de datos/schema. Verificado: biome check del archivo OK.
+
+## Unit 48 Aclaración — Scoring en sincronizaciones considera overrides de pool (BR-48.19)
+**Timestamp**: 2026-06-18T22:30:00Z
+**User Input**: "En el cálculo de los puntos. En las sincronizaciones estás considerando las predicciones que son particulares del pool/liga?" + "Cómo sumas aquellos puntos por cada pool y cuáles se suman al global?"
+**AI Response (investigación, sin cambio de código)**: Sí. `scoreMatch(matchId)` (`src/features/scoring-rankings/services/score-match.ts`) carga el partido con `include: { predictions: true }` (sin filtro `poolId`) y hace upsert de un `PredictionScore` por cada predicción → globales **y** overrides se puntúan. Se dispara tras el sync vía `scoreFinishedUnscoredMatches()` (`trigger-sync.ts`), cuyo selector reescanea cualquier match FINISHED con predicciones sin puntuar. `PredictionScore` NO tiene `poolId` (1:1 con `Prediction`, `@unique(predictionId)`); la selección override-sobre-global es **solo en lectura**: `getPoolLeaderboardRows` (`queries.ts`) suma overrides y, por (user, match), usa global solo si no hay override; `getGlobalRankingRows` filtra `poolId IS NULL` (los overrides nunca cuentan en el global). Riesgo latente documentado en BR-48.19: cualquier consumidor nuevo que sume `PredictionScore` sin esa dedup duplicaría puntos. El usuario confirmó "solo confirmar" — sin cambios.
+**Archivos AI-DLC**: `functional-design.md` (nota de bug en §5.2, bullet de banderas en el editor, BR-48.18 y BR-48.19), `aidlc-state.md` (Current Stage), `audit.md` (estas entradas). Sin reinicio de etapas aprobadas.
+
+---

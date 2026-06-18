@@ -27,81 +27,89 @@ export async function savePrediction(input: {
   const { matchId, homeScore, awayScore, penaltyWinnerTeamId, poolId } = parsed.data;
   const alsoSaveAsGlobal = input.alsoSaveAsGlobal === true;
 
-  if (poolId) {
-    const membership = await prisma.poolMembership.findUnique({
-      where: { poolId_userId: { poolId, userId } },
-    });
-    if (!membership) {
-      return { error: "No eres miembro de esta liga." };
+  try {
+    if (poolId) {
+      const membership = await prisma.poolMembership.findUnique({
+        where: { poolId_userId: { poolId, userId } },
+      });
+      if (!membership) {
+        return { error: "No eres miembro de esta liga." };
+      }
     }
-  }
 
-  const match = await prisma.match.findUnique({
-    where: { id: matchId },
-    include: {
-      phase: { select: { type: true } },
-      homeTeam: { select: { id: true } },
-      awayTeam: { select: { id: true } },
-      predictions: {
-        where: {
-          userId,
-          poolId: poolId ?? null,
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        phase: { select: { type: true } },
+        homeTeam: { select: { id: true } },
+        awayTeam: { select: { id: true } },
+        predictions: {
+          where: {
+            userId,
+            poolId: poolId ?? null,
+          },
         },
       },
-    },
-  });
+    });
 
-  if (!match) return { error: "El partido no existe." };
+    if (!match) return { error: "El partido no existe." };
 
-  const existing = match.predictions[0] ?? null;
+    const existing = match.predictions[0] ?? null;
 
-  const eligibility = getPredictionEligibility(
-    {
-      homeTeamId: match.homeTeam?.id ?? null,
-      awayTeamId: match.awayTeam?.id ?? null,
-      kickoffAt: match.kickoffAt,
-      status: match.status,
-    },
-    new Date(),
-  );
+    const eligibility = getPredictionEligibility(
+      {
+        homeTeamId: match.homeTeam?.id ?? null,
+        awayTeamId: match.awayTeam?.id ?? null,
+        kickoffAt: match.kickoffAt,
+        status: match.status,
+      },
+      new Date(),
+    );
 
-  if (!eligibility.editable) {
-    if (existing && !existing.lockedAt) {
-      await lockExistingPrediction(userId, matchId, eligibility.reason, poolId);
+    if (!eligibility.editable) {
+      if (existing && !existing.lockedAt) {
+        await lockExistingPrediction(userId, matchId, eligibility.reason, poolId);
+      }
+      if (existing) {
+        return {
+          error: "El partido ya no acepta cambios. Se mantiene tu última predicción guardada.",
+        };
+      }
+      return { error: "El partido ya no acepta predicciones. No suma puntos en este partido." };
     }
-    if (existing) {
-      return {
-        error: "El partido ya no acepta cambios. Se mantiene tu última predicción guardada.",
-      };
+
+    const validation = validatePredictionInput(
+      {
+        phaseType: match.phase.type,
+        homeTeamId: match.homeTeam?.id ?? null,
+        awayTeamId: match.awayTeam?.id ?? null,
+      },
+      { homeScore, awayScore, penaltyWinnerTeamId },
+    );
+
+    if (!validation.valid) {
+      return { error: validation.errors[0]?.message ?? "Datos inválidos." };
     }
-    return { error: "El partido ya no acepta predicciones. No suma puntos en este partido." };
-  }
 
-  const validation = validatePredictionInput(
-    {
-      phaseType: match.phase.type,
-      homeTeamId: match.homeTeam?.id ?? null,
-      awayTeamId: match.awayTeam?.id ?? null,
-    },
-    { homeScore, awayScore, penaltyWinnerTeamId },
-  );
+    const data = {
+      homeScore: validation.valid.homeScore,
+      awayScore: validation.valid.awayScore,
+      penaltyWinnerTeamId: validation.valid.penaltyWinnerTeamId,
+      lockedAt: null,
+      lockReason: null,
+    };
 
-  if (!validation.valid) {
-    return { error: validation.errors[0]?.message ?? "Datos inválidos." };
-  }
-
-  const data = {
-    homeScore: validation.valid.homeScore,
-    awayScore: validation.valid.awayScore,
-    penaltyWinnerTeamId: validation.valid.penaltyWinnerTeamId,
-  };
-
-  try {
     if (alsoSaveAsGlobal && poolId) {
       const globalRow = await prisma.prediction.findFirst({
         where: { userId, matchId, poolId: null },
       });
       if (globalRow) {
+        if (globalRow.lockedAt) {
+          await prisma.prediction.update({
+            where: { id: globalRow.id },
+            data: { lockedAt: null, lockReason: null },
+          });
+        }
         await prisma.prediction.update({ where: { id: globalRow.id }, data });
       } else {
         await prisma.prediction.create({
@@ -113,6 +121,12 @@ export async function savePrediction(input: {
         where: { userId, matchId, poolId },
       });
       if (overrideRow) {
+        if (overrideRow.lockedAt) {
+          await prisma.prediction.update({
+            where: { id: overrideRow.id },
+            data: { lockedAt: null, lockReason: null },
+          });
+        }
         await prisma.prediction.update({ where: { id: overrideRow.id }, data });
       } else {
         await prisma.prediction.create({
@@ -124,6 +138,12 @@ export async function savePrediction(input: {
         where: { userId, matchId, poolId },
       });
       if (row) {
+        if (row.lockedAt) {
+          await prisma.prediction.update({
+            where: { id: row.id },
+            data: { lockedAt: null, lockReason: null },
+          });
+        }
         await prisma.prediction.update({ where: { id: row.id }, data });
       } else {
         await prisma.prediction.create({
@@ -135,6 +155,12 @@ export async function savePrediction(input: {
         where: { userId, matchId, poolId: null },
       });
       if (row) {
+        if (row.lockedAt) {
+          await prisma.prediction.update({
+            where: { id: row.id },
+            data: { lockedAt: null, lockReason: null },
+          });
+        }
         await prisma.prediction.update({ where: { id: row.id }, data });
       } else {
         await prisma.prediction.create({
@@ -142,7 +168,12 @@ export async function savePrediction(input: {
         });
       }
     }
-  } catch {
+  } catch (err) {
+    const detail =
+      err instanceof Error
+        ? { name: err.name, message: err.message, cause: err.cause }
+        : String(err);
+    console.error("savePrediction failed:", detail);
     return { error: "No se pudo guardar la predicción. Inténtalo de nuevo." };
   }
 

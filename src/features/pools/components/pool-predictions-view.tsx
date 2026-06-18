@@ -341,7 +341,31 @@ export function PoolPredictionsView({
         <Dialog open onOpenChange={handleCloseModal}>
           <DialogContent className="sm:max-w-sm">
             <DialogHeader>
-              <DialogTitle className="text-base">{editingMatch.label}</DialogTitle>
+              <DialogTitle className="text-base">
+                <span className="flex items-center justify-center gap-1.5">
+                  {editingMatch.homeFlag && (
+                    // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
+                    <img
+                      src={editingMatch.homeFlag}
+                      alt=""
+                      className="size-4 shrink-0 object-contain"
+                    />
+                  )}
+                  <span>{editingMatch.homeLabel}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {editingMatch.sublabel ? editingMatch.sublabel : "vs"}
+                  </span>
+                  <span>{editingMatch.awayLabel}</span>
+                  {editingMatch.awayFlag && (
+                    // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
+                    <img
+                      src={editingMatch.awayFlag}
+                      alt=""
+                      className="size-4 shrink-0 object-contain"
+                    />
+                  )}
+                </span>
+              </DialogTitle>
               {editingMatch.sublabel && (
                 <p className="text-sm text-muted-foreground">{editingMatch.sublabel}</p>
               )}

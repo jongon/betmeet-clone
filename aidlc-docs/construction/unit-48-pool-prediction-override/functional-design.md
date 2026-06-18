@@ -98,6 +98,8 @@ interface PoolMemberPrediction {
 | **BR-48.15** | La pagina por defecto (al entrar al pool sin `?page` en la URL) es la pagina que contiene el dia de hoy. Si hoy no esta en el calendario de partidos, se muestra la primera pagina. | FR-REFINE-48.9 |
 | **BR-48.16** | La query `getPoolMemberPredictions` carga todos los matches (sin filtro `kickoffAt`) y devuelve `{ matches, predictions }`. El componente agrupa por dia via `buildDayGroups(allMatches)`, pagina via `paginateDays(days, timeZone, page)`, y renderiza solo la pagina activa. Las columnas de matches sin predicciones se muestran con celdas vacias. | FR-REFINE-48.9 |
 | **BR-48.17** | El estado de pagina se persiste en la URL via `searchParams.page` (entero, default = pagina que contiene hoy). El componente lee `useSearchParams` para el valor actual y usa `router.replace` con `?page=N` al navegar. Los controles muestran "Pagina X de Y". | FR-REFINE-48.9 |
+| **BR-48.18** | La unicidad por scope la garantizan **solo** los índices parciales `predictions_user_match_global_uk` / `predictions_user_match_pool_uk`. El índice legacy `predictions_user_id_match_id_key` (creado en el init como `CREATE UNIQUE INDEX`) debe eliminarse con `DROP INDEX` — `DROP CONSTRAINT IF EXISTS` no lo borra y deja un `(user_id, match_id)` global que rompe el primer override. Corregido por la migración `20260618110000_unit48_drop_legacy_prediction_unique_index`. | FR-REFINE-48.7 |
+| **BR-48.19** | `PredictionScore` no tiene `poolId` (es 1:1 con `Prediction`, `@unique(predictionId)`): tanto la global como el override reciben su propio score. La selección override-sobre-global es **solo en lectura** (`getPoolLeaderboardRows` dedup por `(user, match)`; `getGlobalRankingRows` filtra `poolId IS NULL`). Cualquier consumidor nuevo que sume `PredictionScore` sin esa dedup duplicaría puntos. | FR-REFINE-48.5, FR-REFINE-48.6 |
 
 ## 3. Business Logic Model
 
@@ -288,6 +290,7 @@ function paginateDays(
 **Cambios**:
 - Las celdas del usuario actual (viewer) son editables si el partido esta `SCHEDULED` antes de `kickoffAt` (BR-48.6).
 - Al hacer click en una celda propia editable → se abre un modal/inline con `PredictionScoreControls` + `PenaltyWinnerSelector` (reutiliza componentes de Unit 5).
+- El encabezado del modal muestra las **banderas de ambos equipos** (`homeFlag`/`awayFlag` de `MatchColumn`) junto a los nombres, con el mismo estilo que la cabecera de `MatchCard` (separador = marcador real si existe, si no "vs"). 2026-06-18.
 - Al guardar → invoca `savePrediction({ ..., poolId })`.
 - Si la celda es un override (`isOverride: true`), se muestra un badge sutil "Ajustada" y, si ademas `hasGlobal: true`, el boton "Usar prediccion global".
 - Si la celda usa la global (`isOverride: false`, `hasGlobal: false`), no se muestra badge ni boton de reset.
@@ -368,6 +371,14 @@ CREATE UNIQUE INDEX predictions_user_match_global_uk
 CREATE UNIQUE INDEX predictions_user_match_pool_uk 
   ON predictions(user_id, match_id, pool_id) WHERE pool_id IS NOT NULL;
 ```
+
+> **Bug fix (2026-06-18) — BR-48.18:** `DROP CONSTRAINT IF EXISTS predictions_user_id_match_id_key`
+> fue un no-op: ese objeto se creó en el init como `CREATE UNIQUE INDEX` (índice, no constraint),
+> así que el índice global `(user_id, match_id)` sin predicado de `pool_id` sobrevivió y bloqueaba
+> la coexistencia de global + override. El primer `create` de un override fallaba con
+> `duplicate key ... predictions_user_id_match_id_key` → "No se pudo guardar la predicción.".
+> Corrección: nueva migración `20260618110000_unit48_drop_legacy_prediction_unique_index` con
+> `DROP INDEX IF EXISTS predictions_user_id_match_id_key;` (aplicada con `prisma migrate deploy`).
 
 ## 6. i18n Keys
 
