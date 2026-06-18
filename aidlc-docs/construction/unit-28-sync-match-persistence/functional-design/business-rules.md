@@ -29,13 +29,48 @@ Un match solo se CREA si su status (del API) es `SCHEDULED` o `LIVE`.
 
 ## BR-28.3 — Campos a actualizar (UPDATE)
 Al hacer UPDATE, se actualizan TODOS los campos disponibles:
-- `status`
-- `homeScore`, `awayScore` (si son null en API, se escribe null)
+- `status` (salvo regresión bloqueada por BR-28.12)
+- `homeScore`, `awayScore` (si son null en API, se escribe null; salvo BR-28.12)
 - `kickoffAt` (si viene del API, se actualiza; si no, se deja undefined)
 - `homeTeamId`, `awayTeamId` (via lookup por fifaCode; null si no resuelto)
 - `homePlaceholder`, `awayPlaceholder` (null en la mayoría de casos de este provider)
 
 **Nota**: `providerMatchId`, `competitionId`, `phaseId`, `matchNumber` NO se cambian en UPDATE.
+
+## BR-28.12 — Guard de no-regresión de status terminal
+Un match en un estado **terminal** (`FINISHED` o `CANCELLED`) NUNCA debe regresar a un
+estado anterior no-terminal (`SCHEDULED`, `LOCKED`, `LIVE`) por efecto del sync.
+
+**Motivo**: el feed de football-data.org (filtros sin status / `status=LIVE` y el feed
+general) puede estar desactualizado o ser inconsistente entre nodos de caché ("flapping"),
+reportando un partido ya finalizado como `IN_PLAY`. Sin este guard, un sync `FULL`/`LIVE_STATUS`
+posterior revertiría `FINISHED → LIVE`, rompiendo `/matches` (badge "En juego") y el scoring.
+
+| Status en BD (existing) | Status entrante (API) | Acción |
+|---|---|---|
+| FINISHED / CANCELLED | SCHEDULED / LOCKED / LIVE | **Conservar** status y scores existentes (ignorar el entrante) |
+| FINISHED / CANCELLED | FINISHED / CANCELLED / POSTPONED | UPDATE normal (permite corregir marcador) |
+| No-terminal | cualquiera | UPDATE normal |
+
+- Cuando se detecta regresión, se preservan `status`, `homeScore` y `awayScore` de la BD;
+  el resto de campos (kickoff, teams) se actualizan normalmente.
+- Para corregir un resultado mal cargado, usar el flujo admin de override manual
+  (no el sync), que no está sujeto a este guard.
+
+## BR-28.13 — Freeze de matches con override manual
+Si un match en BD tiene `manualOverride === true`, el sync NUNCA modifica su `status`,
+`homeScore` ni `awayScore`, sin importar lo que reporte el proveedor (incluso
+`FINISHED → FINISHED` con marcador distinto). El admin tiene la última palabra.
+
+**Motivo**: `forceMatchResult` (admin override, US-6.2) escribe directo y marca
+`manualOverride = true`. Sin este freeze, un sync `RESULTS` posterior con el marcador
+del proveedor pisaría la corrección manual.
+
+- El resto de campos (kickoff, teams, placeholders) sí se actualizan normalmente.
+- Este freeze tiene prioridad sobre BR-28.3 y se evalúa junto a BR-28.12 (regresión):
+  basta con que aplique cualquiera de los dos para preservar status + scores.
+- `forceMatchResult` no pasa por `runCompetitionSync`, por lo que el override en sí
+  no está sujeto a esta regla (solo los syncs posteriores la respetan).
 
 ## BR-28.4 — `matchNumber` = null para matches del sync
 Los matches creados por el sync tienen `matchNumber = null`.

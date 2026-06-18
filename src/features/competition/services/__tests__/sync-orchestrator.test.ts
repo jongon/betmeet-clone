@@ -139,6 +139,85 @@ describe("sync orchestrator", () => {
     );
   });
 
+  it("does not regress a FINISHED match back to LIVE on stale provider data", async () => {
+    setupBaseRun();
+    const existingMatch = {
+      id: "match-1",
+      status: "FINISHED",
+      homeScore: 1,
+      awayScore: 0,
+      homeTeam: null,
+      awayTeam: null,
+    };
+    vi.mocked(prisma.competition.findFirst).mockResolvedValue({ id: "comp-1" } as never);
+    vi.mocked(prisma.competitionPhase.findMany).mockResolvedValue([
+      { id: "phase-1", name: "Group A" },
+    ] as never);
+    vi.mocked(prisma.match.findFirst).mockResolvedValue(existingMatch as never);
+    vi.mocked(prisma.match.update).mockResolvedValue({ ...existingMatch } as never);
+
+    // Provider's lagged live feed reports the finished match as LIVE with a partial score.
+    const staleLiveMatch = {
+      ...scheduledMatch,
+      providerMatchId: "102",
+      status: "LIVE" as const,
+      homeScore: 1,
+      awayScore: null,
+    };
+    const provider = {
+      fetch: vi.fn().mockResolvedValue({ teams: [], matches: [staleLiveMatch] }),
+    };
+
+    await runCompetitionSync(provider, "LIVE_STATUS", { windowKey: "test" });
+
+    expect(prisma.match.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "match-1" },
+        data: expect.objectContaining({ status: "FINISHED", homeScore: 1, awayScore: 0 }),
+      }),
+    );
+  });
+
+  it("does not overwrite a manually-overridden match with provider data", async () => {
+    setupBaseRun();
+    const existingMatch = {
+      id: "match-1",
+      status: "FINISHED",
+      homeScore: 2,
+      awayScore: 1,
+      manualOverride: true,
+      homeTeam: null,
+      awayTeam: null,
+    };
+    vi.mocked(prisma.competition.findFirst).mockResolvedValue({ id: "comp-1" } as never);
+    vi.mocked(prisma.competitionPhase.findMany).mockResolvedValue([
+      { id: "phase-1", name: "Group A" },
+    ] as never);
+    vi.mocked(prisma.match.findFirst).mockResolvedValue(existingMatch as never);
+    vi.mocked(prisma.match.update).mockResolvedValue({ ...existingMatch } as never);
+
+    // Provider reports FINISHED with a *different* score than the admin override.
+    const providerMatch = {
+      ...scheduledMatch,
+      providerMatchId: "102",
+      status: "FINISHED" as const,
+      homeScore: 1,
+      awayScore: 0,
+    };
+    const provider = {
+      fetch: vi.fn().mockResolvedValue({ teams: [], matches: [providerMatch] }),
+    };
+
+    await runCompetitionSync(provider, "RESULTS", { windowKey: "test" });
+
+    expect(prisma.match.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "match-1" },
+        data: expect.objectContaining({ status: "FINISHED", homeScore: 2, awayScore: 1 }),
+      }),
+    );
+  });
+
   it("skips a FINISHED match that does not exist in the DB", async () => {
     setupBaseRun();
     vi.mocked(prisma.competition.findFirst).mockResolvedValue({ id: "comp-1" } as never);

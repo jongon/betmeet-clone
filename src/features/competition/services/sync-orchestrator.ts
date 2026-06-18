@@ -1,10 +1,23 @@
 import { emitMatchNotificationEvents } from "@/features/notifications/services/match-events";
-import type { ProviderSyncScope } from "@/generated/prisma/enums";
+import type { MatchStatus, ProviderSyncScope } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type { NormalizedMatch } from "../schemas";
 import { NormalizedMatchSchema, NormalizedTeamSchema } from "../schemas";
 import type { CompetitionProvider, ProviderSyncWindow } from "./providers/types";
 import { upsertTeam } from "./upsert-competition-data";
+
+// Terminal states a match should never leave on its own. Football-data.org's
+// live/unfiltered feed can lag and report a just-finished match as IN_PLAY,
+// which would otherwise regress FINISHED → LIVE on the next sync.
+const TERMINAL_STATUSES = new Set<MatchStatus>(["FINISHED", "CANCELLED"]);
+const REGRESSION_STATUSES = new Set<MatchStatus>(["SCHEDULED", "LOCKED", "LIVE"]);
+
+function isStatusRegression(
+  current: MatchStatus | null | undefined,
+  incoming: MatchStatus,
+): boolean {
+  return !!current && TERMINAL_STATUSES.has(current) && REGRESSION_STATUSES.has(incoming);
+}
 
 async function findActiveCompetition() {
   return prisma.competition.findFirst({
@@ -45,12 +58,23 @@ async function syncMatchesToDB(
     });
 
     if (existing) {
+      // Freeze status/score for matches the admin corrected manually — the
+      // provider must never overwrite a manual override (even FINISHED →
+      // FINISHED with a different score). Otherwise guard against provider lag
+      // regressing a terminal match (e.g. the live feed still reporting a
+      // finished match as IN_PLAY): keep the recorded status and score instead
+      // of overwriting them with stale data.
+      const frozen = existing.manualOverride || isStatusRegression(existing.status, match.status);
+      const nextStatus = frozen ? existing.status : match.status;
+      const nextHomeScore = frozen ? existing.homeScore : (match.homeScore ?? null);
+      const nextAwayScore = frozen ? existing.awayScore : (match.awayScore ?? null);
+
       const saved = await prisma.match.update({
         where: { id: existing.id },
         data: {
-          status: match.status,
-          homeScore: match.homeScore ?? null,
-          awayScore: match.awayScore ?? null,
+          status: nextStatus,
+          homeScore: nextHomeScore,
+          awayScore: nextAwayScore,
           ...(match.kickoffAt !== null ? { kickoffAt: new Date(match.kickoffAt) } : {}),
           homeTeamId: homeTeam?.id ?? null,
           awayTeamId: awayTeam?.id ?? null,

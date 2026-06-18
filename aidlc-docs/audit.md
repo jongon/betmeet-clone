@@ -2104,3 +2104,32 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Context**: Fix de bug de hidratación (no altera specs ni comportamiento documentado de ninguna Unit). **Patrón a seguir para evitar recurrencia**: nunca llamar `formatDate` de `@/lib/format-date-pure` directamente dentro del render de un componente con SSR — la salida depende de la zona horaria del runtime y rompe la hidratación. Usar siempre `LocalDate` (texto compacto `DD/MM HH:MM`) o `useIsoDate` (locale-aware) desde `@/lib/format-date`, que difieren el formateo al cliente. La función pura solo debe usarse en contexto no-SSR (tests, lógica de servidor que no se hidrata) o internamente dentro de `format-date.tsx`.
 
 ---
+
+## Workflow Planning — Unit 45 Approval
+**Timestamp**: 2026-06-18T04:35:00Z
+**AI Prompt**: "Ready to proceed with this plan? You may: 🔧 Request Changes - Ask for modifications to the execution plan if required. 📝 Add Skipped Stages - Choose to include stages currently marked as SKIP. ✅ Approve & Continue - Approve plan and proceed to **Functional Design (Light)**"
+**User Response**: "Aprobar y continuar"
+**Status**: Approved
+**Context**: Unit 45 Workflow Plan approved. Functional Design (Light) creation in progress at `construction/unit-45-pool-member-invites-permission/functional-design.md`. Plan has 3 stages to execute after FD: Code Gen Part 1, Code Gen Part 2, Build & Test. Skip: RE, NFR Requirements/Design, Infrastructure, Units Generation.
+
+---
+
+## Bugfix — Sync regresa partido FINISHED a LIVE (provider flapping) — Unit 28
+**Timestamp**: 2026-06-18T05:10:00Z
+**User Prompt**: "en el /admin estoy sincronizando los partidos pero en /matches me sale 'En juego'" + "Ejecute el sync solo con RESULTS como me dijiste pero no está marcando el partido como terminado ni haciendo los calculos"
+**AI Response**: "Diagnóstico: el badge de `/matches` refleja directamente `Match.status`. El partido Ghana-Panamá (providerMatchId 537410) estaba en BD como `LIVE` 1-0. Causa raíz confirmada con curls directos a football-data.org: el proveedor (plan gratuito) devuelve datos INCONSISTENTES entre nodos de caché ('flapping') — la misma consulta `?status=FINISHED` a veces incluye 537410 y a veces no; el feed sin filtro alterna `IN_PLAY`/`FINISHED`. Por eso el sync RESULTS a veces lo agarra y a veces no (la corrida del usuario actualizó 22/23 finished y se saltó Ghana). Endpoints consistentes (`/teams/763/matches`, `/matches?date`) confirman FINISHED 1-0. Fix de datos: marqué el match FINISHED 1-0 vía path real (update + `emitMatchNotificationEvents` + `scoreFinishedUnscoredMatches` → 1 partido puntuado + `dispatchPendingNotifications`). Fix de código (prevención): agregué guard de no-regresión en `sync-orchestrator.ts` — un match en estado terminal (FINISHED/CANCELLED) no puede ser regresado a SCHEDULED/LOCKED/LIVE por el sync; se preservan status y scores existentes. Verificación: vitest 9/9 (sync-orchestrator, incluye nuevo test de no-regresión) + sync FULL real ejecutado post-fix confirma que el partido se mantiene FINISHED pese a que el feed devolvía IN_PLAY."
+**Code change**: `src/features/competition/services/sync-orchestrator.ts` (+ helper `isStatusRegression`, sets `TERMINAL_STATUSES`/`REGRESSION_STATUSES`, guard en la rama UPDATE). Test: `src/features/competition/services/__tests__/sync-orchestrator.test.ts` (+1 test). Doc: `construction/unit-28-sync-match-persistence/functional-design/business-rules.md` (nueva BR-28.12 + nota en BR-28.3). Sin cambios de schema ni migraciones.
+**Build/Test Status**: Pass. vitest 9/9 en sync-orchestrator. Sync FULL real post-fix: match permanece FINISHED 1-0.
+**Context**: Bugfix de comportamiento del sync (Unit 28). El guard es defensivo contra inconsistencia del proveedor externo; no cambia el flujo aprobado, solo bloquea transiciones inválidas. Override manual de admin queda exento del guard.
+
+---
+
+## Mejora — Freeze de override manual en el sync — Unit 28
+**Timestamp**: 2026-06-18T05:30:00Z
+**User Prompt**: "Qué recomiendas?" → (tras recomendación) "Sí."
+**AI Response**: "Verifiqué `force-result.ts`: el override manual ya está exento del guard porque escribe directo con `prisma.match.update` y no pasa por `runCompetitionSync`. Pero detecté un hueco mayor: el guard de no-regresión (BR-28.12) no cubre `FINISHED → FINISHED`, así que un sync RESULTS podía SOBRESCRIBIR una corrección manual del admin con el marcador del proveedor. Recomendé (y el usuario aprobó) congelar en el sync cualquier match con `manualOverride === true`. Implementado: el guard ahora preserva status/homeScore/awayScore si `existing.manualOverride` es true O si hay regresión terminal. Descartada explícitamente la heurística de 'adivinar' fin de partido por tiempo transcurrido (frágil). Verificación: vitest 10/10 (nuevo test 'does not overwrite a manually-overridden match'), tsc 0, eslint 0."
+**Code change**: `src/features/competition/services/sync-orchestrator.ts` (condición `frozen = existing.manualOverride || isStatusRegression(...)`). Test: `+1` en `__tests__/sync-orchestrator.test.ts`. Doc: nueva BR-28.13 en `unit-28-sync-match-persistence/functional-design/business-rules.md`. Sin cambios de schema.
+**Build/Test Status**: Pass. vitest 10/10, tsc 0, eslint 0.
+**Context**: Endurecimiento del sync (Unit 28) contra sobreescritura de overrides manuales del admin. No altera el flujo de `forceMatchResult` (US-6.2); solo blinda los syncs posteriores.
+
+---
