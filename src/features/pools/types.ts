@@ -86,3 +86,11 @@ export interface PoolPredictionsViewProps {
   predictions: PoolMemberPrediction[];
   members: PoolMemberSummary[];
 }
+
+/** Public profile summary for nickname autocomplete (FR-REFINE-44.1–44.6). */
+export interface SearchNicknameResult {
+  userId: string;
+  nicknameBase: string;
+  nicknameDiscriminator: string;
+  avatarUrl: string | null;
+}

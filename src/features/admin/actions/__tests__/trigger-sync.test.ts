@@ -9,6 +9,11 @@ vi.mock("@/features/competition/services/sync-orchestrator", () => ({
 vi.mock("@/features/scoring-rankings/services/score-sweeper", () => ({
   scoreFinishedUnscoredMatches: vi.fn(),
 }));
+const { dispatchPendingNotifications } = vi.hoisted(() => ({
+  dispatchPendingNotifications: vi.fn(),
+}));
+vi.mock("@/features/notifications/services/dispatcher", () => ({ dispatchPendingNotifications }));
+
 vi.mock("@/lib/auth-logger", () => ({ logAuthEvent: vi.fn() }));
 vi.mock("../../services/revalidate-result-views", () => ({ revalidateResultViews: vi.fn() }));
 vi.mock("../../services/require-admin", () => ({ getAdminUserId: vi.fn() }));
@@ -73,5 +78,24 @@ describe("triggerSync (Unit 35)", () => {
 
     expect(result).toEqual({ error: "La sincronización falló. Revisa los runs recientes." });
     expect(revalidateResultViews).not.toHaveBeenCalled();
+  });
+
+  it("dispatches pending notifications after successful sync and scoring", async () => {
+    vi.mocked(dispatchPendingNotifications).mockResolvedValue({ sent: 3, failed: 0, skipped: 0 });
+
+    const result = await triggerSync("FULL");
+
+    expect(result).toEqual({ success: true });
+    expect(dispatchPendingNotifications).toHaveBeenCalled();
+  });
+
+  it("returns success even when dispatch throws (best-effort)", async () => {
+    vi.mocked(dispatchPendingNotifications).mockRejectedValue(new Error("VAPID keys missing"));
+
+    const result = await triggerSync("FULL");
+
+    expect(result).toEqual({ success: true });
+    expect(dispatchPendingNotifications).toHaveBeenCalled();
+    expect(revalidateResultViews).toHaveBeenCalledWith({ adminDashboard: true });
   });
 });

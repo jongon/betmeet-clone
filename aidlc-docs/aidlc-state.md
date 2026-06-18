@@ -3,7 +3,9 @@
 ## Project Information
 - **Project Type**: Brownfield (post-construcción, 41 units implementadas)
 - **Start Date**: 2026-06-09T21:37:50Z
-- **Current Stage**: ✅ UNIT 42 BUILD AND TEST COMPLETE (2026-06-17) — Bug de timezone en `/matches` corregido: los bloques de día se reagrupan en cliente con la timezone local del navegador; Unit 30 usa el mismo día local para ocultar anteriores; Unit 41 usa helpers compartidos con fallback UTC SSR. Verificado: focused Vitest 22/22, full Vitest 285/285, `tsc --noEmit` OK, Biome/ESLint enfocados OK, `pnpm build` OK. **No reinicia etapas aprobadas**.
+- **Current Stage**: 🟢 Unit 44 BUILD AND TEST COMPLETE (2026-06-18) — Autocompletar nickname al invitar a una liga implementado y verificado. `SearchNicknameResult`/`SearchNicknameSchema` en types/schemas, `searchNicknames` server action (Prisma `startsWith` case-insensitive, take 8), `create-directed-invite` cambia owner→membership gate, `page.tsx` remueve `pool.isOwner` gate, `directed-invite-form.tsx` con dropdown de autocompletar (debounce 250ms, keyboard nav, avatar+nickname). Verificado: focused Vitest 20/20, full Vitest **310/310**, `tsc --noEmit` OK, Biome OK (2 supresiones justificadas), ESLint OK (1 warning preexistente de `<img>`), `pnpm build` OK (25 rutas). Sin schema, migraciones ni rutas.
+- **Prev Stage**: 🟢 Unit 44 FUNCTIONAL DESIGN COMPLETE (2026-06-18) — Workflow Planning aprobado por continuacion. Functional Design (Light) creado en `construction/unit-44-nickname-autocomplete-invite/functional-design.md`. SKIP NFR Requirements/Design, Infrastructure.
+- **Prev Stage**: ✅ UNIT 43 BUILD AND TEST COMPLETE (2026-06-18) — Web Push onboarding step + dispatch en sync admin implementado y verificado. `notification-step.tsx` integrado en el onboarding (entre reglas y passkey, skippable, 5 tipos activados por defecto). `dispatchPendingNotifications()` al final de `triggerSync()` (best-effort). Verificado: focused Vitest 14/14, full Vitest 294/294, `tsc --noEmit` OK, Biome/ESLint OK, `pnpm build` OK. Sin schema, migraciones ni rutas. **No reinicia etapas aprobadas**.
 - **Prev Stage**: ✅ UNIT 41 COMPLETE (2026-06-17) — Predicciones visibles dentro del pool implementada y verificada. Todas las stages AI-DLC completadas: Reverse Engineering → Requirements → User Stories → Workflow Planning → Functional Design → Code Generation → Build and Test.
 - **Prev Stage**: 🟢 Unit 40 BUILD AND TEST COMPLETE (2026-06-17) — Bug visual en `/admin`: el selector de tipo/scope de sincronización camuflaba opciones no seleccionadas en modo oscuro. Refine UI-only sobre Unit 7/8. Solución: `TriggerSyncControls` usa tokens explícitos `bg-background text-foreground`, `color-scheme` light/dark y estilos de `option` para contraste. Sin cambios en scopes, `triggerSync`, permisos, schema, rutas ni providers. Verificado: `pnpm exec tsc --noEmit` OK, Biome enfocado OK, ESLint enfocado OK. AI-DLC docs actualizados como Unit 40. **No reinicia etapas aprobadas**.
 - **Prev Stage**: 🟢 Unit 39 BUILD AND TEST COMPLETE / OPERATIONS GATE (2026-06-17) — Bug de sync en `/admin`: "Unique constraint failed on the fields: (`provider_team_id`)" al ejecutar `prisma.team.upsert()`. Causa raíz: `upsertTeam()` usa `fifaCode` como llave de búsqueda, pero `providerTeamId` tenía `@unique`. Solución schema-only: removido `@unique` de `providerTeamId` (`prisma/schema.prisma:236`) y nueva migración `20260617180000_drop_provider_team_id_unique` (`DROP INDEX IF EXISTS "teams_provider_team_id_key"`). Sin cambios de aplicación. Verificado: `tsc --noEmit` OK tras limpiar `.next/dev/types` stale, **265/265 tests**, `pnpm build` OK. Pendiente Operations: `prisma migrate deploy` + smoke de sync FULL en prod. **No reinicia etapas aprobadas**.
@@ -415,6 +417,32 @@
 - [x] Code Generation Part 2 — COMPLETE. Helpers timezone-safe (`coerceTimeZone`, `formatLocalDayKey`, `formatLocalDayLabel`, `regroupFixtureDaysByTimeZone`), `/matches` reagrupa/particiona en `MatchesFixtureView` con timezone del navegador, Unit 41 extrae helpers puros y deja de usar `kickoffAt.slice(0, 10)`.
 - [x] Build and Test — COMPLETE. Focused Vitest 22/22, full Vitest 285/285, `pnpm exec tsc --noEmit` OK, Biome/ESLint enfocados OK, `pnpm build` OK.
 
+**Unit 43: Web Push — Onboarding step + dispatch en sync admin** (added via AI-DLC refine delta, 2026-06-18) — delta documental. Dos gaps operativos en Unit 10: (1) el usuario no puede activar web push durante el onboarding; (2) las notificaciones de partido se encolan pero nunca se despachan porque nada invoca `dispatchPendingNotifications()`. Sin cambios de código.
+- [x] Requirements (min) — FR-REFINE-43.1…43.2 en `requirements.md` (Épica 43): paso de notificaciones en el onboarding (entre reglas y passkey, skippable) + dispatch automático al final de `triggerSync()`.
+- [x] User Stories — Épica 43 (US-43.1, US-43.2) en `stories.md`: activar push desde onboarding; recibir notificaciones de partido cuando el admin sincroniza.
+- [x] Workflow Planning — COMPLETE. Plan at `inception/plans/unit-43-web-push-onboarding-dispatch-execution-plan.md` approved by user ("apruebo", 2026-06-18). EXECUTE Functional Design (Light), Code Generation, Build and Test. SKIP RE, Units Gen, NFR/Infra.
+- [x] Application Design delta — Unit 43 en `unit-of-work.md` con secuencia #29; dependency matrix actualizada.
+- [x] Dependent designs — Unit 10 `generation-summary.md`, Unit 2 `generation-summary.md`, Unit 7 `generation-summary.md` actualizados con notas de dependencia de Unit 43.
+- [x] Functional Design (Light) — COMPLETE. `construction/unit-43-web-push-onboarding-dispatch/functional-design.md` con contratos (NotificationStep, integration contracts, i18n keys), reglas de negocio (BR-43.1 skippable, BR-43.2 dispatch best-effort), componentes, plan de archivos, verificación esperada y Security Baseline.
+- [x] NFR Requirements / NFR Design — SKIP formal (sin nuevos NFR; dispatch best-effort no cambia perf/seguridad; embebido en Functional Design).
+- [x] Infrastructure — SKIP (sin schema, migraciones, env vars, storage, auth, routes ni deploy topology).
+- [x] Code Generation Part 1 — PLAN READY. `construction/plans/unit-43-web-push-onboarding-dispatch-code-generation-plan.md` creado con 8 pasos: i18n ES+EN, `notification-step.tsx` NEW, `onboarding-client.tsx` modify, `onboarding-progress-indicator.tsx` modify, `trigger-sync.ts` modify, tests (notification-step 6 cases + trigger-sync 2 cases), verificación (tsc, Biome, ESLint, vitest, build). **Approved by user ("Execute the CONSTRUCTION PHASE").**
+- [x] Code Generation Part 2 — COMPLETE. 2 new files (`notification-step.tsx`, `notification-step.test.tsx`), 6 modified files (i18n ES/EN, `onboarding-client.tsx`, `onboarding-progress-indicator.tsx`, `trigger-sync.ts`, `trigger-sync.test.ts`). Verificado: tsc 0, Biome clean, ESLint 0, **294/294 tests** (+9 Unit 43), `pnpm build` OK (25 routes).
+- [x] Build and Test — COMPLETE. Focused Vitest 14/14, full Vitest 294/294, `tsc --noEmit` OK, Biome/ESLint OK, `pnpm build` OK. Unit 43 cerrada.
+
+**Unit 44: Autocompletar nickname al invitar a una liga** (added via AI-DLC refine, 2026-06-18) — implementado y verificado. `searchNicknames` server action + dropdown autocompletar en `DirectedInviteForm` + cualquier miembro del pool puede invitar (FR-REFINE-44.7). 310/310 tests, build OK. Sin schema, migraciones ni rutas.
+- [x] Workflow Planning — COMPLETE (corregido). Plan en `inception/plans/unit-44-nickname-autocomplete-invite-execution-plan.md`. EXECUTE: Functional Design (Light), Code Generation, Build and Test. SKIP: RE rerun, Units Gen, NFR/Infra. Aprobado por continuación (2026-06-18).
+- [x] Requirements (min) — FR-REFINE-44.1…44.7 en `requirements.md` (Épica 44): autocompletar >=2 chars si no es email, busqueda `startsWith` case-insensitive sobre `nicknameBase`, dropdown con avatar + nickname, max 8 resultados, nuevo server action `searchNicknames`, **FR-REFINE-44.7: cualquier miembro puede invitar**.
+- [x] User Stories — Épica 44 / US-44.1 en `stories.md`: buscar y seleccionar nickname mientras se escribe en el campo de invitación.
+- [x] Application Design delta — Unit 44 en `unit-of-work.md` con secuencia #30; dependency matrix actualizada (depende de Units 3, 10, 13).
+- [x] Dependent designs — Unit 3 `frontend-components.md` (nota en §InviteShare) y Unit 13 `functional-design.md` (nota en §13.4) actualizados con referencia a Unit 44.
+- [x] Functional Design (Light) — COMPLETE. `construction/unit-44-nickname-autocomplete-invite/functional-design.md` (contratos, reglas de negocio BR-44.1…BR-44.8, tipos, componentes, permisos any-member, Security Baseline, verification plan).
+- [x] NFR Requirements / NFR Design — SKIP (sin nuevos NFR; sin schema/migraciones/rutas; los datos expuestos son publicos).
+- [x] Infrastructure — SKIP (sin schema, migraciones, env vars, storage, auth, routes ni deploy topology).
+- [x] Code Generation Part 1 — PLAN READY. `construction/plans/unit-44-nickname-autocomplete-invite-code-generation-plan.md` con 10 pasos. Aprobado por usuario ("Execute the CONSTRUCTION PHASE").
+- [x] Code Generation Part 2 — COMPLETE. 10/10 pasos ejecutados.
+- [x] Build and Test — COMPLETE.
+
 **All Units**
 - [x] Build and Test - COMPLETE through Unit 8 — re-verified after Unit 8 (0 TS errors, 111 tests, ESLint 0, Biome clean, build passing)
 - [x] Build and Test - COMPLETE through Unit 10 implementation (0 TS errors, 115 tests, ESLint 0, Biome clean, build passing).
@@ -444,9 +472,8 @@
 - [x] Preserve approved inception/Application Design stages; do not restart them for Unit 10 refine
 
 ## Execution Plan Summary
-- **Total Remaining Stages**: Unit 39 Operations + Unit 42 Operations smoke.
-- **Stages to Execute**: Operations smoke for Unit 42 in real browser timezone if desired.
-- **Completed (since last summary)**: Unit 41 completed and verified; Unit 42 completed through Build and Test.
-- **Stages to Skip**: Unit 42 Reverse Engineering rerun, Units Generation, formal NFR Requirements/Design, Infrastructure Design.
-- **Next Stage**: Operations smoke.
-- **Status**: Units 1–42 implemented and verified. Unit 39 pending production migration + sync smoke. Unit 42 pending optional smoke in `Europe/Madrid` browser timezone.
+- **Total Remaining Stages**: Unit 39 Operations (migracion prod + sync smoke). Unit 43 Operations smoke (opcional).
+- **Stages to Execute**: Operations para Units 39 y 43. Unit 44 cerrada.
+- **Completed (since last summary)**: Unit 44 todas las stages completadas: Delta Documental → Workflow Planning → Functional Design → Code Generation Part 1 → Code Generation Part 2 → Build and Test. 310/310 tests, build OK.
+- **Next Stage**: Operations (opcional) o nueva solicitud del usuario.
+- **Status**: Units 1–44 implementadas y verificadas. Unit 39 pendiente de migracion prod + sync smoke.

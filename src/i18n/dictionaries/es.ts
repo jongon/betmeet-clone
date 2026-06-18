@@ -316,6 +316,15 @@ export const es = {
     passkeyRegister: "Registrar passkey",
     passkeySettingUp: "Configurando…",
     passkeyFailure: "No pudimos registrar el passkey",
+    notificationsTitle: "Activar notificaciones",
+    notificationsDescription:
+      "Recibe alertas de partidos, goles y más. Puedes cambiarlo después en tu perfil.",
+    notificationsEnable: "Activar notificaciones",
+    notificationsSkip: "Omitir",
+    notificationsActivated: "Notificaciones activadas",
+    notificationsUnsupported: "Tu navegador no soporta notificaciones push.",
+    notificationsMissingVapid: "Falta configurar las claves de notificación.",
+    stepNotifications: "Notificaciones",
   },
   pools: {
     title: "Ligas",

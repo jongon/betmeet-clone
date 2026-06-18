@@ -8,16 +8,17 @@ import { Button } from "@/components/ui/button";
 import { completeOnboarding } from "@/features/profile/actions/complete-onboarding";
 import { AvatarStep } from "@/features/profile/components/avatar-step";
 import { NicknameStep } from "@/features/profile/components/nickname-step";
+import { NotificationStep } from "@/features/profile/components/notification-step";
 import { OnboardingProgressIndicator } from "@/features/profile/components/onboarding-progress-indicator";
 import { PasskeyStep } from "@/features/profile/components/passkey-step";
 import { RulesStep } from "@/features/profile/components/rules-step";
 import type { AvatarAsset } from "@/features/profile/types";
 import { useDictionary } from "@/i18n/dictionary-provider";
 
-type Step = "nickname" | "avatar" | "rules" | "passkey";
+type Step = "nickname" | "avatar" | "rules" | "notifications" | "passkey";
 
 // Linear order of the onboarding steps; drives back navigation (FR-REFINE-16.3).
-const STEP_ORDER: Step[] = ["nickname", "avatar", "rules", "passkey"];
+const STEP_ORDER: Step[] = ["nickname", "avatar", "rules", "notifications", "passkey"];
 
 interface OnboardingClientProps {
   currentAvatarUrl: string;
@@ -88,7 +89,14 @@ export function OnboardingClient({
       )}
 
       {step === "rules" && (
-        <RulesStep onComplete={() => setStep("passkey")} onSkip={() => setStep("passkey")} />
+        <RulesStep
+          onComplete={() => setStep("notifications")}
+          onSkip={() => setStep("notifications")}
+        />
+      )}
+
+      {step === "notifications" && (
+        <NotificationStep onComplete={() => setStep("passkey")} onSkip={() => setStep("passkey")} />
       )}
 
       {step === "passkey" && (

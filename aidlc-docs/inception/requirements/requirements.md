@@ -1517,3 +1517,94 @@ Si la zona horaria del navegador no está disponible o no es válida para `Intl.
 - **Sin** cambios en `kickoffAt` almacenado: sigue siendo un instante absoluto.
 - **Sin** cambios en el lock de predicciones ni en la visibilidad por kickoff.
 - Security Baseline intacto: no hay nuevas superficies de autorización; el timezone se trata como dato de presentación validado antes de pasarlo a `Intl`.
+
+---
+
+### Épica 43: Web Push — Onboarding step + dispatch en sync admin (Unit 43 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 10 (Web Push Notifications), Unit 7 (Admin), Unit 2 (Onboarding) y Unit 4 (Competition/Sync). **No reinicia** etapas aprobadas. Dos gaps operativos identificados: (1) el usuario solo puede activar web push desde `/settings/profile`, no durante el onboarding; (2) la sincronización admin encola eventos `NotificationEvent` (MATCH_STARTED, MATCH_FINISHED, GOAL_SCORED) pero nunca dispara el dispatcher — los eventos quedan en PENDING indefinidamente.
+
+#### FR-REFINE-43.1 — Paso de notificaciones en el onboarding
+
+El flujo de onboarding gana un paso "Notificaciones" entre el paso de reglas y el paso de passkey. El usuario puede activar web push desde el onboarding sin tener que descubrir luego `/settings/profile`.
+
+- La secuencia completa queda: nickname → avatar → reglas → **notificaciones** → passkey.
+- El paso muestra un prompt para activar notificaciones push con el mismo mecanismo de `NotificationSettingsPanel` (solicitar permiso del navegador, registrar service worker, guardar suscripción).
+- El paso es **skippable** (el usuario puede pasar sin activar notificaciones); la activación no es obligatoria.
+- Si el navegador no soporta web push o las VAPID keys no están configuradas, el paso muestra un mensaje informativo y solo permite continuar.
+- Las preferencias por tipo de evento (match started, finished, goal, pool invite, ranking) se inicializan con todos los tipos activados por defecto cuando se activa desde el onboarding, para maximizar el engagement inicial.
+- El copy del paso está en los diccionarios i18n `es`/`en` bajo `onboarding.notifications*`.
+
+#### FR-REFINE-43.2 — Disparar el dispatcher al final de la sincronización admin
+
+Cuando un administrador ejecuta `triggerSync()` desde `/admin`, los eventos de notificación encolados por `emitMatchNotificationEvents` deben despacharse automáticamente. Actualmente se encolan (PENDING) pero nunca se envían porque nada invoca `POST /api/notifications/dispatch` ni `dispatchPendingNotifications()`.
+
+- Al final de `triggerSync()` (después de `scoreFinishedUnscoredMatches()`), se llama `dispatchPendingNotifications()` para drenar el outbox.
+- El dispatch es **best-effort**: si falla, no revierte la sincronización ni el scoring. Se registra en `NotificationDelivery` para observabilidad.
+- Los destinatarios ya están determinados por `getMatchNotificationRecipients()` en el servicio de eventos (usuarios que predijeron el partido + miembros de pools que lo contienen).
+- Sin cambios en `emitMatchNotificationEvents`, `sync-orchestrator.ts`, `match-events.ts` ni `dispatcher.ts` — solo se añade la llamada al dispatcher en el action de sync.
+- Sin nuevos tipos de notificación: se trata de **disparar** las notificaciones existentes, no de añadir un tipo "sync completado".
+
+#### Restricciones / SKIP
+- **Sin** schema, migraciones ni rutas nuevas.
+- **Sin** cambios en `save-subscription.ts`, `update-preferences.ts`, `events.ts` ni `dispatcher.ts` — se reutilizan los servicios existentes.
+- **Sin** nuevos tipos de `NotificationEventType`.
+- **Sin** cambios en el gate de admin ni en los permisos de sincronización.
+- Security Baseline intacto: el dispatch es server-side (`web-push` usa VAPID privada); los payloads son mínimos y no exponen datos privados.
+
+---
+
+### Épica 44: Autocompletar nickname al invitar a una liga (Unit 44 — añadida vía refine)
+
+> Refine post-construcción sobre Unit 3 (Pools), Unit 13 (Invitaciones) y Unit 10 (Directed Invites + Push). El formulario de invitación dirigida (`DirectedInviteForm`) exige escribir el nickname completo en formato `base#1234` manualmente; el usuario quiere autocompletar mientras escribe. **No reinicia** etapas aprobadas.
+
+#### FR-REFINE-44.1 — Autocompletar nickname en el campo de invitación dirigida
+
+Cuando el owner de un pool escribe en el input de "Nickname o email" del `DirectedInviteForm`, y el texto no contiene `@` (no es email), se muestra un dropdown con sugerencias de nicknames que coinciden con lo escrito.
+
+- El autocompletar se activa a partir de **2 caracteres** escritos.
+- La lista se actualiza en cada cambio del input (debounce ≈250ms para no saturar el servidor).
+- Al seleccionar una sugerencia, el input se rellena con el nickname exacto (`base#discriminator`) y el dropdown se cierra.
+- Sin cambios en el botón "Invitar" ni en el flujo de envío: el server action `createDirectedInvite` no se modifica.
+
+#### FR-REFINE-44.2 — Búsqueda por inicio de nickname base (case-insensitive)
+
+La búsqueda usa `startsWith` sobre `profiles.nicknameBase` con comparación case-insensitive, limitada a perfiles activos (`deletedAt IS NULL`). Coincide con el patrón existente de Unit 17 (FR-REFINE-17.4, nickname case-insensitive).
+
+#### FR-REFINE-44.3 — Cada sugerencia muestra nickname completo y avatar
+
+Cada ítem del dropdown renderiza:
+- Avatar del usuario (fallback al default si no tiene).
+- Nickname formateado `base#discriminator` (usando `formatNickname` existente).
+
+#### FR-REFINE-44.4 — Sin autocompletar para emails
+
+Si el texto contiene `@`, no se muestra el dropdown de autocompletar. El input funciona igual que ahora (el usuario escribe el email completo manualmente). Esta detección es client-side, sin llamada al servidor.
+
+#### FR-REFINE-44.5 — Límite de sugerencias
+
+El servidor devuelve un máximo de **8** resultados, ordenados alfabéticamente por `nicknameBase` y luego por `nicknameDiscriminator`.
+
+#### FR-REFINE-44.6 — Server action de búsqueda
+
+Nuevo server action `searchNicknames(query: string)` que:
+- Valida query ≥ 2 caracteres con Zod.
+- Consulta `Profile` con `nicknameBase: { startsWith: query, mode: "insensitive" }`, `deletedAt: null`, ordenado, `take: 8`.
+- Devuelve `{ id, nicknameBase, nicknameDiscriminator, avatarPath }` (sin exponer emails ni datos privados).
+
+#### Restricciones / SKIP
+- **Sin** cambios en `createDirectedInvite`, `resolveUserByTarget`, `PoolDirectedInvite` ni el flujo de push.
+- **Sin** schema, migraciones ni rutas nuevas.
+- **Sin** exponer datos de usuario más allá de nickname y avatar públicos.
+- **Sin** búsqueda inversa (por discriminator) ni búsqueda fuzzy — solo `startsWith` sobre la base.
+- Security Baseline intacto: el server action solo devuelve datos públicos de perfil; sin exponer `email`, `auth.users` ni relaciones.
+
+#### FR-REFINE-44.7 — Cualquier miembro del pool puede invitar (corrección del usuario)
+
+El gate de invitación cambia de "solo el owner" a "cualquier miembro del pool":
+
+- **UI** (`/pools/[id]/page.tsx`): el `DirectedInviteForm` se renderiza para cualquier miembro del pool, no solo para `pool.isOwner`.
+- **Server action** (`create-directed-invite.ts`): la validación `pool.ownerId !== userId` se reemplaza por verificación de membresía (`PoolMembership` activa). Si el inviter no es miembro, retorna error "Debes ser miembro de la liga para invitar".
+- El owner sigue pudiendo invitar (es miembro).
+- El resto del flujo (`resolveUserByTarget`, envío de push, persistencia en `PoolDirectedInvite`) no cambia.
+- El server action rechaza la auto-invitación: si el `invitedUserId` resuelto es igual al `userId` del inviter, retorna error "No puedes invitarte a ti mismo."

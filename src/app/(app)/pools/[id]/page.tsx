@@ -94,7 +94,7 @@ export default async function PoolDetailPage({ params }: PoolDetailPageProps) {
 
           <aside className="space-y-4 pt-6">
             <InviteShare token={pool.inviteToken} />
-            {pool.isOwner && <DirectedInviteForm poolId={pool.id} />}
+            <DirectedInviteForm poolId={pool.id} />
             <PoolActions pool={pool} />
           </aside>
         </div>

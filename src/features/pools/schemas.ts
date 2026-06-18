@@ -34,3 +34,14 @@ export const CreateDirectedInviteSchema = z.object({
 });
 
 export type CreateDirectedInviteInput = z.infer<typeof CreateDirectedInviteSchema>;
+
+export const SearchNicknameSchema = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(2, "Minimo 2 caracteres")
+    .max(30, "Demasiado largo")
+    .regex(/^[a-zA-Z0-9_-]+$/, "Solo letras, numeros, guiones y guiones bajos"),
+});
+
+export type SearchNicknameInput = z.infer<typeof SearchNicknameSchema>;

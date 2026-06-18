@@ -739,3 +739,57 @@
   - "Ver partidos anteriores" usa el mismo día local para decidir qué bloques ocultar.
   - Las predicciones del pool agrupadas por jornada usan el mismo criterio de día local que `/matches`.
   - No cambian reglas de predicción, lock, scoring, sync, admin, rutas ni schema.
+
+---
+
+## Épica 43: Activar web push desde el onboarding y recibir notificaciones tras sync (Unit 43 — añadida vía refine)
+
+> Refine sobre Unit 10 (Web Push), Unit 7 (Admin), Unit 2 (Onboarding). Dos gaps: (1) el usuario no puede activar push durante el onboarding; (2) las notificaciones de partido se encolan pero nunca se despachan. No reinicia etapas aprobadas.
+
+### US-43.1: Activar notificaciones push durante el onboarding
+
+**Como** nuevo jugador en el onboarding
+**Quiero** poder activar notificaciones web push como parte del proceso inicial
+**Para** no tener que descubrir la opción más tarde en `/settings/profile` y empezar a recibir avisos desde el primer partido.
+
+- **Criterios de Aceptación**:
+  - El onboarding incluye un paso "Notificaciones" entre el paso de reglas y el paso de passkey.
+  - El paso muestra un prompt para activar web push con el mismo mecanismo del panel de notificaciones existente.
+  - El usuario puede omitir el paso sin activar notificaciones (no bloquea el onboarding).
+  - Al activar, se solicitan permisos del navegador, se registra el service worker y se guarda la suscripción.
+  - Los 5 tipos de notificación (inicio de partido, fin de partido, gol, invitación, ranking) se activan por defecto tras la primera activación desde onboarding.
+  - Si el navegador no soporta web push o faltan las VAPID keys, el paso lo indica y solo permite continuar.
+
+### US-43.2: Recibir notificaciones de partido cuando el admin sincroniza
+
+**Como** usuario con predicciones en partidos afectados por una sincronización
+**Quiero** recibir notificaciones push cuando el admin sincroniza resultados y se detectan cambios de estado o goles
+**Para** enterarme de resultados y goles sin tener la app abierta.
+
+- **Criterios de Aceptación**:
+  - Cuando un admin ejecuta "Sincronizar ahora" en `/admin`, los eventos de notificación encolados se despachan automáticamente.
+  - Las notificaciones de inicio de partido, fin de partido y gol anotado se envían a los usuarios con predicciones en esos partidos.
+  - El dispatch es best-effort: si falla el envío, no impide que la sincronización ni el scoring se completen.
+  - Los endpoints de suscripción inválidos se desactivan automáticamente tras fallo 404/410 (comportamiento existente del dispatcher).
+  - Sin nuevos tipos de notificación: se trata de enviar las que ya existen (MATCH_STARTED, MATCH_FINISHED, GOAL_SCORED).
+
+---
+
+## Épica 44: Autocompletar nickname al invitar a una liga (Unit 44 — añadida vía refine)
+
+> Refine sobre Unit 3 (Pools), Unit 10 (Directed Invites), Unit 13 (Invitaciones). El formulario de invitación dirigida exige escribir el nickname completo manualmente; se añade autocompletar mientras se escribe. No reinicia etapas aprobadas.
+
+### US-44.1: Buscar y seleccionar un nickname mientras escribo en el campo de invitación
+
+**Como** owner de una liga
+**Quiero** que al escribir parte del nickname de un usuario aparezcan sugerencias debajo del campo
+**Para** encontrar e invitar rápido a otros jugadores sin tener que recordar ni escribir el discriminator completo.
+
+- **Criterios de Aceptación**:
+  - Al escribir al menos 2 caracteres en el campo de invitación, aparece un dropdown con hasta 8 nicknames coincidentes.
+  - Cada sugerencia muestra avatar + nickname completo (`base#discriminator`).
+  - Al seleccionar una sugerencia, el campo se rellena con el nickname exacto y el dropdown desaparece.
+  - Si escribo un email (contiene `@`), el dropdown no aparece y el campo funciona como hasta ahora.
+  - La búsqueda es case-insensitive y solo busca por inicio del nickname base (no por discriminator).
+  - El botón "Invitar" y el envío del formulario funcionan igual que antes, sin cambios.
+  - Si no hay coincidencias o escribo menos de 2 caracteres, no se muestra ningún dropdown.

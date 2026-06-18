@@ -70,13 +70,21 @@ export async function createDirectedInvite(input: unknown) {
     select: { id: true, name: true, inviteToken: true, ownerId: true },
   });
   if (!pool) return { error: "Liga no encontrada" };
-  if (pool.ownerId !== userId) return { error: "Solo el administrador puede invitar" };
+
+  const membership = await prisma.poolMembership.findUnique({
+    where: { poolId_userId: { poolId: pool.id, userId } },
+    select: { userId: true },
+  });
+  if (!membership) return { error: "Debes ser miembro de la liga para invitar" };
 
   const resolved = await resolveUserByTarget(parsed.data.target);
   if (!resolved.invitedUserId && !resolved.invitedEmailHash) {
     return {
       error: "No encontramos un usuario con ese nickname. Usa formato Nombre#1234 o email.",
     };
+  }
+  if (resolved.invitedUserId === userId) {
+    return { error: "No puedes invitarte a ti mismo." };
   }
 
   const invite = resolved.invitedUserId

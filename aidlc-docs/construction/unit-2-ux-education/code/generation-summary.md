@@ -67,3 +67,4 @@
 - **MDX**: `@next/mdx` se descartó a favor de **content-collections** (Q2=C) por tipado/validación en build.
 - **OG**: metadata `openGraph` en la landing; el asset de imagen estática (`src/app/opengraph-image.png`, convención Next) queda como activo de diseño pendiente.
 - **Locale**: ruta sin prefijo (Opción A). Estado original de Unit 2: `SUPPORTED_LOCALES=["es"]`; añadir un idioma no requiere refactor de componentes. **Refine Unit 24**: se activa `en` sin introducir `/es` ni `/en`, con preferencia por cookie + `profiles.locale`, selector en `UserMenu`/Perfil y contenido MDX bilingüe.
+- **Refine Unit 43 (2026-06-18)**: nuevo paso "Notificaciones" en el onboarding, entre reglas y passkey. El paso reutiliza el panel de notificaciones (`NotificationSettingsPanel`) y es skippable. La secuencia completa queda: nickname → avatar → reglas → notificaciones → passkey. Ver `aidlc-docs/inception/requirements/requirements.md` (FR-REFINE-43.1).

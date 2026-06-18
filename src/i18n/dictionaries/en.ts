@@ -314,6 +314,15 @@ export const en = {
     passkeyRegister: "Register passkey",
     passkeySettingUp: "Setting up…",
     passkeyFailure: "Passkey registration failed",
+    notificationsTitle: "Enable notifications",
+    notificationsDescription:
+      "Get alerts for matches, goals, and more. You can change this later in your profile.",
+    notificationsEnable: "Enable notifications",
+    notificationsSkip: "Skip",
+    notificationsActivated: "Notifications enabled",
+    notificationsUnsupported: "Your browser doesn't support push notifications.",
+    notificationsMissingVapid: "Notification keys are not configured.",
+    stepNotifications: "Notifications",
   },
   cues: {
     nicknameDiscriminator:

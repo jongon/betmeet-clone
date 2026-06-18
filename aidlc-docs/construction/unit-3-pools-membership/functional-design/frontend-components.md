@@ -98,6 +98,8 @@ PoolDetailPage   (solo miembros; 403/redirect si no lo es)
 
 - `data-testid`: `invite-copy-link`, `invite-copy-code`, `invite-share-whatsapp`.
 
+> **Unit 44 (2026-06-18)**: `DirectedInviteForm` gana autocompletar de nickname mientras se escribe (dropdown con avatar + `base#discriminator`, debounce ≈250ms, activado a partir de 2 caracteres si no es email). Ver `construction/unit-44-nickname-autocomplete-invite/` para el diseño funcional detallado. Sin cambios en el contrato de `InviteShare` ni en el resto de componentes de Unit 3.
+
 ### MemberList / MemberRow
 - Muestra avatar + nickname (datos de Unit 1). Badge "Admin" para el owner.
 - `KickButton` por fila (solo visible para el owner, oculto en la fila propia). Confirmación modal. (FR-REFINE-23: ya **no** se oculta por congelamiento.)

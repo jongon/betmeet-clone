@@ -30,6 +30,7 @@
 | **BR-3.10** | Cada pool tiene **un único owner** (el creador). No hay co-admins (Q5=A). |
 | **BR-3.11** | El ownership es **no transferible** en operación normal. La **única** excepción es el borrado de cuenta del owner (BR-3.20, Q9). |
 | **BR-3.12** | El owner **no puede abandonar** su pool con "salir". Para dejar de participar debe **eliminar** el pool (BR-3.17) o transferir el ownership (vía borrado de cuenta). Tras FR-REFINE-23 esto es posible **en cualquier momento** (ya no limitado a "antes del congelamiento"). |
+| **BR-3.30** | **Invitación dirigida**: cualquier **miembro** del pool (no solo el owner) puede enviar invitaciones dirigidas por nickname o email. Añadida por FR-REFINE-44.7 (Unit 44, 2026-06-18). La acción `createDirectedInvite` verifica membresía vía `PoolMembership.findUnique`; el owner sigue pudiendo invitar por ser miembro. |
 
 ## Expulsar / salir / archivar
 

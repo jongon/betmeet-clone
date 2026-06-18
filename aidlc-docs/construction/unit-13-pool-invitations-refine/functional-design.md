@@ -64,6 +64,8 @@ link/código genérico. Unit 13 **verifica** este comportamiento con pruebas; si
 reescritura. Si la verificación detecta un hueco (p. ej. push disparado sin
 destinatario), se corrige puntualmente.
 
+> **Unit 44 (2026-06-18)**: `DirectedInviteForm` gana autocompletar de nickname (búsqueda por `startsWith` sobre `nicknameBase`). El server action `createDirectedInvite` y el flujo de resolución/push no cambian. Ver `construction/unit-44-nickname-autocomplete-invite/`.
+
 ## 3. Contratos (nuevos / modificados)
 
 | Símbolo | Tipo | Cambio |

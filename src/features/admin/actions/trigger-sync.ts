@@ -2,6 +2,7 @@
 
 import { FootballDataProvider } from "@/features/competition/services/providers/football-data";
 import { runCompetitionSync } from "@/features/competition/services/sync-orchestrator";
+import { dispatchPendingNotifications } from "@/features/notifications/services/dispatcher";
 import { scoreFinishedUnscoredMatches } from "@/features/scoring-rankings/services/score-sweeper";
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
 import { logAuthEvent } from "@/lib/auth-logger";
@@ -34,5 +35,12 @@ export async function triggerSync(scope: ProviderSyncScope) {
 
   logAuthEvent("admin.sync_triggered", { userId: adminId, scope });
   revalidateResultViews({ adminDashboard: true });
+
+  try {
+    await dispatchPendingNotifications();
+  } catch {
+    // best-effort: sync/scoring already completed successfully
+  }
+
   return { success: true };
 }

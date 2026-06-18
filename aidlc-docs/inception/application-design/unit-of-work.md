@@ -400,6 +400,41 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Un partido que para el usuario ocurre a las 01:00 del 18 de junio aparece bajo el bloque del 18 de junio en `/matches`, y las vistas dependientes por jornada usan el mismo criterio.
 
+## Unit 43: Web Push — Onboarding step + dispatch en sync admin
+
+**Goal**: Permitir al usuario activar web push desde el onboarding y asegurar que las notificaciones encoladas por la sincronización admin se despachen automáticamente.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-18); implementa FR-REFINE-43.1…43.2 / US-43.1…43.2. No reinicia Units 1–42.
+- Añadir paso "Notificaciones" en el onboarding entre reglas y passkey (nickname → avatar → reglas → notificaciones → passkey), reutilizando el panel de notificaciones existente (`NotificationSettingsPanel`).
+- El paso es skippable; si el navegador no soporta web push o faltan VAPID keys, muestra mensaje informativo y solo permite continuar.
+- Al activar desde onboarding, los 5 tipos de notificación se inicializan activados por defecto.
+- Llamar `dispatchPendingNotifications()` al final de `triggerSync()` (tras `scoreFinishedUnscoredMatches()`) para drenar el outbox de `NotificationEvent`.
+- El dispatch es best-effort: no revierte sync ni scoring si falla.
+- Sin schema, migraciones, rutas nuevas ni nuevos tipos de `NotificationEventType`.
+- Sin cambios en `emitMatchNotificationEvents`, `sync-orchestrator.ts`, `match-events.ts` ni `dispatcher.ts` (solo se añade la llamada al dispatcher).
+- Copy i18n (`es`/`en`) para el paso de notificaciones del onboarding bajo `onboarding.notifications*`.
+- Security Baseline intacto: el dispatch es server-side con VAPID privada; los payloads son mínimos.
+
+**Primary Deliverable**: El usuario puede activar web push durante el onboarding, y los eventos de partido encolados por sync se despachan automáticamente sin intervención manual.
+
+## Unit 44: Autocompletar nickname al invitar a una liga
+
+**Goal**: Agilizar la invitación dirigida a jugadores mostrando sugerencias de nickname mientras el owner escribe.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-18); implementa FR-REFINE-44.1…44.7 / US-44.1. No reinicia Units 1–43.
+- Nuevo server action `searchNicknames(query: string)` que busca perfiles activos por `nicknameBase` con `startsWith` case-insensitive, devolviendo hasta 8 resultados con `id`, `nicknameBase`, `nicknameDiscriminator` y `avatarPath`.
+- Nuevo componente cliente `NicknameAutocomplete` (o integración directa en `DirectedInviteForm`) con debounce ≈250ms, dropdown de sugerencias con avatar + nickname formateado.
+- El autocompletar se activa solo si el texto tiene ≥ 2 caracteres y no contiene `@` (email).
+- Al seleccionar una sugerencia, el input se rellena con el nickname exacto y el dropdown se cierra.
+- Cambio de permisos: **cualquier miembro del pool** (no solo el owner) puede invitar. Gate UI (`pool.isOwner` → membresía) y gate server-side (`pool.ownerId !== userId` → membresía) se relajan.
+- Sin cambios en `resolveUserByTarget`, `PoolDirectedInvite` ni el flujo de push.
+- Sin schema, migraciones ni rutas nuevas.
+- Security Baseline intacto: `searchNicknames` solo devuelve datos públicos de perfil (nickname, avatar); sin exponer emails ni relaciones.
+
+**Primary Deliverable**: El owner de una liga escribe parte del nickname y ve sugerencias en un dropdown; al seleccionar una, el campo se rellena automáticamente con el nickname completo listo para invitar.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -430,6 +465,8 @@ Feature modules should own their server actions, schemas, services, and feature-
 26. Unit 40: Contraste del selector de tipo de sync en `/admin` dark mode (post-construction refine; UI-only; sin schema ni rutas nuevas)
 27. Unit 41: Predicciones visibles dentro del pool (post-construction refine; aditivo; query + componente + integración en `/pools/[id]`; sin schema, migraciones ni rutas nuevas)
 28. Unit 42: Agrupación de partidos por día local del usuario (post-construction refine; timezone/day grouping en `/matches` + dependencias Unit 30/41; sin schema, migraciones ni rutas nuevas)
+29. Unit 43: Web Push — Onboarding step + dispatch en sync admin (post-construction refine; onboarding + dispatch trigger; sin schema, migraciones ni rutas nuevas)
+30. Unit 44: Autocompletar nickname en invitación dirigida (post-construction refine; UI/new server action; autocompletar nickname mientras se escribe en `DirectedInviteForm`; sin schema, migraciones ni rutas nuevas)
 
 ## Security Notes
 

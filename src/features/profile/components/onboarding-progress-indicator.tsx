@@ -7,6 +7,7 @@ const STEPS = [
   { labelKey: "stepNickname", key: "nickname" },
   { labelKey: "stepAvatar", key: "avatar" },
   { labelKey: "stepRules", key: "rules" },
+  { labelKey: "stepNotifications", key: "notifications" },
   { labelKey: "stepPasskey", key: "passkey" },
 ] as const;
 

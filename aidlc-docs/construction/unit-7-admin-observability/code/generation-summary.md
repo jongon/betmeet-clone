@@ -41,3 +41,4 @@ src/lib/auth-logger.ts  (+ eventos admin.match_overridden / override_reverted / 
 ## Notas
 - `triggerSync` maneja `API_FOOTBALL_KEY_MISSING` con mensaje claro (en dev sin clave el run queda FAILED y se informa).
 - Gating doble: proxy (`/admin/*`) + `getAdminUserId()` en cada query/action.
+- **Refine Unit 43 (2026-06-18)**: `triggerSync()` llamará `dispatchPendingNotifications()` al final (tras `scoreFinishedUnscoredMatches()`) para drenar el outbox de `NotificationEvent`. Best-effort: no revierte sync/scoring si falla el dispatch. Ver `aidlc-docs/inception/requirements/requirements.md` (FR-REFINE-43.2).

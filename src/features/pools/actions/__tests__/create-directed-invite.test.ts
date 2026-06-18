@@ -5,6 +5,7 @@ vi.mock("@/features/notifications/services/events", () => ({ queueNotificationEv
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     pool: { findUnique: vi.fn() },
+    poolMembership: { findUnique: vi.fn() },
     profile: { findFirst: vi.fn() },
     poolDirectedInvite: { upsert: vi.fn(), create: vi.fn() },
     $queryRaw: vi.fn(),
@@ -29,6 +30,7 @@ describe("createDirectedInvite (FR-REFINE-13.4 verification)", () => {
       inviteToken: "ABC123",
       ownerId: "owner-1",
     } as never);
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue({ userId: "owner-1" } as never);
   });
 
   it("queues push when a nickname resolves to an existing user", async () => {
@@ -55,10 +57,33 @@ describe("createDirectedInvite (FR-REFINE-13.4 verification)", () => {
     expect(queueNotificationEvent).not.toHaveBeenCalled();
   });
 
-  it("rejects a non-owner", async () => {
+  it("rejects a non-member", async () => {
     vi.mocked(getOnboardedUserId).mockResolvedValue("intruder");
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue(null as never);
     const result = await createDirectedInvite({ poolId: POOL_ID, target: "Pedro#1234" });
-    expect(result).toEqual({ error: "Solo el administrador puede invitar" });
+    expect(result).toEqual({ error: "Debes ser miembro de la liga para invitar" });
+    expect(queueNotificationEvent).not.toHaveBeenCalled();
+  });
+
+  it("allows a non-owner member to invite", async () => {
+    vi.mocked(getOnboardedUserId).mockResolvedValue("member-1");
+    vi.mocked(prisma.poolMembership.findUnique).mockResolvedValue({ userId: "member-1" } as never);
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue({ id: "user-2" } as never);
+    vi.mocked(prisma.poolDirectedInvite.upsert).mockResolvedValue({
+      invitedUserId: "user-2",
+    } as never);
+
+    const result = await createDirectedInvite({ poolId: POOL_ID, target: "Pedro#1234" });
+    expect(result).toEqual({ success: true, pushQueued: true });
+    expect(queueNotificationEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "POOL_INVITE", recipientUserId: "user-2" }),
+    );
+  });
+
+  it("rejects self-invite by nickname", async () => {
+    vi.mocked(prisma.profile.findFirst).mockResolvedValue({ id: "owner-1" } as never);
+    const result = await createDirectedInvite({ poolId: POOL_ID, target: "YoMismo#1234" });
+    expect(result).toEqual({ error: "No puedes invitarte a ti mismo." });
     expect(queueNotificationEvent).not.toHaveBeenCalled();
   });
 
