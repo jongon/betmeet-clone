@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
 import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { revalidateResultViews } from "../revalidate-result-views";
@@ -10,11 +10,11 @@ import { revalidateResultViews } from "../revalidate-result-views";
 describe("revalidateResultViews (Unit 35)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("immediately expires result-related cache tags", () => {
+  it("invalidates result-related unstable_cache tags via revalidateTag", () => {
     revalidateResultViews();
 
-    expect(updateTag).toHaveBeenCalledWith(COMPETITION_FIXTURE_TAG);
-    expect(updateTag).toHaveBeenCalledWith(RANKINGS_TAG);
+    expect(revalidateTag).toHaveBeenCalledWith(COMPETITION_FIXTURE_TAG, "max");
+    expect(revalidateTag).toHaveBeenCalledWith(RANKINGS_TAG, "max");
   });
 
   it("revalidates user-facing result routes", () => {

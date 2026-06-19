@@ -501,6 +501,19 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Los marcadores en vivo y los puntos se actualizan solos en cadencia tiered; el admin ya no necesita sincronizar manualmente (aunque puede, como fallback).
 
+## Unit 52 — Invalidación de caché corregida para Next.js 16 (`updateTag` → `revalidateTag`)
+
+**Goal**: Eliminar el doble refresh en `/matches` (y `/rankings`, leaderboards) corrigiendo el mecanismo de invalidación de los caches `unstable_cache` para que funcione también desde el cron de sync.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-19); bug fix sobre Unit 35 (mecanismo de invalidación), con impacto en Unit 22/27/37 (caches) y Unit 50/51 (crons). No reinicia Units 1–51.
+- **Causa raíz**: Unit 35 usó `updateTag`, que en Next.js 16 es **Server-Action-only** y lanza `E872` desde un Route Handler. El cron `POST /api/cron/sync` (Route Handler) llamaba `revalidateResultViews()` → `updateTag` lanzaba → tragado por su `try/catch` "best-effort" → el fixture nunca se invalidaba por el camino automático → `/matches` stale hasta vencer `revalidate: 300` (stale-while-revalidate = doble refresh).
+- **Fix**: `updateTag(tag)` → `revalidateTag(tag, "max")` (válido en Server Actions y Route Handlers; `"max"` = purga inmediata on-demand) en `revalidate-result-views.ts`, `kick-member`, `join-public-pool`, `leave-pool`, `join-pool-by-token` y `reset-prediction-override`.
+- **Bug secundario corregido**: `reset-prediction-override` invalidaba `` `${POOL_LEADERBOARD_TAG_PREFIX}${poolId}` ``, que nunca coincidía con el tag desnudo con que se cachea el leaderboard; ahora usa `POOL_LEADERBOARD_TAG_PREFIX`.
+- Sin schema, migraciones, rutas nuevas ni cambios de scoring/UI. Conserva `revalidatePath` y los guards de cada acción.
+
+**Primary Deliverable**: Tras un sync (manual o automático) o una mutación de membresía/override, `/matches`, `/rankings` y los leaderboards muestran datos frescos en el **primer** refresco; desaparece el doble refresh.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -538,6 +551,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 33. Unit 48: Predicciones con override por pool (post-construction refine; sobre Units 3/5/6/41; schema `Prediction.poolId` + partial unique indexes; leaderboard override-aware; botón "Usar predicción global"; migración Prisma)
 34. Unit 49: Performance hardening de scoring-rankings (post-construction refine; sobre Units 6/37/48; agregación SQL del ranking global vía `groupBy`, leaderboard de pool O(n) con `Set` de overrides, bulk upsert atómico de scoring vía `INSERT ... ON CONFLICT`; sin schema, migraciones, rutas ni i18n; sin cambio de comportamiento)
 35. Unit 50: Sync & Scoring automáticos (Crons) (post-construction refine; resuelve FR-06; Supabase pg_cron + pg_net → `POST /api/cron/sync` guarded por `x-sync-secret`; cadencia tiered LIVE/RESULTS/FIXTURES/CLEANUP; orquestación compartida `runScheduledSync`; migración pg_cron idempotente/defensiva; sin schema de app; conserva el sync manual del admin como fallback)
+36. Unit 52: Invalidación de caché corregida para Next.js 16 (post-construction refine; bug fix sobre Unit 35; `updateTag` → `revalidateTag(tag, "max")` para que el cron de sync invalide los caches `unstable_cache` sin lanzar `E872`; corrige también el tag mismatch del leaderboard de pool; elimina el doble refresh en `/matches`; sin schema, migraciones ni rutas)
 
 ## Security Notes
 

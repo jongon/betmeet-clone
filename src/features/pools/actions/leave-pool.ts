@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUserId } from "../services/session";
@@ -22,7 +22,7 @@ export async function leavePool(poolId: string) {
   await prisma.poolMembership.deleteMany({ where: { poolId, userId } });
 
   // Membership change invalidates the cached pool leaderboard (RANKINGS_TAG).
-  updateTag(RANKINGS_TAG);
+  revalidateTag(RANKINGS_TAG, "max");
   revalidatePath("/pools");
   revalidatePath(`/pools/${poolId}`);
   return { success: true };

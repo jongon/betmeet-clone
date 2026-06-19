@@ -1,4 +1,4 @@
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { COMPETITION_FIXTURE_TAG } from "@/features/competition/cache-tags";
 import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 
@@ -8,8 +8,8 @@ type RevalidateResultViewsOptions = {
 };
 
 export function revalidateResultViews(options: RevalidateResultViewsOptions = {}) {
-  updateTag(COMPETITION_FIXTURE_TAG);
-  updateTag(RANKINGS_TAG);
+  revalidateTag(COMPETITION_FIXTURE_TAG, "max");
+  revalidateTag(RANKINGS_TAG, "max");
 
   revalidatePath("/matches", "page");
   revalidatePath("/rankings", "page");

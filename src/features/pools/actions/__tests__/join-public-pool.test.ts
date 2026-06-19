@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: vi.fn() } }));
 vi.mock("../../services/session", () => ({ getCurrentUserId: vi.fn() }));
 

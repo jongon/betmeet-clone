@@ -9,6 +9,7 @@ services:
       target: devcontainer
     image: nextjs/code
     volumes:
+      - ~/.ssh:/home/node/.ssh
       - workdir-data:/var/www/html
       - .:/var/www/html/main
       - node-home-data:/home/node

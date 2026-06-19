@@ -1,5 +1,7 @@
 # Unit 35 — Invalidacion inmediata de cache tras mutaciones admin (Functional Design, light)
 
+> **⚠️ Corregido por Unit 52 (2026-06-19).** Esta unidad eligió `updateTag` como mecanismo de invalidación. En Next.js 16 `updateTag` es **Server-Action-only** y lanza `E872` cuando se llama desde un **Route Handler** (el cron de sync de Unit 50/51), por lo que la invalidación del fixture nunca llegaba a ejecutarse por el camino automático y `/matches` quedaba stale hasta vencer la ventana `revalidate: 300` (síntoma de doble refresh). La política vigente usa **`revalidateTag(tag, "max")`** (válido en Server Actions y Route Handlers). Donde abajo se lea "`updateTag`", entiéndase `revalidateTag(tag, "max")`. Ver `construction/unit-52-cache-invalidation-next16-fix/functional-design.md` y BR-52.1.
+
 **Tipo**: refine post-construccion sobre Unit 7 (Admin), Unit 31 (revert override), Unit 22/27 (performance/cache) y Unit 6 (scoring/rankings).  
 **No reinicia** Units 1-34. Sin schema, migraciones, rutas nuevas, auth ni cambios al algoritmo de scoring.  
 **Añadida via** AI-DLC refine (2026-06-17).

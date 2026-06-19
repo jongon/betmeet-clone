@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { RANKINGS_TAG } from "@/features/scoring-rankings/cache-tags";
 import { prisma } from "@/lib/prisma";
@@ -46,7 +46,7 @@ export async function joinPoolByToken(token: string) {
   }
 
   // Membership change invalidates the cached pool leaderboard (RANKINGS_TAG).
-  updateTag(RANKINGS_TAG);
+  revalidateTag(RANKINGS_TAG, "max");
   revalidatePath("/pools");
   revalidatePath(`/pools/${targetPoolId}`);
   redirect(`/pools/${targetPoolId}`);

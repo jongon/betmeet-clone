@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { getOnboardedUserId } from "@/features/profile/queries";
 import { POOL_LEADERBOARD_TAG_PREFIX } from "@/features/scoring-rankings/cache-tags";
 import { prisma } from "@/lib/prisma";
@@ -36,6 +36,9 @@ export async function resetPredictionOverride(input: {
   }
 
   revalidatePath(`/pools/${poolId}`, "page");
-  updateTag(`${POOL_LEADERBOARD_TAG_PREFIX}${poolId}`);
+  // The pool leaderboard cache is tagged with the bare prefix (see
+  // getPoolLeaderboardRows), so invalidation must use the same string — a
+  // per-pool suffix here would never match and the leaderboard would stay stale.
+  revalidateTag(POOL_LEADERBOARD_TAG_PREFIX, "max");
   return { success: true };
 }

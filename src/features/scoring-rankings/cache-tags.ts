@@ -4,9 +4,9 @@
  * change, so it is cached and invalidated by event instead of recomputing an
  * unfiltered `groupBy` over the whole `PredictionScore` table on every visit.
  *
- * Invalidate with `updateTag(RANKINGS_TAG)` from Server Actions that require
- * immediate read-your-own-writes after score changes, such as admin sync/result
- * mutations.
+ * Invalidate with `revalidateTag(RANKINGS_TAG)` from Server Actions / route
+ * handlers after score or membership changes, such as admin sync/result mutations.
+ * `unstable_cache` tags are invalidated by `revalidateTag`, NOT `updateTag`.
  */
 export const RANKINGS_TAG = "rankings";
 
