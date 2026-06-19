@@ -42,7 +42,8 @@ export const SearchNicknameSchema = z.object({
     .trim()
     .min(2, "Minimo 2 caracteres")
     .max(30, "Demasiado largo")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Solo letras, numeros, guiones y guiones bajos"),
+    // Base obligatoria; sufijo opcional `#` + hasta 4 digitos para afinar por discriminador.
+    .regex(/^[a-zA-Z0-9_-]+(#[0-9]{0,4})?$/, "Solo letras, numeros, guiones y opcional #1234"),
 });
 
 export type SearchNicknameInput = z.infer<typeof SearchNicknameSchema>;

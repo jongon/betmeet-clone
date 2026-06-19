@@ -11,17 +11,20 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 ### Added
 
 - **Seguridad** — Tarjeta de gestión de passkeys en Profile → Security.
+- **Seguridad** — Cuentas eliminadas ya no pueden iniciar sesión (email/password ni Google): gate por `deletedAt` en sign-in y callback OAuth, más el claim `account_deleted` del Custom Access Token Hook para expulsar sesiones vivas en el middleware.
 - **Predicciones** — Visibilidad de predicciones entre miembros del pool antes del partido.
 - **Fixture** — Agrupación de partidos por día local del usuario (timezone del navegador).
 
 ### Fixed
 
+- **Pools** — Búsqueda de invitación por nickname ahora coincide por subcadena (no solo prefijo) y admite afinar con `Nombre#1234`; antes solo aparecían usuarios cuyo apodo empezaba por lo escrito.
 - **Auth** — Avatar de Google se refresca en cada login para mantener la URL vigente.
 - **Sync** — Eliminada restricción `@unique` en `Team.providerTeamId` para resolver conflictos de upsert.
 - **Admin** — Contraste del selector de sync corregido en dark mode.
 
 ### Changed
 
+- **Auth** — Al eliminar la cuenta se libera el nickname (`nicknameBase`/`nicknameDiscriminator` a `null`): el índice único no consideraba `deletedAt`, por lo que antes el apodo quedaba reservado de forma permanente.
 - **Pools** — Predicciones en pool usan timezone del navegador en lugar de UTC.
 
 ---

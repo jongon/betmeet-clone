@@ -87,6 +87,26 @@ export async function proxy(request: NextRequest) {
   // Original destination to return to after auth/onboarding (FR-REFINE-13.1/13.2).
   const intendedPath = `${pathname}${search}`;
 
+  // A soft-deleted account must be ejected on every request: its access token
+  // still verifies locally (asymmetric keys) until expiry even after the auth
+  // user is hard-deleted, and legacy "zombie" accounts can still hold a live
+  // session. The `account_deleted` claim is injected by the Custom Access Token
+  // Hook (20260619140000). Gate only on an EXPLICIT `true`: a missing claim
+  // (token minted before the claim existed) fails OPEN so normal sessions are
+  // not bounced on deploy — sign-in.ts and /auth/callback are the authoritative
+  // checks for those paths.
+  if (isAuthenticated && record?.account_deleted === true) {
+    await supabase.auth.signOut();
+    const signInUrl = new URL("/sign-in", request.url);
+    signInUrl.searchParams.set("error", "account_deleted");
+    const response = NextResponse.redirect(signInUrl);
+    // Carry over the auth cookies cleared by signOut so the session is dropped.
+    for (const cookie of supabaseResponse.cookies.getAll()) {
+      response.cookies.set(cookie);
+    }
+    return response;
+  }
+
   // A session whose email is not yet confirmed must not reach the app
   // (FR-REFINE-15.14). Gate only on an EXPLICIT `email_verified === false`: a
   // missing claim (e.g. a token minted before the Custom Access Token Hook was

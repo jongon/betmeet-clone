@@ -29,9 +29,15 @@ export async function deleteAccount(
   // Soft-delete the profile: keeps the row (and its prediction/scoring history)
   // for FK integrity. There is no FK from profiles.id to auth.users, so the row
   // survives the auth purge below (WF-11 / RULE-SEC-03).
+  //
+  // Release the nickname too: the `@@unique([nicknameBase, nicknameDiscriminator])`
+  // index does NOT consider `deletedAt`, so leaving the values in place would
+  // reserve `base#discriminator` forever and block anyone (including a fresh
+  // re-registration of the same email) from reusing it. Nulling both frees the
+  // combination — NULLs are distinct under a Postgres unique index.
   await prisma.profile.update({
     where: { id: userId },
-    data: { deletedAt: new Date() },
+    data: { deletedAt: new Date(), nicknameBase: null, nicknameDiscriminator: null },
   });
 
   // Hard-delete the auth.users record via the Admin API so the account is really

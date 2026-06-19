@@ -15,9 +15,16 @@ export async function searchNicknames(
 
   const userId = await getCurrentUserId();
 
+  // El usuario puede afinar escribiendo `base#1234`: filtramos por la base
+  // (substring) y por el prefijo del discriminador si lo incluyó.
+  const [base, discriminatorPrefix] = parsed.data.query.split("#");
+
   const profiles = await prisma.profile.findMany({
     where: {
-      nicknameBase: { startsWith: parsed.data.query, mode: "insensitive" },
+      nicknameBase: { contains: base, mode: "insensitive" },
+      ...(discriminatorPrefix
+        ? { nicknameDiscriminator: { startsWith: discriminatorPrefix } }
+        : {}),
       deletedAt: null,
       ...(userId ? { id: { not: userId } } : {}),
     },

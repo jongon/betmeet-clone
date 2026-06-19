@@ -46,8 +46,16 @@ export async function GET(request: NextRequest) {
 
   const profile = await prisma.profile.findUnique({
     where: { id: data.session.user.id },
-    select: { onboardingCompleted: true },
+    select: { onboardingCompleted: true, deletedAt: true },
   });
+
+  // Block soft-deleted accounts from re-entering via OAuth (defense-in-depth for
+  // legacy zombie accounts whose auth.users outlived the profile soft-delete).
+  if (profile?.deletedAt) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(`${origin}/sign-in?error=account_deleted`);
+  }
+
   const destination = profile?.onboardingCompleted
     ? next
     : `/onboarding/profile?next=${encodeURIComponent(next)}`;

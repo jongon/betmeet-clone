@@ -13,6 +13,7 @@ function messageFor(
   if (error === "verify_failed") return messages.invalid;
   if (error === "otp_expired") return messages.expired;
   if (error === "access_denied") return messages.access_denied;
+  if (error === "account_deleted") return messages.account_deleted;
   return messages.fallback;
 }
 

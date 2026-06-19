@@ -71,7 +71,8 @@ Aplicación full-stack Next.js 16 con Supabase como backend (auth, base de datos
 - **MFA**: TOTP (authenticator app)
 - **Passkeys**: WebAuthn via `@simplewebauthn`
 - **Sesión**: cookies gestionadas por `@supabase/ssr`
-- **Verificación de sesión**: `src/proxy.ts` (middleware) y `getAuthUser` (`src/lib/supabase/current-user.ts`) usan `auth.getClaims()` — verificación **local** del JWT con las JWT Signing Keys asimétricas (JWKS cacheado), sin round-trip a GoTrue por request. Un **Custom Access Token Hook** (migración `20260617120000_auth_access_token_hook`) inyecta los claims `email_verified` y `onboarding_completed`, que el proxy usa para los gates (estos no son claims estándar del JWT). Los gates fallan **abierto** ante un claim ausente para no romper sesiones emitidas antes del hook.
+- **Verificación de sesión**: `src/proxy.ts` (middleware) y `getAuthUser` (`src/lib/supabase/current-user.ts`) usan `auth.getClaims()` — verificación **local** del JWT con las JWT Signing Keys asimétricas (JWKS cacheado), sin round-trip a GoTrue por request. Un **Custom Access Token Hook** (migraciones `20260617120000_auth_access_token_hook` y `20260619140000_auth_token_hook_account_deleted`) inyecta los claims `email_verified`, `onboarding_completed` y `account_deleted`, que el proxy usa para los gates (estos no son claims estándar del JWT). Los gates fallan **abierto** ante un claim ausente para no romper sesiones emitidas antes del hook.
+- **Cuentas eliminadas**: el borrado de cuenta hace soft-delete del `profiles` row (sella `deletedAt`, libera el nickname) y hard-delete del `auth.users`. Un perfil con `deletedAt` no puede iniciar sesión: gate en `sign-in`, en `/auth/callback` (OAuth) y en el proxy vía el claim `account_deleted` (defensa en profundidad para tokens vivos y cuentas "zombie" heredadas).
 - **Perfil**: trigger SQL en Supabase crea `profiles` row al registrarse
 - **Admin**: verificación via `verificationStatus = "ADMIN"` en profile
 

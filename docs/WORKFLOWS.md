@@ -103,6 +103,10 @@ El schema se gestiona con **migraciones Prisma versionadas** en `prisma/migratio
   que inyecta los claims `email_verified` y `onboarding_completed` en el JWT, con
   grants para `supabase_auth_admin` y policy de lectura sobre `profiles`. Habilitar
   el hook es un paso de dashboard (Authentication → Hooks), no expresable en SQL.
+- `20260619140000_auth_token_hook_account_deleted/` — extiende el hook anterior
+  (`CREATE OR REPLACE`, idempotente) para inyectar también el claim `account_deleted`
+  (`profiles.deleted_at IS NOT NULL`), usado por el proxy para bloquear cuentas
+  eliminadas. No requiere paso de dashboard adicional.
 
 ```bash
 npx prisma migrate deploy   # aplica migraciones pendientes (usar direct connection :5432, no el pooler :6543)
@@ -166,7 +170,7 @@ La app se despliega en **Vercel** (serverless) contra **Supabase** en la **misma
 3. **Migraciones** — `npx prisma migrate deploy` (usa `DIRECT_URL` :5432, no el pooler).
 
 > Orden: aplica la migración/hook **antes o junto** con el deploy del código, o los claims
-> `email_verified`/`onboarding_completed` faltarán hasta el refresh del token.
+> `email_verified`/`onboarding_completed`/`account_deleted` faltarán hasta el refresh del token.
 
 ### Vercel
 

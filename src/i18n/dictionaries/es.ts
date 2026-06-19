@@ -138,6 +138,7 @@ export const es = {
       invalid: "No pudimos verificar el enlace. Puede estar vencido o ya usado.",
       expired: "El enlace de confirmación expiró o ya fue usado. Solicita uno nuevo.",
       access_denied: "Supabase rechazó el enlace de confirmación. Solicita uno nuevo.",
+      account_deleted: "Esta cuenta fue eliminada y ya no está disponible.",
       fallback: "No pudimos completar la autenticación. Intenta de nuevo.",
     },
     unconfirmedTitle: "Confirma tu correo para entrar",

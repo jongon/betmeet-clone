@@ -37,9 +37,30 @@ describe("searchNicknames (FR-REFINE-44.6)", () => {
     expect(prisma.profile.findMany).not.toHaveBeenCalled();
   });
 
-  it("rejects query with #", async () => {
-    const result = await searchNicknames({ query: "Pe#12" });
+  it("filters by base substring and discriminator prefix when query has #", async () => {
+    vi.mocked(prisma.profile.findMany).mockResolvedValue([] as never);
+    await searchNicknames({ query: "Pe#12" });
+    expect(prisma.profile.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          nicknameBase: { contains: "Pe", mode: "insensitive" },
+          nicknameDiscriminator: { startsWith: "12" },
+        }),
+      }),
+    );
+  });
+
+  it("rejects query with a non-digit discriminator", async () => {
+    const result = await searchNicknames({ query: "Pe#ab" });
     expect("error" in result).toBe(true);
+    expect(prisma.profile.findMany).not.toHaveBeenCalled();
+  });
+
+  it("does not add discriminator filter for a base-only query", async () => {
+    vi.mocked(prisma.profile.findMany).mockResolvedValue([] as never);
+    await searchNicknames({ query: "Pepe" });
+    const call = vi.mocked(prisma.profile.findMany).mock.calls[0]?.[0];
+    expect(call?.where).not.toHaveProperty("nicknameDiscriminator");
   });
 
   it("rejects query with @", async () => {
@@ -61,13 +82,13 @@ describe("searchNicknames (FR-REFINE-44.6)", () => {
     );
   });
 
-  it("uses case-insensitive startsWith", async () => {
+  it("uses case-insensitive substring match", async () => {
     vi.mocked(prisma.profile.findMany).mockResolvedValue([] as never);
     await searchNicknames({ query: "pepe" });
     expect(prisma.profile.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          nicknameBase: { startsWith: "pepe", mode: "insensitive" },
+          nicknameBase: { contains: "pepe", mode: "insensitive" },
         }),
       }),
     );

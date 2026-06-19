@@ -53,7 +53,12 @@ describe("deleteAccount", () => {
     expect(prisma.profile.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "user-1" },
-        data: expect.objectContaining({ deletedAt: expect.any(Date) }),
+        data: expect.objectContaining({
+          deletedAt: expect.any(Date),
+          // Nickname released so the unique combination can be reused.
+          nicknameBase: null,
+          nicknameDiscriminator: null,
+        }),
       }),
     );
     // WF-11 step 2 / RULE-SEC-03: the auth.users record is hard-deleted.

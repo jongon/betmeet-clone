@@ -136,6 +136,7 @@ export const en = {
       invalid: "We couldn't verify the link. It may be expired or already used.",
       expired: "The confirmation link expired or was already used. Request a new one.",
       access_denied: "Supabase rejected the confirmation link. Request a new one.",
+      account_deleted: "This account has been deleted and is no longer available.",
       fallback: "We couldn't complete authentication. Try again.",
     },
     unconfirmedTitle: "Confirm your email to enter",

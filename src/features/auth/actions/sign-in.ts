@@ -87,8 +87,21 @@ export async function signIn(formData: FormData): Promise<SignInState> {
 
   const userProfile = await prisma.profile.findUnique({
     where: { id: profile.id },
-    select: { onboardingCompleted: true },
+    select: { onboardingCompleted: true, deletedAt: true },
   });
+
+  // A soft-deleted profile must never reach the app. This is mainly a safety net:
+  // a fully deleted account no longer has an `auth.users` row, so credentials
+  // would already fail — but it also blocks legacy "zombie" accounts whose auth
+  // user outlived a pre-RULE-SEC-03 deletion (profile soft-deleted, auth alive).
+  if (userProfile?.deletedAt) {
+    await supabase.auth.signOut();
+    logAuthEvent("auth.sign_in_blocked_deleted", {
+      method: "email",
+      email: redactEmail(parsed.data.email),
+    });
+    return { error: { _form: ["Esta cuenta fue eliminada y ya no está disponible."] } };
+  }
 
   if (!userProfile?.onboardingCompleted) {
     redirect(`/onboarding/profile?next=${encodeURIComponent(next)}`);

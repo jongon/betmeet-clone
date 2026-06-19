@@ -1,5 +1,6 @@
 type AuthEvent =
   | "auth.sign_in_failed"
+  | "auth.sign_in_blocked_deleted"
   | "auth.account_deleted"
   | "auth.resend_confirmation_failed"
   | "auth.change_unconfirmed_email_failed"
