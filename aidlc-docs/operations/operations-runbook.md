@@ -126,7 +126,8 @@ Verificar: en `profiles`, `verification_status = 'ADMIN'`; y acceso a `/admin` e
 - [ ] `FOOTBALL_DATA_KEY` configurada y **sync admin ejecutado** ("Sincronizar ahora" en `/admin`) → partidos poblados en `/matches` (§3.1, Unit 25/28).
 - [ ] Admin registrado (con trigger ya presente) y promovido a ADMIN.
 - [ ] Conexión de runtime por pooler; migraciones por direct connection.
-- [ ] **Crons (Unit 50)**: `pg_cron`/`pg_net` habilitados; `SYNC_TRIGGER_SECRET` en Vercel; Vault con `app_base_url` + `sync_trigger_secret`; `cron.job` lista 4 jobs (§7).
+- [ ] **Crons (Unit 50 + 51)**: `pg_cron`/`pg_net` habilitados; `SYNC_TRIGGER_SECRET` en Vercel; Vault con `app_base_url` + `sync_trigger_secret`; `cron.job` lista **5 jobs** (4 sync + `dispatch-notifications`) (§7 / §7.1).
+- [ ] **Web Push (Unit 10/43/51)**: `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT` en **Vercel** (no sólo `.env` local); verificación E2E de entrega ejecutada (§7.1) → si `sent=0` con suscripciones activas, faltan las VAPID en Vercel.
 
 ---
 
@@ -194,9 +195,26 @@ Cadencia instalada (UTC): `sync-live-status */2 * * * *` (LIVE_STATUS), `sync-re
 `ProviderSyncRun` > 90 días). El tier en vivo hace short-circuit cuando no hay partidos en vivo/
 inminentes (ahorra cuota del proveedor; límite free = 10 req/min).
 
+### 7.1 Cron dedicado de dispatch de Web Push (Unit 51)
+
+El dispatch del outbox de notificaciones corría sólo como efecto secundario de `runScheduledSync`
+(acoplado a los tiers de sync → `POOL_INVITE` con hasta ~5 min de latencia y sin cobertura fuera de
+ventana de partido). Unit 51 añade un cron **dedicado e independiente del proveedor**:
+
+- `dispatch-notifications */1 * * * *` (cada minuto) → `POST /api/notifications/dispatch`,
+  mismo guard `x-sync-secret` y mismos secretos del Vault (`app_base_url`, `sync_trigger_secret`).
+- Seguro a cada minuto: `dispatchPendingNotifications` es idempotente, hace una sola query indexada
+  cuando el outbox está vacío, es no-op si faltan las `VAPID_*`, y **no consume cuota del proveedor**.
+- Migración `20260619130000_unit51_cron_dispatch_notifications` (defensiva/idempotente, mismo patrón
+  que Unit 50). El dispatch best-effort dentro de `runScheduledSync` se conserva como camino redundante.
+
+**Requisito para que Web Push entregue (no sólo encole)**: las variables `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` deben estar en el **entorno de Vercel** (producción). Sin ellas
+`dispatchPendingNotifications` devuelve `{0,0,0}` en silencio (BR-51.2) — fallo difícil de diagnosticar.
+
 Verificación:
 ```sql
-select jobname, schedule, active from cron.job order by jobname;        -- 4 jobs
+select jobname, schedule, active from cron.job order by jobname;        -- 5 jobs (4 sync + dispatch)
 -- cron.job_run_details NO tiene columna jobname (se indexa por jobid);
 -- se une a cron.job para mostrar el nombre del job.
 select j.jobname, d.status, d.return_message, d.start_time
@@ -207,6 +225,13 @@ select j.jobname, d.status, d.return_message, d.start_time
 Prueba directa de la ruta: `curl -X POST -H "x-sync-secret: $SYNC_TRIGGER_SECRET"
 ".../api/cron/sync?scope=RESULTS"` → `{ "ok": true, "scope": "RESULTS" }`. El sync manual de
 `/admin` ("Sincronizar ahora") se conserva como fallback.
+
+Prueba directa del dispatch: `curl -X POST -H "x-sync-secret: $SYNC_TRIGGER_SECRET"
+".../api/notifications/dispatch"` → `{ "sent": …, "failed": …, "skipped": … }`. Verificación E2E de
+Web Push: suscribirse en el navegador (onboarding o `/settings/profile`) → generar un evento
+(invitación a pool o cambio de estado de partido) → en ~1 min `notification_events.status='SENT'` +
+fila en `notification_deliveries` + notificación visible. Si `sent=0` con suscripciones activas y
+eventos PENDING → revisar las `VAPID_*` en Vercel (BR-51.2).
 
 ### Troubleshooting (lecciones del primer deploy, 2026-06-19)
 

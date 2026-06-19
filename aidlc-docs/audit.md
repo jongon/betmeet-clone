@@ -1,5 +1,19 @@
 # AI-DLC Audit Log
 
+## Unit 51 — Cron dedicado de dispatch de Web Push (completar push en prod)
+**Timestamp**: 2026-06-19T13:00:00Z
+**User Input**: "/aidlc:refine me ayudas a completar esta tarea y tener los push funcionando" (precedido de "Quiero saber qué funciona y qué no de las web push notifications"). Decisiones (AskUserQuestion): síntoma = "Hay cosas en Supabase y el cron en la base de datos que no he terminado y necesito que me guíes. Además de tus recomendaciones."; entorno = **Producción (Vercel)**.
+**AI Response**: "Refine aplicado como Unit 51 sin reiniciar etapas aprobadas (Units 1–50 intactas). Diagnóstico: el código de Web Push (Units 10/43/50) está completo y cableado de punta a punta y las VAPID de `.env` son reales; el único disparo automático del dispatcher era best-effort dentro de `runScheduledSync` (Unit 50), acoplado a los tiers del proveedor (POOL_INVITE hasta ~5 min de latencia, sin cobertura fuera de ventana de partido) pese a que el dispatch no consume cuota del proveedor. Recomendación implementada: cron dedicado. Gap de prod (lo no terminado por el usuario) identificado y documentado como guía operativa."
+**Decisión de diseño**: DD-51.1 cron dedicado `dispatch-notifications` (`* * * * *`) → `POST /api/notifications/dispatch` leyendo Vault (`app_base_url`, `sync_trigger_secret`), mismo guard `x-sync-secret` y mismo patrón defensivo/idempotente que Unit 50. DD-51.2 cadencia por minuto segura (dispatcher idempotente, query única indexada con outbox vacío, no-op sin VAPID, sin coste de proveedor; ~3000 envíos/h de techo). DD-51.3 el dispatch best-effort de Unit 50 se conserva como camino redundante. DD-51.4 sin cambios de código de aplicación (ruta y dispatcher ya existían; middleware ya hace early-return para `/api/*`).
+**Reglas**: BR-51.1 mismo secreto en Vercel y Vault. BR-51.2 sin `VAPID_*` en Vercel el dispatch entrega cero en silencio (fallo crítico de config). BR-51.3 entrega best-effort idempotente; endpoints 404/410 → `isActive=false`; sin reintento por suscripción (limitación heredada).
+**Code Generation (2026-06-19T13:00:00Z)**: NEW `prisma/migrations/20260619130000_unit51_cron_dispatch_notifications/migration.sql` (job `dispatch-notifications */1`, `do $$ ... $$` defensivo no-op sin pg_cron/pg_net, `cron.unschedule` idempotente, lee Vault, sin secretos en el repo). NEW `aidlc-docs/construction/unit-51-cron-dispatch-notifications/functional-design.md`. MODIFIED `operations-runbook.md` (§7.1 cron de dispatch + requisito `VAPID_*` en Vercel + verificación E2E + checklist a 5 jobs), `aidlc-state.md`, `audit.md`. Sin cambios de código TS, schema en tablas de la app, rutas, VAPID keys ni tipos de evento.
+**Build/Test Status**: N/A para TS (sin cambios de código). Migración SQL pura defensiva → `prisma migrate deploy` queda verde en local/CI (no-op donde no hay pg_cron/pg_net). Verificación real = aplicar en prod + E2E (runbook §7.1).
+**Security Baseline**: COMPLIANT — ruta ya guarded por secreto, secreto/URL en Vault, sin nueva superficie de input, sin secretos en el repo.
+**Guía operativa entregada al usuario** (pendiente de ejecución por el usuario): (1) habilitar `pg_cron`/`pg_net` en Supabase; (2) `SYNC_TRIGGER_SECRET` + `NEXT_PUBLIC_VAPID_PUBLIC_KEY`/`VAPID_PRIVATE_KEY`/`VAPID_SUBJECT` en Vercel; (3) Vault `app_base_url` + `sync_trigger_secret`; (4) `prisma migrate deploy` (→ 5 jobs); (5) verificación E2E de entrega. **Pendiente seguridad**: rotar `SYNC_TRIGGER_SECRET` (compartido en claro en sesión previa).
+**No reinicia etapas aprobadas (Units 1–50 intactas).**
+
+---
+
 ## Unit 50 — Deploy fixes (verificación en prod)
 **Timestamp**: 2026-06-19T01:00:00Z
 **User Input**: "ejecuta el curl ... con este key" / "haz commit" / "tienes algo que documentar antes de cerrar?"
