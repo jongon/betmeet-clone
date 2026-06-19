@@ -23,7 +23,7 @@
     "prisma:db:setup": "pnpm prisma:migrate && pnpm prisma:generate && pnpm prisma:seed:all",
     "sync:flags": "tsx scripts/sync-flags.ts",
     "check:flags": "tsx scripts/check-flags.ts",
-    "postinstall": "if [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; then if [ -f .agent/config/mcp/source.json ]; then node scripts/generate-mcp.mjs; fi; fi;",
+    "postinstall": "if [ -z \"$NODE_ENV\" ] || [ \"$NODE_ENV\" = \"development\" ]; then if [ -f .agents/config/mcp/source.json ]; then node scripts/generate-mcp.mjs; fi; fi;",
     "prepare": "lefthook install"
   },
   "dependencies": {

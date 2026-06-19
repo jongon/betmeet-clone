@@ -20,7 +20,7 @@ Plataforma de predicciones deportivas para torneos tipo World Cup. Los usuarios 
 ## Estructura del proyecto
 
 ```
-├── .agent/                  # Configuración MCP (fuente de verdad)
+├── .agents/                 # Configuración MCP (fuente de verdad)
 ├── .aidlc/                  # Reglas AI-DLC para desarrollo asistido
 ├── aidlc-docs/              # Documentación generada por AI-DLC
 ├── .devcontainer/           # VS Code Dev Container

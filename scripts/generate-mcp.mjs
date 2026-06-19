@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-const sourcePath = ".agent/config/mcp/source.json";
+const sourcePath = ".agents/config/mcp/source.json";
 const absoluteSourcePath = resolve(root, sourcePath);
 
 let source;

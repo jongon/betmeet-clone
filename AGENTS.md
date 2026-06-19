@@ -100,7 +100,7 @@ pnpm test     # Vitest
 
 ## MCP (AI Tools)
 
-`.agent/config/mcp/source.json` es la fuente de verdad. `scripts/generate-mcp.mjs` genera configs para 8 herramientas:
+`.agents/config/mcp/source.json` es la fuente de verdad. `scripts/generate-mcp.mjs` genera configs para 8 herramientas:
 
 Claude Code, opencode, Cursor, Kiro, Kilocode, GitHub Copilot, Codex, Antigravity.
 
@@ -108,7 +108,7 @@ Claude Code, opencode, Cursor, Kiro, Kilocode, GitHub Copilot, Codex, Antigravit
 node scripts/generate-mcp.mjs   # Se ejecuta en postinstall
 ```
 
-Para añadir un MCP server: editar `.agent/config/mcp/source.json` → correr `generate-mcp.mjs`.
+Para añadir un MCP server: editar `.agents/config/mcp/source.json` → correr `generate-mcp.mjs`.
 
 ## Documentación
 
