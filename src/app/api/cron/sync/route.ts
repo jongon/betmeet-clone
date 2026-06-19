@@ -39,17 +39,31 @@ export async function POST(request: Request) {
   }
   const scope = scopeParam as ProviderSyncScope;
 
-  // Quota saver: skip the live poll entirely when no match is live or imminent.
-  if (scope === "LIVE_STATUS" && !(await hasActiveMatchWindow())) {
-    return NextResponse.json({ ok: true, scope, skipped: true });
+  try {
+    // Quota saver: skip the live poll entirely when no match is live or imminent.
+    if (scope === "LIVE_STATUS" && !(await hasActiveMatchWindow())) {
+      return NextResponse.json({ ok: true, scope, skipped: true });
+    }
+
+    const result = await runScheduledSync(scope, { source: "cron" });
+    if (!result.ok) {
+      return NextResponse.json({ ok: false, scope, error: result.error }, { status: 502 });
+    }
+
+    // Best-effort: sync/scoring already persisted. Cache revalidation must not
+    // fail the run (and `next/cache` helpers can throw in a Route Handler).
+    if (scope !== "CLEANUP") {
+      try {
+        revalidateResultViews({ adminDashboard: true });
+      } catch (error) {
+        console.error("[cron/sync] revalidateResultViews failed", error);
+      }
+    }
+
+    return NextResponse.json({ ok: true, scope });
+  } catch (error) {
+    console.error("[cron/sync] unhandled error", { scope, error });
+    const message = error instanceof Error ? error.message : "unknown error";
+    return NextResponse.json({ ok: false, scope, error: message }, { status: 500 });
   }
-
-  const result = await runScheduledSync(scope, { source: "cron" });
-  if (!result.ok) {
-    return NextResponse.json({ ok: false, scope, error: result.error }, { status: 502 });
-  }
-
-  if (scope !== "CLEANUP") revalidateResultViews({ adminDashboard: true });
-
-  return NextResponse.json({ ok: true, scope });
 }
