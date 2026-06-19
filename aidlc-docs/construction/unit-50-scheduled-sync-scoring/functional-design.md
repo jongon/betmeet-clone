@@ -54,8 +54,10 @@ infraestructura de BD se añaden las extensiones `pg_cron` y `pg_net` y dos secr
 | BR-50.5 | `windowKey = "<source>-<scope>-<YYYY-MM-DD>"` (source ∈ `manual` \| `cron`). | FR-REFINE-50.2 |
 | BR-50.6 | El sync automático respeta el lock de `ProviderSyncRun` (Unit 4) y los guards de no-regresión/freeze de override (Unit 46) — heredados del orquestador. | FR-REFINE-50.2 |
 | BR-50.7 | El tier `LIVE_STATUS` hace short-circuit (`{ ok, skipped: true }`, sin llamar al proveedor) cuando `hasActiveMatchWindow()` es falso (sin partidos LIVE/LOCKED ni kickoff ±3h). Aplica solo a la ruta cron. | FR-REFINE-50.4 |
-| BR-50.8 | Fallo de sync en la ruta → `502` con `{ ok:false, scope, error }`. Éxito de scope de proveedor → revalida vistas (`adminDashboard`). `CLEANUP` no revalida. | FR-REFINE-50.1 |
+| BR-50.8 | Fallo de sync en la ruta → `502` con `{ ok:false, scope, error }`. Éxito de scope de proveedor → revalida vistas (`adminDashboard`) **best-effort** (try/catch: `next/cache` puede lanzar en un Route Handler y no debe romper el run ya persistido). `CLEANUP` no revalida. Error no controlado → `500` con `{ ok:false, scope, error: message }` (cuerpo con el mensaje, para diagnóstico). | FR-REFINE-50.1 |
 | BR-50.9 | El sync manual de `/admin` se conserva; el caso feliz es idéntico (delega en `runScheduledSync(scope, { source: "manual" })`). | FR-REFINE-50.2 |
+| BR-50.10 | El middleware (`src/proxy.ts`) hace early-return para rutas `/api/*`: se autentican solas (guard `x-sync-secret`, o CSP reports sin sesión). Sin esto, el gate de sesión redirige `POST /api/cron/sync` a `/sign-in` (307) y la ruta nunca corre. | FR-REFINE-50.1 |
+| BR-50.11 | El guard solo aplica si `SYNC_TRIGGER_SECRET` está definido (`if (expected)`). Si la env var falta en el entorno (p. ej. Vercel), la ruta queda **abierta** → debe configurarse en prod (ver runbook §7). | FR-REFINE-50.1 |
 
 ## 6. Business Logic Model
 
@@ -131,11 +133,18 @@ prisma/migrations/20260618120000_unit50_cron_sync_scoring/migration.sql
 **Archivos modificados**
 ```
 src/features/admin/actions/trigger-sync.ts        # delega en runScheduledSync
+src/proxy.ts                                       # early-return /api/* (BR-50.10, fix de deploy)
 .env.example                                       # SYNC_TRIGGER_SECRET + nota Vault
 aidlc-docs/operations/operations-runbook.md        # §7 Crons + checklist
 ```
 **Sin cambios**: orquestador de sync, sweeper de scoring, provider, dispatcher, schema de app,
 `/matches`, auth, onboarding, UI.
+
+> **Fixes detectados en el primer deploy a prod (2026-06-19)**: (1) el middleware redirigía
+> `/api/cron/sync` a `/sign-in` (307) → BR-50.10; (2) `revalidateResultViews` lanzaba en el Route
+> Handler → ahora best-effort + handler con try/catch que devuelve el error en el body (BR-50.8);
+> (3) `SYNC_TRIGGER_SECRET` debe estar en el entorno de Vercel, no solo en Vault, o el guard se
+> salta (BR-50.11). Verificado en prod: key inválida → 401, `RESULTS`/`LIVE_STATUS` → 200.
 
 ## 11. Security Baseline Compliance
 

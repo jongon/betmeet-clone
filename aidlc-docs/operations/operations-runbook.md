@@ -208,6 +208,17 @@ Prueba directa de la ruta: `curl -X POST -H "x-sync-secret: $SYNC_TRIGGER_SECRET
 ".../api/cron/sync?scope=RESULTS"` → `{ "ok": true, "scope": "RESULTS" }`. El sync manual de
 `/admin` ("Sincronizar ahora") se conserva como fallback.
 
+### Troubleshooting (lecciones del primer deploy, 2026-06-19)
+
+| Síntoma | Causa | Solución |
+|---|---|---|
+| La ruta responde **307 → `/sign-in`** | El middleware (`src/proxy.ts`) aplicaba el gate de sesión a `/api/*`. | Ya corregido: el middleware hace early-return para `/api/*` (se autentican solas). No re-añadir `/api` al gate. |
+| Una key **incorrecta** no da `401` (da 200/500) | `SYNC_TRIGGER_SECRET` **no** está en el entorno de Vercel; el guard es `if (expected)` y se salta → **ruta abierta**. | Configurar `SYNC_TRIGGER_SECRET` en Vercel (paso 2). Debe coincidir con el `sync_trigger_secret` de Vault. |
+| `500` con cuerpo vacío en scopes de proveedor | `revalidateResultViews` (`next/cache`) lanzaba en el Route Handler. | Ya corregido: revalidate es best-effort y el handler devuelve el mensaje de error en el body. |
+
+> **Seguridad**: sin `SYNC_TRIGGER_SECRET` en Vercel la ruta queda sin guard. Verifícalo con
+> `curl ... -H "x-sync-secret: WRONG" → 401`. Rotar el secreto en Vercel **y** Vault si se filtró.
+
 ---
 
 ## Decisiones / pendientes

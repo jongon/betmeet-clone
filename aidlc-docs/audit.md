@@ -1,5 +1,19 @@
 # AI-DLC Audit Log
 
+## Unit 50 — Deploy fixes (verificación en prod)
+**Timestamp**: 2026-06-19T01:00:00Z
+**User Input**: "ejecuta el curl ... con este key" / "haz commit" / "tienes algo que documentar antes de cerrar?"
+**AI Response**: "Verificación end-to-end contra https://betmeet-clone.vercel.app reveló 3 problemas, todos corregidos y documentados (BR-50.8/50.10/50.11 + runbook §7 troubleshooting)."
+**Bug Fixes (2026-06-19)**:
+1. **Middleware redirigía `/api/cron/sync` a `/sign-in` (307)** → la ruta nunca corría. Fix: `src/proxy.ts` hace early-return para `/api/*` (se autentican solas). Commit `7e7b781`. BR-50.10.
+2. **`revalidateResultViews` lanzaba en el Route Handler → 500 con cuerpo vacío** en scopes de proveedor. Fix: revalidate best-effort (try/catch) + handler envuelto en try/catch que devuelve el mensaje en el body. Commit `260ce3f`. BR-50.8.
+3. **`SYNC_TRIGGER_SECRET` ausente en el entorno de Vercel** → guard `if (expected)` se saltaba y la ruta quedaba abierta (una key inválida no daba 401). Resuelto por config (env var en Vercel, debe igualar `sync_trigger_secret` de Vault). BR-50.11 + runbook §7.
+4. **Doc**: query de verificación corregida (`cron.job_run_details` no tiene `jobname`; join a `cron.job`). Commit `2c58c1a`.
+**Verificación en prod (2026-06-19)**: key inválida → `401`; `RESULTS` → `200 {"ok":true,"scope":"RESULTS"}` (2.7s); `LIVE_STATUS` → `200`; `CLEANUP` → `200`; `TEAMS` → `400`. Crons de pg_cron operativos.
+**Pendiente**: rotar `SYNC_TRIGGER_SECRET` (se compartió en claro durante la sesión). Rama `feat/unit-50-cron-sync-scoring` pusheada; PR a `main` no abierto (a decisión del usuario).
+
+---
+
 ## Unit 50 — Sync & Scoring automáticos (Crons), resuelve FR-06
 **Timestamp**: 2026-06-18T22:30:00Z
 **User Input**: "/aidlc:refine Quiero implementar Cron automatizados para sincronizar el estado de los partidos y calcular los puntos y no tenga que ir al admin a sincronizar manualmente"
