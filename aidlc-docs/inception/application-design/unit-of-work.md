@@ -485,6 +485,22 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El ranking global y el leaderboard de pool escalan con muchos usuarios sin cambiar resultados; el scoring de un partido se escribe en una sola operación atómica e idempotente.
 
+## Unit 50 — Sync & Scoring automáticos (Crons) (refine que resuelve FR-06)
+
+**Goal**: Automatizar el sync de partidos (football-data.org) y el cálculo de puntos para que se ejecuten de forma programada, sin que el admin tenga que pulsar "Sincronizar ahora" manualmente.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-18); implementa FR-REFINE-50.1…50.4 / US-50.1, US-50.2. Resuelve `FR-06` (TBD). No reinicia Units 1–49.
+- **Scheduler**: Supabase **pg_cron + pg_net** golpea `POST /api/cron/sync?scope=<SCOPE>` en cadencia tiered (UTC): `LIVE_STATUS` `*/2`, `RESULTS` `*/5`, `FIXTURES` `0 6`, `CLEANUP` `0 4`. URL base y secreto desde **Supabase Vault** (`app_base_url`, `sync_trigger_secret`).
+- **Ruta**: nueva `src/app/api/cron/sync/route.ts` (`runtime = "nodejs"`), guard `x-sync-secret` vs `SYNC_TRIGGER_SECRET` (mismo patrón que `/api/notifications/dispatch`). `401` sin secreto, `400` scope inválido, `502` fallo de sync.
+- **Orquestación compartida**: nuevo servicio `runScheduledSync(scope, { source })` reusado por `triggerSync` (admin, `manual`) y la ruta cron (`cron`). Encadena `runCompetitionSync` → `scoreFinishedUnscoredMatches` → best-effort `dispatchPendingNotifications`; `CLEANUP` → `cleanupOldSyncRuns`. Respeta el lock de Unit 4 y los guards de Unit 46.
+- **Ahorro de cuota**: `hasActiveMatchWindow()` hace short-circuit del tier `LIVE_STATUS` cuando no hay partidos en vivo/inminentes (solo en el cron, no en el manual).
+- **Migración**: `…_unit50_cron_sync_scoring` instala los jobs de forma idempotente y defensiva (no-op donde pg_cron/pg_net no existen, p. ej. local/CI). **Sin** cambios de schema en tablas de la app.
+- **Sin** cambios en el motor de scoring, el proveedor, `/matches`, auth, onboarding ni la UI. El sync manual de `/admin` se conserva como fallback.
+- Security Baseline intacto: ruta guarded por secreto, secreto/URL en Vault (no en el repo), reusa autorización/RLS existente del orquestador.
+
+**Primary Deliverable**: Los marcadores en vivo y los puntos se actualizan solos en cadencia tiered; el admin ya no necesita sincronizar manualmente (aunque puede, como fallback).
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -521,6 +537,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 32. Unit 47: Extensión del permiso de invitación a pools públicos (post-construction refine; sobre Unit 45; elimina la restricción `type === "PRIVATE"` del toggle `membersCanInvite` para que aplique a pools `PUBLIC` también; sin schema ni migraciones; solo cambios de lógica/UI)
 33. Unit 48: Predicciones con override por pool (post-construction refine; sobre Units 3/5/6/41; schema `Prediction.poolId` + partial unique indexes; leaderboard override-aware; botón "Usar predicción global"; migración Prisma)
 34. Unit 49: Performance hardening de scoring-rankings (post-construction refine; sobre Units 6/37/48; agregación SQL del ranking global vía `groupBy`, leaderboard de pool O(n) con `Set` de overrides, bulk upsert atómico de scoring vía `INSERT ... ON CONFLICT`; sin schema, migraciones, rutas ni i18n; sin cambio de comportamiento)
+35. Unit 50: Sync & Scoring automáticos (Crons) (post-construction refine; resuelve FR-06; Supabase pg_cron + pg_net → `POST /api/cron/sync` guarded por `x-sync-secret`; cadencia tiered LIVE/RESULTS/FIXTURES/CLEANUP; orquestación compartida `runScheduledSync`; migración pg_cron idempotente/defensiva; sin schema de app; conserva el sync manual del admin como fallback)
 
 ## Security Notes
 

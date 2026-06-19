@@ -122,10 +122,22 @@ Proveedor de autenticación: **Supabase Auth** (gestiona email/password, social 
 - Abstracción de proveedores (adapter pattern) para facilitar swap de proveedores
 - Gestión segura de API keys (Supabase Vault o secrets manager, nunca hardcoded)
 
-### FR-06: Jobs Programados (Crons) — TBD
-- La necesidad de jobs programados se definirá en la fase funcional
-- Si se requieren, se evaluará estrategia (Supabase Edge Functions con pg_cron, o servicio externo como Ingress/Trigger.dev)
-- Los requisitos específicos dependerán del dominio de negocio del SaaS
+### FR-06: Jobs Programados (Crons) — RESUELTO (Unit 50, 2026-06-18)
+
+> TBD original resuelto por **Unit 50** (ver Épica 50). Estrategia elegida:
+> **Supabase pg_cron + pg_net** (no Edge Functions ni servicio externo).
+
+- El sync de partidos (football-data.org) y el cálculo de puntos se ejecutan de forma
+  **automática y programada**, sin intervención del admin. El sync manual de `/admin` se
+  conserva como fallback.
+- Scheduler: **Supabase pg_cron** dispara `net.http_post` (pg_net) contra una ruta HTTP
+  autenticada (`/api/cron/sync`), protegida por el header `x-sync-secret`
+  (`SYNC_TRIGGER_SECRET`). El secreto y la URL base se leen de **Supabase Vault**, nunca
+  hardcodeados (consistente con FR-05).
+- Cadencia tiered (UTC): `LIVE_STATUS` cada 2 min, `RESULTS` cada 5 min, `FIXTURES` 1/día,
+  `CLEANUP` 1/día (purga `ProviderSyncRun` > 90 días). Presupuesto del proveedor: 10 req/min.
+- La automatización **reusa** la orquestación existente (Unit 25/28 sync + Unit 6 scoring +
+  Unit 43 dispatch) y respeta los guards de Unit 46 (no-regresión de status, freeze de override).
 
 ### FR-07: Datos de Negocio
 - Modelo de datos extendible basado en el dominio del SaaS
@@ -1813,3 +1825,44 @@ El gate de `createDirectedInvite` y la UI en `/pools/[id]` se simplifican:
 - **Supersede parcial de Unit 6**: BR-6.11 ("el total de un usuario es global... es el mismo en todos sus pools") queda **derogada** para el contexto de pool. El total global sigue siendo `poolId IS NULL`; el total por pool se calcula con resolucion override-vs-global.
 - Pools existentes sin overrides: comportamiento identico al actual (todos los miembros usan sus predicciones globales). Sin regresion.
 - **No reinicia** Units 1-47.
+
+### Épica 50: Sync & Scoring automáticos (Crons) (Unit 50 — añadida vía refine, 2026-06-18)
+
+> Refine post-construcción que **resuelve `FR-06`** (TBD) reusando la orquestación de Unit 25/28 (sync), Unit 6 (scoring) y Unit 43 (dispatch). Hoy el sync de partidos y el cálculo de puntos solo ocurren cuando un admin pulsa "Sincronizar ahora" en `/admin` (`triggerSync`). Esta Épica los **automatiza** con **Supabase pg_cron + pg_net** golpeando una ruta HTTP autenticada, de modo que marcadores en vivo y puntos se actualizan solos. El sync manual se conserva como fallback. **No reinicia** etapas aprobadas. Sin cambios de schema en tablas de la app (solo extensiones pg_cron/pg_net + Vault).
+
+#### FR-REFINE-50.1 — Ruta de sync automatizado autenticada
+
+- Nueva ruta `POST /api/cron/sync?scope=<SCOPE>` (`runtime = "nodejs"`), modelada sobre `/api/notifications/dispatch`.
+- Guard: header `x-sync-secret` comparado contra `process.env.SYNC_TRIGGER_SECRET`. Sin secreto correcto → `401`.
+- Scopes permitidos: `FIXTURES | LIVE_STATUS | RESULTS | FULL | CLEANUP`. Scope inválido/ausente → `400`.
+- En éxito reusa la misma cadena que el admin (sync → scoring → dispatch) y revalida vistas (`adminDashboard`). Fallo de sync → `502` con mensaje.
+- **DD-50.1**: misma orquestación que el admin; no se reimplementa la lógica de sync/scoring.
+
+#### FR-REFINE-50.2 — Orquestación compartida `runScheduledSync`
+
+- Se extrae un servicio `runScheduledSync(scope, { source })` reusado por `triggerSync` (admin, `source = "manual"`) y la ruta cron (`source = "cron"`).
+- Para scopes de proveedor: `runCompetitionSync(FootballDataProvider, scope, { windowKey })` → `scoreFinishedUnscoredMatches()` → best-effort `dispatchPendingNotifications()`.
+- Para `CLEANUP`: `cleanupOldSyncRuns(now)` (purga `ProviderSyncRun` > 90 días), sin tocar el proveedor.
+- `windowKey` etiqueta el `ProviderSyncRun` con el origen (`manual-…` / `cron-…`) para trazabilidad en `/admin`.
+- Respeta el lock de `ProviderSyncRun` (Unit 4) y los guards de no-regresión/freeze de override (Unit 46) — ya viven dentro del orquestador.
+- **DD-50.2**: el guard de no-regresión es **crítico** porque el sync ahora corre sin supervisión humana; un partido terminal no debe regresar por feed inconsistente del proveedor.
+
+#### FR-REFINE-50.3 — Cadencia tiered (Supabase pg_cron + pg_net)
+
+- `LIVE_STATUS` `*/2 * * * *`; `RESULTS` `*/5 * * * *`; `FIXTURES` `0 6 * * *`; `CLEANUP` `0 4 * * *` (UTC).
+- Cada job hace `net.http_post` a `/api/cron/sync?scope=…` con `x-sync-secret`; la URL base y el secreto se leen de **Supabase Vault** (`app_base_url`, `sync_trigger_secret`).
+- Migración Prisma `…_unit50_cron_sync_scoring` instala los jobs de forma idempotente y **defensiva** (no-op donde pg_cron/pg_net no están disponibles, p. ej. local/CI), manteniendo `migrate deploy` verde en todos los entornos.
+- **DD-50.3**: pg_cron sobre Vercel Cron / scheduler externo — independiente del plan de Vercel y consistente con que el secret guard ya existía (`/api/notifications/dispatch`).
+
+#### FR-REFINE-50.4 — Ahorro de cuota en el tier en vivo
+
+- El presupuesto del proveedor (football-data.org free) es 10 req/min. El tier `LIVE_STATUS` (cada 2 min) hace short-circuit cuando **no hay ningún partido en vivo o inminente** (status LIVE/LOCKED o kickoff ±3h): responde `{ ok, skipped: true }` sin llamar al proveedor.
+- El short-circuit aplica **solo** a la ruta cron; el sync manual del admin siempre ejecuta (sin cambio de comportamiento).
+- **DD-50.4**: `hasActiveMatchWindow()` evita gastar requests cuando no hay nada que sincronizar.
+
+#### Dependencias y backward-compatibility
+
+- **Depende de**: Unit 4 (lock de sync), Unit 6 (scoring/sweeper), Unit 7 (admin `triggerSync`, refactorizado para delegar), Unit 25 (provider football-data), Unit 28 (persistencia del sync), Unit 43 (dispatch), Unit 46 (guards de no-regresión/freeze).
+- **No afecta**: el motor de scoring, el proveedor, el schema de tablas de la app, `/matches`, auth, onboarding ni la UI (salvo que el admin verá runs etiquetados `cron-…`).
+- **Conserva**: el sync manual de `/admin` como fallback. El comportamiento del caso feliz del admin es idéntico (misma cadena, ahora vía `runScheduledSync`).
+- **No reinicia** Units 1-49.

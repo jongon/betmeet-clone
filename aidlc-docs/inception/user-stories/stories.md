@@ -904,3 +904,32 @@
   - Para el usuario actual (viewer), las celdas de partidos futuros SCHEDULED son editables (modal con PredictionScoreControls).
   - Si el usuario no tiene predicción global para un partido futuro, al editar desde el pool se muestra el diálogo de dual-save (US-48.1).
   - Recargar la página o navegar a otra tab y volver reinicia la paginación (solo pasados + hoy + mañana visibles).
+
+## Épica 50: Sync & Scoring automáticos (Crons) (Unit 50 — añadida vía refine, 2026-06-18)
+
+> Refine que resuelve FR-06 reusando la orquestación de sync (Unit 25/28), scoring (Unit 6) y dispatch (Unit 43). El sync de partidos y el cálculo de puntos pasan de manual (botón en `/admin`) a automático mediante Supabase pg_cron + pg_net contra una ruta autenticada. El sync manual se conserva como fallback. Sin reiniciar etapas aprobadas.
+
+### US-50.1: Que los marcadores y puntos se actualicen solos
+
+**Como** administrador (y, en la práctica, todos los jugadores)
+**Quiero** que el estado de los partidos y los puntos se sincronicen automáticamente
+**Para** no tener que entrar a `/admin` a pulsar "Sincronizar ahora" cada pocos minutos durante el torneo.
+
+- **Criterios de Aceptación**:
+  - Existe una ruta `POST /api/cron/sync?scope=<SCOPE>` protegida por el header `x-sync-secret` (= `SYNC_TRIGGER_SECRET`). Sin secreto correcto responde `401`. **FR-REFINE-50.1**.
+  - Scopes válidos: `FIXTURES | LIVE_STATUS | RESULTS | FULL | CLEANUP`. Un scope inválido o ausente responde `400`.
+  - Al invocarse con un scope válido, la ruta ejecuta la misma cadena que el admin (sync del proveedor → scoring de partidos finalizados → dispatch de notificaciones) y revalida las vistas de resultados. Un fallo de sync responde `502`.
+  - Supabase pg_cron ejecuta los jobs en la cadencia tiered (UTC): `LIVE_STATUS` cada 2 min, `RESULTS` cada 5 min, `FIXTURES` 1/día, `CLEANUP` 1/día. **FR-REFINE-50.3**.
+  - La URL base y el secreto se leen de Supabase Vault; no se hardcodean en SQL ni en el repo.
+  - Un partido ya finalizado **no** regresa a "en juego" aunque el feed del proveedor sea inconsistente (guard de Unit 46 respetado en el sync automático). **FR-REFINE-50.2**.
+  - El sync manual de `/admin` sigue funcionando igual que antes (fallback). Los runs automáticos quedan etiquetados (`cron-…`) y distinguibles de los manuales (`manual-…`) en `/admin`.
+
+### US-50.2: No malgastar la cuota del proveedor cuando no hay partidos
+
+**Como** operador del sistema
+**Quiero** que el polling en vivo no consuma cuota de la API cuando no hay partidos en curso
+**Para** mantenerme dentro del límite del proveedor (10 req/min) sin desperdiciar llamadas.
+
+- **Criterios de Aceptación**:
+  - El job `LIVE_STATUS` (cada 2 min) hace short-circuit cuando no hay ningún partido en vivo o inminente (status LIVE/LOCKED o kickoff dentro de ±3h): responde `{ ok, skipped: true }` sin llamar al proveedor. **FR-REFINE-50.4**.
+  - El ahorro de cuota aplica solo al cron automático; el sync manual del admin siempre ejecuta.

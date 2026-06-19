@@ -11,6 +11,15 @@
 - **Response**: JSON object `{ sent: number, failed: number, skipped: number }` or `{ error: "Unauthorized" }` with `401`.
 - **Runtime**: Node.js, required because `web-push` is server-only.
 
+### Scheduled Sync & Scoring (Unit 50)
+
+- **Method**: `POST`
+- **Path**: `/api/cron/sync?scope=<SCOPE>`
+- **Purpose**: Automated competition sync + scoring + notification dispatch, invoked by Supabase pg_cron via pg_net. Reuses the same orchestration as the admin manual sync (`runScheduledSync`).
+- **Request**: `scope` query param (`FIXTURES | LIVE_STATUS | RESULTS | FULL | CLEANUP`). `x-sync-secret` header required when `SYNC_TRIGGER_SECRET` is configured.
+- **Response**: `{ ok: true, scope }` (or `{ ok: true, scope, skipped: true }` when `LIVE_STATUS` short-circuits with no live/imminent match); `{ error }` with `401` (bad secret) / `400` (bad scope); `{ ok: false, scope, error }` with `502` (sync failure).
+- **Runtime**: Node.js.
+
 ### CSP Report Intake
 
 - **Method**: route exists at `/api/csp-report`

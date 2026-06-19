@@ -147,9 +147,9 @@ Supabase seed scripts that call Admin APIs use `SUPABASE_SERVICE_ROLE_KEY`; `see
 
 | Job | Runtime | Purpose |
 |---|---|---|
-| `competition-sync` | **v1: server action admin manual** (`trigger-sync.ts` → `runCompetitionSync`). El Edge Function `supabase/functions/competition-sync/` es solo un **scaffold** (cron a futuro). | Sync football-data.org teams, fixtures, live status and results; write `provider_sync_runs` |
-| `competition-sync cleanup` | Supabase Edge Function scope or script/admin task | Remove/archive sync runs older than 90 days |
-| `notification-dispatch` | Server-side job or Supabase Edge Function | Drain pending notification events/outbox and send Web Push with retries/deduplication |
+| `competition-sync` | **Unit 50: Supabase pg_cron + pg_net** → `POST /api/cron/sync?scope=…` (guard `x-sync-secret`) → `runScheduledSync` → `runCompetitionSync`. Cadencia tiered (UTC): LIVE_STATUS `*/2`, RESULTS `*/5`, FIXTURES `0 6`. El sync manual del admin (`trigger-sync.ts`) se conserva como fallback. | Sync football-data.org teams, fixtures, live status and results; write `provider_sync_runs` |
+| `competition-sync cleanup` | **Unit 50**: pg_cron `sync-cleanup 0 4 * * *` → `/api/cron/sync?scope=CLEANUP` → `cleanupOldSyncRuns` | Remove sync runs older than 90 days |
+| `notification-dispatch` | `POST /api/notifications/dispatch` (guard `x-sync-secret`); también disparado tras cada sync vía `dispatchPendingNotifications` dentro de `runScheduledSync` | Drain pending notification events/outbox and send Web Push with retries/deduplication |
 
 Preview deployments use seed/mock competition data by default and only call football-data.org when `FOOTBALL_DATA_KEY` is explicitly configured for that environment.
 

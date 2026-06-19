@@ -1,9 +1,6 @@
 "use server";
 
-import { FootballDataProvider } from "@/features/competition/services/providers/football-data";
-import { runCompetitionSync } from "@/features/competition/services/sync-orchestrator";
-import { dispatchPendingNotifications } from "@/features/notifications/services/dispatcher";
-import { scoreFinishedUnscoredMatches } from "@/features/scoring-rankings/services/score-sweeper";
+import { runScheduledSync } from "@/features/competition/services/run-scheduled-sync";
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { getAdminUserId } from "../services/require-admin";
@@ -12,35 +9,22 @@ import { revalidateResultViews } from "../services/revalidate-result-views";
 const ALLOWED_SCOPES: ProviderSyncScope[] = ["FIXTURES", "LIVE_STATUS", "RESULTS", "FULL"];
 
 /**
- * Admin-triggered competition sync (BL-5, BR-7.11), followed by the scoring
- * sweeper (post-sync). Respects Unit 4's sync lock.
+ * Admin-triggered competition sync (BL-5, BR-7.11). Delegates to the shared
+ * scheduled-sync orchestration (Unit 50) — the same path the automated crons
+ * use — then logs and revalidates. Respects Unit 4's sync lock.
  */
 export async function triggerSync(scope: ProviderSyncScope) {
   const adminId = await getAdminUserId();
   if (!adminId) return { error: "No autorizado" };
   if (!ALLOWED_SCOPES.includes(scope)) return { error: "Scope inválido" };
 
-  try {
-    const provider = new FootballDataProvider();
-    const windowKey = `manual-${scope}-${new Date().toISOString().slice(0, 10)}`;
-    await runCompetitionSync(provider, scope, { windowKey });
-    await scoreFinishedUnscoredMatches();
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message === "FOOTBALL_DATA_KEY_MISSING") {
-      return { error: "Falta configurar FOOTBALL_DATA_KEY para el proveedor." };
-    }
-    return { error: "La sincronización falló. Revisa los runs recientes." };
+  const result = await runScheduledSync(scope, { source: "manual" });
+  if (!result.ok) {
+    return { error: result.error ?? "La sincronización falló. Revisa los runs recientes." };
   }
 
   logAuthEvent("admin.sync_triggered", { userId: adminId, scope });
   revalidateResultViews({ adminDashboard: true });
-
-  try {
-    await dispatchPendingNotifications();
-  } catch {
-    // best-effort: sync/scoring already completed successfully
-  }
 
   return { success: true };
 }

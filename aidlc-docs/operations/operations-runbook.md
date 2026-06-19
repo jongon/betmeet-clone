@@ -126,6 +126,7 @@ Verificar: en `profiles`, `verification_status = 'ADMIN'`; y acceso a `/admin` e
 - [ ] `FOOTBALL_DATA_KEY` configurada y **sync admin ejecutado** ("Sincronizar ahora" en `/admin`) → partidos poblados en `/matches` (§3.1, Unit 25/28).
 - [ ] Admin registrado (con trigger ya presente) y promovido a ADMIN.
 - [ ] Conexión de runtime por pooler; migraciones por direct connection.
+- [ ] **Crons (Unit 50)**: `pg_cron`/`pg_net` habilitados; `SYNC_TRIGGER_SECRET` en Vercel; Vault con `app_base_url` + `sync_trigger_secret`; `cron.job` lista 4 jobs (§7).
 
 ---
 
@@ -162,6 +163,46 @@ node --env-file=.env --import tsx -e 'import {prisma} from "@/lib/prisma"; \
 **Resiliencia ya en código:** el gate de `src/proxy.ts` solo redirige a onboarding cuando
 el read tuvo éxito y el nickname está realmente vacío. Ante error de lectura hace fail-open,
 de modo que un hipo de PostgREST ya no atrapa a todos los usuarios en el loop.
+
+---
+
+## 7. Crons automáticos de sync & scoring (Unit 50)
+
+Automatizan la cadena sync → scoring → dispatch (antes solo manual vía `/admin`). Scheduler:
+**Supabase pg_cron + pg_net** golpeando `POST /api/cron/sync?scope=…`, guarded por el header
+`x-sync-secret`. Corre en **UTC**.
+
+Pasos de habilitación (una vez por entorno):
+
+1. **Habilitar extensiones** en el dashboard de Supabase (Database → Extensions): `pg_cron` y
+   `pg_net`. La migración `20260618120000_unit50_cron_sync_scoring` las crea si puede, pero en
+   Supabase lo normal es habilitarlas desde el dashboard.
+2. **Variable de runtime en Vercel**: `SYNC_TRIGGER_SECRET` (string largo aleatorio). La ruta
+   valida `x-sync-secret` contra ella. Sin secreto correcto → `401`.
+3. **Secretos en Supabase Vault** (Database → Vault), leídos por los jobs en tiempo de ejecución
+   (no se hardcodean en SQL):
+   - `app_base_url` → URL pública de la app (p. ej. `https://tu-app.vercel.app`).
+   - `sync_trigger_secret` → **mismo** valor que `SYNC_TRIGGER_SECRET` de Vercel.
+   ```sql
+   select vault.create_secret('https://tu-app.vercel.app', 'app_base_url');
+   select vault.create_secret('<mismo-secreto-que-vercel>', 'sync_trigger_secret');
+   ```
+4. **Aplicar la migración** con `DIRECT_URL` (`:5432`): `npx prisma migrate deploy`.
+
+Cadencia instalada (UTC): `sync-live-status */2 * * * *` (LIVE_STATUS), `sync-results */5 * * * *`
+(RESULTS), `sync-fixtures 0 6 * * *` (FIXTURES), `sync-cleanup 0 4 * * *` (CLEANUP, purga
+`ProviderSyncRun` > 90 días). El tier en vivo hace short-circuit cuando no hay partidos en vivo/
+inminentes (ahorra cuota del proveedor; límite free = 10 req/min).
+
+Verificación:
+```sql
+select jobname, schedule, active from cron.job order by jobname;        -- 4 jobs
+select jobname, status, return_message, start_time
+  from cron.job_run_details order by start_time desc limit 10;          -- 'succeeded'
+```
+Prueba directa de la ruta: `curl -X POST -H "x-sync-secret: $SYNC_TRIGGER_SECRET"
+".../api/cron/sync?scope=RESULTS"` → `{ "ok": true, "scope": "RESULTS" }`. El sync manual de
+`/admin` ("Sincronizar ahora") se conserva como fallback.
 
 ---
 
