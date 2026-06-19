@@ -1,5 +1,16 @@
 # AI-DLC Audit Log
 
+## Unit 51 — Fix outbox auto-recuperable (dedupe que atascaba invitaciones)
+**Timestamp**: 2026-06-19T14:30:00Z
+**User Input**: "Intenté invitar un usuario. Desde jongon#7941 invité a test#6839 y el usuario test#6839 a pesar de tener las notificaciones encendidas y el navegador también no está llegando la notificación." Decisiones (AskUserQuestion): config de prod (VAPID/Vercel + migración Unit 51 + 5 jobs) = **todo aplicado**; receptor con dispositivo activo y toggle `poolInvite` = **sí a ambos**.
+**AI Response**: "Con los filtros operativos en verde, el sospechoso es un bug latente de dedupe en `queueNotificationEvent`: el `upsert` con `update: {}` nunca resucitaba un evento existente. Si una invitación previa quedó `SKIPPED` (receptor sin suscripción al dispatcharse) o `FAILED`, el `dedupeKey` estable (`pool-invite:{poolId}:{invitedUserId}`) hacía que toda re-invitación fuera no-op → atascado para siempre. Plan aprobado: diagnóstico SQL en prod (Fase 1, lo ejecuta el usuario) + fix de código (Fase 2, aplicado)."
+**Cambio (Fase 2)**: `src/features/notifications/services/events.ts` — `queueNotificationEvent` deja de usar `upsert({update:{}})`. Ahora: `findUnique` por `dedupeKey`; si no existe → `create` (PENDING); si existe y `status ∈ {SKIPPED, FAILED}` → `update {status: PENDING, processedAt: null, payload}` (resucita con payload fresco); si `SENT`/`PENDING` → no-op (evita re-notificar/duplicar). Outbox auto-recuperable para todos los tipos de evento (un SKIPPED/FAILED nunca se entregó, re-intentar no duplica). NEW test `src/features/notifications/services/__tests__/events.test.ts` (create / revive SKIPPED+FAILED / no tocar SENT+PENDING).
+**Diagnóstico pendiente del usuario (Fase 1, SQL en prod)**: estado del `NotificationEvent` POOL_INVITE → `SKIPPED` confirma esta causa; `PENDING` → cron no golpea o VAPID ausente; `FAILED` 403/400 → par VAPID desalineado (re-suscribir); `SENT` → cliente/SW. Tras el fix, re-invitar (o resetear el evento) deja el evento PENDING → el cron `*/1` lo drena en ≤1 min.
+**Build/Test Status**: Pass. tsc 0, Biome limpio (autofix de formato en el test), ESLint 0, **Vitest 377/377** (70 archivos; +5 tests del nuevo `events.test.ts`; el fallo de `trigger-sync.test.ts` sin `DATABASE_URL` es ambiental del shell, pasa 7/7 con la env). Sin cambios de schema, rutas, dispatcher ni VAPID.
+**No reinicia etapas aprobadas.**
+
+---
+
 ## Unit 51 — Cron dedicado de dispatch de Web Push (completar push en prod)
 **Timestamp**: 2026-06-19T13:00:00Z
 **User Input**: "/aidlc:refine me ayudas a completar esta tarea y tener los push funcionando" (precedido de "Quiero saber qué funciona y qué no de las web push notifications"). Decisiones (AskUserQuestion): síntoma = "Hay cosas en Supabase y el cron en la base de datos que no he terminado y necesito que me guíes. Además de tus recomendaciones."; entorno = **Producción (Vercel)**.
