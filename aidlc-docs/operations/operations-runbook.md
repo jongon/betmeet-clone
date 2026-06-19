@@ -197,8 +197,12 @@ inminentes (ahorra cuota del proveedor; límite free = 10 req/min).
 Verificación:
 ```sql
 select jobname, schedule, active from cron.job order by jobname;        -- 4 jobs
-select jobname, status, return_message, start_time
-  from cron.job_run_details order by start_time desc limit 10;          -- 'succeeded'
+-- cron.job_run_details NO tiene columna jobname (se indexa por jobid);
+-- se une a cron.job para mostrar el nombre del job.
+select j.jobname, d.status, d.return_message, d.start_time
+  from cron.job_run_details d
+  join cron.job j on j.jobid = d.jobid
+  order by d.start_time desc limit 10;                                  -- 'succeeded'
 ```
 Prueba directa de la ruta: `curl -X POST -H "x-sync-secret: $SYNC_TRIGGER_SECRET"
 ".../api/cron/sync?scope=RESULTS"` → `{ "ok": true, "scope": "RESULTS" }`. El sync manual de
