@@ -39,6 +39,15 @@ function isAuthOnly(pathname: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  // API routes authenticate themselves (e.g. the `x-sync-secret` guard on
+  // /api/cron/sync and /api/notifications/dispatch, or browser-posted CSP
+  // reports). The session-cookie redirect flow below would otherwise bounce
+  // these server-to-server / sessionless calls to /sign-in (307), so the route
+  // handler — and its own guard — never runs.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
