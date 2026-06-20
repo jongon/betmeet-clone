@@ -153,6 +153,16 @@ describe("buildDayGroups", () => {
     expect(buildDayGroups([p], members, "es", "Europe/Madrid")[0].dayKey).toBe("2026-06-18");
   });
 
+  it("exposes the live score on the column header for LIVE matches (Unit 58)", () => {
+    const live = makePrediction({ matchStatus: "LIVE", homeScore: 1, awayScore: 0 });
+    const groups = buildDayGroups([live], members, "es", "UTC");
+    const col = groups[0].matches[0];
+    expect(col.matchStatus).toBe("LIVE");
+    expect(col.homeScore).toBe(1);
+    expect(col.awayScore).toBe(0);
+    expect(col.sublabel).toBeNull(); // sublabel stays FINISHED-only
+  });
+
   it("uses allMatches as column source when provided (FR-REFINE-48.9)", () => {
     const matches = [
       {

@@ -142,3 +142,5 @@ modalEditable = editingMatch.kickoffAt != null AND now < parse(editingMatch.kick
 - Manual: con un partido a ~30 s del kickoff, dejar la pestaña quieta en `/matches` y
   `/pools/[id]`; al pasar la hora el form pasa a solo-lectura **sin** interacción ni recarga, y
   el modal del pool deshabilita Guardar con el aviso `kickoffReachedModal`.
+
+> **Nota (Unit 58, 2026-06-20)**: este lock en vivo del formulario se complementa con la actualización de **resultados** en vivo (Supabase Realtime). Mientras `useKickoffTick` deshabilita la edición al llegar el kickoff, `useLiveResults` refresca el marcador/estado de los mismos partidos sin recarga manual. Ver `construction/unit-58-live-results-realtime/functional-design.md`.

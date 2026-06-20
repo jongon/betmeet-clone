@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from "react";
 import { MatchCard } from "@/features/competition/components/match-card";
+import { useLiveResults } from "@/features/competition/hooks/use-live-results";
 import {
   coerceTimeZone,
   type FixtureDayGroup,
@@ -48,6 +49,10 @@ export function MatchesFixtureView({ days }: MatchesFixtureViewProps) {
   const locale = useLocale();
   const [showPast, setShowPast] = useState(false);
   const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
+
+  // Unit 58: live result updates over Supabase Realtime — scores refresh without
+  // a manual reload while matches are in play.
+  useLiveResults();
 
   const localDays = regroupFixtureDaysByTimeZone(days, {
     locale,

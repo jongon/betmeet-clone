@@ -1925,3 +1925,22 @@ La autorización se valida **server-side**: solo `Pool.ownerId === userId` puede
 - **Sin** migraciones de schema: `Pool.name` ya existe.
 - **Sin** cambios en scoring, leaderboard, ranking ni invalidación de `RANKINGS_TAG` (el nombre no afecta rankings); solo `revalidatePath` de `/pools/[id]` y `/pools`.
 - **No reinicia** Units 1–53.
+
+## Épica 58: Resultados en vivo vía Supabase Realtime — websockets (Unit 58 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 50** (sync/scoring por cron), **Unit 52** (invalidación de caché Next.js 16) y la UI de resultados de **Unit 30/41/48/57**. **No reinicia** etapas aprobadas (Units 1–57 intactas). Los marcadores se actualizan en vivo sin recarga manual. Transporte = Supabase Realtime Broadcast (un servidor WebSocket propio no es viable en Vercel serverless).
+
+### FR-REFINE-58.1 — Resultados en vivo en `/matches`
+Mientras un partido está en juego, el marcador y el estado (badge LIVE) en `/matches` se actualizan **en vivo** sin que el usuario recargue la página. El servidor empuja una señal por WebSocket (Supabase Realtime) tras cada sync/override; el cliente re-obtiene los datos del servidor (que ya recalculó scoring/puntos).
+
+### FR-REFINE-58.2 — Resultados en vivo y marcador en la grilla de `/pools`
+En la pestaña "Predicciones" de `/pools/[id]`, la grilla se actualiza en vivo (marcador del partido y puntos por miembro) sin recarga manual. Además, la cabecera de cada columna de partido muestra el **marcador en vivo + badge LIVE** para los partidos en juego (antes solo mostraba equipos, hora y predicción/puntos; los partidos finalizados ya mostraban su marcador).
+
+### FR-REFINE-58.3 — Transporte por WebSockets y degradación segura
+La actualización en vivo usa WebSockets vía Supabase Realtime (canal Broadcast). La señal no transporta datos de resultado ni PII (solo una marca de tiempo); el cliente refresca con debounce. Si Realtime no está disponible o la config falta, las vistas degradan limpiamente al comportamiento previo (refresco manual) y un fallo de Realtime nunca rompe el sync/scoring.
+
+### Restricciones / SKIP
+- **Sin** migraciones de schema, replicación lógica ni RLS sobre `Match` (se usa Broadcast server-side, no `postgres_changes`).
+- **Sin** nuevas server actions ni rutas; reusa `revalidateResultViews` y el cliente Supabase browser existentes.
+- Acción operativa de prod: verificar que **Realtime está habilitado** en el proyecto Supabase.
+- **No reinicia** Units 1–57.

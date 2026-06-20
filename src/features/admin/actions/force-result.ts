@@ -1,5 +1,6 @@
 "use server";
 
+import { broadcastResultsUpdated } from "@/features/competition/services/broadcast-results-updated";
 import { derivePenaltyWinner } from "@/features/scoring/compute-score";
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { logAuthEvent } from "@/lib/auth-logger";
@@ -77,5 +78,6 @@ export async function forceMatchResult(matchId: string, input: unknown) {
 
   logAuthEvent("admin.match_overridden", { userId: adminId, matchId });
   revalidateResultViews({ adminMatches: true });
+  await broadcastResultsUpdated(); // Unit 58: push the new result to live viewers
   return { success: true };
 }

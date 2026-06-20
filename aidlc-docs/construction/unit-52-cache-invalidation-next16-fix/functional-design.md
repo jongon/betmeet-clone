@@ -67,3 +67,5 @@ Fuera de alcance: migrar a la API `"use cache"` / `cacheTag` / `cacheComponents`
 | SECURITY-01/02/03/04/06/07/09–15 | N/A | Sin cambios de infra, auth, red, deps, logging sensible ni datos. |
 
 No hay hallazgos bloqueantes.
+
+> **Nota (Unit 58, 2026-06-20)**: el push de resultados en vivo se **acopla** a esta invalidación. `broadcastResultsUpdated()` (Supabase Realtime) se emite **después** de `revalidateResultViews()` en los mismos puntos de mutación, de modo que el `router.refresh()` del cliente lee datos frescos (el tag ya fue invalidado con `revalidateTag(tag,"max")`). Ver `construction/unit-58-live-results-realtime/functional-design.md`.

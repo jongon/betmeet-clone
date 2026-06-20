@@ -1,5 +1,6 @@
 "use server";
 
+import { broadcastResultsUpdated } from "@/features/competition/services/broadcast-results-updated";
 import { scoreMatch } from "@/features/scoring-rankings/services/score-match";
 import { logAuthEvent } from "@/lib/auth-logger";
 import { prisma } from "@/lib/prisma";
@@ -41,5 +42,6 @@ export async function revertMatchOverride(matchId: string) {
 
   logAuthEvent("admin.override_reverted", { userId: adminId, matchId });
   revalidateResultViews({ adminMatches: true });
+  await broadcastResultsUpdated(); // Unit 58: push the reverted result to live viewers
   return { success: true };
 }

@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MatchStatusBadge } from "@/features/competition/components/match-status-badge";
+import { useLiveResults } from "@/features/competition/hooks/use-live-results";
 import { resetPredictionOverride } from "@/features/predictions/actions/reset-prediction-override";
 import { savePrediction } from "@/features/predictions/actions/save-prediction";
 import { PredictionScoreControls } from "@/features/predictions/components/prediction-score-controls";
@@ -62,23 +64,41 @@ function MatchCard({
   onStartDualSave: (col: MatchColumn) => void;
   onReset: (matchId: string) => void;
 }) {
+  // Unit 58: show the live score (and a LIVE badge) in the column header while a
+  // match is in play. Finished matches already surface their score via sublabel.
+  const isLive = col.matchStatus === "LIVE";
+  const liveScore =
+    isLive && col.homeScore != null && col.awayScore != null
+      ? `${col.homeScore} - ${col.awayScore}`
+      : null;
+  const centerLabel = liveScore ?? (col.sublabel ? col.sublabel : "vs");
+
   return (
     <div className="rounded-xl border bg-card">
       <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/30">
         <div className="flex items-center gap-1.5 min-w-0">
           <TeamFlag src={col.homeFlag} />
           <span className="text-sm font-semibold truncate">{col.homeLabel}</span>
-          <span className="text-xs text-muted-foreground shrink-0">
-            {col.sublabel ? `${col.sublabel}` : "vs"}
+          <span
+            className={
+              liveScore
+                ? "text-xs font-semibold tabular-nums shrink-0"
+                : "text-xs text-muted-foreground shrink-0"
+            }
+          >
+            {centerLabel}
           </span>
           <span className="text-sm font-semibold truncate">{col.awayLabel}</span>
           <TeamFlag src={col.awayFlag} />
         </div>
-        {col.kickoffAt && (
-          <span className="text-xs text-muted-foreground shrink-0 ml-auto">
-            {formatKickoff(col.kickoffAt, "es")}
-          </span>
-        )}
+        <div className="flex items-center gap-2 shrink-0 ml-auto">
+          {isLive && <MatchStatusBadge status="LIVE" />}
+          {col.kickoffAt && (
+            <span className="text-xs text-muted-foreground">
+              {formatKickoff(col.kickoffAt, "es")}
+            </span>
+          )}
+        </div>
       </div>
       <div className="divide-y">
         {members.map((member) => {
@@ -189,6 +209,11 @@ export function PoolPredictionsView({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
+
+  // Unit 58: live result updates over Supabase Realtime — the column scores and
+  // per-member points refresh without a manual reload while matches are in play.
+  useLiveResults();
+
   const [editingMatch, setEditingMatch] = useState<MatchColumn | null>(null);
   const [isDualSave, setIsDualSave] = useState(false);
   const [editHome, setEditHome] = useState(0);

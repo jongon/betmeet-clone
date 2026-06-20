@@ -992,3 +992,26 @@
   - Funciona tanto en ligas públicas como privadas. **FR-REFINE-54.3**.
   - Solo el dueño puede renombrar; un no-dueño no ve el panel y, si invoca la acción, recibe "Solo el administrador puede cambiar esta configuración" (validación server-side).
   - Tras confirmar, el nuevo nombre aparece en el detalle `/pools/[id]` y en la lista `/pools`.
+
+## Épica 58: Resultados en vivo vía Supabase Realtime — websockets (Unit 58 — añadida vía refine, 2026-06-20)
+
+### US-58.1: Ver el marcador actualizarse solo en `/matches`
+
+**Como** aficionado siguiendo el torneo
+**Quiero** que el marcador y el estado de los partidos en `/matches` se actualicen en vivo
+**Para** seguir los resultados sin tener que recargar la página manualmente.
+
+- **Criterios de Aceptación**:
+  - Con un partido en juego, cuando llega un resultado nuevo del servidor, el marcador y el badge LIVE se actualizan solos en ~1–2 s sin recargar. **FR-REFINE-58.1**, **FR-REFINE-58.3**.
+  - La actualización viaja por WebSocket (Supabase Realtime); si Realtime no está disponible, la página sigue funcionando como antes (refresco manual). **FR-REFINE-58.3**.
+
+### US-58.2: Ver el marcador en vivo y los puntos en la grilla del pool
+
+**Como** miembro de una liga
+**Quiero** que la pestaña "Predicciones" de mi liga muestre el marcador en vivo y actualice los puntos sin recargar
+**Para** seguir cómo va el partido y cómo se reparten los puntos en tiempo real.
+
+- **Criterios de Aceptación**:
+  - La cabecera de cada columna de partido en juego muestra el marcador en vivo + badge LIVE; los puntos por miembro se actualizan solos al cambiar el resultado. **FR-REFINE-58.2**.
+  - La grilla se refresca sin recarga manual cuando llega una actualización del servidor. **FR-REFINE-58.1**, **FR-REFINE-58.3**.
+  - El enmascarado anti-sesgo de predicciones futuras (Unit 53) y el vaciado pre-ingreso (Unit 56) se mantienen tras el refresco en vivo.

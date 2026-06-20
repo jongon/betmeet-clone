@@ -1,5 +1,6 @@
 "use server";
 
+import { broadcastResultsUpdated } from "@/features/competition/services/broadcast-results-updated";
 import { runScheduledSync } from "@/features/competition/services/run-scheduled-sync";
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
 import { logAuthEvent } from "@/lib/auth-logger";
@@ -25,6 +26,7 @@ export async function triggerSync(scope: ProviderSyncScope) {
 
   logAuthEvent("admin.sync_triggered", { userId: adminId, scope });
   revalidateResultViews({ adminDashboard: true });
+  await broadcastResultsUpdated(); // Unit 58: push synced results to live viewers
 
   return { success: true };
 }

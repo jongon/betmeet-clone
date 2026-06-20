@@ -1,5 +1,35 @@
 # AI-DLC Audit Log
 
+## Unit 58 — Resultados en vivo vía Supabase Realtime (websockets)
+**Timestamp**: 2026-06-20T22:30:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "Me gustaría que los resultados de los partidos tanto en /matches cómo en /pools (en la sección de predicciones) se actualicen en vivo usando websockets" (decisiones vía AskUserQuestion: transporte = Supabase Realtime Broadcast; display en /pools = añadir marcador en vivo + badge LIVE a la cabecera de columna).
+**Diagnóstico (causa raíz)**: No existía mecanismo realtime. Los marcadores los escribe el cron `sync-live-status` (~2 min) → `runCompetitionSync` actualiza `Match.homeScore/awayScore/status` → `revalidateResultViews()` invalida `COMPETITION_FIXTURE_TAG` (Unit 52), pero nada empujaba el cambio al cliente: el usuario solo lo veía al navegar/recargar. La app corre en Vercel serverless → un servidor WebSocket propio no es viable.
+**AI Response (fix)**: BR-58.1…58.6 / BL-58.1…58.3 — broadcast `results-updated` (canal público `live-results`) por el endpoint REST de Realtime, emitido **después** de invalidar la caché en los 4 puntos de mutación; hook cliente `useLiveResults` con `router.refresh()` debounced; marcador en vivo + badge LIVE en la cabecera de la grilla de `/pools`.
+**Reglas**: BR-58.1 señal sin datos. BR-58.2 broadcast después de invalidar caché. BR-58.3 cobertura de los 4 puntos de mutación. BR-58.4 best-effort/no bloqueante (guard `typeof window`). BR-58.5 debounce 1 s. BR-58.6 degradación limpia. BL-58.1 `broadcastResultsUpdated` (REST). BL-58.2 `useLiveResults`. BL-58.3 marcador en vivo en `MatchColumn`.
+**Code change**:
+- `src/features/competition/live-results-channel.ts` (NEW) — constantes de canal/evento.
+- `src/features/competition/services/broadcast-results-updated.ts` (NEW) + `__tests__/broadcast-results-updated.test.ts` (NEW, 4 casos).
+- `src/features/competition/hooks/use-live-results.ts` (NEW).
+- `src/app/api/cron/sync/route.ts`, `src/features/admin/actions/{force-result,revert-override,trigger-sync}.ts` — `await broadcastResultsUpdated()` tras `revalidateResultViews`.
+- `src/features/predictions/components/matches-fixture-view.tsx` — `useLiveResults()`.
+- `src/features/pools/components/pool-predictions-view.tsx` — `useLiveResults()` + marcador en vivo/badge LIVE en la cabecera.
+- `src/features/pools/components/pool-predictions-view-helpers.ts` — `MatchColumn.homeScore/awayScore` + mapeo en `buildDayGroups` (+1 caso en `pool-predictions-view.test.tsx`).
+**Doc change**:
+- `construction/unit-58-live-results-realtime/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 58; Unit 57 → Stage previa, Unit 56 → Prev Stage; conteo 57 implementadas; bloque CONSTRUCTION Unit 58; nota operativa en Execution Plan Summary.
+- `inception/requirements/requirements.md` — Épica 58 / FR-REFINE-58.1…58.3.
+- `inception/user-stories/stories.md` — US-58.1 / US-58.2.
+- `inception/application-design/unit-of-work.md` — sección Unit 58 + #41 en la secuencia.
+- `construction/unit-52-cache-invalidation-next16-fix/functional-design.md` — nota: el broadcast de Unit 58 se acopla a la invalidación.
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio (11 archivos), ESLint 0 (warnings `<img>` preexistentes), **Vitest 409/409**, `pnpm build` OK. Sin commit/push.
+**Stages**: Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE; Infrastructure light (canal Realtime; sin cambios de tabla/RLS). SKIP Reverse Engineering, Units Generation, NFR Requirements/Design pesado.
+**Security Baseline**: COMPLIANT — broadcast sin datos de resultado ni PII (solo `{at}`); service-role solo server-side (guard `typeof window`); conserva guards de los puntos de emisión y los gates de membresía de las queries; sin nueva superficie de input, schema, migraciones ni rutas.
+**Out of scope**: `postgres_changes`/replicación lógica + RLS sobre `Match`; gating por ventana de partido; acelerar la cadencia del cron; presence/typing y reconexión avanzada.
+**No reinicia etapas aprobadas (Units 1–57 intactas).**
+
+---
+
 ## Unit 56 — Grilla de predicciones del pool acotada a la fecha de ingreso
 **Timestamp**: 2026-06-20T18:45:00Z
 **Comando**: `/aidlc:refine` (seguimiento de Unit 55)

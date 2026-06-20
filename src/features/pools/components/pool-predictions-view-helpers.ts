@@ -15,6 +15,9 @@ export interface MatchColumn {
   phaseType: string;
   homeFlag: string | null;
   awayFlag: string | null;
+  /** Unit 58: live match score for the column header (shown while LIVE). */
+  homeScore: number | null;
+  awayScore: number | null;
 }
 
 export interface DayGroup {
@@ -111,6 +114,8 @@ export function buildDayGroups(
       awayFlag: match.awayTeam?.flagPath ?? null,
       homeLabel: match.homeTeam?.fifaCode ?? match.homePlaceholder ?? "?",
       awayLabel: match.awayTeam?.fifaCode ?? match.awayPlaceholder ?? "?",
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
     });
   }
 

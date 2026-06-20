@@ -557,6 +557,27 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: El dueño de cualquier liga (PUBLIC o PRIVATE) puede renombrarla desde `/pools/[id]`, confirmando el cambio en un diálogo; el nuevo nombre se refleja en `/pools` y `/pools/[id]`.
 
+---
+
+## Unit 58 — Resultados en vivo vía Supabase Realtime, websockets (refine sobre Unit 50/52; UI de Unit 30/41/48/57)
+
+**Goal**: Que los marcadores de `/matches` y la grilla de Predicciones de `/pools` se actualicen en vivo (sin recarga manual) cuando el cron/admin actualiza un resultado, usando WebSockets.
+
+**Dependencias**: Unit 50 (sync/scoring por cron escribe `Match`), Unit 52 (`revalidateResultViews` con `revalidateTag(tag,"max")`), Unit 41/48/53/56 (grilla de pools), Unit 57 (lock en vivo del form). No reinicia Units 1–57.
+
+**Alcance**:
+- Transporte: **Supabase Realtime Broadcast** (un servidor WebSocket propio no es viable en Vercel serverless; `postgres_changes` exigiría replicación lógica + RLS sobre `Match`). El servidor emite `results-updated` por el endpoint REST de Realtime **después** de invalidar la caché, en los 4 puntos de mutación (`api/cron/sync`, `force-result`, `revert-override`, `trigger-sync`).
+- Cliente: hook `useLiveResults` (`createClient()` browser → canal `live-results`) → `router.refresh()` con debounce 1 s; resiliente si falta env. Consumido por `/matches` y `/pools`. En `/pools` se añade marcador en vivo + badge LIVE a la cabecera de columna (`MatchColumn.homeScore/awayScore`).
+- `router.refresh()` (no patch en cliente): el broadcast solo señaliza; el servidor recalcula scoring/puntos.
+
+**Sin** schema, migraciones, replicación lógica ni RLS sobre `Match`; **sin** nuevas server actions ni rutas. Acción operativa: verificar Realtime habilitado en Supabase.
+
+**Files**: `src/features/competition/{live-results-channel.ts, services/broadcast-results-updated.ts (+test), hooks/use-live-results.ts}`, `src/app/api/cron/sync/route.ts`, `src/features/admin/actions/{force-result,revert-override,trigger-sync}.ts`, `src/features/predictions/components/matches-fixture-view.tsx`, `src/features/pools/components/{pool-predictions-view.tsx,pool-predictions-view-helpers.ts}`.
+
+**Stages**: Functional Design EXECUTE (`construction/unit-58-live-results-realtime/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; Infrastructure light (canal Realtime; sin cambios de tabla); SKIP Reverse Engineering, Units Generation, NFR Requirements/Design pesado.
+
+**Primary Deliverable**: `/matches` y la grilla de Predicciones de `/pools` se actualizan en vivo por WebSocket cuando cambia un resultado, sin recarga manual.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -599,6 +620,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 38. Unit 54: Renombrar pool con confirmación (post-construction refine; sobre Units 3/45; nueva server action `renamePool` con autorización por `ownerId` y validación 3–60; diálogo de confirmación `«viejo» → «nuevo»` en el panel de Configuración; el card pasa a mostrarse a cualquier dueño —PUBLIC y PRIVATE— y el toggle `membersCanInvite` queda condicionado a PRIVATE; i18n es/en; sin schema, migraciones ni rutas nuevas)
 39. Unit 55: Leaderboard del pool acotado a la membresía (post-construction refine; sobre Units 6/48; efectiviza Unit 23; `getPoolLeaderboardRows` ahora suma solo los partidos con `kickoffAt ≥ joinedAt` de cada miembro —override del pool si existe, si no la global heredada—; recién llegados en 0; el ranking global no cambia; DTO transparente; sin schema, migraciones, rutas ni i18n)
 40. Unit 56: Grilla de predicciones del pool acotada a la fecha de ingreso (post-construction refine; sobre Units 41/48; hermano de Unit 53, continúa Unit 55; las celdas de partidos previos al ingreso del miembro se muestran vacías con ícono `CalendarOff` "Aún no estaba en la liga"; cálculo en la vista en `buildDayGroups` con `joinedAt`/`kickoffAt` ya disponibles; aplica a todos incl. viewer; columnas se conservan; sin enmascarado server-side; sin schema, migraciones, rutas ni cambios en la query; +1 key i18n)
+41. Unit 58: Resultados en vivo vía Supabase Realtime, websockets (post-construction refine; sobre Units 50/52 y la UI de Units 30/41/48/57; el servidor emite un broadcast `results-updated` por el endpoint REST de Realtime tras invalidar la caché —en `api/cron/sync`, `force-result`, `revert-override`, `trigger-sync`—; el hook cliente `useLiveResults` hace `router.refresh()` con debounce; `/pools` añade marcador en vivo + badge LIVE a la cabecera; transporte Broadcast porque Vercel serverless no sostiene un WS propio; sin schema, migraciones, replicación lógica ni RLS sobre `Match`; sin rutas ni server actions nuevas)
 
 ## Security Notes
 

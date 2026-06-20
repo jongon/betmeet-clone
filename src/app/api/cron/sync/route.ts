@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { revalidateResultViews } from "@/features/admin/services/revalidate-result-views";
+import { broadcastResultsUpdated } from "@/features/competition/services/broadcast-results-updated";
 import {
   hasActiveMatchWindow,
   runScheduledSync,
@@ -58,6 +59,9 @@ export async function POST(request: Request) {
       } catch (error) {
         console.error("[cron/sync] revalidateResultViews failed", error);
       }
+      // Unit 58: push to live viewers AFTER the cache is invalidated so their
+      // router.refresh() reads fresh data. Self-handles its own errors.
+      await broadcastResultsUpdated();
     }
 
     return NextResponse.json({ ok: true, scope });
