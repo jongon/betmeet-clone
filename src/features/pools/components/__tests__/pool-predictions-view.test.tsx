@@ -177,6 +177,91 @@ describe("buildDayGroups", () => {
   });
 });
 
+describe("buildDayGroups pre-join membership scoping (Unit 56)", () => {
+  const early = {
+    userId: "early",
+    nickname: "Early#0001",
+    avatarUrl: "",
+    isOwner: true,
+    joinedAt: "2026-06-01T00:00:00.000Z",
+  };
+  const late = {
+    userId: "late",
+    nickname: "Late#0002",
+    avatarUrl: "",
+    isOwner: false,
+    joinedAt: "2026-06-15T00:00:00.000Z", // joined after m-1 (kickoff 2026-06-11)
+  };
+
+  it("empties a member's cell for a match that kicked off before they joined", () => {
+    const p = makePrediction({
+      userId: "late",
+      matchId: "m-1",
+      kickoffAt: "2026-06-11T18:00:00Z",
+      predictedHome: 3,
+      predictedAway: 0,
+      totalPoints: 2,
+    });
+    const groups = buildDayGroups([p], [late], "es", "UTC");
+    const cell = groups[0].memberRows[0].cells["m-1"];
+    expect(cell.preJoin).toBe(true);
+    expect(cell.predictedHome).toBeNull();
+    expect(cell.predictedAway).toBeNull();
+    expect(cell.totalPoints).toBeNull();
+    expect(cell.isOverride).toBe(false);
+  });
+
+  it("keeps the cell for a member who joined before the match kicked off", () => {
+    const p = makePrediction({
+      userId: "early",
+      matchId: "m-1",
+      kickoffAt: "2026-06-11T18:00:00Z",
+      predictedHome: 2,
+      predictedAway: 1,
+      totalPoints: 5,
+    });
+    const groups = buildDayGroups([p], [early], "es", "UTC");
+    const cell = groups[0].memberRows[0].cells["m-1"];
+    expect(cell.preJoin).toBe(false);
+    expect(cell.predictedHome).toBe(2);
+    expect(cell.totalPoints).toBe(5);
+  });
+
+  it("keeps the column and shows data for the post-join member while emptying the pre-join one", () => {
+    const pEarly = makePrediction({
+      userId: "early",
+      matchId: "m-1",
+      kickoffAt: "2026-06-11T18:00:00Z",
+      predictedHome: 2,
+      predictedAway: 1,
+      totalPoints: 5,
+    });
+    const pLate = makePrediction({
+      userId: "late",
+      matchId: "m-1",
+      kickoffAt: "2026-06-11T18:00:00Z",
+      predictedHome: 0,
+      predictedAway: 0,
+      totalPoints: 1,
+    });
+    const groups = buildDayGroups([pEarly, pLate], [early, late], "es", "UTC");
+    expect(groups[0].matches).toHaveLength(1); // column still present
+    const earlyCell = groups[0].memberRows[0].cells["m-1"]; // members order preserved
+    const lateCell = groups[0].memberRows[1].cells["m-1"];
+    expect(earlyCell.preJoin).toBe(false);
+    expect(earlyCell.totalPoints).toBe(5);
+    expect(lateCell.preJoin).toBe(true);
+    expect(lateCell.totalPoints).toBeNull();
+  });
+
+  it("does not mark pre-join for matches with null kickoff (TBD knockout)", () => {
+    const p = makePrediction({ userId: "late", matchId: "m-tbd", kickoffAt: null });
+    const groups = buildDayGroups([p], [late], "es", "UTC");
+    const cell = groups[0].memberRows[0].cells["m-tbd"];
+    expect(cell.preJoin).toBe(false);
+  });
+});
+
 const makeDayGroup = (dayKey: string) => ({
   dayKey,
   label: `Label ${dayKey}`,

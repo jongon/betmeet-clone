@@ -104,3 +104,5 @@ Nueva clave `pools.predictions.hiddenUntilKickoff` en `es.ts` ("Oculta hasta el 
 - Revelar la **existencia** (sin contenido) de la predicción de otro miembro en partido futuro: hoy el candado se muestra para cualquier fila enmascarada del otro miembro; no se distingue "predijo pero oculto" de "no predijo aún". No es necesario para la garantía anti-sesgo.
 - Cambios en `/matches` (siempre global, sin pares).
 - Cambios en leaderboard, ranking global o scoring.
+
+> **Nota (Unit 56, 2026-06-20)**: Unit 56 añade un estado de celda **hermano** de `hidden`: `preJoin` para partidos previos al ingreso del miembro (`kickoff < joinedAt`), que se muestran vacíos con ícono `CalendarOff`. A diferencia de `hidden` (futuro de otro miembro, enmascarado **server-side** por anti-sesgo), `preJoin` es un partido **pasado** ya visible para los miembros tras el kickoff, así que se resuelve en la **vista** sin enmascarado server-side. `preJoin` y `hidden` son mutuamente excluyentes. Ver `construction/unit-56-pool-predictions-prejoin/functional-design.md`.

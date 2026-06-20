@@ -161,6 +161,8 @@ Prediction days are grouped by the same local calendar day used by the `/matches
 
 **Rationale**: Clear visualization — the prediction is always visible when allowed, points follow when available.
 
+> **Nota (Unit 56, 2026-06-20)**: se añade un estado de celda **pre-ingreso** (hermano del `hidden` de Unit 53). Una celda `(miembro, partido)` con `partido.kickoffAt < miembro.joinedAt` se muestra **vacía** con un ícono distinto al candado (`CalendarOff`) + "Aún no estaba en la liga", para no mostrar puntos heredados del global que ya no cuentan en el leaderboard del pool (Unit 55). Aplica a todos incl. el viewer; las columnas se conservan. Ver `construction/unit-56-pool-predictions-prejoin/functional-design.md`.
+
 ### BR-41.6 — Empty state
 If no matches have started yet (e.g., pool created before tournament begins), the "Predicciones" tab shows an empty state: "Aún no hay predicciones disponibles. Las predicciones serán visibles cuando comiencen los partidos."
 

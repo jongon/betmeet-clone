@@ -1882,6 +1882,19 @@ En la pestaña "Predicciones" de `/pools/[id]`, las predicciones de **otros** mi
 - **Reemplaza** la eliminación incondicional del filtro `kickoffAt` de BR-48.16, acotándola: el filtro vuelve para los demás miembros, no para el viewer.
 - **No reinicia** Units 1–52.
 
+## Épica 56: Grilla de predicciones del pool acotada a la fecha de ingreso (Unit 56 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 41** (predicciones visibles en el pool) y **Unit 48** (override por pool); hermano de **Unit 53** y continuación de **Unit 55**. **No reinicia** etapas aprobadas (Units 1–55 intactas). Alinea la pestaña "Predicciones" con el leaderboard del pool de Unit 55.
+
+### FR-REFINE-56.1 — Celdas pre-ingreso vacías en la grilla
+En la grilla de la pestaña "Predicciones" de un pool, las celdas `(miembro, partido)` cuyo `partido.kickoffAt` es anterior a la fecha de ingreso del miembro (`joinedAt`) se muestran **vacías** —sin marcador previsto, sin badge de puntos, sin badge "Ajustada"— con un **ícono distinto al candado de Unit 53** (`CalendarOff`) y el texto "Aún no estaba en la liga" / "Not in the pool yet". Aplica **a todos los miembros por igual, incluido el viewer**. Las columnas y los días pre-ingreso **siguen apareciendo** (otros miembros pueden tener datos ahí); solo se vacían las celdas del miembro que aún no era parte de la liga. Esto evita que la grilla muestre puntos heredados del global que ya **no** cuentan en el leaderboard del pool (FR-REFINE-55.1).
+
+### Restricciones / SKIP
+- Cálculo **en la capa de vista** (`buildDayGroups`), usando `joinedAt` y `kickoffAt` que ya recibe el componente; **sin** cambios en `getPoolMemberPredictions` ni en la página.
+- Sin enmascarado server-side (el partido pre-ingreso es pasado y ya visible para los miembros tras el kickoff; no hay anti-sesgo).
+- Sin schema, migraciones ni rutas. Solo 1 key i18n nueva.
+- **No reinicia** Units 1–55.
+
 ## Épica 55: Leaderboard del pool acotado a la membresía (Unit 55 — añadida vía refine, 2026-06-20)
 
 > Refine post-construcción sobre **Unit 6** (Scoring y Rankings) y **Unit 48** (override por pool); hace efectiva la "consecuencia natural" de **Unit 23** (membresía sin congelamiento). **No reinicia** etapas aprobadas (Units 1–54 intactas). Cambio de regla de cálculo del leaderboard del pool; el ranking global no cambia.

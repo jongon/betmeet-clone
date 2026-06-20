@@ -514,6 +514,21 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Tras un sync (manual o automático) o una mutación de membresía/override, `/matches`, `/rankings` y los leaderboards muestran datos frescos en el **primer** refresco; desaparece el doble refresh.
 
+## Unit 56 — Grilla de predicciones del pool acotada a la fecha de ingreso (refine sobre Unit 41/48; continúa Unit 55)
+
+**Goal**: Que la pestaña "Predicciones" del pool no muestre la predicción heredada del global ni sus puntos para los partidos previos al ingreso de cada miembro, alineando la grilla con el leaderboard del pool (Unit 55).
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-20); sobre Unit 41 (grilla de predicciones) y Unit 48 (override); hermano de Unit 53 (celdas `hidden`) y continuación de Unit 55. No reinicia Units 1–55.
+- Cálculo en la capa de vista: `buildDayGroups` computa por celda `preJoin = col.kickoffAt < m.joinedAt` (datos ya disponibles en `members.joinedAt` y `matches.kickoffAt`); si pre-ingreso, vacía la celda y marca `preJoin: true`. El componente renderiza `CalendarOff` + `pools.predictions.notInPoolYet`.
+- `preJoin` y `hidden` (Unit 53) son mutuamente excluyentes (pasado vs futuro). Sin enmascarado server-side (dato pasado, ya visible tras el kickoff). Columnas/días se conservan; aplica a todos incl. el viewer.
+
+**Files**: `src/features/pools/components/pool-predictions-view-helpers.ts`, `pool-predictions-view.tsx`, `src/i18n/dictionaries/{es,en}.ts`, `components/__tests__/pool-predictions-view.test.tsx`. Sin schema, migraciones, rutas ni cambios en la query.
+
+**Stages**: Functional Design EXECUTE (`construction/unit-56-pool-predictions-prejoin/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+---
+
 ## Unit 55 — Leaderboard del pool acotado a la membresía (refine sobre Unit 6/48; efectiviza Unit 23)
 
 **Goal**: Que el leaderboard de cada pool muestre solo el puntaje acumulado dentro del pool — los partidos jugados tras el ingreso de cada miembro — en vez de heredar el total global completo. El ranking global no cambia.
@@ -583,6 +598,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 37. Unit 53: Ocultar predicciones futuras de otros miembros (post-construction refine; sobre Units 41/48; restaura la garantía anti-sesgo de FR-REFINE-41.1 que Unit 48 había roto al quitar el filtro `kickoffAt <= now`; enmascarado server-side en `getPoolMemberPredictions` acotado a `miembro !== viewer`; el viewer sigue viendo/editando sus propias predicciones futuras; celda con candado "Oculta hasta el inicio"; sin schema, migraciones, rutas ni cambios de scoring/leaderboard)
 38. Unit 54: Renombrar pool con confirmación (post-construction refine; sobre Units 3/45; nueva server action `renamePool` con autorización por `ownerId` y validación 3–60; diálogo de confirmación `«viejo» → «nuevo»` en el panel de Configuración; el card pasa a mostrarse a cualquier dueño —PUBLIC y PRIVATE— y el toggle `membersCanInvite` queda condicionado a PRIVATE; i18n es/en; sin schema, migraciones ni rutas nuevas)
 39. Unit 55: Leaderboard del pool acotado a la membresía (post-construction refine; sobre Units 6/48; efectiviza Unit 23; `getPoolLeaderboardRows` ahora suma solo los partidos con `kickoffAt ≥ joinedAt` de cada miembro —override del pool si existe, si no la global heredada—; recién llegados en 0; el ranking global no cambia; DTO transparente; sin schema, migraciones, rutas ni i18n)
+40. Unit 56: Grilla de predicciones del pool acotada a la fecha de ingreso (post-construction refine; sobre Units 41/48; hermano de Unit 53, continúa Unit 55; las celdas de partidos previos al ingreso del miembro se muestran vacías con ícono `CalendarOff` "Aún no estaba en la liga"; cálculo en la vista en `buildDayGroups` con `joinedAt`/`kickoffAt` ya disponibles; aplica a todos incl. viewer; columnas se conservan; sin enmascarado server-side; sin schema, migraciones, rutas ni cambios en la query; +1 key i18n)
 
 ## Security Notes
 

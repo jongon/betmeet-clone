@@ -949,6 +949,20 @@
   - El contenido de las predicciones futuras ajenas no se envía al cliente (enmascarado server-side, no solo visual).
   - Sin cambios en el leaderboard, el ranking global ni `/matches`.
 
+## Épica 56: Grilla de predicciones del pool acotada a la fecha de ingreso (Unit 56 — añadida vía refine, 2026-06-20)
+
+### US-56.1: Ver la grilla del pool coherente con el ranking del pool
+
+**Como** miembro de una liga
+**Quiero** que en la grilla de "Predicciones" no aparezcan puntos míos (ni de otros) de partidos previos a haber entrado a la liga
+**Para** que lo que veo en la grilla cuadre con el ranking de la liga (Unit 55) y no me confunda con puntos que no cuentan ahí.
+
+- **Criterios de Aceptación**:
+  - En la grilla, las celdas de partidos cuyo kickoff es anterior a la fecha de ingreso del miembro se muestran vacías, con un ícono distinto al candado de Unit 53 y el texto "Aún no estaba en la liga". **FR-REFINE-56.1**.
+  - Aplica igual para todos los miembros, incluido yo mismo (mis celdas pre-ingreso también salen vacías).
+  - Las columnas y los días de esos partidos siguen apareciendo; los miembros que sí estaban en la liga muestran sus predicciones y puntos con normalidad.
+  - Los puntos visibles en la grilla coinciden con el total que muestra el leaderboard de la liga.
+
 ## Épica 55: Leaderboard del pool acotado a la membresía (Unit 55 — añadida vía refine, 2026-06-20)
 
 ### US-55.1: Ver el ranking de mi liga con los puntos acumulados en la liga

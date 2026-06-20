@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, Undo2 } from "lucide-react";
+import { CalendarOff, Lock, Undo2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { startTransition, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -81,6 +81,7 @@ function MatchCard({
         {members.map((member) => {
           const cell = member.cells[col.matchId];
           const isViewer = member.userId === viewerId;
+          const isPreJoin = cell?.preJoin ?? false;
           const isHidden = cell?.hidden ?? false;
           const hasPrediction = cell?.predictedHome != null && cell?.predictedAway != null;
           const hasPoints = cell?.totalPoints != null;
@@ -103,7 +104,12 @@ function MatchCard({
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm truncate min-w-0 flex-1">{member.nickname}</span>
-              {isHidden ? (
+              {isPreJoin ? (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                  <CalendarOff className="size-3" />
+                  {t.notInPoolYet}
+                </span>
+              ) : isHidden ? (
                 <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                   <Lock className="size-3" />
                   {t.hiddenUntilKickoff}

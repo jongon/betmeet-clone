@@ -1,5 +1,33 @@
 # AI-DLC Audit Log
 
+## Unit 56 — Grilla de predicciones del pool acotada a la fecha de ingreso
+**Timestamp**: 2026-06-20T18:45:00Z
+**Comando**: `/aidlc:refine` (seguimiento de Unit 55)
+**User Input**: "Haz commit y hablame más de esa grilla por fecha de ingreso" → tras la explicación: "Sí planifícalo" (decisiones: ícono distinto al candado de Unit 53; aplica a todos incl. viewer, celdas vacías; columnas siguen apareciendo).
+**Diagnóstico (causa raíz)**: tras Unit 55 el leaderboard del pool dejó de contar los partidos previos al ingreso de cada miembro, pero la pestaña "Predicciones" (`PoolPredictionsView`) seguía mostrando la predicción global heredada + su badge de puntos para esos partidos → la grilla "prometía" puntos que el ranking ya no cuenta (descuadre grilla vs leaderboard).
+**AI Response (fix)**: BR-56.1…56.7 / BL-56.1 — cálculo en la capa de vista (la grilla ya recibe `members` con `joinedAt` y `matches` con `kickoffAt`; no se toca `getPoolMemberPredictions` ni `page.tsx`). `buildDayGroups` computa por celda `preJoin = col.kickoffAt < m.joinedAt`; si pre-ingreso, vacía la celda (`predicted/totalPoints = null`, `isOverride/hasGlobal/hidden = false`, `preJoin = true`). El componente añade una rama de render con `CalendarOff` + `pools.predictions.notInPoolYet`. `preJoin` y `hidden` (Unit 53) son mutuamente excluyentes (pasado vs futuro); no se requiere enmascarado server-side (dato pasado, ya visible tras el kickoff, sin anti-sesgo).
+**Reglas**: BR-56.1 celda pre-ingreso vacía. BR-56.2 ícono distinto + label. BR-56.3 aplica a todos incl. viewer. BR-56.4 columnas/días se conservan. BR-56.5 `preJoin`/`hidden` excluyentes. BR-56.6 kickoff null no es pre-ingreso. BR-56.7 cómputo en vista, sin enmascarado server-side. BL-56.1 flujo de `buildDayGroups`.
+**Code change**:
+- `src/features/pools/components/pool-predictions-view-helpers.ts` — `preJoin` en el tipo de celda + cómputo en `buildDayGroups`.
+- `src/features/pools/components/pool-predictions-view.tsx` — import `CalendarOff`, `isPreJoin`, rama de render.
+- `src/i18n/dictionaries/{es,en}.ts` — `pools.predictions.notInPoolYet`.
+- `src/features/pools/components/__tests__/pool-predictions-view.test.tsx` — +4 casos de pre-ingreso.
+**Doc change**:
+- `construction/unit-56-pool-predictions-prejoin/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 56; Unit 55 → Prev Stage; conteo 56 units; bloque de Stage Progress.
+- `inception/requirements/requirements.md` — Épica 56 / FR-REFINE-56.1.
+- `inception/user-stories/stories.md` — US-56.1.
+- `inception/application-design/unit-of-work.md` — sección Unit 56 + #40.
+- `construction/unit-41-pool-predictions/functional-design.md` — nota en BR-41.5 (nuevo estado de celda pre-ingreso).
+- `construction/unit-53-pool-predictions-hide-future/functional-design.md` — nota (estado de celda hermano de `hidden`).
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio (5 archivos), ESLint 0 (1 warning preexistente de `<img>`), **Vitest 400/400**, `pnpm build` OK.
+**Stages**: Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+**Security Baseline**: COMPLIANT — cambio de presentación; sin fuga (dato pasado ya visible); sin nueva superficie de input, schema, migraciones, rutas ni server actions.
+**Out of scope**: enmascarado server-side; distinguir "no participaba" de "participaba pero no predijo".
+**No reinicia etapas aprobadas (Units 1–55 intactas).**
+
+---
+
 ## Unit 55 — Leaderboard del pool acotado a la membresía
 **Timestamp**: 2026-06-20T18:30:00Z
 **Comando**: `/aidlc:refine`

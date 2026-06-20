@@ -435,6 +435,7 @@ export const en = {
       overrideSaved: "Prediction saved for this pool",
       pageIndicator: "Page {current} of {total}",
       hiddenUntilKickoff: "Hidden until kickoff",
+      notInPoolYet: "Not in the pool yet",
     },
   },
   pages: {

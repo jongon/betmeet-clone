@@ -432,6 +432,7 @@ export const es = {
       overrideSaved: "Predicción guardada para esta liga",
       pageIndicator: "Página {current} de {total}",
       hiddenUntilKickoff: "Oculta hasta el inicio",
+      notInPoolYet: "Aún no estaba en la liga",
     },
   },
   pages: {

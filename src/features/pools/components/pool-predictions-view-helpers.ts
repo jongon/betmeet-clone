@@ -37,6 +37,10 @@ export interface MemberPredictionRow {
       isOverride: boolean;
       hasGlobal: boolean;
       hidden: boolean;
+      /** Unit 56: true when this match kicked off before the member joined the pool
+       *  (kickoff < joinedAt). The cell is shown empty — those points don't count
+       *  toward the pool leaderboard (Unit 55). Mutually exclusive with `hidden`. */
+      preJoin: boolean;
     }
   >;
 }
@@ -129,6 +133,27 @@ export function buildDayGroups(
       const userPredictions = predictionsByUser.get(m.userId);
       const cells: MemberPredictionRow["cells"] = {};
       for (const col of day.matches) {
+        // Unit 56: a match that kicked off before this member joined the pool is shown
+        // empty — its points don't count toward the pool leaderboard (Unit 55). Past
+        // match, not anti-bias sensitive, so it's resolved here in the view.
+        const preJoin =
+          col.kickoffAt != null &&
+          m.joinedAt != null &&
+          Date.parse(col.kickoffAt) < Date.parse(m.joinedAt);
+
+        if (preJoin) {
+          cells[col.matchId] = {
+            predictedHome: null,
+            predictedAway: null,
+            totalPoints: null,
+            isOverride: false,
+            hasGlobal: false,
+            hidden: false,
+            preJoin: true,
+          };
+          continue;
+        }
+
         const preds = userPredictions?.get(col.matchId) ?? [];
         const override = preds.find((p) => p.isOverride);
         const global = preds.find((p) => !p.isOverride);
@@ -140,6 +165,7 @@ export function buildDayGroups(
           isOverride: chosen?.isOverride ?? false,
           hasGlobal: global != null && override != null,
           hidden: chosen?.hidden ?? false,
+          preJoin: false,
         };
       }
       return {
