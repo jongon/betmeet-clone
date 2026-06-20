@@ -436,6 +436,7 @@ export const en = {
       pageIndicator: "Page {current} of {total}",
       hiddenUntilKickoff: "Hidden until kickoff",
       notInPoolYet: "Not in the pool yet",
+      kickoffReachedModal: "The match has already started. Predictions can no longer be saved.",
     },
   },
   pages: {

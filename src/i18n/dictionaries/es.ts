@@ -433,6 +433,7 @@ export const es = {
       pageIndicator: "Página {current} de {total}",
       hiddenUntilKickoff: "Oculta hasta el inicio",
       notInPoolYet: "Aún no estaba en la liga",
+      kickoffReachedModal: "El partido ya comenzó. No se pueden guardar predicciones.",
     },
   },
   pages: {

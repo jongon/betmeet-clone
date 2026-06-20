@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useDictionary } from "@/i18n/dictionary-provider";
 import { savePrediction } from "../actions/save-prediction";
+import { useKickoffTick } from "../hooks/use-kickoff-tick";
 import type { PredictionMatchView } from "../types";
 import { PenaltyWinnerSelector } from "./penalty-winner-selector";
 import { PredictionScoreControls } from "./prediction-score-controls";
@@ -41,10 +42,17 @@ export function PredictionForm({ match }: PredictionFormProps) {
     setError(null);
   }
 
+  // Live kickoff lock: if the tab stays open past kickoff, flip the form to
+  // read-only without waiting for the server to bounce a save. The server still
+  // re-checks eligibility with its own clock (savePrediction) as the backstop.
+  const kickoffMs = match.kickoffAt ? new Date(match.kickoffAt).getTime() : null;
+  const now = useKickoffTick(kickoffMs != null ? [kickoffMs] : []);
+  const liveCanEdit = canEdit && (kickoffMs == null || now < kickoffMs);
+
   const hasExisting = savedPrediction !== null;
   const showPenaltySelector =
     match.showPenaltySelector &&
-    canEdit &&
+    liveCanEdit &&
     homeScore === awayScore &&
     match.homeTeam &&
     match.awayTeam;
@@ -81,7 +89,7 @@ export function PredictionForm({ match }: PredictionFormProps) {
     setCanEdit(false);
   }
 
-  const isReadOnly = !canEdit || lockedConflict;
+  const isReadOnly = !liveCanEdit || lockedConflict;
 
   return (
     <div className="space-y-3" data-testid={`prediction-card-${match.id}`}>
@@ -151,7 +159,9 @@ export function PredictionForm({ match }: PredictionFormProps) {
         </p>
       )}
 
-      <PredictionStatusSummary match={{ ...match, prediction: savedPrediction, canEdit }} />
+      <PredictionStatusSummary
+        match={{ ...match, prediction: savedPrediction, canEdit: liveCanEdit }}
+      />
       <PredictionVsResult match={{ ...match, prediction: savedPrediction }} />
     </div>
   );

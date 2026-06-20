@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { resetPredictionOverride } from "@/features/predictions/actions/reset-prediction-override";
 import { savePrediction } from "@/features/predictions/actions/save-prediction";
 import { PredictionScoreControls } from "@/features/predictions/components/prediction-score-controls";
+import { useKickoffTick } from "@/features/predictions/hooks/use-kickoff-tick";
 import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 import type { PoolPredictionsViewProps } from "../types";
 import type { MemberPredictionRow } from "./pool-predictions-view-helpers";
@@ -46,6 +47,7 @@ function MatchCard({
   col,
   members,
   viewerId,
+  now,
   t,
   onStartEdit,
   onStartDualSave,
@@ -54,6 +56,7 @@ function MatchCard({
   col: MatchColumn;
   members: MemberPredictionRow[];
   viewerId: string;
+  now: number;
   t: ReturnType<typeof useDictionary>["pools"]["predictions"];
   onStartEdit: (col: MatchColumn, h: number | null, a: number | null) => void;
   onStartDualSave: (col: MatchColumn) => void;
@@ -88,8 +91,8 @@ function MatchCard({
           const canEdit =
             isViewer &&
             col.matchStatus === "SCHEDULED" &&
-            col.kickoffAt &&
-            new Date(col.kickoffAt) > new Date();
+            col.kickoffAt != null &&
+            now < new Date(col.kickoffAt).getTime();
 
           return (
             <div
@@ -191,6 +194,18 @@ export function PoolPredictionsView({
   const [editHome, setEditHome] = useState(0);
   const [editAway, setEditAway] = useState(0);
   const [saving, setSaving] = useState(false);
+
+  // Live kickoff lock: wake up at each future kickoff so editable cells and the
+  // open modal flip to read-only without a manual refresh. The server still
+  // re-checks eligibility on save (savePrediction) as the backstop.
+  const futureKickoffMs = useMemo(
+    () =>
+      matches
+        .map((m) => (m.kickoffAt ? Date.parse(m.kickoffAt) : Number.NaN))
+        .filter((t) => Number.isFinite(t)),
+    [matches],
+  );
+  const now = useKickoffTick(futureKickoffMs);
 
   const currentPage = useMemo(() => {
     const raw = searchParams.get("page");
@@ -295,6 +310,11 @@ export function PoolPredictionsView({
   const { currentPage: resolvedPage, totalPages, hasPrev, hasNext } = pageInfo;
   const visibleDays = paginatedDays;
 
+  // The modal can outlive the kickoff if left open; lock it in place to match
+  // the cell logic. Saving anyway would just be bounced by the server.
+  const modalEditable =
+    editingMatch?.kickoffAt != null && now < new Date(editingMatch.kickoffAt).getTime();
+
   if (matches.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
@@ -345,6 +365,7 @@ export function PoolPredictionsView({
                     col={col}
                     members={day.memberRows}
                     viewerId={viewerId}
+                    now={now}
                     t={t}
                     onStartEdit={handleStartEdit}
                     onStartDualSave={handleStartDualSave}
@@ -396,9 +417,12 @@ export function PoolPredictionsView({
                   setEditHome(h);
                   setEditAway(a);
                 }}
-                disabled={saving}
+                disabled={saving || !modalEditable}
               />
             </div>
+            {!modalEditable && (
+              <p className="text-sm text-destructive text-center">{t.kickoffReachedModal}</p>
+            )}
             <div className="flex justify-center gap-2">
               {isDualSave ? (
                 <>
@@ -411,7 +435,12 @@ export function PoolPredictionsView({
                   >
                     Solo para esta liga
                   </Button>
-                  <Button type="button" size="sm" onClick={handleDualSave} disabled={saving}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleDualSave}
+                    disabled={saving || !modalEditable}
+                  >
                     {saving ? "..." : "Guardar como global también"}
                   </Button>
                 </>
@@ -426,7 +455,12 @@ export function PoolPredictionsView({
                   >
                     Cancelar
                   </Button>
-                  <Button type="button" size="sm" onClick={handleSave} disabled={saving}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={saving || !modalEditable}
+                  >
                     {saving ? "..." : t.saveForThisPool}
                   </Button>
                 </>

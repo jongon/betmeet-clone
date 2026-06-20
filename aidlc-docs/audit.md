@@ -2666,3 +2666,20 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `construction/unit-49-scoring-rankings-performance/functional-design.md` (nuevo), `inception/application-design/unit-of-work.md` (Unit 49 + secuencia #34), `aidlc-state.md` (Current Stage + bloque Unit 49 + Execution Plan Summary), `audit.md` (esta entrada). Sin commit/push. **No reinicia etapas aprobadas (Units 1–48 intactas)**.
 
 ---
+
+## Unit 57 — Bloqueo en vivo del formulario de predicción al llegar el kickoff (refine UX sobre Unit 5)
+**Timestamp**: 2026-06-20T20:30:00Z
+**User Input**: Auditoría previa — "Quiero saber si la aplicación está blindada en /matches y /pools. Si dejo el navegador con el form de predicción abierto y un partido empezó durante ese tiempo y el form no está bloqueado, ¿qué sucede si escribo valores y actualizo resultados después de la hora de inicio?" → respondido: la **integridad ya está blindada** server-side (Unit 5 + Unit 48; `savePrediction` re-verifica `getPredictionEligibility` con la hora del servidor antes de escribir; trigger `prediction_lock_guard`); la única brecha era **UX** (el form quedaba visualmente editable hasta rebotar al guardar). Comando — `/aidlc:refine` "muy bien, hay algo más que adicionar a la documentación?" → tras presentar el plan, el usuario respondió "Sí, hazlo".
+**Status**: Approved (plan de código aprobado vía plan mode + ExitPlanMode; refine de docs aprobado por separado antes de escribir).
+**Cambio aplicado (presentacional; sin cambio de comportamiento server-side)**:
+- **BL-57.1** — Nuevo hook `useKickoffTick(kickoffTimestamps)` (`src/features/predictions/hooks/use-kickoff-tick.ts`): devuelve un `now` reactivo que se actualiza vía un único `setTimeout` agendado al próximo kickoff futuro (sin `setInterval`); re-arma al dispararse; cap anti-overflow de 24h; ignora kickoffs pasados/lista vacía.
+- **BL-57.2** — `/matches` (`prediction-form.tsx`): `liveCanEdit = canEdit && (kickoffMs == null || now < kickoffMs)`; `isReadOnly` deriva de `liveCanEdit`; `showPenaltySelector` y `PredictionStatusSummary` usan `liveCanEdit`.
+- **BL-57.3** — `/pools` (`pool-predictions-view.tsx`): `now = useKickoffTick(futureKickoffMs)` a nivel raíz; `MatchCard` recibe `now` como prop; `canEdit` por celda usa `now`; `modalEditable` deshabilita `PredictionScoreControls` + botones Guardar del modal con aviso `pools.predictions.kickoffReachedModal`.
+- **BR-57.2/57.5** — La autoridad sigue 100% server-side; BR-5.7 (Unit 5) intacta y reforzada: el reloj del cliente solo deshabilita la UI, nunca autoriza un guardado; un reloj atrasado solo deja el form visible de más (el servidor lo rechaza igual).
+**Security Baseline**: COMPLIANT — refuerza BR-5.7. Sin nueva superficie de input, schema, migraciones, rutas ni server actions. Server-side (`save-prediction.ts`, `eligibility.ts`, `lock.ts`) sin tocar.
+**Verificación**: hook test **4/4** (`use-kickoff-tick.test.ts`, fake timers); regresión **11/11** (`save-prediction.test.ts`); suites predictions+pools **161/161** (21 archivos); Biome limpio en los 6 archivos tocados (los 64 errores de `pnpm check` son SVGs de banderas preexistentes); `pnpm build` OK. Sin commit/push.
+**Stages**: Functional Design EXECUTE; Code Generation EXECUTE (ya implementado); Build and Test EXECUTE. SKIP: Application Design/Units Generation, NFR Requirements/Design, Infrastructure (delta mínimo FR-REFINE-57.1 / US-57.1 en el functional design).
+**Out of scope**: sincronización del reloj cliente-servidor (innecesaria); countdown visible hasta el kickoff (mejora futura separada).
+**Archivos AI-DLC**: `construction/unit-57-prediction-form-live-kickoff-lock/functional-design.md` (nuevo), `aidlc-state.md` (Current Stage + bloque Unit 57), `audit.md` (esta entrada). Sin commit/push. **No reinicia etapas aprobadas (Units 1–56 intactas)**.
+
+---
