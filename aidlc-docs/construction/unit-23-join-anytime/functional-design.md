@@ -54,6 +54,14 @@ une tarde simplemente **no puntúa** los partidos ya cerrados; puede pronosticar
 restantes. Eliminar una liga a mitad de torneo es ahora decisión del **owner** (antes lo
 impedía BR-3.19).
 
+> **Nota (Unit 55, 2026-06-20):** esta "consecuencia natural" describía el comportamiento
+> esperado, pero el leaderboard del pool (`getPoolLeaderboardRows`) seguía sumando **todos**
+> los scores del miembro sin acotar por la fecha de ingreso, así que un miembro que ya venía
+> prediciendo en global arrastraba al pool sus puntos previos al ingreso. **Unit 55**
+> (BR-55.1) lo corrige: el leaderboard del pool solo cuenta partidos con
+> `kickoffAt ≥ PoolMembership.joinedAt`. Ver
+> `construction/unit-55-pool-leaderboard-membership-scoped/functional-design.md`.
+
 ## 4. Trazabilidad
 
 | Historia | Regla | Antes | Después |

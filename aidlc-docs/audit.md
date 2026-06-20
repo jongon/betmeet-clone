@@ -1,5 +1,31 @@
 # AI-DLC Audit Log
 
+## Unit 55 — Leaderboard del pool acotado a la membresía
+**Timestamp**: 2026-06-20T18:30:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "El ranking dentro de los pools está mostrando el puntaje global y tiene que mostrar el puntaje de ese pool solamente" — aclarado por el usuario: dos leaderboards independientes; el del pool muestra solo lo acumulado dentro del pool (global heredada + overrides) y solo de los partidos posteriores al ingreso del miembro.
+**Diagnóstico (causa raíz)**: `getPoolLeaderboardRows` (Unit 48, BR-48.9 / BL-48.3) ya resolvía override-sobre-global por (miembro, partido), pero **sumaba todos los scores del miembro sin filtrar por `PoolMembership.joinedAt`**. Para quien venía prediciendo en global desde antes de unirse a la liga, el total del pool quedaba igual a su total global (síntoma reportado). Además incumplía la promesa de Unit 23 ("quien se une tarde no puntúa los partidos ya cerrados"), que nunca llegó a aplicarse en el leaderboard.
+**AI Response (fix)**: BR-55.1…55.6 / BL-55.1 — en `getPoolLeaderboardRows`: el `select` de `poolMembership` añade `joinedAt`; el de `predictionScore` añade `prediction.match.kickoffAt`; el bucle de sumatoria descarta cada fila con `kickoff == null || kickoff < joinedAt` (en ambas ramas, override y global) antes de la resolución existente. El `kickoffAt` es idéntico para la global y el override de un mismo partido → consistente con `overrideKeys`, sin doble conteo. Miembros sin partidos calificados → 0 pts. `getGlobalRankingRows`/`getGlobalRanking` (global) y el wrapper `getPoolLeaderboard` no cambian.
+**Reglas**: BR-55.1 filtro `kickoffAt ≥ joinedAt`. BR-55.2 resolución override/global conservada. BR-55.3 recién llegados en 0. BR-55.4 ranking global intacto. BR-55.5 consistencia con el dedup. BR-55.6 DTO transparente. BL-55.1 flujo de `getPoolLeaderboardRows`.
+**Code change**:
+- `src/features/scoring-rankings/queries.ts` — `getPoolLeaderboardRows`: `joinedAt` + `match.kickoffAt` en los `select`; mapa `joinedAt`; filtro por fecha de ingreso en el bucle.
+- `src/features/scoring-rankings/__tests__/pool-leaderboard.test.ts` — helpers `member`/`score` con `joinedAt`/`match.kickoffAt`; +3 casos (pre-ingreso excluido, override pre-ingreso excluido, ranking de dos miembros con distinta `joinedAt`).
+**Doc change**:
+- `construction/unit-55-pool-leaderboard-membership-scoped/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 55; Unit 54 → Prev Stage; conteo 55 units; bloque de Stage Progress.
+- `inception/requirements/requirements.md` — Épica 55 / FR-REFINE-55.1.
+- `inception/user-stories/stories.md` — US-55.1.
+- `inception/application-design/unit-of-work.md` — sección Unit 55 + #39.
+- `construction/unit-48-pool-prediction-override/functional-design.md` — nota en BR-48.9 (ahora acotado por Unit 55).
+- `construction/unit-23-join-anytime/functional-design.md` — nota en §3 (la consecuencia natural se hace efectiva con Unit 55).
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio (2 archivos), ESLint 0, **Vitest** `pool-leaderboard` 7/7.
+**Stages**: Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+**Security Baseline**: COMPLIANT — read-only; conserva el gate de membresía de `getPoolLeaderboard` (SECURITY-08); sin nueva superficie de input, schema, migraciones, rutas ni i18n.
+**Out of scope**: la grilla de la pestaña "Predicciones" (puntos por partido) y el ranking global; reingresos más allá del `joinedAt` vigente.
+**No reinicia etapas aprobadas (Units 1–54 intactas).**
+
+---
+
 ## Unit 54 — Fix: unicidad de nombre en pools públicos + documentación de cierre
 **Timestamp**: 2026-06-20T18:20:00Z
 **Comando**: `/aidlc:refine` (seguimiento — "¿Hay algo más que documentar?")

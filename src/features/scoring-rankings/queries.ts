@@ -60,6 +60,7 @@ const getPoolLeaderboardRows = unstable_cache(
       where: { poolId },
       select: {
         userId: true,
+        joinedAt: true,
         user: {
           select: { nicknameBase: true, nicknameDiscriminator: true, avatarUrl: true },
         },
@@ -67,6 +68,11 @@ const getPoolLeaderboardRows = unstable_cache(
     });
 
     const memberIds = members.map((m) => m.userId);
+
+    // Unit 55: the pool leaderboard only counts matches played after each member
+    // joined this pool, so a member's pool total is what they accumulated *here*
+    // (not their full global history). The global ranking stays unaffected.
+    const joinedAt = new Map(members.map((m) => [m.userId, m.joinedAt]));
 
     const scoreRows = await prisma.predictionScore.findMany({
       where: {
@@ -78,7 +84,9 @@ const getPoolLeaderboardRows = unstable_cache(
       select: {
         userId: true,
         totalPoints: true,
-        prediction: { select: { poolId: true, matchId: true } },
+        prediction: {
+          select: { poolId: true, matchId: true, match: { select: { kickoffAt: true } } },
+        },
       },
     });
 
@@ -96,6 +104,14 @@ const getPoolLeaderboardRows = unstable_cache(
 
     for (const row of scoreRows) {
       const userId = row.userId;
+
+      // Unit 55: skip matches that kicked off before this member joined the pool.
+      // The kickoff is identical for a member's global row and their pool override
+      // of the same match, so this stays consistent with the override dedup below.
+      const joined = joinedAt.get(userId);
+      const kickoff = row.prediction.match.kickoffAt;
+      if (!joined || !kickoff || kickoff < joined) continue;
+
       const isOverride = row.prediction.poolId === poolId;
 
       if (isOverride) {

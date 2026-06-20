@@ -949,6 +949,20 @@
   - El contenido de las predicciones futuras ajenas no se envía al cliente (enmascarado server-side, no solo visual).
   - Sin cambios en el leaderboard, el ranking global ni `/matches`.
 
+## Épica 55: Leaderboard del pool acotado a la membresía (Unit 55 — añadida vía refine, 2026-06-20)
+
+### US-55.1: Ver el ranking de mi liga con los puntos acumulados en la liga
+
+**Como** miembro de una liga
+**Quiero** que el ranking de la liga muestre solo los puntos que acumulé dentro de esa liga
+**Para** que la liga sea una competencia propia y no un reflejo del ranking global, sobre todo cuando me uno con el torneo ya empezado.
+
+- **Criterios de Aceptación**:
+  - El leaderboard de la liga (`/pools/[id]`) suma, por miembro, solo los partidos jugados **después** de que ese miembro se unió a la liga (`kickoff ≥ fecha de ingreso`). **FR-REFINE-55.1**.
+  - Para esos partidos, se usa la predicción del miembro: su ajuste de la liga (override) si lo hizo, si no su predicción global heredada; sin doble conteo.
+  - Un miembro que se unió hace poco y aún no tiene partidos jugados tras su ingreso aparece con 0 puntos (no hereda su histórico previo).
+  - El leaderboard global (`/rankings`) no cambia: sigue siendo la suma de las predicciones globales del usuario.
+
 ## Épica 54: Renombrar pool con confirmación (Unit 54 — añadida vía refine, 2026-06-20)
 
 ### US-54.1: Cambiar el nombre de mi liga con una confirmación

@@ -1882,6 +1882,19 @@ En la pestaña "Predicciones" de `/pools/[id]`, las predicciones de **otros** mi
 - **Reemplaza** la eliminación incondicional del filtro `kickoffAt` de BR-48.16, acotándola: el filtro vuelve para los demás miembros, no para el viewer.
 - **No reinicia** Units 1–52.
 
+## Épica 55: Leaderboard del pool acotado a la membresía (Unit 55 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 6** (Scoring y Rankings) y **Unit 48** (override por pool); hace efectiva la "consecuencia natural" de **Unit 23** (membresía sin congelamiento). **No reinicia** etapas aprobadas (Units 1–54 intactas). Cambio de regla de cálculo del leaderboard del pool; el ranking global no cambia.
+
+### FR-REFINE-55.1 — Puntaje del pool acotado a la membresía
+El leaderboard de un pool (`/pools/[id]`) debe mostrar, por miembro, **solo el puntaje acumulado dentro de ese pool**: la suma de los puntos de los partidos cuyo `kickoffAt ≥ PoolMembership.joinedAt` del miembro (partidos jugados **después** de que ingresó al pool), usando su **override** del pool si existe y, si no, su **predicción global heredada**. Los partidos anteriores a su ingreso no cuentan; un miembro recién ingresado sin partidos posteriores aparece con **0 puntos**. El **leaderboard global** (`/rankings`) **no cambia**: sigue sumando todas las predicciones globales del usuario (`poolId IS NULL`) sin acotar por ninguna membresía.
+
+### Restricciones / SKIP
+- **Sin** migraciones de schema (`PoolMembership.joinedAt`, `Prediction.poolId`, `Match.kickoffAt` ya existen).
+- **Sin** cambios en el motor de scoring, el DTO `LeaderboardRow` (leaderboard transparente, DD-48.3), rutas ni i18n.
+- Cambio acotado a `getPoolLeaderboardRows`; `getGlobalRanking*` y el wrapper de membresía intactos.
+- **No reinicia** Units 1–54.
+
 ## Épica 54: Renombrar pool con confirmación (Unit 54 — añadida vía refine, 2026-06-20)
 
 > Refine post-construcción sobre **Unit 3** (Pools and Membership) y **Unit 45** (panel de Configuración del pool). **No reinicia** etapas aprobadas (Units 1–53 intactas). Habilita que el administrador (dueño) edite el nombre de la liga, que hasta ahora solo se fijaba al crearla.

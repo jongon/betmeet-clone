@@ -514,6 +514,22 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Tras un sync (manual o automático) o una mutación de membresía/override, `/matches`, `/rankings` y los leaderboards muestran datos frescos en el **primer** refresco; desaparece el doble refresh.
 
+## Unit 55 — Leaderboard del pool acotado a la membresía (refine sobre Unit 6/48; efectiviza Unit 23)
+
+**Goal**: Que el leaderboard de cada pool muestre solo el puntaje acumulado dentro del pool — los partidos jugados tras el ingreso de cada miembro — en vez de heredar el total global completo. El ranking global no cambia.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-20); sobre Unit 6 (Scoring/Rankings) y Unit 48 (override por pool). Hace efectiva la "consecuencia natural" prometida por Unit 23 (membresía sin congelamiento). No reinicia Units 1–54.
+- Causa raíz: `getPoolLeaderboardRows` ya resolvía override-sobre-global por (miembro, partido) pero sumaba todos los scores sin filtrar por `PoolMembership.joinedAt` → el total del pool quedaba igual al global para quien predecía en global desde antes de unirse.
+- Cambio: en `getPoolLeaderboardRows`, `select` de membership con `joinedAt` y de `predictionScore` con `prediction.match.kickoffAt`; el bucle descarta filas con `kickoff == null || kickoff < joinedAt` (ambas ramas) antes de la resolución override/global. Consistente con el dedup (mismo `kickoffAt` para global y override); recién llegados en 0; DTO `LeaderboardRow` sin cambios (transparente, DD-48.3).
+- `getGlobalRankingRows`/`getGlobalRanking` y el wrapper `getPoolLeaderboard` (gate de membresía + viewer) no cambian.
+
+**Files**: `src/features/scoring-rankings/queries.ts`, `src/features/scoring-rankings/__tests__/pool-leaderboard.test.ts`. Sin schema, migraciones, rutas ni i18n.
+
+**Stages**: Functional Design EXECUTE (`construction/unit-55-pool-leaderboard-membership-scoped/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+---
+
 ## Unit 54 — Renombrar pool con confirmación (refine sobre Unit 3/45)
 
 **Goal**: Permitir que el administrador (dueño) cambie el nombre de su liga desde el panel de Configuración, con una confirmación explícita antes de aplicar el cambio.
@@ -566,6 +582,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 36. Unit 52: Invalidación de caché corregida para Next.js 16 (post-construction refine; bug fix sobre Unit 35; `updateTag` → `revalidateTag(tag, "max")` para que el cron de sync invalide los caches `unstable_cache` sin lanzar `E872`; corrige también el tag mismatch del leaderboard de pool; elimina el doble refresh en `/matches`; sin schema, migraciones ni rutas)
 37. Unit 53: Ocultar predicciones futuras de otros miembros (post-construction refine; sobre Units 41/48; restaura la garantía anti-sesgo de FR-REFINE-41.1 que Unit 48 había roto al quitar el filtro `kickoffAt <= now`; enmascarado server-side en `getPoolMemberPredictions` acotado a `miembro !== viewer`; el viewer sigue viendo/editando sus propias predicciones futuras; celda con candado "Oculta hasta el inicio"; sin schema, migraciones, rutas ni cambios de scoring/leaderboard)
 38. Unit 54: Renombrar pool con confirmación (post-construction refine; sobre Units 3/45; nueva server action `renamePool` con autorización por `ownerId` y validación 3–60; diálogo de confirmación `«viejo» → «nuevo»` en el panel de Configuración; el card pasa a mostrarse a cualquier dueño —PUBLIC y PRIVATE— y el toggle `membersCanInvite` queda condicionado a PRIVATE; i18n es/en; sin schema, migraciones ni rutas nuevas)
+39. Unit 55: Leaderboard del pool acotado a la membresía (post-construction refine; sobre Units 6/48; efectiviza Unit 23; `getPoolLeaderboardRows` ahora suma solo los partidos con `kickoffAt ≥ joinedAt` de cada miembro —override del pool si existe, si no la global heredada—; recién llegados en 0; el ranking global no cambia; DTO transparente; sin schema, migraciones, rutas ni i18n)
 
 ## Security Notes
 
