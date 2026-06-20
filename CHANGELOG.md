@@ -24,6 +24,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 ### Changed
 
+- **Pools** — El ranking de cada liga ahora cuenta solo los puntos acumulados **dentro** de esa liga: suma únicamente los partidos jugados desde que cada miembro se unió (predicción global heredada u override del pool). Antes mostraba el puntaje global completo. El ranking global no cambia.
+- **Pools** — En la grilla de "Predicciones", las celdas de partidos previos al ingreso de un miembro se muestran vacías (ícono "Aún no estaba en la liga"), de modo que los puntos visibles cuadren con el ranking de la liga.
 - **Auth** — Al eliminar la cuenta se libera el nickname (`nicknameBase`/`nicknameDiscriminator` a `null`): el índice único no consideraba `deletedAt`, por lo que antes el apodo quedaba reservado de forma permanente.
 - **Pools** — Predicciones en pool usan timezone del navegador en lugar de UTC.
 
