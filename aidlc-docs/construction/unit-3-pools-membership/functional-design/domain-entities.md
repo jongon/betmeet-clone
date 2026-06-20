@@ -11,7 +11,7 @@ Grupo donde compiten los usuarios (US-4.1).
 | Atributo | Tipo | Descripción |
 |---|---|---|
 | `id` | uuid (PK) | Identificador del pool. |
-| `name` | string (3–60) | Nombre visible. **Único entre pools públicos** (Q3=C); los privados pueden repetir. |
+| `name` | string (3–60) | Nombre visible. **Único entre pools públicos** (Q3=C); los privados pueden repetir. **(Unit 54, 2026-06-20)** Editable por el admin con confirmación (`renamePool`, FR-REFINE-54.1); la unicidad entre públicos se conserva con pre-check + el índice parcial (BR-54.6). |
 | `type` | enum `PUBLIC` \| `PRIVATE` | Visibilidad (Q1/Q4). |
 | `capacity` | int (2–100) | Límite de miembros elegido por el creador (Q2). |
 | `inviteToken` | string (único, ~8 chars) | Sirve como **código** y como **link** `/pools/join/{token}` (Q1=A). |

@@ -1,5 +1,52 @@
 # AI-DLC Audit Log
 
+## Unit 54 — Fix: unicidad de nombre en pools públicos + documentación de cierre
+**Timestamp**: 2026-06-20T18:20:00Z
+**Comando**: `/aidlc:refine` (seguimiento — "¿Hay algo más que documentar?")
+**User Input**: "Hay algo más que tengas que documentar?"
+**Diagnóstico (causa raíz)**: Al revisar invariantes de `Pool` se detectó que `name` es **único entre pools públicos** (BR-3.2), reforzado por el índice parcial `pools_public_name_unique` (`WHERE type = 'PUBLIC'`, migración `20260611120000_rls_constraints_triggers`; SQL crudo, no `@@unique` de Prisma). Unit 54 habilitó renombrar pools PUBLIC, pero `renamePool` hacía `prisma.pool.update` **sin** pre-check ni `try/catch`, de modo que renombrar un pool público a un nombre ya existente lanzaba un `P2002` no manejado (error genérico en vez de mensaje claro). `createPool` ya resolvía esto (pre-check `findFirst` + `try/catch`); `renamePool` no.
+**AI Response (fix)**: BR-54.6 — en `renamePool`, ampliar el `select` a `{ id, ownerId, name, type }`; si `type === "PUBLIC"`, pre-check `findFirst({ type: "PUBLIC", name, id: { not: poolId } })` → "Ya existe una liga pública con ese nombre"; `prisma.pool.update` envuelto en `try/catch` (guardia final ante carrera P2002, mismo mensaje). PRIVATE exento (puede repetir nombre). Patrón reusado de `create-pool.ts`.
+**Reglas**: BR-54.6 unicidad de `name` entre pools públicos (pre-check + índice parcial como guardia final; PRIVATE exento).
+**Code change**:
+- `src/features/pools/actions/rename-pool.ts` — `select` de `type`, pre-check PUBLIC, `try/catch` en el update.
+- `src/features/pools/actions/__tests__/rename-pool.test.ts` — +4 casos (colisión PUBLIC, PUBLIC libre, PRIVATE duplicado permitido, carrera P2002).
+**Doc change**:
+- `inception/plans/unit-54-pool-rename-execution-plan.md` (NEW) — execution plan de Unit 54 (convención por unidad).
+- `construction/unit-54-pool-rename/functional-design.md` — BR-54.6 + BL-54.1 actualizado.
+- `construction/unit-3-pools-membership/functional-design/domain-entities.md` — anotación `(Unit 54)` en la fila `name`.
+- `construction/unit-47-public-pool-invites-permission/functional-design.md` — nota cruzada en BR-47.5/47.6: el código shipped mantiene el toggle `membersCanInvite` solo-PRIVATE (discrepancia con el FD de Unit 47); Unit 54 abre el render del card a `isOwner` (lo que BR-47.5 pedía).
+- `inception/requirements/requirements.md` — FR-REFINE-54.1 menciona la unicidad PUBLIC.
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio, **Vitest** `rename-pool` 12/12.
+**Stages**: Functional Design EXECUTE (delta BR-54.6); Code Generation EXECUTE; Build and Test EXECUTE.
+**Security Baseline**: COMPLIANT — refuerza la integridad de la unicidad (no permite duplicar nombres de pools públicos); autorización por `ownerId` intacta.
+**Out of scope**: cambiar la política de unicidad (sigue PUBLIC-only, BR-3.2); reconciliar/implementar el comportamiento de Unit 47 sobre el toggle en PUBLIC (solo se anota).
+**No reinicia etapas aprobadas (Units 1–53 intactas).**
+
+---
+
+## Unit 54 — Renombrar pool con confirmación
+**Timestamp**: 2026-06-20T18:00:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "Necesito que el administrador pueda cambiar el nombre del pool y que pida una confirmación antes de cambiarlo"
+**AI Response (fix)**: Refine aditivo sobre Unit 3 (entidad `Pool`, autorización por `ownerId`) y Unit 45 (panel "Configuración" en `/pools/[id]`). Plan presentado y **aprobado** por el usuario antes de ejecutar (decisiones confirmadas vía AskUserQuestion: alcance = **todas las ligas** —PUBLIC y PRIVATE—; confirmación = **modal mostrando `«viejo» → «nuevo»`**). Nueva server action `renamePool` calcada de `updatePoolMembersCanInvite`: `getOnboardedUserId` → `RenamePoolSchema.safeParse` (trim, 3–60, igual que `CreatePoolSchema`) → `findUnique` `{ id, ownerId, name }` → guard `ownerId === userId` → `prisma.pool.update({ data: { name } })` → `logAuthEvent("pool.settings_changed", { renamedTo })` → `revalidatePath('/pools/[id]')` + `revalidatePath('/pools')`. **Sin** restricción de `type`. UI: sección de renombrado + `Dialog` de confirmación (modelado en `confirm-delete-modal.tsx`) en `pool-settings-card-client.tsx`; el gate del card en `page.tsx` se abre de `isOwner && PRIVATE` a `isOwner`, y el toggle `membersCanInvite` queda condicionado a PRIVATE dentro del card. i18n es/en (`pools.settings.rename*`).
+**Reglas**: BR-54.1 autorización por dueño server-side. BR-54.2 validación trim/3–60 + UUID. BR-54.3 alcance PUBLIC y PRIVATE. BR-54.4 confirmación obligatoria en UI. BR-54.5 `revalidatePath` de `/pools/[id]` y `/pools`, sin `RANKINGS_TAG`; `logAuthEvent`. BL-54.1 flujo de `renamePool`.
+**Code change**:
+- `src/features/pools/schemas.ts` — `RenamePoolSchema` + `RenamePoolInput`.
+- `src/features/pools/actions/rename-pool.ts` — nueva action `renamePool` (NEW).
+- `src/features/pools/components/pool-settings-card.tsx` — propaga `poolType` / `initialName`.
+- `src/features/pools/components/pool-settings-card-client.tsx` — sección rename + diálogo de confirmación; toggle solo PRIVATE.
+- `src/app/(app)/pools/[id]/page.tsx` — gate del card → `isOwner`; nuevas props.
+- `src/i18n/dictionaries/es.ts`, `en.ts` — claves `settings.rename*`.
+- `src/features/pools/actions/__tests__/rename-pool.test.ts` — 9 tests de la action (NEW).
+- `src/features/pools/components/__tests__/pool-settings-card.test.tsx` — props actualizadas + 2 tests UI (confirmar rename; botón deshabilitado sin cambio + toggle oculto en PUBLIC).
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio (9 archivos), **Vitest 16/16** en las suites tocadas (`rename-pool` + `pool-settings-card`) y **383/383** tests en la suite completa (el único *archivo* que falla, `run-scheduled-sync`, es por `DATABASE_URL` ausente al importar `prisma.ts` —verificado pre-existente con `git stash`—, no por este cambio). Sin commit/push.
+**Stages**: Functional Design EXECUTE (`construction/unit-54-pool-rename/functional-design.md`); Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure (delta en requirements Épica 54 / FR-REFINE-54.1–3, stories US-54.1, `unit-of-work.md` Unit 54 + #38).
+**Security Baseline**: COMPLIANT — autorización por `ownerId` server-side (SECURITY-08, anti-IDOR), input validado/normalizado por Zod (SECURITY-01); sin nueva ruta, schema ni migración (`Pool.name` ya existe).
+**Out of scope**: historial de cambios de nombre más allá de `logAuthEvent`; renombrar otros campos (tipo, capacidad); notificar a los miembros.
+**No reinicia etapas aprobadas (Units 1–53 intactas).**
+
+---
+
 ## Workflow Planning — Unit 53 (retrospectivo) + cuestionamiento del proceso
 **Timestamp**: 2026-06-20T15:25:00Z
 **Comando**: `/aidlc:plan`

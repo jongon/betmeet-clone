@@ -514,6 +514,18 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Tras un sync (manual o automático) o una mutación de membresía/override, `/matches`, `/rankings` y los leaderboards muestran datos frescos en el **primer** refresco; desaparece el doble refresh.
 
+## Unit 54 — Renombrar pool con confirmación (refine sobre Unit 3/45)
+
+**Goal**: Permitir que el administrador (dueño) cambie el nombre de su liga desde el panel de Configuración, con una confirmación explícita antes de aplicar el cambio.
+
+**Responsibilities**:
+- Added post-construction via AI-DLC refine (2026-06-20); aditivo sobre Unit 3 (entidad `Pool`, autorización por `ownerId`) y Unit 45 (panel "Configuración" en `/pools/[id]`). No reinicia Units 1–53.
+- Nueva server action `renamePool` calcada de `updatePoolMembersCanInvite`: `getOnboardedUserId` → `RenamePoolSchema.safeParse` (trim, 3–60, igual que `CreatePoolSchema`) → fetch `{ id, ownerId, name }` → guard `ownerId === userId` (BR-54.1) → `prisma.pool.update({ data: { name } })` → `logAuthEvent("pool.settings_changed", { renamedTo })` → `revalidatePath('/pools/[id]')` + `revalidatePath('/pools')`. Sin restricción de `type` (BR-54.3).
+- UI: sección de renombrado + diálogo de confirmación `«viejo» → «nuevo»` (Cancelar/Confirmar) en `pool-settings-card-client.tsx`, modelado en `confirm-delete-modal.tsx`. El gate del card en `page.tsx` se abre de `isOwner && PRIVATE` a `isOwner`; el toggle `membersCanInvite` interno queda condicionado a PRIVATE.
+- i18n es/en (`pools.settings.rename*`). Sin schema, migraciones ni rutas nuevas (`Pool.name` ya existe). No invalida `RANKINGS_TAG` (el nombre no afecta rankings).
+
+**Primary Deliverable**: El dueño de cualquier liga (PUBLIC o PRIVATE) puede renombrarla desde `/pools/[id]`, confirmando el cambio en un diálogo; el nuevo nombre se refleja en `/pools` y `/pools/[id]`.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -553,6 +565,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 35. Unit 50: Sync & Scoring automáticos (Crons) (post-construction refine; resuelve FR-06; Supabase pg_cron + pg_net → `POST /api/cron/sync` guarded por `x-sync-secret`; cadencia tiered LIVE/RESULTS/FIXTURES/CLEANUP; orquestación compartida `runScheduledSync`; migración pg_cron idempotente/defensiva; sin schema de app; conserva el sync manual del admin como fallback)
 36. Unit 52: Invalidación de caché corregida para Next.js 16 (post-construction refine; bug fix sobre Unit 35; `updateTag` → `revalidateTag(tag, "max")` para que el cron de sync invalide los caches `unstable_cache` sin lanzar `E872`; corrige también el tag mismatch del leaderboard de pool; elimina el doble refresh en `/matches`; sin schema, migraciones ni rutas)
 37. Unit 53: Ocultar predicciones futuras de otros miembros (post-construction refine; sobre Units 41/48; restaura la garantía anti-sesgo de FR-REFINE-41.1 que Unit 48 había roto al quitar el filtro `kickoffAt <= now`; enmascarado server-side en `getPoolMemberPredictions` acotado a `miembro !== viewer`; el viewer sigue viendo/editando sus propias predicciones futuras; celda con candado "Oculta hasta el inicio"; sin schema, migraciones, rutas ni cambios de scoring/leaderboard)
+38. Unit 54: Renombrar pool con confirmación (post-construction refine; sobre Units 3/45; nueva server action `renamePool` con autorización por `ownerId` y validación 3–60; diálogo de confirmación `«viejo» → «nuevo»` en el panel de Configuración; el card pasa a mostrarse a cualquier dueño —PUBLIC y PRIVATE— y el toggle `membersCanInvite` queda condicionado a PRIVATE; i18n es/en; sin schema, migraciones ni rutas nuevas)
 
 ## Security Notes
 

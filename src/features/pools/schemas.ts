@@ -55,3 +55,15 @@ export const UpdatePoolMembersCanInviteSchema = z.object({
 });
 
 export type UpdatePoolMembersCanInviteInput = z.infer<typeof UpdatePoolMembersCanInviteSchema>;
+
+/** Rename a pool (FR-REFINE-54.1, BR-54.1/BR-54.2). Same name rules as CreatePoolSchema. */
+export const RenamePoolSchema = z.object({
+  poolId: z.string().uuid(),
+  name: z
+    .string()
+    .trim()
+    .min(3, "El nombre debe tener al menos 3 caracteres")
+    .max(60, "El nombre debe tener como máximo 60 caracteres"),
+});
+
+export type RenamePoolInput = z.infer<typeof RenamePoolSchema>;

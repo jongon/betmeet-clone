@@ -948,3 +948,19 @@
   - **Mis propias** predicciones siempre son visibles, incluidas las de partidos futuros, para poder verlas/editarlas como override de liga.
   - El contenido de las predicciones futuras ajenas no se envía al cliente (enmascarado server-side, no solo visual).
   - Sin cambios en el leaderboard, el ranking global ni `/matches`.
+
+## Épica 54: Renombrar pool con confirmación (Unit 54 — añadida vía refine, 2026-06-20)
+
+### US-54.1: Cambiar el nombre de mi liga con una confirmación
+
+**Como** administrador de una liga
+**Quiero** cambiar el nombre de mi liga y que me pida confirmar antes de aplicarlo
+**Para** corregir o actualizar el nombre sin tener que recrear la liga, evitando cambios accidentales.
+
+- **Criterios de Aceptación**:
+  - Desde el panel de Configuración en `/pools/[id]` (visible solo para el dueño), puedo editar el nombre y pulsar "Cambiar nombre". **FR-REFINE-54.1**.
+  - Al guardar se abre un diálogo de confirmación que muestra `«nombre actual» → «nombre nuevo»` con botones Cancelar / Confirmar; el cambio solo se aplica al Confirmar. **FR-REFINE-54.2**.
+  - El nombre se valida: trim, mínimo 3 y máximo 60 caracteres; si no cumple, se muestra el error y no se persiste.
+  - Funciona tanto en ligas públicas como privadas. **FR-REFINE-54.3**.
+  - Solo el dueño puede renombrar; un no-dueño no ve el panel y, si invoca la acción, recibe "Solo el administrador puede cambiar esta configuración" (validación server-side).
+  - Tras confirmar, el nuevo nombre aparece en el detalle `/pools/[id]` y en la lista `/pools`.

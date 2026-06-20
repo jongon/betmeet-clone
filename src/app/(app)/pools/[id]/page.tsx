@@ -117,9 +117,15 @@ export default async function PoolDetailPage({ params, searchParams }: PoolDetai
                 {dictionary.pools.invite.membersBlockedHint}
               </p>
             )}
-            {/* Unit 47: BR-47.5 — PoolSettingsCard solo para PRIVATE (PUBLIC siempre permite invitar) */}
-            {pool.isOwner && pool.type === "PRIVATE" && (
-              <PoolSettingsCard poolId={pool.id} initialMembersCanInvite={pool.membersCanInvite} />
+            {/* Unit 54: BR-54.3 — el panel de ajustes (renombrar) se muestra a cualquier dueño,
+                en PUBLIC y PRIVATE. El toggle de invitaciones interno sigue siendo solo PRIVATE. */}
+            {pool.isOwner && (
+              <PoolSettingsCard
+                poolId={pool.id}
+                poolType={pool.type}
+                initialName={pool.name}
+                initialMembersCanInvite={pool.membersCanInvite}
+              />
             )}
             <PoolActions pool={pool} />
           </aside>

@@ -6,6 +6,9 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 vi.mock("../../actions/update-pool-members-can-invite", () => ({
   updatePoolMembersCanInvite: vi.fn(),
 }));
+vi.mock("../../actions/rename-pool", () => ({
+  renamePool: vi.fn(),
+}));
 vi.mock("@/i18n/dictionary-provider", () => ({
   useDictionary: () => ({
     pools: {
@@ -15,12 +18,21 @@ vi.mock("@/i18n/dictionary-provider", () => ({
         membersCanInvite: "Los miembros pueden invitar",
         membersCanInviteDescription: "Si lo desactivas, solo tú podrás invitar a otros jugadores.",
         saved: "Configuración guardada",
+        renameLabel: "Nombre de la liga",
+        renameDescription: "Cambia el nombre que ven todos los miembros.",
+        renameButton: "Cambiar nombre",
+        renameConfirmTitle: "Confirmar cambio de nombre",
+        renameConfirmBody: "Vas a renombrar la liga:",
+        renameConfirm: "Confirmar",
+        renameCancel: "Cancelar",
+        renameSaved: "Nombre actualizado",
       },
     },
   }),
 }));
 
 import { toast } from "sonner";
+import { renamePool } from "../../actions/rename-pool";
 import { updatePoolMembersCanInvite } from "../../actions/update-pool-members-can-invite";
 import { PoolSettingsCardClient } from "../pool-settings-card-client";
 
@@ -36,14 +48,28 @@ describe("PoolSettingsCardClient (Unit 45, US-45.2, BR-45.4)", () => {
   });
 
   it("renders the Switch with the initial value (true)", () => {
-    render(<PoolSettingsCardClient poolId={POOL_ID} initialMembersCanInvite={true} />);
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
     const toggle = screen.getByTestId("pool-settings-members-can-invite-switch");
     expect(toggle).toBeDefined();
     expect(toggle.getAttribute("aria-checked")).toBe("true");
   });
 
   it("renders the Switch with the initial value (false)", () => {
-    render(<PoolSettingsCardClient poolId={POOL_ID} initialMembersCanInvite={false} />);
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={false}
+      />,
+    );
     const toggle = screen.getByTestId("pool-settings-members-can-invite-switch");
     expect(toggle.getAttribute("aria-checked")).toBe("false");
   });
@@ -53,7 +79,14 @@ describe("PoolSettingsCardClient (Unit 45, US-45.2, BR-45.4)", () => {
       success: true,
       membersCanInvite: false,
     });
-    render(<PoolSettingsCardClient poolId={POOL_ID} initialMembersCanInvite={true} />);
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
     fireEvent.click(screen.getByTestId("pool-settings-members-can-invite-switch"));
 
     await waitFor(() => {
@@ -71,7 +104,14 @@ describe("PoolSettingsCardClient (Unit 45, US-45.2, BR-45.4)", () => {
     vi.mocked(updatePoolMembersCanInvite).mockResolvedValue({
       error: "Solo el administrador puede cambiar esta configuración",
     });
-    render(<PoolSettingsCardClient poolId={POOL_ID} initialMembersCanInvite={true} />);
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
     fireEvent.click(screen.getByTestId("pool-settings-members-can-invite-switch"));
 
     await waitFor(() => {
@@ -95,7 +135,14 @@ describe("PoolSettingsCardClient (Unit 45, US-45.2, BR-45.4)", () => {
         }) as never,
     );
 
-    render(<PoolSettingsCardClient poolId={POOL_ID} initialMembersCanInvite={true} />);
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
     const toggle = screen.getByTestId("pool-settings-members-can-invite-switch");
     fireEvent.click(toggle);
 
@@ -114,5 +161,48 @@ describe("PoolSettingsCardClient (Unit 45, US-45.2, BR-45.4)", () => {
     await waitFor(() => {
       expect(toast.success).toHaveBeenCalled();
     });
+  });
+
+  it("typing a new name and confirming calls renamePool and toasts (Unit 54)", async () => {
+    vi.mocked(renamePool).mockResolvedValue({ success: true, name: "Liga Nueva" });
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PRIVATE"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId("pool-settings-rename-input"), {
+      target: { value: "Liga Nueva" },
+    });
+    fireEvent.click(screen.getByTestId("pool-settings-rename-button"));
+
+    // Confirmation dialog appears before applying.
+    const confirm = await screen.findByTestId("pool-settings-rename-confirm");
+    fireEvent.click(confirm);
+
+    await waitFor(() => {
+      expect(renamePool).toHaveBeenCalledWith({ poolId: POOL_ID, name: "Liga Nueva" });
+    });
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith("Nombre actualizado");
+    });
+  });
+
+  it("does not open the confirm dialog when the name is unchanged (Unit 54)", () => {
+    render(
+      <PoolSettingsCardClient
+        poolId={POOL_ID}
+        poolType="PUBLIC"
+        initialName="Liga"
+        initialMembersCanInvite={true}
+      />,
+    );
+    const button = screen.getByTestId("pool-settings-rename-button");
+    expect(button.hasAttribute("disabled")).toBe(true);
+    // PUBLIC pool: the invite toggle is hidden, but rename is still available.
+    expect(screen.queryByTestId("pool-settings-members-can-invite-switch")).toBeNull();
   });
 });

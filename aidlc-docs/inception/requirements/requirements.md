@@ -1881,3 +1881,21 @@ En la pestaña "Predicciones" de `/pools/[id]`, las predicciones de **otros** mi
 - **Sin** cambios en scoring, leaderboard del pool, ranking global ni `/matches`.
 - **Reemplaza** la eliminación incondicional del filtro `kickoffAt` de BR-48.16, acotándola: el filtro vuelve para los demás miembros, no para el viewer.
 - **No reinicia** Units 1–52.
+
+## Épica 54: Renombrar pool con confirmación (Unit 54 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 3** (Pools and Membership) y **Unit 45** (panel de Configuración del pool). **No reinicia** etapas aprobadas (Units 1–53 intactas). Habilita que el administrador (dueño) edite el nombre de la liga, que hasta ahora solo se fijaba al crearla.
+
+### FR-REFINE-54.1 — Renombrar liga
+El administrador (dueño, `Pool.ownerId`) puede cambiar el nombre de su liga desde el panel de Configuración en `/pools/[id]`. El nombre se valida igual que en la creación: trim, mínimo 3 y máximo 60 caracteres (consistente con `CreatePoolSchema` y la columna `Pool.name @db.VarChar(60)`). En pools **públicos**, el nombre sigue siendo **único** (BR-3.2): si choca con otra liga pública se rechaza con "Ya existe una liga pública con ese nombre" (BR-54.6); los pools privados pueden repetir nombre. El nuevo nombre se refleja en la lista `/pools` y en el detalle `/pools/[id]`.
+
+### FR-REFINE-54.2 — Confirmación previa
+El cambio de nombre requiere una confirmación explícita en la UI antes de persistir: al guardar se abre un diálogo que muestra el nombre actual y el nuevo (`«viejo» → «nuevo»`) con acciones Cancelar / Confirmar. Solo al confirmar se invoca la server action.
+
+### FR-REFINE-54.3 — Autorización y alcance
+La autorización se valida **server-side**: solo `Pool.ownerId === userId` puede renombrar; cualquier otro usuario recibe "Solo el administrador puede cambiar esta configuración". El renombrado aplica tanto a ligas **PUBLIC** como **PRIVATE** (a diferencia del toggle `membersCanInvite`, que sigue siendo solo de PRIVATE). El panel de Configuración pasa a mostrarse a cualquier dueño (antes era solo PRIVATE).
+
+### Restricciones / SKIP
+- **Sin** migraciones de schema: `Pool.name` ya existe.
+- **Sin** cambios en scoring, leaderboard, ranking ni invalidación de `RANKINGS_TAG` (el nombre no afecta rankings); solo `revalidatePath` de `/pools/[id]` y `/pools`.
+- **No reinicia** Units 1–53.
