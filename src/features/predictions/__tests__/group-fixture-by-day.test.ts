@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { coerceTimeZone, formatLocalDayKey, groupFixtureByDay } from "../services/fixture-by-day";
+import {
+  coerceTimeZone,
+  formatLocalDayKey,
+  groupFixtureByDay,
+  nextLocalMidnightMs,
+} from "../services/fixture-by-day";
 import type { PredictionMatchView } from "../types";
 
 // Minimal match stub — groupFixtureByDay only reads id, kickoffAt and matchNumber.
@@ -87,5 +92,31 @@ describe("groupFixtureByDay (FR-REFINE-16.2)", () => {
     expect(coerceTimeZone("Not/AZone")).toBe("UTC");
     expect(formatLocalDayKey(date, "Not/AZone")).toBe("2026-06-17");
     expect(formatLocalDayKey(date, null)).toBe("2026-06-17");
+  });
+});
+
+describe("nextLocalMidnightMs (Unit 59 — live day rollover)", () => {
+  it("returns the next UTC midnight for UTC", () => {
+    expect(nextLocalMidnightMs("2026-06-20", "UTC")).toBe(Date.parse("2026-06-21T00:00:00.000Z"));
+  });
+
+  it("returns the instant of next local midnight in a +offset timezone", () => {
+    // Europe/Madrid is UTC+2 in June, so local 2026-06-21T00:00 is 2026-06-20T22:00Z.
+    expect(nextLocalMidnightMs("2026-06-20", "Europe/Madrid")).toBe(
+      Date.parse("2026-06-20T22:00:00.000Z"),
+    );
+  });
+
+  it("returns the instant of next local midnight in a -offset timezone", () => {
+    // America/New_York is UTC-4 in June, so local 2026-06-21T00:00 is 2026-06-21T04:00Z.
+    expect(nextLocalMidnightMs("2026-06-20", "America/New_York")).toBe(
+      Date.parse("2026-06-21T04:00:00.000Z"),
+    );
+  });
+
+  it("falls back to UTC for an invalid timezone", () => {
+    expect(nextLocalMidnightMs("2026-06-20", "Not/AZone")).toBe(
+      Date.parse("2026-06-21T00:00:00.000Z"),
+    );
   });
 });

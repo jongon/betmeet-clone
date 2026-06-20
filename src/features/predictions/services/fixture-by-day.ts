@@ -52,6 +52,43 @@ export function formatLocalDayKey(date: Date, timeZone: string | null | undefine
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Epoch ms of the next local midnight after `todayKey` in the given timezone. Used to wake
+ * `/matches` up exactly at the day rollover so the past/current split (and the lingering last
+ * slot) re-evaluate without a reload.
+ *
+ * Derived from the stable `todayKey` string, not the live clock, so the value is constant within
+ * a day — safe to feed to `useKickoffTick` without re-arming its effect on every render.
+ */
+export function nextLocalMidnightMs(todayKey: string, timeZone: string | null | undefined): number {
+  const tz = coerceTimeZone(timeZone);
+  const [year, month, day] = todayKey.split("-").map(Number);
+  // Next local midnight interpreted as if it were UTC, then shifted by the tz offset at that
+  // instant so the wall clock actually reads 00:00 in `tz`.
+  const guess = Date.UTC(year, month - 1, day + 1, 0, 0, 0);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  }).formatToParts(new Date(guess));
+  const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const wallAsUtc = Date.UTC(
+    get("year"),
+    get("month") - 1,
+    get("day"),
+    get("hour"),
+    get("minute"),
+    get("second"),
+  );
+  const offset = wallAsUtc - guess;
+  return guess - offset;
+}
+
 export function formatLocalDayLabel(
   date: Date,
   options: Required<Pick<DayGroupingOptions, "locale" | "timeZone">>,
@@ -154,4 +191,59 @@ export function partitionDaysByToday(
     }
   }
   return { pastDays, currentDays };
+}
+
+/** How long before the next kickoff the lingering last slot stops being shown (FR-REFINE-59.1). */
+const LINGER_LEAD_MS = 60 * 60 * 1000;
+
+/**
+ * Keeps the freshest result on screen across the midnight rollover (FR-REFINE-59.1). Once
+ * `partitionDaysByToday` pushes the previous day into `pastDays`, its **last kickoff slot**
+ * (all matches sharing that day's latest kickoff) stays visible in the main view until 1h
+ * before the next kickoff, then drops behind the "past matches" toggle like the rest.
+ *
+ * Only the single most-recent past day is eligible, and only its last slot — never the whole
+ * block. The cut uses absolute kickoff timestamps (timezone-independent). If the next match has
+ * no confirmed kickoff (TBD) or there is no next match at all, there is no cutoff and the slot
+ * lingers until a date appears. Pure transform — no clock access beyond the caller's `now`.
+ *
+ * @param now current time in epoch ms (e.g. from `useKickoffTick`).
+ * @returns the trimmed day to render on top (or null), plus the cutoff in epoch ms (or null)
+ *   so the caller can wake up exactly when it should disappear.
+ */
+export function selectLingeringLastSlot(
+  pastDays: FixtureDayGroup[],
+  currentDays: FixtureDayGroup[],
+  now: number,
+): { lingering: FixtureDayGroup | null; cutoff: number | null } {
+  if (pastDays.length === 0) return { lingering: null, cutoff: null };
+
+  // pastDays is in chronological order, so the last entry is the most recent past day.
+  const mostRecent = pastDays[pastDays.length - 1];
+  let latest = Number.NEGATIVE_INFINITY;
+  for (const match of mostRecent.matches) {
+    if (!match.kickoffAt) continue;
+    const ts = Date.parse(match.kickoffAt);
+    if (ts > latest) latest = ts;
+  }
+  if (!Number.isFinite(latest)) return { lingering: null, cutoff: null };
+
+  const lastSlot = mostRecent.matches.filter(
+    (match) => match.kickoffAt && Date.parse(match.kickoffAt) === latest,
+  );
+
+  // Next kickoff = earliest dated kickoff still ahead (TBD matches are ignored).
+  let nextKickoff = Number.POSITIVE_INFINITY;
+  for (const day of currentDays) {
+    for (const match of day.matches) {
+      if (!match.kickoffAt) continue;
+      const ts = Date.parse(match.kickoffAt);
+      if (ts < nextKickoff) nextKickoff = ts;
+    }
+  }
+
+  const cutoff = Number.isFinite(nextKickoff) ? nextKickoff - LINGER_LEAD_MS : null;
+  if (cutoff !== null && now >= cutoff) return { lingering: null, cutoff };
+
+  return { lingering: { ...mostRecent, matches: lastSlot }, cutoff };
 }

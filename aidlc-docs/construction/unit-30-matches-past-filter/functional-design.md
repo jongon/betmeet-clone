@@ -100,3 +100,9 @@ días. La interpolación de `matchesShowPast` se hace en el componente cliente c
 ## Trazabilidad
 FR-REFINE-30.1 → §1, §3 · FR-REFINE-30.2 → §2, §4 · FR-REFINE-30.3 → §2 ·
 FR-REFINE-30.4 → §1, §3 · NFR-REFINE-30.1 → §3, §5 · NFR-REFINE-30.2 → §2
+
+> **Nota (Unit 59, 2026-06-20)**: el corte por día se mantiene, pero Unit 59 añade una excepción
+> acotada: el **último horario** del día pasado más reciente sigue visible en la vista principal
+> hasta 1h antes del siguiente kickoff (`selectLingeringLastSlot`, sobre la salida de
+> `partitionDaysByToday`, que no se modifica). Ver
+> `construction/unit-59-matches-last-match-linger/functional-design.md`.

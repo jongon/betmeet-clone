@@ -1015,3 +1015,17 @@
   - La cabecera de cada columna de partido en juego muestra el marcador en vivo + badge LIVE; los puntos por miembro se actualizan solos al cambiar el resultado. **FR-REFINE-58.2**.
   - La grilla se refresca sin recarga manual cuando llega una actualización del servidor. **FR-REFINE-58.1**, **FR-REFINE-58.3**.
   - El enmascarado anti-sesgo de predicciones futuras (Unit 53) y el vaciado pre-ingreso (Unit 56) se mantienen tras el refresco en vivo.
+
+## Épica 59: El último partido del día sigue visible hasta 1h antes del siguiente (Unit 59 — añadida vía refine, 2026-06-20)
+
+### US-59.1: Seguir viendo el último partido durante el hueco hasta el siguiente
+
+**Como** usuario que sigue el torneo en `/matches`
+**Quiero** que el último partido del día se mantenga visible tras la medianoche hasta poco antes del siguiente partido
+**Para** consultar el resultado más fresco sin tener que abrir "Ver partidos anteriores".
+
+- **Criterios de Aceptación**:
+  - El último partido de ayer fue a las 21:00 y el siguiente es pasado mañana a las 18:00: ese partido sigue visible en la vista principal hasta las 17:00 de pasado mañana (1h antes); luego desaparece. **FR-REFINE-59.1**.
+  - Si el último horario tiene varios partidos (p. ej. dos a las 21:00), todos permanecen visibles juntos; los partidos más tempranos de ese día no. **FR-REFINE-59.1**, **FR-REFINE-59.2**.
+  - Aparece bajo el encabezado de su propio día, arriba de los bloques futuros, y no se duplica al abrir "Ver partidos anteriores". **FR-REFINE-59.2**.
+  - Si el siguiente partido no tiene fecha confirmada (TBD) o no hay más partidos, el último horario permanece visible hasta que aparezca una fecha. **FR-REFINE-59.3**.

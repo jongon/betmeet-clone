@@ -1944,3 +1944,21 @@ La actualización en vivo usa WebSockets vía Supabase Realtime (canal Broadcast
 - **Sin** nuevas server actions ni rutas; reusa `revalidateResultViews` y el cliente Supabase browser existentes.
 - Acción operativa de prod: verificar que **Realtime está habilitado** en el proyecto Supabase.
 - **No reinicia** Units 1–57.
+
+## Épica 59: El último partido del día sigue visible hasta 1h antes del siguiente (Unit 59 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 30** (filtro de partidos pasados, corte por día calendario) y **Unit 42** (agrupamiento por día local), en la capa de vista de `/matches`. **No reinicia** etapas aprobadas (Units 1–58 intactas). Decisiones vía AskUserQuestion.
+
+### FR-REFINE-59.1 — El último horario del día persiste tras la medianoche
+Hoy, al pasar la medianoche local, el bloque del día anterior pasa entero a "Ver partidos anteriores" (Unit 30). El **último horario** del día más reciente (todos los partidos que comparten el último `kickoffAt` de ese día) debe seguir visible en la vista principal de `/matches` hasta **1 hora antes** del kickoff del siguiente partido; luego se oculta normalmente. Aparece bajo el encabezado de su propio día, arriba de los bloques futuros.
+
+### FR-REFINE-59.2 — Solo ese horario, no el bloque completo
+Solo persiste el último horario del día más reciente, no todo el bloque. El resto de ese día y los días más antiguos siguen ocultos tras "Ver partidos anteriores", sin duplicar el último horario (se excluye del día dentro del toggle mientras persiste arriba).
+
+### FR-REFINE-59.3 — "Siguiente partido" y bordes
+El "siguiente partido" para el corte (`kickoff − 1h`) es el próximo con **fecha confirmada**. Si el siguiente es "Fecha por confirmar" (TBD) o no quedan más partidos, **no hay corte** y el último horario permanece visible hasta que aparezca una fecha. El corte usa timestamps absolutos (independiente de la timezone); el agrupamiento por día sigue en la timezone local (Unit 42).
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas, server actions ni i18n; cambio de presentación client-side.
+- Reusa `partitionDaysByToday` (Unit 30, sin modificar) y `useKickoffTick` (Unit 57).
+- **No reinicia** Units 1–58.

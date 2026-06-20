@@ -578,6 +578,25 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: `/matches` y la grilla de Predicciones de `/pools` se actualizan en vivo por WebSocket cuando cambia un resultado, sin recarga manual.
 
+## Unit 59 — El último partido del día sigue visible hasta 1h antes del siguiente (refine sobre Unit 30/42)
+
+**Goal**: Tras la medianoche local, mantener visible en la vista principal de `/matches` el último horario del día más reciente hasta 1h antes del siguiente kickoff, en vez de ocultar el bloque entero de golpe.
+
+**Dependencias**: Unit 30 (filtro de partidos pasados, corte por día), Unit 42 (día local), Unit 57 (`useKickoffTick`). No reinicia Units 1–58.
+
+**Alcance**:
+- Transform puro `selectLingeringLastSlot(pastDays, currentDays, now)`: toma el día pasado más reciente, conserva todos los partidos de su último `kickoffAt`, y los mantiene visibles hasta `siguienteKickoff − 1h`. "Siguiente" = menor kickoff futuro con fecha; si TBD o inexistente, sin corte.
+- Render: el último horario se pinta bajo el encabezado de su propio día, arriba de `currentDays`; se excluye del día dentro de "Ver partidos anteriores" para no duplicar. `useKickoffTick([cutoff])` lo hace desaparecer en vivo al llegar el corte.
+- Decisiones vía AskUserQuestion: todos los del último horario (no uno); siguiente = el inmediato (TBD ⇒ sin corte); ubicación bajo su propia fecha.
+
+**Sin** schema, migraciones, rutas, server actions ni i18n; `partitionDaysByToday` sin modificar.
+
+**Files**: `src/features/predictions/services/fixture-by-day.ts` (`selectLingeringLastSlot`), `src/features/predictions/components/matches-fixture-view.tsx`, `src/features/predictions/__tests__/select-lingering-last-slot.test.ts` (NEW).
+
+**Stages**: Functional Design EXECUTE (`construction/unit-59-matches-last-match-linger/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: en `/matches`, el último partido del día permanece accesible durante el hueco hasta el siguiente partido sin abrir "Ver partidos anteriores".
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -621,6 +640,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 39. Unit 55: Leaderboard del pool acotado a la membresía (post-construction refine; sobre Units 6/48; efectiviza Unit 23; `getPoolLeaderboardRows` ahora suma solo los partidos con `kickoffAt ≥ joinedAt` de cada miembro —override del pool si existe, si no la global heredada—; recién llegados en 0; el ranking global no cambia; DTO transparente; sin schema, migraciones, rutas ni i18n)
 40. Unit 56: Grilla de predicciones del pool acotada a la fecha de ingreso (post-construction refine; sobre Units 41/48; hermano de Unit 53, continúa Unit 55; las celdas de partidos previos al ingreso del miembro se muestran vacías con ícono `CalendarOff` "Aún no estaba en la liga"; cálculo en la vista en `buildDayGroups` con `joinedAt`/`kickoffAt` ya disponibles; aplica a todos incl. viewer; columnas se conservan; sin enmascarado server-side; sin schema, migraciones, rutas ni cambios en la query; +1 key i18n)
 41. Unit 58: Resultados en vivo vía Supabase Realtime, websockets (post-construction refine; sobre Units 50/52 y la UI de Units 30/41/48/57; el servidor emite un broadcast `results-updated` por el endpoint REST de Realtime tras invalidar la caché —en `api/cron/sync`, `force-result`, `revert-override`, `trigger-sync`—; el hook cliente `useLiveResults` hace `router.refresh()` con debounce; `/pools` añade marcador en vivo + badge LIVE a la cabecera; transporte Broadcast porque Vercel serverless no sostiene un WS propio; sin schema, migraciones, replicación lógica ni RLS sobre `Match`; sin rutas ni server actions nuevas)
+42. Unit 59: El último partido del día sigue visible hasta 1h antes del siguiente (post-construction refine; sobre Units 30/42; transform puro `selectLingeringLastSlot` mantiene en `/matches` el último horario del día más reciente tras la medianoche hasta `siguienteKickoff − 1h` —todos los del último horario, no uno; siguiente = menor kickoff futuro con fecha, TBD/inexistente ⇒ sin corte—; se pinta bajo su propia fecha arriba de los bloques futuros y se excluye del toggle "Ver partidos anteriores"; reusa `useKickoffTick` (Unit 57) para desaparecer en vivo; `partitionDaysByToday` sin tocar; sin schema, migraciones, rutas, server actions ni i18n)
 
 ## Security Notes
 

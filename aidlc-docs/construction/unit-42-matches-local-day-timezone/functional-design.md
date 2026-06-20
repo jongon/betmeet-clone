@@ -106,3 +106,8 @@ Verificación de calidad:
 - Cambiar lock de predicciones, scoring, sync o admin.
 - Añadir preferencias persistidas de timezone en perfil.
 - Modificar el detalle del partido, salvo que Code Generation detecte reutilización obligatoria del mismo helper para evitar duplicidad.
+
+> **Nota (Unit 59, 2026-06-20)**: el agrupamiento y la etiqueta por día local siguen sin cambios.
+> Unit 59 mantiene visible el último horario del día más reciente hasta 1h antes del siguiente
+> kickoff usando timestamps **absolutos** (independiente de timezone), conservando el día local
+> de este unit. Ver `construction/unit-59-matches-last-match-linger/functional-design.md`.

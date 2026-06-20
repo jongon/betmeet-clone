@@ -28,6 +28,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Pools** — En la grilla de "Predicciones", las celdas de partidos previos al ingreso de un miembro se muestran vacías (ícono "Aún no estaba en la liga"), de modo que los puntos visibles cuadren con el ranking de la liga.
 - **Auth** — Al eliminar la cuenta se libera el nickname (`nicknameBase`/`nicknameDiscriminator` a `null`): el índice único no consideraba `deletedAt`, por lo que antes el apodo quedaba reservado de forma permanente.
 - **Pools** — Predicciones en pool usan timezone del navegador en lugar de UTC.
+- **Matches** — Tras la medianoche, el último partido del día (todos los del último horario) sigue visible en `/matches` hasta 1 hora antes del siguiente partido, en lugar de ocultarse el bloque entero de golpe. Solo persiste ese horario, bajo su propia fecha y arriba de los próximos; si el siguiente partido aún no tiene fecha, permanece visible. Con la pestaña abierta, la transición al cruzar la medianoche ocurre sin recarga.
 
 ---
 

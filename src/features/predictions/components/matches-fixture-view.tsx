@@ -3,12 +3,15 @@
 import { useState, useSyncExternalStore } from "react";
 import { MatchCard } from "@/features/competition/components/match-card";
 import { useLiveResults } from "@/features/competition/hooks/use-live-results";
+import { useKickoffTick } from "@/features/predictions/hooks/use-kickoff-tick";
 import {
   coerceTimeZone,
   type FixtureDayGroup,
   formatLocalDayKey,
+  nextLocalMidnightMs,
   partitionDaysByToday,
   regroupFixtureDaysByTimeZone,
+  selectLingeringLastSlot,
 } from "@/features/predictions/services/fixture-by-day";
 import { useDictionary, useLocale } from "@/i18n/dictionary-provider";
 
@@ -60,8 +63,30 @@ export function MatchesFixtureView({ days }: MatchesFixtureViewProps) {
   });
   const today = formatLocalDayKey(new Date(), timeZone);
   const { pastDays, currentDays } = partitionDaysByToday(localDays, today);
-  const hasPast = pastDays.length > 0;
-  const pastMatchesCount = pastDays.reduce((total, day) => total + day.matches.length, 0);
+
+  // Unit 59: after midnight the previous day's last kickoff slot lingers on top until 1h
+  // before the next kickoff. The cutoff is independent of `now`, so we compute it first to
+  // wake the view up exactly when the slot should disappear. We also wake up at the next local
+  // midnight so the day rollover (and the lingering split) re-evaluates without a reload.
+  const { cutoff } = selectLingeringLastSlot(pastDays, currentDays, Date.now());
+  const midnight = nextLocalMidnightMs(today, timeZone);
+  const now = useKickoffTick(cutoff !== null ? [midnight, cutoff] : [midnight]);
+  const { lingering } = selectLingeringLastSlot(pastDays, currentDays, now);
+
+  // Avoid showing the lingering matches twice: trim them from the most-recent past day in the
+  // "past matches" toggle (dropping that day if nothing else is left).
+  const lingeringIds = new Set(lingering?.matches.map((match) => match.id));
+  const pastDaysForToggle = lingering
+    ? pastDays
+        .map((day, index) =>
+          index === pastDays.length - 1
+            ? { ...day, matches: day.matches.filter((match) => !lingeringIds.has(match.id)) }
+            : day,
+        )
+        .filter((day) => day.matches.length > 0)
+    : pastDays;
+  const hasPast = pastDaysForToggle.length > 0;
+  const pastMatchesCount = pastDaysForToggle.reduce((total, day) => total + day.matches.length, 0);
 
   return (
     <div className="space-y-8" data-testid="fixture-ready">
@@ -80,8 +105,10 @@ export function MatchesFixtureView({ days }: MatchesFixtureViewProps) {
       ) : null}
 
       {hasPast && showPast
-        ? pastDays.map((day) => <DayGroup key={day.dayKey ?? "tbd"} day={day} />)
+        ? pastDaysForToggle.map((day) => <DayGroup key={day.dayKey ?? "tbd"} day={day} />)
         : null}
+
+      {lingering ? <DayGroup key={`lingering-${lingering.dayKey}`} day={lingering} /> : null}
 
       {currentDays.map((day) => (
         <DayGroup key={day.dayKey ?? "tbd"} day={day} />

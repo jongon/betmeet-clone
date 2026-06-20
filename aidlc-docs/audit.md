@@ -1,5 +1,32 @@
 # AI-DLC Audit Log
 
+## Unit 59 — El último partido del día sigue visible hasta 1h antes del siguiente
+**Timestamp**: 2026-06-20T23:00:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "En /matches salen todos los partidos del día actual hasta el final, pero me gustaría que el último partido del día actual se pueda ver hasta 1 hora antes del siguiente partido. Solo ese partido no todo el bloque del día. Haz preguntas necesarias" (decisiones vía AskUserQuestion: regla confirmada; "siguiente partido" = el inmediato, TBD ⇒ sin corte; "último partido" = todos los del último horario; ubicación = bajo su propia fecha, arriba de los bloques futuros).
+**Diagnóstico (causa raíz)**: `/matches` agrupa el fixture por día calendario local (Unit 42) y `partitionDaysByToday` (Unit 30) oculta tras "Ver partidos anteriores" todo día con `dayKey < today`. El corte es por **día**, no por hora: al pasar la **medianoche local**, el bloque del día anterior pasa entero a `pastDays` de golpe, aunque el siguiente partido sea horas o días después → el usuario pierde acceso rápido al resultado más fresco durante el hueco.
+**AI Response (fix)**: BR-59.1…59.8 / BL-59.1…59.2 — nuevo transform puro `selectLingeringLastSlot(pastDays, currentDays, now)` que toma el día pasado más reciente, conserva todos los partidos de su último `kickoffAt` (último horario) y los mantiene visibles hasta `siguienteKickoff − 1h`; "siguiente" = menor kickoff futuro **con fecha** entre `currentDays` (TBD/inexistente ⇒ `cutoff = null`, sin corte). En la vista se pinta bajo el encabezado de su propio día, arriba de `currentDays`, y se excluye del día dentro del toggle para no duplicar; `useKickoffTick([cutoff])` (Unit 57) lo hace desaparecer en vivo al llegar el corte. `partitionDaysByToday` no se modifica.
+**Reglas**: BR-59.1 persiste el último horario hasta `siguiente−1h`. BR-59.2 todos los del último horario. BR-59.3 siguiente = menor kickoff futuro con fecha; TBD/inexistente ⇒ sin corte. BR-59.4 corte por timestamp absoluto; día local intacto. BR-59.5 solo el último horario, resto oculto. BR-59.6 bajo su propia fecha, arriba. BR-59.7 sin duplicado en el toggle. BR-59.8 solo el día más reciente. BL-59.1 `selectLingeringLastSlot`. BL-59.2 wiring de `matches-fixture-view`.
+**Code change**:
+- `src/features/predictions/services/fixture-by-day.ts` — `selectLingeringLastSlot` + `LINGER_LEAD_MS` (`partitionDaysByToday` sin tocar).
+- `src/features/predictions/components/matches-fixture-view.tsx` — import de `selectLingeringLastSlot`/`useKickoffTick`; lingering renderizado antes de `currentDays`; trim de `pastDaysForToggle`.
+- `src/features/predictions/__tests__/select-lingering-last-slot.test.ts` (NEW, 7 casos).
+**Doc change**:
+- `construction/unit-59-matches-last-match-linger/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 59; Unit 58 → Prev Stage; bloque de Stage Progress de Unit 59; nota en Project Type.
+- `inception/requirements/requirements.md` — Épica 59 / FR-REFINE-59.1…59.3.
+- `inception/user-stories/stories.md` — US-59.1.
+- `inception/application-design/unit-of-work.md` — sección Unit 59 + #42 en la secuencia.
+- `construction/unit-30-matches-past-filter/functional-design.md` y `construction/unit-42-matches-local-day-timezone/functional-design.md` — nota de cross-reference a Unit 59.
+**Build/Test Status**: Pass. `tsc --noEmit` 0, Biome limpio, **Vitest** suite verde (+7 casos `select-lingering-last-slot`), `npm run build` OK. Sin commit/push.
+**Stages**: Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+**Security Baseline**: COMPLIANT — el último horario ya jugó y ya era visible antes de medianoche; solo se mantiene unas horas más (sin fuga anti-sesgo de predicciones futuras, Unit 53 no aplica a pasados); cambio de presentación client-side sin nueva superficie de input, schema, migraciones, rutas, server actions ni i18n.
+**Out of scope**: etiqueta especial "Último resultado" (se reutiliza el encabezado del día); persistir el bloque completo del día (descartado por el usuario).
+**Incremento 2 (2026-06-20, mismo refine)**: a petición del usuario ("Sí, arréglalo") se cierra el gap de la transición en vivo de la medianoche. **BR-59.9 / BL-59.3** — nuevo `nextLocalMidnightMs(todayKey, timeZone)` (puro, derivado del `todayKey` estable para no re-armar el tick cada render) alimenta `useKickoffTick` junto al `cutoff`; al cruzar las 00:00 locales la vista se re-renderiza sin recarga, recalcula la partición y hace **aparecer** el último horario en su estado persistente. Code: `services/fixture-by-day.ts` (`nextLocalMidnightMs`), `components/matches-fixture-view.tsx` (tick `[midnight, cutoff]`), +4 casos en `__tests__/group-fixture-by-day.test.ts`. Docs: BR-59.9/BL-59.3 en el functional design; `aidlc-state.md`. Build/Test: `tsc` 0, Biome limpio, Vitest verde, build OK. Sin commit/push.
+**No reinicia etapas aprobadas (Units 1–58 intactas).**
+
+---
+
 ## Unit 58 — Resultados en vivo vía Supabase Realtime (websockets)
 **Timestamp**: 2026-06-20T22:30:00Z
 **Comando**: `/aidlc:refine`
