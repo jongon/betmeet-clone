@@ -1866,3 +1866,18 @@ El gate de `createDirectedInvite` y la UI en `/pools/[id]` se simplifican:
 - **No afecta**: el motor de scoring, el proveedor, el schema de tablas de la app, `/matches`, auth, onboarding ni la UI (salvo que el admin verá runs etiquetados `cron-…`).
 - **Conserva**: el sync manual de `/admin` como fallback. El comportamiento del caso feliz del admin es idéntico (misma cadena, ahora vía `runScheduledSync`).
 - **No reinicia** Units 1-49.
+
+## Épica 53: Ocultar predicciones futuras de otros miembros (Unit 53 — añadida vía refine, 2026-06-20)
+
+> Refine post-construcción sobre **Unit 41** (Predicciones visibles dentro del pool) y **Unit 48** (paginación de partidos futuros + override por pool). **No reinicia** etapas aprobadas (Units 1–52 intactas). Restaura la garantía anti-sesgo de FR-REFINE-41.1 que Unit 48 había eliminado al quitar el filtro `kickoffAt <= now` de `getPoolMemberPredictions`.
+
+**Causa raíz**: Unit 41 (FR-REFINE-41.1 / BR-41.2) ocultaba las predicciones de partidos no iniciados para no sesgar a los demás. Unit 48 (FR-REFINE-48.9) necesitaba que el viewer navegara a días futuros para editar sus propios overrides de pool, y para ello eliminó el filtro `kickoffAt <= now` **para todas las filas** — exponiendo de paso las predicciones futuras de los demás miembros.
+
+### FR-REFINE-53.1 — Las predicciones futuras de otros miembros permanecen ocultas
+En la pestaña "Predicciones" de `/pools/[id]`, las predicciones de **otros** miembros solo son visibles para partidos que ya empezaron o terminaron (`match.kickoffAt != null && kickoffAt <= now`). Para partidos no iniciados (`kickoffAt > now` o `kickoffAt = null`), la predicción del otro miembro permanece oculta (se muestra un indicador de candado "Oculta hasta el inicio"). El viewer **siempre** ve sus propias predicciones, incluidas las de partidos futuros (lo necesita para crear/editar overrides de pool, FR-REFINE-48.x). El enmascarado se aplica **server-side** en la query: el contenido de la predicción ajena no iniciada no se serializa al cliente.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas ni server actions nuevas.
+- **Sin** cambios en scoring, leaderboard del pool, ranking global ni `/matches`.
+- **Reemplaza** la eliminación incondicional del filtro `kickoffAt` de BR-48.16, acotándola: el filtro vuelve para los demás miembros, no para el viewer.
+- **No reinicia** Units 1–52.

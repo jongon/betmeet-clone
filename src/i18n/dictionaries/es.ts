@@ -422,6 +422,7 @@ export const es = {
       saveForThisPool: "Guardar para esta liga",
       overrideSaved: "Predicción guardada para esta liga",
       pageIndicator: "Página {current} de {total}",
+      hiddenUntilKickoff: "Oculta hasta el inicio",
     },
   },
   pages: {

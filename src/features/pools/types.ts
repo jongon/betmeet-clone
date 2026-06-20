@@ -83,6 +83,9 @@ export interface PoolMemberPrediction {
   matchedCase: string | null;
   isOverride: boolean;
   hasGlobal: boolean;
+  /** FR-REFINE-53.1: true when another member's prediction is hidden because the
+   *  match has not started yet (anti-bias). The viewer always sees their own. */
+  hidden: boolean;
 }
 
 /** Props for the pool predictions view component (FR-REFINE-41.3, FR-REFINE-48.9). */

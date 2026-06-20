@@ -1,6 +1,6 @@
 "use client";
 
-import { Undo2 } from "lucide-react";
+import { Lock, Undo2 } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { startTransition, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -81,6 +81,7 @@ function MatchCard({
         {members.map((member) => {
           const cell = member.cells[col.matchId];
           const isViewer = member.userId === viewerId;
+          const isHidden = cell?.hidden ?? false;
           const hasPrediction = cell?.predictedHome != null && cell?.predictedAway != null;
           const hasPoints = cell?.totalPoints != null;
           const canEdit =
@@ -102,20 +103,33 @@ function MatchCard({
                 </AvatarFallback>
               </Avatar>
               <span className="text-sm truncate min-w-0 flex-1">{member.nickname}</span>
-              <span className="text-sm tabular-nums shrink-0">
-                {hasPrediction ? `${cell.predictedHome} - ${cell.predictedAway}` : t.noPrediction}
-              </span>
-              {cell?.isOverride && (
-                <Badge variant="outline" className="text-[10px] shrink-0">
-                  {t.overrideBadge}
-                </Badge>
-              )}
-              {hasPoints ? (
-                <Badge variant="secondary" className="text-[10px] shrink-0">
-                  {cell.totalPoints} pts
-                </Badge>
+              {isHidden ? (
+                <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                  <Lock className="size-3" />
+                  {t.hiddenUntilKickoff}
+                </span>
               ) : (
-                <span className="text-[10px] text-muted-foreground shrink-0">{t.pendingScore}</span>
+                <>
+                  <span className="text-sm tabular-nums shrink-0">
+                    {hasPrediction
+                      ? `${cell.predictedHome} - ${cell.predictedAway}`
+                      : t.noPrediction}
+                  </span>
+                  {cell?.isOverride && (
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {t.overrideBadge}
+                    </Badge>
+                  )}
+                  {hasPoints ? (
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
+                      {cell.totalPoints} pts
+                    </Badge>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {t.pendingScore}
+                    </span>
+                  )}
+                </>
               )}
               {canEdit && (
                 <div className="flex items-center gap-1 shrink-0">

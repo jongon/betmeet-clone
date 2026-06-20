@@ -47,6 +47,7 @@ const makePrediction = (overrides: Partial<PoolMemberPrediction> = {}): PoolMemb
     predictedAway: 1,
     totalPoints: 5,
     matchedCase: "EXACT",
+    hidden: false,
     ...overrides,
   }) as PoolMemberPrediction;
 

@@ -36,6 +36,7 @@ export interface MemberPredictionRow {
       totalPoints: number | null;
       isOverride: boolean;
       hasGlobal: boolean;
+      hidden: boolean;
     }
   >;
 }
@@ -138,6 +139,7 @@ export function buildDayGroups(
           totalPoints: chosen?.totalPoints ?? null,
           isOverride: chosen?.isOverride ?? false,
           hasGlobal: global != null && override != null,
+          hidden: chosen?.hidden ?? false,
         };
       }
       return {

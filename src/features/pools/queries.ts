@@ -188,31 +188,44 @@ export async function getPoolMemberPredictions(
     }
   }
 
-  const predictions: PoolMemberPrediction[] = rows.map((row) => ({
-    matchId: row.matchId,
-    matchNumber: row.match.matchNumber,
-    kickoffAt: row.match.kickoffAt?.toISOString() ?? null,
-    matchStatus: row.match.status,
-    homeTeam: toTeamView(row.match.homeTeam),
-    awayTeam: toTeamView(row.match.awayTeam),
-    homePlaceholder: row.match.homePlaceholder,
-    awayPlaceholder: row.match.awayPlaceholder,
-    homeScore: row.match.homeScore,
-    awayScore: row.match.awayScore,
-    phaseName: row.match.phase.groupCode
-      ? `Grupo ${row.match.phase.groupCode}`
-      : row.match.phase.name,
-    phaseType: row.match.phase.type,
-    userId: row.userId,
-    nickname: formatNickname(row.user.nicknameBase, row.user.nicknameDiscriminator),
-    avatarUrl: row.user.avatarUrl,
-    predictedHome: row.homeScore,
-    predictedAway: row.awayScore,
-    totalPoints: row.score?.totalPoints ?? null,
-    matchedCase: row.score?.matchedCase ?? null,
-    isOverride: row.poolId === poolId,
-    hasGlobal: row.poolId === poolId && globalPairs.has(`${row.userId}::${row.matchId}`),
-  }));
+  // FR-REFINE-53.1: another member's prediction is only visible once the match has
+  // started (kickoff <= now). Future predictions of OTHER members are masked here in
+  // the query so their content never reaches the client (anti-bias). The viewer always
+  // sees their own predictions — they need to set/edit pool overrides for future matches.
+  const now = Date.now();
+
+  const predictions: PoolMemberPrediction[] = rows.map((row) => {
+    const started = row.match.kickoffAt != null && row.match.kickoffAt.getTime() <= now;
+    const hidden = row.userId !== userId && !started;
+
+    return {
+      matchId: row.matchId,
+      matchNumber: row.match.matchNumber,
+      kickoffAt: row.match.kickoffAt?.toISOString() ?? null,
+      matchStatus: row.match.status,
+      homeTeam: toTeamView(row.match.homeTeam),
+      awayTeam: toTeamView(row.match.awayTeam),
+      homePlaceholder: row.match.homePlaceholder,
+      awayPlaceholder: row.match.awayPlaceholder,
+      homeScore: row.match.homeScore,
+      awayScore: row.match.awayScore,
+      phaseName: row.match.phase.groupCode
+        ? `Grupo ${row.match.phase.groupCode}`
+        : row.match.phase.name,
+      phaseType: row.match.phase.type,
+      userId: row.userId,
+      nickname: formatNickname(row.user.nicknameBase, row.user.nicknameDiscriminator),
+      avatarUrl: row.user.avatarUrl,
+      predictedHome: hidden ? null : row.homeScore,
+      predictedAway: hidden ? null : row.awayScore,
+      totalPoints: hidden ? null : (row.score?.totalPoints ?? null),
+      matchedCase: hidden ? null : (row.score?.matchedCase ?? null),
+      isOverride: hidden ? false : row.poolId === poolId,
+      hasGlobal:
+        !hidden && row.poolId === poolId && globalPairs.has(`${row.userId}::${row.matchId}`),
+      hidden,
+    };
+  });
 
   return { matches, predictions };
 }

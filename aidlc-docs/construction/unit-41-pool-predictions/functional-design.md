@@ -138,6 +138,8 @@ A prediction is visible to pool peers iff `match.kickoffAt <= now()` (the match 
 
 **Rationale**: User decision — "Desde que empieza el partido es visible, y también seguirá siendo visible cuando termine."
 
+> **Nota (Unit 48 / Unit 53)**: Unit 48 (BR-48.16) eliminó el filtro `kickoffAt <= now` de `getPoolMemberPredictions` para permitir al viewer navegar y editar sus propios overrides de partidos futuros — lo que **expuso temporalmente** las predicciones futuras de los demás miembros (regresión de esta regla). **Unit 53 (BR-53.1, 2026-06-20)** restaura la garantía anti-sesgo acotándola: el filtro `kickoffAt <= now` vuelve a aplicar a los **demás** miembros (enmascarado server-side), mientras que el viewer sigue viendo sus propias predicciones futuras. Ver `construction/unit-53-pool-predictions-hide-future/functional-design.md`.
+
 ### BR-41.3 — Member ordering
 Members in the predictions table are ordered by leaderboard rank (total points descending). Members with equal points follow the same dense-ranking tiebreak as the leaderboard (nickname ascending).
 

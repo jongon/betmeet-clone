@@ -933,3 +933,18 @@
 - **Criterios de Aceptación**:
   - El job `LIVE_STATUS` (cada 2 min) hace short-circuit cuando no hay ningún partido en vivo o inminente (status LIVE/LOCKED o kickoff dentro de ±3h): responde `{ ok, skipped: true }` sin llamar al proveedor. **FR-REFINE-50.4**.
   - El ahorro de cuota aplica solo al cron automático; el sync manual del admin siempre ejecuta.
+
+## Épica 53: Ocultar predicciones futuras de otros miembros (Unit 53 — añadida vía refine, 2026-06-20)
+
+### US-53.1: No ver las predicciones futuras de otros miembros para no sesgar las mías
+
+**Como** miembro de una liga
+**Quiero** ver las predicciones de los demás solo para partidos que ya empezaron o terminaron, no las de partidos futuros
+**Para** que no me sesguen al hacer mis propias predicciones.
+
+- **Criterios de Aceptación**:
+  - En la pestaña "Predicciones" del pool, la predicción de **otro** miembro para un partido que aún no empieza (`kickoffAt > now`) no es visible: se muestra un candado "Oculta hasta el inicio". **FR-REFINE-53.1**.
+  - En cuanto el partido empieza (`kickoffAt <= now`), la predicción de ese miembro se revela (incluye partidos LIVE y FINISHED).
+  - **Mis propias** predicciones siempre son visibles, incluidas las de partidos futuros, para poder verlas/editarlas como override de liga.
+  - El contenido de las predicciones futuras ajenas no se envía al cliente (enmascarado server-side, no solo visual).
+  - Sin cambios en el leaderboard, el ranking global ni `/matches`.

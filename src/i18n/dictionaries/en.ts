@@ -425,6 +425,7 @@ export const en = {
       saveForThisPool: "Save for this pool",
       overrideSaved: "Prediction saved for this pool",
       pageIndicator: "Page {current} of {total}",
+      hiddenUntilKickoff: "Hidden until kickoff",
     },
   },
   pages: {

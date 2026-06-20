@@ -220,6 +220,115 @@ describe("getPoolMemberPredictions", () => {
     expect(result?.predictions[0].matchStatus).toBe("SCHEDULED");
   });
 
+  it("masks ANOTHER member's prediction for a not-started match but keeps the viewer's own (FR-REFINE-53.1)", async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
+    vi.mocked(formatNickname).mockImplementation((base, disc) =>
+      disc ? `${base}#${disc}` : (base ?? "Jugador"),
+    );
+    prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
+    prismaMock.poolMembership.findMany.mockResolvedValue([
+      { userId: memberId },
+      { userId: "member-2" },
+    ]);
+
+    const futureMatch = {
+      id: "match-future",
+      matchNumber: 45,
+      kickoffAt: new Date("2099-07-15T00:00:00Z"),
+      status: "SCHEDULED",
+      homeScore: null,
+      awayScore: null,
+      homePlaceholder: null,
+      awayPlaceholder: null,
+      homeTeam: { id: "team-e", name: "Spain", fifaCode: "ESP", flagPath: "/flags/es.svg" },
+      awayTeam: { id: "team-f", name: "Italy", fifaCode: "ITA", flagPath: "/flags/it.svg" },
+      phase: { name: "Semi-final", groupCode: null, type: "KNOCKOUT" },
+    };
+
+    prismaMock.match.findMany.mockResolvedValue([futureMatch]);
+    prismaMock.prediction.findMany.mockResolvedValue([
+      {
+        matchId: "match-future",
+        match: futureMatch,
+        userId: memberId, // the viewer — must stay visible
+        homeScore: 3,
+        awayScore: 0,
+        poolId: null,
+        user: { nicknameBase: "Test", nicknameDiscriminator: "1234", avatarUrl: null },
+        score: null,
+      },
+      {
+        matchId: "match-future",
+        match: futureMatch,
+        userId: "member-2", // another member — must be hidden
+        homeScore: 1,
+        awayScore: 2,
+        poolId: null,
+        user: { nicknameBase: "Other", nicknameDiscriminator: "5678", avatarUrl: null },
+        score: null,
+      },
+    ]);
+
+    const result = await getPoolMemberPredictions(poolId);
+    const own = result?.predictions.find((p) => p.userId === memberId);
+    const other = result?.predictions.find((p) => p.userId === "member-2");
+
+    expect(own?.hidden).toBe(false);
+    expect(own?.predictedHome).toBe(3);
+    expect(own?.predictedAway).toBe(0);
+
+    expect(other?.hidden).toBe(true);
+    expect(other?.predictedHome).toBeNull();
+    expect(other?.predictedAway).toBeNull();
+    expect(other?.isOverride).toBe(false);
+  });
+
+  it("reveals ANOTHER member's prediction once the match has started (FR-REFINE-53.1)", async () => {
+    vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
+    vi.mocked(formatNickname).mockImplementation((base, disc) =>
+      disc ? `${base}#${disc}` : (base ?? "Jugador"),
+    );
+    prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
+    prismaMock.poolMembership.findMany.mockResolvedValue([
+      { userId: memberId },
+      { userId: "member-2" },
+    ]);
+
+    const startedMatch = {
+      id: "match-started",
+      matchNumber: 3,
+      kickoffAt: new Date("2020-01-01T00:00:00Z"), // well in the past
+      status: "LIVE",
+      homeScore: null,
+      awayScore: null,
+      homePlaceholder: null,
+      awayPlaceholder: null,
+      homeTeam: { id: "team-c", name: "Germany", fifaCode: "GER", flagPath: "/flags/de.svg" },
+      awayTeam: { id: "team-d", name: "France", fifaCode: "FRA", flagPath: "/flags/fr.svg" },
+      phase: { name: "Group Stage", groupCode: "B", type: "GROUP" },
+    };
+
+    prismaMock.match.findMany.mockResolvedValue([startedMatch]);
+    prismaMock.prediction.findMany.mockResolvedValue([
+      {
+        matchId: "match-started",
+        match: startedMatch,
+        userId: "member-2",
+        homeScore: 1,
+        awayScore: 2,
+        poolId: null,
+        user: { nicknameBase: "Other", nicknameDiscriminator: "5678", avatarUrl: null },
+        score: null,
+      },
+    ]);
+
+    const result = await getPoolMemberPredictions(poolId);
+    const other = result?.predictions.find((p) => p.userId === "member-2");
+    expect(other?.hidden).toBe(false);
+    expect(other?.predictedHome).toBe(1);
+    expect(other?.predictedAway).toBe(2);
+  });
+
   it("returns match headers even when no predictions (FR-REFINE-48.9)", async () => {
     vi.mocked(getCurrentUserId).mockResolvedValue(memberId);
     prismaMock.poolMembership.findUnique.mockResolvedValue({ poolId, userId: memberId });
