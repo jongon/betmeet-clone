@@ -1962,3 +1962,24 @@ El "siguiente partido" para el corte (`kickoff − 1h`) es el próximo con **fec
 - **Sin** schema, migraciones, rutas, server actions ni i18n; cambio de presentación client-side.
 - Reusa `partitionDaysByToday` (Unit 30, sin modificar) y `useKickoffTick` (Unit 57).
 - **No reinicia** Units 1–58.
+
+## Épica 60: Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida (Unit 60 — añadida vía refine, 2026-06-22)
+
+> Reparación de **datos** post-construcción (no de código fuente) sobre **Unit 4** (Competition Data — `teams`/`matches`) y **Unit 5** (Predictions), ejecutada con un script puntual idempotente contra la DB. **No reinicia** etapas aprobadas (Units 1–59 intactas). Decisiones vía AskUserQuestion.
+
+### FR-REFINE-60.1 — La bandera de Uruguay se ve
+Había dos filas de Uruguay en `teams`: la obsoleta `URU` apuntaba a `/flags/uru.svg` (archivo inexistente → imagen rota) y la canónica `URY` a `/flags/uy.svg`. Debe quedar **una sola** fila de equipo Uruguay, `URY` con `/flags/uy.svg`, re-apuntando antes todas las referencias FK de la huérfana a la canónica.
+
+### FR-REFINE-60.2 — Un solo partido por fixture el 27/28 jun
+Cada fixture del 27 y 28 de junio se ingirió dos veces (una fila con `provider_match_id`, otra con solo `match_number`). Debe quedar **un solo** partido por fixture; se elimina el duplicado con **menos predicciones** y, en empate, el que **no** tiene `provider_match_id` (se conserva el que recibe resultados en vivo vía sync).
+
+### FR-REFINE-60.3 — Eliminar también las predicciones enlazadas
+Al eliminar el partido duplicado, sus predicciones (y `prediction_scores`) se borran también, vía `ON DELETE CASCADE`.
+
+### FR-REFINE-60.4 — El superviviente conserva número, etiquetas y sync
+El partido que queda hereda del eliminado los campos de identidad/visualización que tuviera nulos: `match_number` ("Partido N"), los placeholders de knockout ("Runner-up Group A/B") y, defensivamente, los team ids; y mantiene su `provider_match_id` para seguir recibiendo resultados en vivo.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, código de app, rutas, server actions ni i18n; reparación de **datos** vía script idempotente (`--dry-run`/`--apply`, una transacción).
+- **No** se modifica el orquestador de sync (la causa estructural queda fuera de alcance por decisión del usuario); la revalidación de caché de `/matches`/`/pools` es un paso manual.
+- **No reinicia** Units 1–59.

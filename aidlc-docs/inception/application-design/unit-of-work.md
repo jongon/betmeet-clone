@@ -597,6 +597,25 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: en `/matches`, el último partido del día permanece accesible durante el hueco hasta el siguiente partido sin abrir "Ver partidos anteriores".
 
+## Unit 60 — Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida (reparación de datos; refine sobre Unit 4/5)
+
+**Goal**: Reparar el **estado de datos** de la DB: dejar una sola fila de equipo Uruguay con bandera correcta y eliminar los partidos duplicados del 27/28 jun (con sus predicciones enlazadas), sin cambiar código de la app ni schema.
+
+**Dependencias**: Unit 4 (Competition Data — `teams`/`matches`), Unit 5 (Predictions — cascade `match_id`). No reinicia Units 1–59.
+
+**Alcance**:
+- `consolidateUruguay`: re-apunta toda referencia FK del equipo `URU` huérfano (`/flags/uru.svg`, inexistente) a la canónica `URY` (`/flags/uy.svg`) —`matches.home/away/winner_team_id`, `predictions.penalty_winner_team_id`— y borra la huérfana.
+- `dedupeMatches`: agrupa los partidos del 27/28 jun por equipos (grupo) o por fase+kickoff (knockout TBD, cuyos placeholders discrepan), conserva la fila con `provider_match_id` (más predicciones / recibe resultados en vivo), backfillea en el superviviente los campos nulos del perdedor (`match_number`, placeholders, team ids) y borra al perdedor (predicciones + scores por `ON DELETE CASCADE`). Guarda: solo el patrón exacto provider/number.
+- Decisiones vía AskUserQuestion: empate ⇒ conservar la fila sincronizada; bandera ⇒ consolidar; alcance ⇒ solo datos. Duplicados son del futuro/`SCHEDULED`.
+
+**Sin** schema, migraciones, código de app, rutas, server actions ni i18n. Reparación de datos vía script idempotente; no se modifica el orquestador de sync.
+
+**Files**: `scripts/repair-unit-60-duplicates-uruguay.ts` (NEW, idempotente, `--dry-run`/`--apply`, una transacción).
+
+**Stages**: Requirements/User Stories EXECUTE, Application Design (delta) EXECUTE, Functional Design EXECUTE (`construction/unit-60-repair-duplicate-matches-uruguay/functional-design.md`), Code Generation EXECUTE (script), Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: en `/matches` y `/pools`, Uruguay muestra su bandera y cada partido del 27/28 jun aparece una sola vez. Verificado en DB: 1 Uruguay (`URY`/`/flags/uy.svg`), 0 duplicados, 146→135 partidos, 11 pares / 15 predicciones eliminadas.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -641,6 +660,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 40. Unit 56: Grilla de predicciones del pool acotada a la fecha de ingreso (post-construction refine; sobre Units 41/48; hermano de Unit 53, continúa Unit 55; las celdas de partidos previos al ingreso del miembro se muestran vacías con ícono `CalendarOff` "Aún no estaba en la liga"; cálculo en la vista en `buildDayGroups` con `joinedAt`/`kickoffAt` ya disponibles; aplica a todos incl. viewer; columnas se conservan; sin enmascarado server-side; sin schema, migraciones, rutas ni cambios en la query; +1 key i18n)
 41. Unit 58: Resultados en vivo vía Supabase Realtime, websockets (post-construction refine; sobre Units 50/52 y la UI de Units 30/41/48/57; el servidor emite un broadcast `results-updated` por el endpoint REST de Realtime tras invalidar la caché —en `api/cron/sync`, `force-result`, `revert-override`, `trigger-sync`—; el hook cliente `useLiveResults` hace `router.refresh()` con debounce; `/pools` añade marcador en vivo + badge LIVE a la cabecera; transporte Broadcast porque Vercel serverless no sostiene un WS propio; sin schema, migraciones, replicación lógica ni RLS sobre `Match`; sin rutas ni server actions nuevas)
 42. Unit 59: El último partido del día sigue visible hasta 1h antes del siguiente (post-construction refine; sobre Units 30/42; transform puro `selectLingeringLastSlot` mantiene en `/matches` el último horario del día más reciente tras la medianoche hasta `siguienteKickoff − 1h` —todos los del último horario, no uno; siguiente = menor kickoff futuro con fecha, TBD/inexistente ⇒ sin corte—; se pinta bajo su propia fecha arriba de los bloques futuros y se excluye del toggle "Ver partidos anteriores"; reusa `useKickoffTick` (Unit 57) para desaparecer en vivo; `partitionDaysByToday` sin tocar; sin schema, migraciones, rutas, server actions ni i18n)
+43. Unit 60: Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida (post-construction; reparación de **datos** sobre Units 4/5 vía script idempotente `scripts/repair-unit-60-duplicates-uruguay.ts`; consolida las dos filas de Uruguay en una sola `URY` `/flags/uy.svg` —re-apuntando FKs y borrando la huérfana `URU`/`/flags/uru.svg`— y deduplica los partidos del 27/28 jun conservando la fila con `provider_match_id`, con backfill de `match_number`/placeholders, borrando al perdedor y sus predicciones por `ON DELETE CASCADE`; guarda de patrón provider/number; sin schema, migraciones, código de app, rutas, server actions ni i18n; no toca el orquestador de sync)
 
 ## Security Notes
 

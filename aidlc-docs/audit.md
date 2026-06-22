@@ -1,5 +1,29 @@
 # AI-DLC Audit Log
 
+## Unit 60 — Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida
+**Timestamp**: 2026-06-22T00:00:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "* La bandera de Uruguay no se ve. * Hay partidos que están repetidos desde las fechas 27 de junio y 28 de junio, elimina uno de ellos y elimina los que tienen menos predicciones y también sus predicciones enlazadas" (decisiones vía AskUserQuestion: en empates conservar la fila sincronizada con `provider_match_id` y backfillear su `match_number`; bandera = consolidar a un solo equipo Uruguay; alcance = solo reparación de datos, sin tocar el orquestador de sync. El usuario aclaró además que "los partidos duplicados son del futuro" — todos `SCHEDULED`, re-predecibles).
+**Diagnóstico (causa raíz)**: Problema de **datos** en la DB remota (Supabase, `DIRECT_URL`), no de código fuente. (1) **Uruguay**: dos filas en `teams`, ambas `provider_team_id=758` — `c8081262…` (`fifa_code=URU`, `flag_path=/flags/uru.svg`, archivo inexistente → bandera rota) y `58b14114…` (`URY`, `/flags/uy.svg`, correcta). El fix de código `a2cfb96` (`URU→URY` en el seed) nunca reconcilió el dato vivo, y `team-badge.tsx` pinta `flag_path` tal cual viene de la DB. (2) **Duplicados 27/28 jun**: cada fixture se ingirió dos veces y quedó partido en dos filas — una con `provider_match_id` (sync football-data.org, recibe resultados en vivo) y `match_number=null`, la otra con `match_number` y `provider_match_id=null`. 11 pares, confinados al 27/28 jun. En todos, la fila `provider_match_id` tenía ≥ predicciones que su gemela; el partido Uruguay/España con más predicciones (4) apuntaba al equipo `URU` roto, enredando ambos problemas.
+**AI Response (fix)**: BR-60.1…60.7 / BL-60.1…60.3 — script idempotente de un solo uso `scripts/repair-unit-60-duplicates-uruguay.ts` (tsx + Prisma, `--dry-run`/`--apply`, una transacción contra `DIRECT_URL`). (a) `consolidateUruguay`: re-apunta toda referencia FK del equipo `URU` huérfano (`matches.home/away/winner_team_id`, `predictions.penalty_winner_team_id`) a la canónica `URY` y borra la huérfana. (b) `dedupeMatches`: agrupa los partidos del 27/28 jun por equipos (grupo) o por fase+kickoff (knockout TBD, cuyos placeholders discrepan), conserva la fila con `provider_match_id`, backfillea en el superviviente los campos de identidad nulos del perdedor (`match_number`, placeholders "Runner-up Group A/B", team ids), borra al perdedor (predicciones + scores caen por `ON DELETE CASCADE`) y solo actúa sobre el patrón exacto provider/number (guarda BR-60.7). No se modifica el orquestador de sync.
+**Reglas**: BR-60.1 una sola fila de equipo por país (consolidar Uruguay). BR-60.2 re-apuntar todas las FK antes de borrar la huérfana. BR-60.3 un solo partido por fixture el 27/28 jun. BR-60.4 sobrevive la de más predicciones; empate ⇒ la de `provider_match_id`. BR-60.5 backfill de `match_number`/placeholders/team ids al superviviente (número tras borrar al perdedor, por el unique). BR-60.6 predicciones enlazadas vía `ON DELETE CASCADE`. BR-60.7 guarda de patrón provider/number (lo demás se omite y reporta). BL-60.1 `consolidateUruguay`. BL-60.2 `dedupeMatches`. BL-60.3 `groupKey` (equipos vs fase+kickoff).
+**Code change**:
+- `scripts/repair-unit-60-duplicates-uruguay.ts` (NEW) — script de reparación idempotente.
+- Sin cambios en código de la app, schema ni migraciones.
+**Doc change**:
+- `construction/unit-60-repair-duplicate-matches-uruguay/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 60; Unit 59 → Prev Stage; bloque de Stage Progress de Unit 60; nota en Project Type.
+- `inception/requirements/requirements.md` — Épica 60 / FR-REFINE-60.1…60.4.
+- `inception/user-stories/stories.md` — US-60.1 / US-60.2.
+- `inception/application-design/unit-of-work.md` — sección Unit 60.
+**Build/Test Status**: Pass. `tsc --noEmit` 0 (script). Verificación = ejecución `--apply` (11 pares eliminados, 15 predicciones borradas) + queries de control en DB: 1 fila Uruguay (`URY`/`/flags/uy.svg`), 0 duplicados el 27/28 jun, 146→135 partidos, 11 supervivientes con `provider_match_id` y `match_number`. Sin commit/push.
+**Stages**: Requirements/User Stories EXECUTE; Workflow Planning EXECUTE; Application Design (delta unit-of-work) EXECUTE; Functional Design EXECUTE; Code Generation EXECUTE (script); Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure (sin schema/migraciones).
+**Security Baseline**: COMPLIANT — integridad referencial preservada (FKs re-apuntadas antes de borrar; cascade para predicciones/scores; todo en una transacción). Pérdida de datos aceptada y explícita: ~15 predicciones de duplicados perdedores, sobre partidos futuros/`SCHEDULED` (re-predecibles), mitigada con `--dry-run` previo y guarda de patrón. Sin nueva superficie de entrada, schema, migraciones, rutas, server actions ni i18n.
+**Out of scope**: endurecer el dedupe del orquestador de sync para prevenir recurrencia (descartado por el usuario); fusionar predicciones del perdedor (se eliminan, y `@@unique([userId,matchId])` lo impediría); revalidación de caché de `/matches`/`/pools` queda como paso manual (acción admin de sync/recalc o TTL).
+**No reinicia etapas aprobadas (Units 1–59 intactas).**
+
+---
+
 ## Unit 59 — El último partido del día sigue visible hasta 1h antes del siguiente
 **Timestamp**: 2026-06-20T23:00:00Z
 **Comando**: `/aidlc:refine`

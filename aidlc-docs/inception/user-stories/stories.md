@@ -1029,3 +1029,25 @@
   - Si el último horario tiene varios partidos (p. ej. dos a las 21:00), todos permanecen visibles juntos; los partidos más tempranos de ese día no. **FR-REFINE-59.1**, **FR-REFINE-59.2**.
   - Aparece bajo el encabezado de su propio día, arriba de los bloques futuros, y no se duplica al abrir "Ver partidos anteriores". **FR-REFINE-59.2**.
   - Si el siguiente partido no tiene fecha confirmada (TBD) o no hay más partidos, el último horario permanece visible hasta que aparezca una fecha. **FR-REFINE-59.3**.
+
+## Épica 60: Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida (Unit 60 — añadida vía refine, 2026-06-22)
+
+### US-60.1: Ver la bandera de Uruguay
+
+**Como** usuario que mira partidos en `/matches` y `/pools`
+**Quiero** ver la bandera de Uruguay correctamente
+**Para** identificar al equipo de un vistazo.
+
+- **Criterios de Aceptación**:
+  - Uruguay muestra `/flags/uy.svg`, no una imagen rota. **FR-REFINE-60.1**.
+  - Existe una sola fila de equipo Uruguay (`URY`). **FR-REFINE-60.1**.
+
+### US-60.2: Ver cada partido una sola vez
+
+**Como** usuario que predice en `/matches`
+**Quiero** ver cada partido del 27/28 jun una sola vez
+**Para** no confundirme con duplicados ni dividir mis predicciones.
+
+- **Criterios de Aceptación**:
+  - Cada fixture del 27/28 jun aparece una sola vez; se eliminó el duplicado con menos predicciones y sus predicciones enlazadas. **FR-REFINE-60.2**, **FR-REFINE-60.3**.
+  - El partido que queda conserva su número ("Partido N") y, en el knockout, su etiqueta de placeholder. **FR-REFINE-60.4**.
