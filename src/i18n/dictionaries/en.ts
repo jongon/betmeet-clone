@@ -438,6 +438,11 @@ export const en = {
       notInPoolYet: "Not in the pool yet",
       kickoffReachedModal: "The match has already started. Predictions can no longer be saved.",
     },
+    // Unit 61: «En vivo ahora» cross-tab banner in /pools/[id].
+    liveNow: {
+      title: "Live now",
+      viewInPredictions: "View in Predictions",
+    },
   },
   pages: {
     appSubtitle: "FIFA World Cup predictions",

@@ -173,6 +173,8 @@ The default tab on `/pools/[id]` remains "Clasificación" (the existing view). "
 
 **Rationale**: Minimal change to existing behavior. Users who don't care about predictions see the same page as before.
 
+> **Nota (Unit 61, 2026-06-23)**: **Superseded.** La pestaña activa pasa a reflejarse en la URL (`?tab=ranking|predictions|members`, default `ranking`) para permitir que el banner «En vivo ahora» de Unit 61 deep-linkee a la pestaña Predicciones en la página/día correcto. El comportamiento de un clic normal se conserva (cambia `?tab` vía `router.replace` sin recarga completa). El default sigue siendo "Clasificación". Ver `construction/unit-61-pool-live-now-banner/functional-design.md` (BR-61.6).
+
 ### BR-41.8 — Sidebar persistence
 The sidebar (InviteShare, DirectedInviteForm, PoolActions) is visible across all three tabs, same styles and behavior as current page.
 

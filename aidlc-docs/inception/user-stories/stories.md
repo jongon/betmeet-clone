@@ -1051,3 +1051,20 @@
 - **Criterios de Aceptación**:
   - Cada fixture del 27/28 jun aparece una sola vez; se eliminó el duplicado con menos predicciones y sus predicciones enlazadas. **FR-REFINE-60.2**, **FR-REFINE-60.3**.
   - El partido que queda conserva su número ("Partido N") y, en el knockout, su etiqueta de placeholder. **FR-REFINE-60.4**.
+
+## Épica 61: Banner «En vivo ahora» en el pool (Unit 61 — añadida vía refine, 2026-06-23)
+
+### US-61.1: Ver qué partido(s) está(n) en juego en mi liga desde cualquier pestaña
+
+**Como** miembro de una liga
+**Quiero** ver el/los partido(s) que está(n) ocurriendo ahora en mi liga —con el marcador en vivo y la predicción de cada miembro— sin tener que entrar a la pestaña Predicciones ni navegar al día correcto
+**Para** seguir de un vistazo qué está pasando hoy en mi liga, esté en la pestaña que esté.
+
+- **Criterios de Aceptación**:
+  - Cuando hay al menos un partido `LIVE` entre los partidos del pool, aparece un banner «En vivo ahora» arriba de las pestañas, visible desde Clasificación, Predicciones y Miembros. **FR-REFINE-61.1**.
+  - El banner no aparece (sin hueco) cuando no hay partidos en juego. **FR-REFINE-61.1**.
+  - Cada partido del banner muestra equipos, banderas, marcador en vivo y badge LIVE. **FR-REFINE-61.1**.
+  - Debajo de cada partido, una lista compacta por miembro muestra su predicción (la ajustada del pool si existe, si no la global) y sus puntos actuales ("—" mientras no se haya puntuado). **FR-REFINE-61.2**.
+  - Un miembro que se unió al pool después del kickoff del partido en vivo muestra "Aún no estaba en la liga" con ícono `CalendarOff` (no se inventan puntos heredados). **FR-REFINE-61.2**, **BR-56.1**.
+  - Un CTA «Ver en Predicciones» por partido lleva a la pestaña Predicciones, posicionada en la página/día de ese partido. La pestaña activa se refleja en la URL (`?tab=…`). **FR-REFINE-61.3**.
+  - El marcador y los puntos del banner se actualizan solos vía Realtime (Unit 58) sin recarga manual; si Realtime no está disponible, todo sigue funcionando con refresco manual. **FR-REFINE-61.4**.

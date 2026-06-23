@@ -1983,3 +1983,26 @@ El partido que queda hereda del eliminado los campos de identidad/visualización
 - **Sin** schema, migraciones, código de app, rutas, server actions ni i18n; reparación de **datos** vía script idempotente (`--dry-run`/`--apply`, una transacción).
 - **No** se modifica el orquestador de sync (la causa estructural queda fuera de alcance por decisión del usuario); la revalidación de caché de `/matches`/`/pools` es un paso manual.
 - **No reinicia** Units 1–59.
+
+## Épica 61: Banner «En vivo ahora» en el pool (Unit 61 — añadida vía refine, 2026-06-23)
+
+> Refine post-construcción sobre **Unit 41** (predicciones visibles en el pool), **Unit 48** (override por pool) y **Unit 58** (resultados en vivo vía Supabase Realtime). **No reinicia** etapas aprobadas (Units 1–60 intactas). El dato de partidos LIVE ya está disponible server-side vía `getPoolMemberPredictions` (Unit 41/48) y el marcador en vivo ya se pinta en la cabecera de cada columna del grid (Unit 58); la brecha es de **descubribilidad**: un partido en vivo puede estar en una página/día distinto al de hoy (la grilla pagina 1 día/página con default = hoy, `paginateDays`), y es **invisible** desde las pestañas Clasificación y Miembros. Este refine añade un banner cross-tab que superficia el/los partido(s) en juego con la predicción por miembro, sin nueva query/schema.
+
+### FR-REFINE-61.1 — Banner «En vivo ahora» cross-tab
+La página de detalle del pool (`/pools/[id]`) muestra, **arriba de las pestañas** y visible desde cualquiera de las tres (Clasificación / Predicciones / Miembros), un banner «En vivo ahora» cuando existe al menos un partido con `matchStatus === "LIVE"` entre los partidos del pool. El banner lista cada partido en juego con sus equipos, banderas y **marcador en vivo + badge LIVE**. Si no hay partidos LIVE, el banner no se renderiza (sin hueco vacío).
+
+### FR-REFINE-61.2 — Detalle rico: predicción + puntos por miembro
+Por cada partido en vivo del banner, se muestra una lista compacta de los miembros del pool con su **predicción** (el **override** del pool si existe, si no la **global heredada** —misma resolución que la grilla de Unit 41/48—) y sus **puntos actuales** (`null` mientras el partido esté LIVE y no se haya puntuado → "—"). Se respetan los estados de celda de Units 53/56: celda `hidden` (predicción futura de otro miembro) **no aplica** (LIVE = ya empezó ⇒ visible según BR-41.2); celda `preJoin` (`partido.kickoffAt < miembro.joinedAt`) → ícono `CalendarOff` + "Aún no estaba en la liga" (BR-56.1); el viewer siempre ve su propia predicción.
+
+### FR-REFINE-61.3 — CTA «Ver en Predicciones» con tab URL-driven
+El banner ofrece un CTA «Ver en Predicciones» por partido que lleva a la pestaña Predicciones posicionada en la **página/día** de ese partido. Para ello la pestaña activa pasa a reflejarse en la URL (`?tab=predictions|ranking|members`, default `ranking`), de modo que el banner pueda deep-linkar. **Supersede BR-41.7** (la pestaña era estado client-only sin parámetro de URL); el comportamiento de un clic normal en una pestaña se conserva (cambia `?tab`, sin recarga completa vía `router.replace`). El paginado del grid sigue vía `?page` (Unit 48).
+
+### FR-REFINE-61.4 — Refresco en vivo y degradación limpia
+El banner se refresca en vivo vía el mismo `useLiveResults()` de Unit 58 (broadcast `results-updated` → `router.refresh()` con debounce 1s). La suscripción a Realtime se monta **una sola vez** en el contenedor cliente del detalle del pool (no por pestaña), de modo que el banner se actualiza estés en la pestaña que estés. Si Realtime no está disponible o falta config, el banner degrada al comportamiento previo (refresco manual) y nunca rompe la vista. La desaparición del banner al finalizar el partido (LIVE → FINISHED) ocurre en el siguiente refresco/sync.
+
+### Restricciones / SKIP
+- **Sin** nueva query: reusa `getPoolMemberPredictions` (Unit 41/48) —los partidos LIVE ya vienen con `matchStatus`/`homeScore`/`awayScore`/`matchNumber`/`kickoffAt`/equipos.
+- **Sin** schema, migraciones, rutas nuevas, server actions ni nueva superficie de input. Reusa `buildDayGroups` (Unit 41/56), `MatchStatusBadge`, `useLiveResults` (Unit 58), `useKickoffTick` (Unit 57) y los tipos `MatchView`/`PoolMemberPrediction` existentes.
+- **Sin** cambios en el motor de scoring, el leaderboard del pool, el ranking global, `/matches`, sync, admin ni auth. El enmascarado anti-sesgo de Unit 53 se mantiene intacto (LIVE ⇒ started ⇒ visible según BR-41.2).
+- Cambio de **presentación** client-side + refactor mínimo de `page.tsx` (server calcula `liveMatches` y los pasa al contenedor cliente). **Supersede** BR-41.7 (tab → URL-driven).
+- **No reinicia** Units 1–60.

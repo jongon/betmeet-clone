@@ -435,6 +435,11 @@ export const es = {
       notInPoolYet: "Aún no estaba en la liga",
       kickoffReachedModal: "El partido ya comenzó. No se pueden guardar predicciones.",
     },
+    // Unit 61: banner «En vivo ahora» cross-tab en /pools/[id].
+    liveNow: {
+      title: "En vivo ahora",
+      viewInPredictions: "Ver en Predicciones",
+    },
   },
   pages: {
     appSubtitle: "Predicciones del FIFA World Cup",

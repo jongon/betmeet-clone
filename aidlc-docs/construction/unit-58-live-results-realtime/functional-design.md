@@ -99,3 +99,5 @@ Si faltan las variables públicas de Supabase (p. ej. en tests o config incomple
 - Suscribirse solo dentro de la ventana de partido (gating por LIVE/kickoff ±3h).
 - Acelerar la cadencia del cron (la fuente sigue a ~2 min).
 - Presence/typing y reconexión avanzada del canal.
+
+> **Nota (Unit 61, 2026-06-23)**: Unit 61 **extiende** el surfacing en vivo de Unit 58 al resto del detalle del pool. La suscripción `useLiveResults()` se mueve al contenedor cliente `PoolDetailTabs` (se monta una sola vez para todas las pestañas) y alimenta tanto el grid de Predicciones como el nuevo banner «En vivo ahora» cross-tab. El mecanismo de transporte (Broadcast REST, `results-updated`, debounce 1s) y las BR-58.1…58.6 **no cambian**. Ver `construction/unit-61-pool-live-now-banner/functional-design.md`.

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MatchStatusBadge } from "@/features/competition/components/match-status-badge";
-import { useLiveResults } from "@/features/competition/hooks/use-live-results";
 import { resetPredictionOverride } from "@/features/predictions/actions/reset-prediction-override";
 import { savePrediction } from "@/features/predictions/actions/save-prediction";
 import { PredictionScoreControls } from "@/features/predictions/components/prediction-score-controls";
@@ -43,6 +42,116 @@ function TeamFlag({ src }: { src: string | null }) {
   if (!src) return null;
   // biome-ignore lint/performance/noImgElement: flag icons are small static SVGs
   return <img src={src} alt="" className="size-4 shrink-0 object-contain" />;
+}
+
+/**
+ * Unit 61: extracted from MatchCard so the «En vivo ahora» banner can reuse the
+ * exact same per-member row (prediction override ?? global, preJoin, points,
+ * override badge, hidden state) without duplicating cell logic. `canEdit` is
+ * false in the banner — only the grid wires up the edit handlers.
+ */
+export function MemberPredictionRowView({
+  cell,
+  member,
+  canEdit,
+  hasPrediction,
+  hasPoints,
+  isPreJoin,
+  isHidden,
+  isViewer,
+  t,
+  matchId,
+  onStartEdit,
+  onStartDualSave,
+  onReset,
+}: {
+  cell: MemberPredictionRow["cells"][string] | undefined;
+  member: MemberPredictionRow;
+  canEdit: boolean;
+  hasPrediction: boolean;
+  hasPoints: boolean;
+  isPreJoin: boolean;
+  isHidden: boolean;
+  isViewer: boolean;
+  t: ReturnType<typeof useDictionary>["pools"]["predictions"];
+  matchId: string;
+  onStartEdit?: (col: MatchColumn, h: number | null, a: number | null) => void;
+  onStartDualSave?: (col: MatchColumn) => void;
+  onReset?: (matchId: string) => void;
+}) {
+  return (
+    <div
+      className="flex items-center gap-2 px-3 py-1.5"
+      data-testid={`prediction-cell-${member.userId}-${matchId}`}
+    >
+      <Avatar className="size-5 shrink-0">
+        <AvatarImage src={member.avatarUrl ?? undefined} alt="" />
+        <AvatarFallback className="text-[10px]">
+          {member.nickname.slice(0, 2).toUpperCase()}
+        </AvatarFallback>
+      </Avatar>
+      <span className="text-sm truncate min-w-0 flex-1">{member.nickname}</span>
+      {isPreJoin ? (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <CalendarOff className="size-3" />
+          {t.notInPoolYet}
+        </span>
+      ) : isHidden ? (
+        <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+          <Lock className="size-3" />
+          {t.hiddenUntilKickoff}
+        </span>
+      ) : (
+        <>
+          <span className="text-sm tabular-nums shrink-0">
+            {hasPrediction ? `${cell?.predictedHome} - ${cell?.predictedAway}` : t.noPrediction}
+          </span>
+          {cell?.isOverride && (
+            <Badge variant="outline" className="text-[10px] shrink-0">
+              {t.overrideBadge}
+            </Badge>
+          )}
+          {hasPoints ? (
+            <Badge variant="secondary" className="text-[10px] shrink-0">
+              {cell?.totalPoints} pts
+            </Badge>
+          ) : (
+            <span className="text-[10px] text-muted-foreground shrink-0">{t.pendingScore}</span>
+          )}
+        </>
+      )}
+      {canEdit && isViewer && onStartEdit && onStartDualSave && onReset && (
+        <div className="flex items-center gap-1 shrink-0">
+          <Badge
+            variant="outline"
+            className="text-[10px] cursor-pointer hover:bg-muted transition-colors"
+            onClick={() =>
+              hasPrediction
+                ? onStartEdit(
+                    { matchId } as MatchColumn,
+                    cell?.predictedHome ?? null,
+                    cell?.predictedAway ?? null,
+                  )
+                : onStartDualSave({ matchId } as MatchColumn)
+            }
+          >
+            {t.saveForThisPool}
+          </Badge>
+          {cell?.isOverride && cell?.hasGlobal && (
+            <button
+              type="button"
+              onClick={() => onReset(matchId)}
+              className="text-muted-foreground hover:text-foreground shrink-0"
+              data-testid={`reset-override-${matchId}`}
+              title={t.useGlobalPrediction}
+            >
+              <Undo2 className="size-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function MatchCard({
@@ -115,78 +224,22 @@ function MatchCard({
             now < new Date(col.kickoffAt).getTime();
 
           return (
-            <div
+            <MemberPredictionRowView
               key={member.userId}
-              className="flex items-center gap-2 px-3 py-1.5"
-              data-testid={`prediction-cell-${member.userId}-${col.matchId}`}
-            >
-              <Avatar className="size-5 shrink-0">
-                <AvatarImage src={member.avatarUrl ?? undefined} alt="" />
-                <AvatarFallback className="text-[10px]">
-                  {member.nickname.slice(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm truncate min-w-0 flex-1">{member.nickname}</span>
-              {isPreJoin ? (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                  <CalendarOff className="size-3" />
-                  {t.notInPoolYet}
-                </span>
-              ) : isHidden ? (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                  <Lock className="size-3" />
-                  {t.hiddenUntilKickoff}
-                </span>
-              ) : (
-                <>
-                  <span className="text-sm tabular-nums shrink-0">
-                    {hasPrediction
-                      ? `${cell.predictedHome} - ${cell.predictedAway}`
-                      : t.noPrediction}
-                  </span>
-                  {cell?.isOverride && (
-                    <Badge variant="outline" className="text-[10px] shrink-0">
-                      {t.overrideBadge}
-                    </Badge>
-                  )}
-                  {hasPoints ? (
-                    <Badge variant="secondary" className="text-[10px] shrink-0">
-                      {cell.totalPoints} pts
-                    </Badge>
-                  ) : (
-                    <span className="text-[10px] text-muted-foreground shrink-0">
-                      {t.pendingScore}
-                    </span>
-                  )}
-                </>
-              )}
-              {canEdit && (
-                <div className="flex items-center gap-1 shrink-0">
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] cursor-pointer hover:bg-muted transition-colors"
-                    onClick={() =>
-                      hasPrediction
-                        ? onStartEdit(col, cell?.predictedHome ?? null, cell?.predictedAway ?? null)
-                        : onStartDualSave(col)
-                    }
-                  >
-                    {t.saveForThisPool}
-                  </Badge>
-                  {cell?.isOverride && cell?.hasGlobal && (
-                    <button
-                      type="button"
-                      onClick={() => onReset(col.matchId)}
-                      className="text-muted-foreground hover:text-foreground shrink-0"
-                      data-testid={`reset-override-${col.matchId}`}
-                      title={t.useGlobalPrediction}
-                    >
-                      <Undo2 className="size-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+              cell={cell}
+              member={member}
+              canEdit={canEdit}
+              hasPrediction={hasPrediction}
+              hasPoints={hasPoints}
+              isPreJoin={isPreJoin}
+              isHidden={isHidden}
+              isViewer={isViewer}
+              t={t}
+              matchId={col.matchId}
+              onStartEdit={onStartEdit}
+              onStartDualSave={onStartDualSave}
+              onReset={onReset}
+            />
           );
         })}
       </div>
@@ -210,9 +263,9 @@ export function PoolPredictionsView({
   const searchParams = useSearchParams();
   const timeZone = useSyncExternalStore(subscribeToTimeZone, getBrowserTimeZone, () => "UTC");
 
-  // Unit 58: live result updates over Supabase Realtime — the column scores and
-  // per-member points refresh without a manual reload while matches are in play.
-  useLiveResults();
+  // Unit 61: the Realtime subscription moved to PoolDetailTabs (the wrapper that
+  // owns the whole pool detail), so the banner and this grid both refresh from a
+  // single subscription. This component no longer calls useLiveResults() itself.
 
   const [editingMatch, setEditingMatch] = useState<MatchColumn | null>(null);
   const [isDualSave, setIsDualSave] = useState(false);

@@ -5,6 +5,7 @@ import {
   buildDayGroups,
   buildMatchLabel,
   DAYS_PER_PAGE,
+  pageForDayKey,
   paginateDays,
 } from "../pool-predictions-view-helpers";
 
@@ -343,5 +344,39 @@ describe("paginateDays", () => {
 
   it("DAYS_PER_PAGE constant is 1", () => {
     expect(DAYS_PER_PAGE).toBe(1);
+  });
+});
+
+describe("pageForDayKey (Unit 61)", () => {
+  const makeDayGroup = (dayKey: string) => ({
+    dayKey,
+    label: `Label ${dayKey}`,
+    matches: [],
+    memberRows: [],
+  });
+
+  it("returns 0 when the day is not found", () => {
+    expect(pageForDayKey("1999-01-01", [makeDayGroup("2026-06-11")])).toBe(0);
+  });
+
+  it("returns 0 for the first day", () => {
+    const days = [
+      makeDayGroup("2026-06-11"),
+      makeDayGroup("2026-06-12"),
+      makeDayGroup("2026-06-13"),
+    ];
+    expect(pageForDayKey("2026-06-11", days)).toBe(0);
+  });
+
+  it("returns the correct page (index / DAYS_PER_PAGE) for a later day", () => {
+    const days = Array.from({ length: 5 }, (_, i) =>
+      makeDayGroup(`2026-06-${(11 + i).toString().padStart(2, "0")}`),
+    );
+    // 5 days, 1 per page → day index 3 = page 3
+    expect(pageForDayKey("2026-06-14", days)).toBe(3);
+  });
+
+  it("returns 0 for empty days", () => {
+    expect(pageForDayKey("2026-06-11", [])).toBe(0);
   });
 });

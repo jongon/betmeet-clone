@@ -74,6 +74,10 @@
 - US-9.4: Aviso de invitación a liga/pool
 - US-9.5: Aviso de subida en ranking global
 
+## Unit 61: Banner «En vivo ahora» en el pool (refine sobre Unit 41/48/58)
+
+- US-61.1: Ver qué partido(s) está(n) en juego en mi liga desde cualquier pestaña
+
 ## Coverage Validation
 
 - All explicit user stories from `stories.md` are mapped.

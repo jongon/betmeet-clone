@@ -221,3 +221,15 @@ export function paginateDays(
     hasNext: clampedPage < totalPages - 1,
   };
 }
+
+/**
+ * Unit 61: resolve the grid page (0-indexed) that contains the day with the
+ * given `dayKey`. Used by the «En vivo ahora» banner's CTA to deep-link into
+ * the Predicciones tab on the correct day/page. Mirrors `paginateDays`'s
+ * page math (1 day per page). Returns 0 when the day isn't found.
+ */
+export function pageForDayKey(dayKey: string, allDays: DayGroup[]): number {
+  const index = allDays.findIndex((d) => d.dayKey === dayKey);
+  if (index < 0) return 0;
+  return Math.floor(index / DAYS_PER_PAGE);
+}
