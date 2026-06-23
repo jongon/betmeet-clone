@@ -507,6 +507,16 @@ export const es = {
   },
   rankings: {
     viewer: "(tú)",
+    liveProjection: {
+      badge: "proy.",
+      current: "actual",
+      projected: "proy.",
+      rise: "sube",
+      fall: "baja",
+      same: "igual",
+      newEntry: "nuevo",
+      disclaimer: "Ranking proyectado si el marcador en vivo se mantiene al final del partido.",
+    },
   },
   notifications: {
     matchStarted: "Empieza un partido",

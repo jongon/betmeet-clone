@@ -2872,3 +2872,36 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Status**: Functional Design complete. Pending user approval.
 
 ---
+
+## Functional Design — Approval
+**Timestamp**: 2026-06-23T12:30:00Z
+**User Response**: "Apruebo y continua"
+**Status**: Approved. Proceeding to Code Generation.
+
+---
+
+## Code Generation + Build and Test — Unit 62
+**Timestamp**: 2026-06-23T21:35:00Z
+**AI Response**: Unit 62 implementada y verificada.
+
+**Cambio (BR-62.x / BL-62.x)**:
+- **NEW** `src/features/scoring-rankings/services/project-leaderboard.ts` (puro, sin IO/React cache): `projectLeaderboard` + `projectPoolLeaderboardFromLoaded` + `identityProjection` + tipos `LiveMatchForProjection` / `LivePredictionForProjection` / `ProjectedLeaderboardRow`. Invariante clave: penalty bonus NO se aplica durante LIVE (BR-62.3 — `winnerTeamId: null` mientras LIVE → `toScoringExample` produce `actualPenaltyWinner: null` → `computeScore` no concede `PENALTY_BONUS`). Reusa `computeScore` (BR-2.7) + `toScoringExample` (score-adapter). Sintetiza rows para usuarios con LIVE preds pero sin `PredictionScore` confirmado (BR-62.4).
+- `src/features/scoring-rankings/queries.ts`: `getGlobalRankingProjection(viewerId)` y `getPoolLeaderboardProjection(poolId, viewerId)` (NO cached): sobre `getGlobalRanking` / `getPoolLeaderboard` cacheados + query DB ligera de matches `status: "LIVE"` (`@@index([status])`) + predicciones del scope (global: `poolId: null` + filtro `verificationStatus != UNVERIFIED && deletedAt == null`; pool: `OR [{ poolId }, { poolId: null }]` + `joinedAt` para `preJoin`). Override ?? global resuelto con el mismo patrón `Set<"userId:matchId">` de `getPoolLeaderboardRows`. Cache confirmado intacto — no se invalida (BR-62.7).
+- `src/features/scoring-rankings/components/pool-leaderboard.tsx`: props opcionales `projectedRows?` + `hasLive?` + `copy?`. Modo proyección: itera `projectedRows` (ya ordenados por `projectedPoints` desc) → muestra `<total> → <projected>` + badge "proy." + cambio posición (`sube N`/`baja N`/`igual`/`nuevo`); modo default sin cambios (cuando `hasLive=false`). `data-projection="true"` en el `<ol>` del modo proy.
+- **NEW** `src/features/scoring-rankings/components/leaderboard-live-refresh.tsx` ("use client"): wrapper que monta `useLiveResults()` (Unit 58 reuse, sin tocar) + render children. Usado por las 3 routes.
+- 3 routes: `/rankings/page.tsx` y `/pools/[id]/leaderboard/page.tsx` usan las variantes `getGlobalRankingProjection` / `getPoolLeaderboardProjection`; cubren `<PoolLeaderboard>` en `<LeaderboardLiveRefresh>`. `/pools/[id]/page.tsx` **NO usa** wrapper propio: Unit 61 (`PoolDetailTabs`) ya monta `useLiveResults()` una vez para todo el cuerpo; la proyección vive dentro del slot `rankingContent` usando `projectPoolLeaderboardFromLoaded` que reusa `predictionsData.matches/predictions` ya cargados (sin doble DB hit). ✓ Coexistencia Unit 62 + Unit 61 confirmada.
+- i18n ES/EN: `rankings.liveProjection.*` (badge/current/projected/rise/fall/same/newEntry/disclaimer).
+- **NEW** `src/features/scoring-rankings/services/__tests__/project-leaderboard.test.ts` — 11 tests puros (identidad sin LIVE / no-predicho / exacto → +5 / reordenado multi-usuario + delta / sube-baja / sintetiza nuevo row / shouldSkipPrediction preJoin / multi-LIVE suma / ignora pred de match no-LIVE / penalty bonus NO durante LIVE / identityProjection).
+- **NEW** `src/features/scoring-rankings/components/__tests__/pool-leaderboard.test.tsx` — 7 tests en jsdom (modo default con y sin limit / proyección con projectedPosition + projectedPoints + badge + → / sube N / baja N / nuevo / fallback a default cuando hasLive=false).
+
+**Corrección durante build**: mi primer `page.tsx` revertí inadvertidamente `PoolDetailTabs` (Unit 61 IMPLEMENTADA en el repo — mi grep no la detectó por keyword). Restauré `page.tsx` con `git checkout` e integré Unit 62 dentro del slot `rankingContent` de `PoolDetailTabs` (que ya suscribe live-refresh), respetando Unit 61.
+
+**Seguridad**: reusa gates de membresía existentes (`getPoolLeaderboard`/`getCurrentUserId`); anti-sesgo intacto (LIVE ⇒ started ⇒ visible según BR-41.2 — la proyección no expone predicciones futuras, sólo proyecta sobre matches ya-iniciados; matches no-LIVE no entran en `liveMatches`); sin nuevos endpoints/actions/secretos. Penalty bonus durante LIVE: por construcción no se concede (`winnerTeamId=null`) — documentado para futuro.
+
+**Cache**: el cache confirmado (`unstable_cache` con `RANKINGS_TAG` / `POOL_LEADERBOARD_TAG_PREFIX`, `revalidate: 300`, invalidado por `scoreMatch`/admin) no se invalida con Unit 62; la proyección se recalcula al vuelo por render. Query LIVE ligera: `prisma.match.findMany({ where: { status: "LIVE" }})` — indexada (`@@index([status])`).
+
+**Verificación**: `pnpm exec tsc --noEmit` → 2 errors **pre-existing** en `pool-live-now-banner.test.tsx` (`Type 'null' is not assignable to type 'string'`, Unit 61 — verificados con `git stash` que son pre-existing, no míos). **Sin errores nuevos**. `pnpm exec biome check` en archivos tocados → 0 errors, 0 warnings (tras `--write`). `pnpm exec eslint` limpio. **Vitest full 452/452** (+18 tests nuevos: 11 project-leaderboard + 7 pool-leaderboard mode); la única suite fallida (`trigger-sync.test.ts`) es **preexisting sin `DATABASE_URL`** y no relacionada con Unit 62. `pnpm build` OK (27 rutas, `/rankings` y `/pools/[id]/leaderboard` OK).
+
+**Sin commit/push**. **No reinicia etapas aprobadas (Units 1–61 intactas)**.
+
+---

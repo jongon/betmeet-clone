@@ -13,6 +13,7 @@ import { getPoolDetail, getPoolMemberPredictions } from "@/features/pools/querie
 import { getCurrentUserId } from "@/features/pools/services/session";
 import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
 import { getPoolLeaderboard } from "@/features/scoring-rankings/queries";
+import { projectPoolLeaderboardFromLoaded } from "@/features/scoring-rankings/services/project-leaderboard";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/lib/locale";
 
@@ -44,6 +45,22 @@ export default async function PoolDetailPage({ params, searchParams }: PoolDetai
   const liveMatches = predictionsData
     ? predictionsData.matches.filter((m) => m.matchStatus === "LIVE")
     : [];
+
+  // Unit 62 — project the pool leaderboard against the live scoreboard when at
+  // least one match is LIVE. Reuses the matches/predictions already loaded for
+  // the grid (no extra DB hit). `PoolDetailTabs` already mounts
+  // `useLiveResults()` once for the whole body, so the projection auto-refreshes
+  // on every broadcast `results-updated`.
+  const hasLive = liveMatches.length > 0;
+  const projectedRows =
+    hasLive && leaderboard && predictionsData
+      ? projectPoolLeaderboardFromLoaded({
+          rows: leaderboard,
+          matches: predictionsData.matches,
+          predictions: predictionsData.predictions,
+          members: pool.members,
+        })
+      : undefined;
 
   return (
     <main className="mx-auto max-w-4xl space-y-6 px-4 py-8">
@@ -84,7 +101,13 @@ export default async function PoolDetailPage({ params, searchParams }: PoolDetai
                   </Link>
                 )}
               </div>
-              <PoolLeaderboard rows={leaderboard} limit={5} />
+              <PoolLeaderboard
+                rows={leaderboard}
+                limit={5}
+                projectedRows={projectedRows}
+                hasLive={hasLive}
+                copy={dictionary.rankings.liveProjection}
+              />
             </section>
           )
         }

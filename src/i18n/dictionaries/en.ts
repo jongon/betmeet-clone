@@ -508,7 +508,19 @@ export const en = {
     pts: "pts",
     pendingScore: "Calculation pending",
   },
-  rankings: { viewer: "(you)" },
+  rankings: {
+    viewer: "(you)",
+    liveProjection: {
+      badge: "proj.",
+      current: "current",
+      projected: "proj.",
+      rise: "up",
+      fall: "down",
+      same: "same",
+      newEntry: "new",
+      disclaimer: "Projected ranking if the live score holds at full-time.",
+    },
+  },
   notifications: {
     ...es.notifications,
     matchStarted: "Match starts",

@@ -16,6 +16,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Fixture** — Agrupación de partidos por día local del usuario (timezone del navegador).
 - **Realtime** — Marcadores en vivo en `/matches` y en la grilla de Predicciones del pool vía Supabase Realtime (websockets): los resultados se actualizan solos sin recarga manual tras cada sync/override; degrada limpiamente a refresco manual si Realtime no está disponible. (Unit 58)
 - **Pools** — Banner «En vivo ahora» en el detalle de la liga, visible desde las pestañas Clasificación, Predicciones y Miembros: muestra el/los partido(s) en juego con marcador, badge LIVE y la predicción + puntos de cada miembro, con un CTA que lleva a la pestaña Predicciones en el día correcto. (Unit 61)
+- **Leaderboard** — Proyección en vivo del ranking (pool + global) durante partidos en juego: el leaderboard se reordena según el puntaje proyectado (`pts confirmados + Σ computeScore(predicción, marcador en vivo actual)`), cada fila muestra los puntos actuales → proyectados y el cambio de posición (`sube N`/`baja N`/`igual`/`nuevo`). Respeta override de pool vs global, `preJoin` (no puntúa partidos anteriores al ingreso) y anti-sesgo (solo partidos ya iniciados). El cache confirmado no se invalida; la proyección es pura por render. El bonus de penales **no** se concede durante LIVE (`winnerTeamId` es `null` hasta FINISHED). Se actualiza en vivo vía el mismo broadcast Realtime de Unit 58. (Unit 62)
 
 ### Fixed
 

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUserId } from "@/features/pools/services/session";
+import { LeaderboardLiveRefresh } from "@/features/scoring-rankings/components/leaderboard-live-refresh";
 import { PoolLeaderboard } from "@/features/scoring-rankings/components/pool-leaderboard";
-import { getPoolLeaderboard } from "@/features/scoring-rankings/queries";
+import { getPoolLeaderboardProjection } from "@/features/scoring-rankings/queries";
 import { getDictionary } from "@/i18n/get-dictionary";
 import { getRequestLocale } from "@/lib/locale";
 
@@ -17,8 +18,11 @@ export default async function PoolLeaderboardPage({ params }: PoolLeaderboardPag
   const userId = await getCurrentUserId();
   if (!userId) notFound();
 
-  const rows = await getPoolLeaderboard(id, userId);
-  if (!rows) notFound(); // not a member (BR-6.16)
+  const projection = await getPoolLeaderboardProjection(id, userId);
+  if (!projection) notFound(); // not a member (BR-6.16)
+
+  const { rows, hasLive } = projection;
+  const projectedRows = hasLive ? rows : undefined;
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -26,7 +30,14 @@ export default async function PoolLeaderboardPage({ params }: PoolLeaderboardPag
         {dictionary.pools.backToPool}
       </Link>
       <h1 className="text-2xl font-semibold tracking-tight">{dictionary.pools.ranking}</h1>
-      <PoolLeaderboard rows={rows} />
+      <LeaderboardLiveRefresh>
+        <PoolLeaderboard
+          rows={rows}
+          projectedRows={projectedRows}
+          hasLive={hasLive}
+          copy={dictionary.rankings.liveProjection}
+        />
+      </LeaderboardLiveRefresh>
     </main>
   );
 }
