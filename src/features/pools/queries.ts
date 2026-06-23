@@ -91,7 +91,10 @@ interface ListPublicPoolsParams {
   page?: number;
 }
 
-/** Public pool directory (BL-8). Feeds the landing PoolPreview (PoolPreviewItem). */
+/** Public pool directory (BL-8). Feeds the landing PoolPreview (PoolPreviewItem).
+ *  Unit 63 (FR-REFINE-63.1): annotates `isMember` for the current user with a
+ *  single batched membership lookup so the directory card can show "Ir a la liga"
+ *  instead of "Unirme" for pools the user already belongs to. */
 export async function listPublicPools(
   params: ListPublicPoolsParams = {},
 ): Promise<PoolPreviewItem[]> {
@@ -108,6 +111,20 @@ export async function listPublicPools(
     take: DIRECTORY_PAGE_SIZE,
   });
 
+  // Unit 63: batched membership lookup for the current user (one query, no N+1).
+  // Skipped for anonymous users or an empty directory (no pools to annotate).
+  const userId = await getCurrentUserId();
+  const memberPoolIds = new Set<string>(
+    userId && pools.length > 0
+      ? (
+          await prisma.poolMembership.findMany({
+            where: { userId, poolId: { in: pools.map((p) => p.id) } },
+            select: { poolId: true },
+          })
+        ).map((m) => m.poolId)
+      : [],
+  );
+
   return pools
     .map((p) => ({
       id: p.id,
@@ -115,6 +132,7 @@ export async function listPublicPools(
       memberCount: p._count.memberships,
       capacity: p.capacity,
       isPublic: true,
+      isMember: memberPoolIds.has(p.id),
     }))
     .filter((p) => !onlyWithCapacity || p.memberCount < p.capacity);
 }

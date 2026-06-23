@@ -1068,3 +1068,16 @@
   - Un miembro que se unió al pool después del kickoff del partido en vivo muestra "Aún no estaba en la liga" con ícono `CalendarOff` (no se inventan puntos heredados). **FR-REFINE-61.2**, **BR-56.1**.
   - Un CTA «Ver en Predicciones» por partido lleva a la pestaña Predicciones, posicionada en la página/día de ese partido. La pestaña activa se refleja en la URL (`?tab=…`). **FR-REFINE-61.3**.
   - El marcador y los puntos del banner se actualizan solos vía Realtime (Unit 58) sin recarga manual; si Realtime no está disponible, todo sigue funcionando con refresco manual. **FR-REFINE-61.4**.
+
+## Épica 63: Estado «ya unido» en `/pools/discover` (Unit 63 — añadida vía refine, 2026-06-23)
+
+### US-63.1: Ver «Ir a la liga» en vez de «Unirme» en las ligas a las que ya pertenezco
+
+**Como** miembro de una liga pública
+**Quiero** que el directorio público (`/pools/discover`) me muestre «Ir a la liga» en las ligas a las que ya pertenezco, en vez del botón «Unirme»
+**Para** no confundirme ni hacer un clic inútil intentando unirme a una liga en la que ya estoy.
+
+- **Criterios de Aceptación**:
+  - Las ligas públicas a las que ya pertenezco muestran un botón «Ir a la liga» (outline) en el directorio; al pulsarlo navego a `/pools/[id]`. **FR-REFINE-63.1**.
+  - Las ligas a las que no pertenezco siguen mostrando «Unirme» (o «Lleno» deshabilitado si no hay cupo). **FR-REFINE-63.1**.
+  - La acción de unirse (`joinPublicPool`) no cambia: si pulso «Unirme» en una liga con `isMember` desactualizado (p. ej. me uní en otra pestaña), sigo recibiendo el mensaje informativo «Ya eres miembro» + enlace «Ir a la liga» (FR-REFINE-13.6, red de seguridad). **FR-REFINE-63.1**.

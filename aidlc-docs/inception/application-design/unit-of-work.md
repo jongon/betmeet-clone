@@ -637,6 +637,25 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Al abrir `/pools/[id]` con un partido en juego, un banner «En vivo ahora» muestra el marcador y la predicción de cada miembro desde cualquier pestaña; el CTA lleva a la pestaña Predicciones en el día correcto; todo se refresca en vivo por Realtime.
 
+## Unit 63 — Estado «ya unido» en `/pools/discover` (refine sobre Unit 3/13)
+
+**Goal**: Que el directorio público de ligas (`/pools/discover`) muestre «Ir a la liga» en los pools a los que el usuario ya pertenece, en vez del botón «Unirme», para evitar un clic inútil y la confusión de pensar que no es miembro.
+
+**Dependencias**: Unit 3 (Pools and Membership — `listPublicPools`/`PoolPreviewItem`/`PoolPreviewCard`), Unit 13 (FR-REFINE-13.6 «ya miembro» como estado informativo post-clic — ahora extendido a estado proactivo pre-clic). No reinicia Units 1–62 (Unit 62 es una épica planificada no implementada, independiente de Unit 63).
+
+**Alcance**:
+- **Anotación `isMember` server-side**: `listPublicPools` añade `isMember: boolean` por pool, calculado con una **única** query batched `prisma.poolMembership.findMany({ where: { userId, poolId: { in: [...] } } })` → `Set` → `isMember = memberPoolIds.has(p.id)` (no N+1). Skip si el usuario es anónimo (`getCurrentUserId()` null) o si el directorio está vacío.
+- **Tipo**: `PoolPreviewItem` gana `isMember: boolean`.
+- **Card**: `PoolPreviewCard` rama por `pool.isMember` — `true` → botón outline «Ir a la liga» (`<Link>` con `buttonVariants`) que navega a `/pools/${pool.id}`; `false` → botón «Unirme»/«Lleno» actual sin cambios. El área `FormError`/`info` (red de seguridad reactiva `alreadyMember` de Unit 13) queda solo en la rama no-miembro.
+
+**Sin** cambios en `joinPublicPool` (action) ni su contrato, `pool-directory-list.tsx`, `discover/page.tsx`, schema, migraciones, rutas, server actions, middleware ni i18n (reusa `pools.goToPool`). `isMember` es solo presentación; nunca autoriza/deniega.
+
+**Files**: `src/features/pools/types.ts` (MODIFIED — `isMember`), `src/features/pools/queries.ts` (MODIFIED — anotación batched), `src/features/pools/components/pool-preview-card.tsx` (MODIFIED — rama `isMember`), `src/features/pools/__tests__/list-public-pools.test.ts` (NEW), `src/features/pools/components/__tests__/pool-preview-card.test.tsx` (NEW).
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 63 / FR-REFINE-63.1, US-63.1), Application Design (delta `unit-of-work.md` Unit 63 + #45) EXECUTE, Functional Design EXECUTE (`construction/unit-63-pools-discover-joined-state/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: Al abrir `/pools/discover` logueado, las ligas públicas a las que ya pertenezco muestran «Ir a la liga» y al pulsar van a `/pools/[id]`; las que no muestran «Unirme»; una liga llena ajena muestra «Lleno» deshabilitado.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -683,6 +702,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 42. Unit 59: El último partido del día sigue visible hasta 1h antes del siguiente (post-construction refine; sobre Units 30/42; transform puro `selectLingeringLastSlot` mantiene en `/matches` el último horario del día más reciente tras la medianoche hasta `siguienteKickoff − 1h` —todos los del último horario, no uno; siguiente = menor kickoff futuro con fecha, TBD/inexistente ⇒ sin corte—; se pinta bajo su propia fecha arriba de los bloques futuros y se excluye del toggle "Ver partidos anteriores"; reusa `useKickoffTick` (Unit 57) para desaparecer en vivo; `partitionDaysByToday` sin tocar; sin schema, migraciones, rutas, server actions ni i18n)
 43. Unit 60: Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida (post-construction; reparación de **datos** sobre Units 4/5 vía script idempotente `scripts/repair-unit-60-duplicates-uruguay.ts`; consolida las dos filas de Uruguay en una sola `URY` `/flags/uy.svg` —re-apuntando FKs y borrando la huérfana `URU`/`/flags/uru.svg`— y deduplica los partidos del 27/28 jun conservando la fila con `provider_match_id`, con backfill de `match_number`/placeholders, borrando al perdedor y sus predicciones por `ON DELETE CASCADE`; guarda de patrón provider/number; sin schema, migraciones, código de app, rutas, server actions ni i18n; no toca el orquestador de sync)
 44. Unit 61: Banner «En vivo ahora» en el pool (post-construction refine; sobre Units 41/48/58; banner cross-tab en `/pools/[id]` que superficia partido(s) `LIVE` con marcador + badge + predicción/puntos por miembro desde cualquier pestaña; CTA «Ver en Predicciones» con `?tab` URL-driven que **supersede BR-41.7**; `useLiveResults` se monta una vez en un nuevo `PoolDetailTabs` wrapper; reusa `getPoolMemberPredictions`/`buildDayGroups`/`MatchStatusBadge`/`useKickoffTick`; extrae `MemberPredictionRowView` para DRY; sin nueva query, schema, migraciones, rutas ni server actions; enmascarado anti-sesgo de Unit 53 intacto)
+45. Unit 63: Estado «ya unido» en `/pools/discover` (post-construction refine; sobre Units 3/13; `listPublicPools` anota `isMember` por pool para el usuario actual con una query batched `poolMembership.findMany` —no N+1, skip si anónimo o directorio vacío—; `PoolPreviewCard` muestra botón outline «Ir a la liga» en los pools con `isMember === true` en vez de «Unirme»; extiende FR-REFINE-13.6 a un estado **proactivo pre-clic**; la action `joinPublicPool` y su contrato `{ alreadyMember }` se conservan como red de seguridad reactiva ante race; reusa key i18n `goToPool`, sin nuevas keys; sin schema, migraciones, rutas, server actions ni nueva superficie de input; Unit 62 es una épica planificada no implementada, independiente)
 
 ## Security Notes
 

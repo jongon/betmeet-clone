@@ -56,6 +56,8 @@ cliente para conservar el manejo de error/estado del card.
 (no destructivo) y un enlace "Ir a la liga", permaneciendo en el directorio. El
 resto de errores (lleno, no encontrado) siguen como error.
 
+> **Unit 63 (2026-06-23) — estado proactivo pre-clic (extiende FR-REFINE-13.6)**: el directorio `/pools/discover` ahora anota `isMember` por pool para el usuario actual (query batched en `listPublicPools`), de modo que `PoolPreviewCard` muestra **directamente** un botón outline «Ir a la liga» en los pools a los que ya pertenezco, **sin** necesidad de pulsar «Unirme» para descubrirlo. El flujo reactivo de 13.6 (mensaje `alreadyMember` + enlace tras un clic en un card stale) **se conserva** como red de seguridad ante una race (p. ej. unirse en otra pestaña con `isMember` desactualizado hasta el siguiente `router.refresh()`). La action `joinPublicPool` y su contrato `{ alreadyMember }` no cambian. Ver `construction/unit-63-pools-discover-joined-state/functional-design.md`.
+
 ### Invitaciones dirigidas (13.4) — ya cubierto
 `create-directed-invite` (Unit 10) ya: valida nickname `base#disc` y email,
 resuelve al usuario destino, persiste `PoolDirectedInvite` y encola push

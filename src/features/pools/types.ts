@@ -11,6 +11,9 @@ export interface PoolPreviewItem {
   memberCount: number;
   capacity: number;
   isPublic: boolean;
+  /** Unit 63 (FR-REFINE-63.1): true when the current user already belongs to this
+   *  pool, so the directory card shows "Ir a la liga" instead of "Unirme". */
+  isMember: boolean;
 }
 
 export type PoolPreviewState = "loading" | "empty" | "error" | "ready";

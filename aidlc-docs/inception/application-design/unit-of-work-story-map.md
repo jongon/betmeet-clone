@@ -78,6 +78,10 @@
 
 - US-61.1: Ver qué partido(s) está(n) en juego en mi liga desde cualquier pestaña
 
+## Unit 63: Estado «ya unido» en `/pools/discover` (refine sobre Unit 3/13)
+
+- US-63.1: Ver «Ir a la liga» en vez de «Unirme» en las ligas a las que ya pertenezco
+
 ## Coverage Validation
 
 - All explicit user stories from `stories.md` are mapped.

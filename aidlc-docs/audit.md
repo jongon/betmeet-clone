@@ -1,5 +1,43 @@
 # AI-DLC Audit Log
 
+## Unit 63 — Estado «ya unido» en `/pools/discover` (refine sobre Unit 3/13)
+**Timestamp**: 2026-06-23T21:10:00Z
+**Comando**: `/aidlc:refine`
+**User Input**: "en /pools/discover me aparece el botón 'Unirme' en pools que ya estoy unido. Debería ver algo distinto que me indique ya estoy unido" (decisión vía AskUserQuestion: estado «ya unido» = **botón outline «Ir a la liga»** que navega a `/pools/[id]` —frente a badge «Ya estoy unido» + link aparte, o botón con label de estado—; reusa la key i18n existente `goToPool`, sin nuevas keys).
+**Diagnóstico (causa raíz)**: Brecha de **UX proactiva**, no de datos ni autorización. Unit 13 (FR-REFINE-13.6) ya cubría «ya miembro» **reactivamente**: `joinPublicPool` (`src/features/pools/actions/join-public-pool.ts:39`) devuelve `{ alreadyMember: true, poolId }` (no error) y `PoolPreviewCard` muestra un mensaje informativo + enlace «Ir a la liga» **después** de pulsar «Unirme». Pero `listPublicPools` (`queries.ts:95`) no anotaba si el usuario actual ya era miembro de cada pool listado (solo un `_count` de memberships), `PoolPreviewItem` (`types.ts:8`) no tenía `isMember`, y `PoolPreviewCard` (`pool-preview-card.tsx:63`) renderizaba **siempre** «Unirme» → el usuario descubría que ya era miembro solo al pulsar (clic inútil). Verificado: `PoolPreviewItem` se construye en un único punto (`queries.ts:117`) y se consume solo por `pool-directory-list.tsx` + `pool-preview-card.tsx`; `getCurrentUserId` ya se usa en el mismo archivo (`getMyPools`/`getPoolDetail`).
+**AI Response (fix)**: BR-63.1…63.6 / BL-63.1…63.3 — anotación `isMember` **server-side** + rama proactiva en el card.
+- **BR-63.1** — `listPublicPools` anota cada `PoolPreviewItem` con `isMember: boolean` (membresía del usuario actual) con una **única** query batched `prisma.poolMembership.findMany({ where: { userId, poolId: { in: [...] } } })` → `Set<string>` → `isMember = memberPoolIds.has(p.id)` (no N+1; una query de memberships por página de directorio).
+- **BR-63.2** — Usuario anónimo (`getCurrentUserId()` null): todas las pools `isMember: false`, **sin** query de memberships (defensivo; el proxy gatea a login).
+- **BR-63.3** — Directorio vacío: **sin** query de memberships (no hay pools que anotar).
+- **BR-63.4** — Card: `pool.isMember === true` → botón **outline** «Ir a la liga» (`<Link>` con `buttonVariants({ variant: "outline" })}`) a `/pools/${pool.id}`; **no** renderiza «Unirme» ni el área error/info; **no** invoca `joinPublicPool`.
+- **BR-63.5** — Card: `pool.isMember === false` → sin cambios (Unit 13/23): «Unirme»/«Lleno» deshabilitado, flujo `join()` → `joinPublicPool`, redirección al éxito (FR-REFINE-13.5), y el mensaje `alreadyMember` + enlace «Ir a la liga» como **red de seguridad reactiva** ante una race (unirse en otra pestaña con `isMember` stale hasta el siguiente `router.refresh()`).
+- **BR-63.6** — La action `joinPublicPool` y su contrato `{ success } | { alreadyMember } | { error }` (BR-13.6) **no se modifican**; `isMember` es solo presentación, nunca autoriza/deniega.
+- **BL-63.1** — `PoolPreviewItem` gana `isMember: boolean`.
+- **BL-63.2** — `listPublicPools`: `getCurrentUserId()` + query batched (skip si anónimo o `pools.length === 0`); `isMember: memberPoolIds.has(p.id)` en el `.map`; el filtro `onlyWithCapacity` se aplica después (sin cambios).
+- **BL-63.3** — `PoolPreviewCard`: importa `Link` de `next/link` + `buttonVariants`; rama `pool.isMember` → `<Link className={buttonVariants({ variant: "outline" })} href={`/pools/${pool.id}`} data-testid={`go-to-pool-${pool.id}`}>{t.goToPool}</Link>`; rama no-miembro sin cambios; `useRouter` se conserva (rama `info` + `join()`).
+**Code change**:
+- `src/features/pools/types.ts` (MODIFIED) — `isMember: boolean` en `PoolPreviewItem`.
+- `src/features/pools/queries.ts` (MODIFIED) — `listPublicPools` anotación `isMember` batched + skip anónimo/vacío.
+- `src/features/pools/components/pool-preview-card.tsx` (MODIFIED) — rama `isMember` → botón outline «Ir a la liga»; importa `Link` + `buttonVariants`.
+- `src/features/pools/__tests__/list-public-pools.test.ts` (NEW) — 4 tests: anotación miembro/no-miembro, anónimo → todos false (sin lookup), directorio vacío → sin lookup, `onlyWithCapacity` tras anotación.
+- `src/features/pools/components/__tests__/pool-preview-card.test.tsx` (NEW) — 4 tests: «Ir a la liga» cuando `isMember`, «Unirme» cuando no, no invoca `joinPublicPool` si miembro, «Lleno» deshabilitado.
+- Sin cambios en `join-public-pool.ts` (action), `pool-directory-list.tsx`, `discover/page.tsx`, i18n (reusa `goToPool`), schema, migraciones, rutas, server actions ni middleware.
+**Doc change**:
+- `construction/unit-63-pools-discover-joined-state/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 63; Unit 61 → Prev Stage; bloque de Stage Progress de Unit 63; nota en Project Type.
+- `inception/requirements/requirements.md` — Épica 63 / FR-REFINE-63.1.
+- `inception/user-stories/stories.md` — US-63.1.
+- `inception/application-design/unit-of-work.md` — sección Unit 63 + secuencia #45.
+- `inception/application-design/unit-of-work-story-map.md` — Unit 63 → US-63.1.
+- `construction/unit-13-pool-invitations-refine/functional-design.md` — nota dependiente (FR-REFINE-13.6 ahora con estado proactivo pre-clic).
+**Build/Test Status**: Pass. `tsc --noEmit` 0 (2 errores preexistentes de `pool-live-now-banner.test.tsx` Unit 61, no relacionados). Biome limpio (5 archivos). ESLint 0. **Vitest pools 129/129** (+8 tests nuevos: 4 `list-public-pools` + 4 `pool-preview-card`; regresión `join-public-pool` 6/6). `pnpm build` OK. Sin commit/push.
+**Stages**: Requirements/User Stories EXECUTE; Workflow Planning EXECUTE (plan mode + AskUserQuestion, aprobado antes de ejecutar); Application Design (delta `unit-of-work.md` + `unit-of-work-story-map.md`) EXECUTE; Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure (sin schema/migraciones/rutas/server actions).
+**Security Baseline**: COMPLIANT. SECURITY-01 — sin nueva superficie de input (`isMember` se deriva server-side). SECURITY-08 — `isMember` es solo presentación; nunca autoriza/deniega; el gate de acceso y `joinPublicPool` (capacidad/unicidad/`ALREADY_MEMBER`) intactos; reusa `getCurrentUserId`. SECURITY-13 — la membresía del propio usuario en pools **públicos** no es sensible (descubribles por diseño); sin fuga de otros usuarios. Sin secretos nuevos.
+**Out of scope**: badge explícito «Ya estoy unido» además del botón (descartado); nueva key i18n (se reusa `goToPool`); invalidar `isMember` en tiempo real tras unirse en otra pestaña (se refresca en el siguiente `router.refresh()`; la rama reactiva `alreadyMember` cubre la race); `isMember` en `MyPoolSummary`/`PoolDetail` (redundante).
+**Archivos AI-DLC**: `construction/unit-63-pools-discover-joined-state/functional-design.md` (NEW), `aidlc-state.md` (Current Stage + bloque Unit 63), `audit.md` (esta entrada), `inception/requirements/requirements.md` (Épica 63), `inception/user-stories/stories.md` (US-63.1), `inception/application-design/unit-of-work.md` (Unit 63 + #45), `inception/application-design/unit-of-work-story-map.md` (Unit 63 → US-63.1), `construction/unit-13-pool-invitations-refine/functional-design.md` (nota dependiente). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–62 intactas; Unit 62 = épica planificada no implementada, independiente)**.
+
+---
+
 ## Unit 60 — Partidos duplicados (27/28 jun) eliminados + bandera de Uruguay corregida
 **Timestamp**: 2026-06-22T00:00:00Z
 **Comando**: `/aidlc:refine`
@@ -2794,5 +2832,43 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Out of scope**: fijar LIVE arriba del grid dentro de Predicciones (alternativa descartada); banner en `/matches` o `/rankings`; countdown/minuto del partido en el banner; notificación push al entrar LIVE (Unit 10 cubre `match_start`); sincronización reloj cliente-servidor.
 
 **Archivos AI-DLC**: `inception/requirements/requirements.md` (Épica 61), `inception/user-stories/stories.md` (US-61.1), `inception/application-design/unit-of-work.md` (Unit 61 + secuencia #44), `inception/application-design/unit-of-work-story-map.md` (Unit 61 → US-61.1), `construction/unit-61-pool-live-now-banner/functional-design.md` (NEW), `construction/unit-41-pool-predictions/functional-design.md` (nota BR-41.7 superseded), `construction/unit-58-live-results-realtime/functional-design.md` (nota Unit 61 extiende live surfacing), `aidlc-state.md` (Project Type + Current Stage → Unit 61 + bloque Unit 61 stage checklist), `audit.md` (esta entrada). **Archivos de código**: `src/features/pools/components/pool-detail-tabs.tsx` (NEW), `src/features/pools/components/pool-live-now-banner.tsx` (NEW), `src/app/(app)/pools/[id]/page.tsx` (refactor), `src/features/pools/components/pool-predictions-view.tsx` (extrae `MemberPredictionRowView`, elimina `useLiveResults`), `src/features/pools/components/pool-predictions-view-helpers.ts` (`pageForDayKey`), `src/i18n/dictionaries/{es,en}.ts` (`pools.liveNow*`), `src/features/pools/components/__tests__/{pool-live-now-banner,pool-detail-tabs}.test.tsx` (NEW), `src/features/pools/components/__tests__/pool-predictions-view.test.tsx` (+4 `pageForDayKey`). Sin commit/push. **No reinicia etapas aprobadas (Units 1–60 intactas)**.
+
+---
+
+## Workflow Planning — Unit 62: Proyección de leaderboard en vivo
+**Timestamp**: 2026-06-23T12:00:00Z
+**User Input**: "Me gustaría que el leaderboard se pudiera ver en vivo. Cuando hay un partido o partidos en progreso. El leadeboard debería mostrar las posibles posiciones que estarán los usuarios si el score del partido terminará de esa manera. Si tienes dudas hazlas"
+**AI Response**: Cargado contexto previo (aidlc-state, audit, Units 53/55/57/58/61, scoring-rankings feature). Detectado: Unit 61 (banner live-now) planificado/aprobado pero **no implementado** (código en estado pre-61). Hechas 2 rondas de clarificación vía AskUserQuestion.
+**Context**: Workflow Planning stage (core-workflow.md). Decisiones del usuario:
+- Alcance = **Ambos** leaderboards (pool + global)
+- Semántica = pts confirmados + Σ computeScore(predicción override ?? global, marcador LIVE actual)
+- Display = **re-ordenar por proyectado**, mostrar pts actuales → pts proyectados + cambio posición
+- Sensibilidad = solo marcador actual (sin sub-escenarios)
+- Grilla de Predicciones = **sin cambios** (LIVE sigue "—")
+- Relación con Unit 61 = **Unit 62 separada/independiente** sobre el código actual
+
+**Stages plan**: Inception (Workspace COMPLETED, RevEng SKIP, Requirements EXECUTE Minimal delta, UserStories SKIP, WorkflowPlanning EXECUTE, AppDesign SKIP, UnitsGen SKIP), Construction (FunctionalDesign EXECUTE, NFR Req/Design SKIP, Infra SKIP, CodeGen EXECUTE, BuildTest EXECUTE), Operations PLACEHOLDER.
+**Status**: Plan presentado y **APROBADO** (`Aprobar y continua`).
+
+---
+
+## Requirements Analysis (Minimal) — Unit 62
+**Timestamp**: 2026-06-23T12:05:00Z
+**AI Response**: Añadida Épica 62 al `requirements.md` con FR-REFINE-62.1…62.4 (proyección del puntaje con marcador en vivo / re-ordenación por proyectado + visualización / refresco en vivo / alcance pool+global). Minimal delta (refine aditivo sobre feature existente, patrón Units 53/55/57).
+**Status**: Requirements Minimal complete. Pending user approval per `requirements-analysis.md`.
+
+---
+
+## Requirements Analysis — Approval
+**Timestamp**: 2026-06-23T12:08:00Z
+**User Response**: "Approve & Continue"
+**Status**: Approved. Proceeding to Functional Design (Construction phase).
+
+---
+
+## Functional Design — Unit 62
+**Timestamp**: 2026-06-23T12:20:00Z
+**AI Response**: Creado `aidlc-docs/construction/unit-62-leaderboard-live-projection/functional-design.md`. Función pura `projectLeaderboard` (BL-62.1) + variante `projectPoolLeaderboardFromLoaded` (BL-62.4) que reusa los datos ya cargados por `getPoolMemberPredictions`. Queries no-cached `getGlobalRankingProjection` / `getPoolLeaderboardProjection` (BL-62.2) sobre el cache confirmado intacto. Clave: bonus de penales **no aplica durante LIVE** (BR-62.3 — `Match.winnerTeamId` es null hasta FINISHED, la predicción no se puede "premiar" sin resultado confirmado; el bonus aparece al FINISHED vía `scoreMatch`). Reglas de scope override ?? global / `preJoin` (`joinedAt`) reusadas textualmente de `getPoolLeaderboardRows` (Unit 48/55/56). Sintetiza rows para usuarios con LIVE preds pero `0` confirmados (BR-62.4). NUEVO wrapper client `LeaderboardLiveRefresh` reusado por las 3 routes (no acopla con Unit 61).
+**Status**: Functional Design complete. Pending user approval.
 
 ---

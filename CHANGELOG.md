@@ -14,6 +14,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Seguridad** — Cuentas eliminadas ya no pueden iniciar sesión (email/password ni Google): gate por `deletedAt` en sign-in y callback OAuth, más el claim `account_deleted` del Custom Access Token Hook para expulsar sesiones vivas en el middleware.
 - **Predicciones** — Visibilidad de predicciones entre miembros del pool antes del partido.
 - **Fixture** — Agrupación de partidos por día local del usuario (timezone del navegador).
+- **Realtime** — Marcadores en vivo en `/matches` y en la grilla de Predicciones del pool vía Supabase Realtime (websockets): los resultados se actualizan solos sin recarga manual tras cada sync/override; degrada limpiamente a refresco manual si Realtime no está disponible. (Unit 58)
+- **Pools** — Banner «En vivo ahora» en el detalle de la liga, visible desde las pestañas Clasificación, Predicciones y Miembros: muestra el/los partido(s) en juego con marcador, badge LIVE y la predicción + puntos de cada miembro, con un CTA que lleva a la pestaña Predicciones en el día correcto. (Unit 61)
 
 ### Fixed
 
@@ -21,6 +23,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Auth** — Avatar de Google se refresca en cada login para mantener la URL vigente.
 - **Sync** — Eliminada restricción `@unique` en `Team.providerTeamId` para resolver conflictos de upsert.
 - **Admin** — Contraste del selector de sync corregido en dark mode.
+- **Competition** — Eliminados partidos duplicados del 27/28 de junio (un fixture por partido, conservando el que sincroniza resultados en vivo) y consolidada la bandera de Uruguay en una sola fila (`URY`/`/flags/uy.svg`); la bandera rota ya se ve. (Unit 60)
 
 ### Changed
 
@@ -29,6 +32,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Auth** — Al eliminar la cuenta se libera el nickname (`nicknameBase`/`nicknameDiscriminator` a `null`): el índice único no consideraba `deletedAt`, por lo que antes el apodo quedaba reservado de forma permanente.
 - **Pools** — Predicciones en pool usan timezone del navegador en lugar de UTC.
 - **Matches** — Tras la medianoche, el último partido del día (todos los del último horario) sigue visible en `/matches` hasta 1 hora antes del siguiente partido, en lugar de ocultarse el bloque entero de golpe. Solo persiste ese horario, bajo su propia fecha y arriba de los próximos; si el siguiente partido aún no tiene fecha, permanece visible. Con la pestaña abierta, la transición al cruzar la medianoche ocurre sin recarga.
+- **Predicciones** — El formulario de predicción se bloquea en vivo al llegar el kickoff (en `/matches` y en la grilla/modal del pool) sin esperar a rebotar al guardar; la autoridad sigue 100% server-side. (Unit 57)
+- **Pools** — El directorio público (`/pools/discover`) muestra «Ir a la liga» en las ligas a las que ya perteneces, en vez del botón «Unirme»; antes descubrías que ya eras miembro solo al pulsar Unirme. (Unit 63)
 
 ---
 

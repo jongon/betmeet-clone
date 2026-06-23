@@ -2006,3 +2006,43 @@ El banner se refresca en vivo vía el mismo `useLiveResults()` de Unit 58 (broad
 - **Sin** cambios en el motor de scoring, el leaderboard del pool, el ranking global, `/matches`, sync, admin ni auth. El enmascarado anti-sesgo de Unit 53 se mantiene intacto (LIVE ⇒ started ⇒ visible según BR-41.2).
 - Cambio de **presentación** client-side + refactor mínimo de `page.tsx` (server calcula `liveMatches` y los pasa al contenedor cliente). **Supersede** BR-41.7 (tab → URL-driven).
 - **No reinicia** Units 1–60.
+
+## Épica 62: Proyección de leaderboard en vivo (Unit 62 — añadida vía refine, 2026-06-23)
+
+> Refine post-construcción sobre **Unit 6** (scoring/rankings), **Unit 55** (leaderboard del pool acotado a la membresía), **Unit 56** (`preJoin`) y **Unit 58** (resultados en vivo vía Supabase Realtime). **No reinicia** etapas aprobadas (Units 1–61 intactas; **Unit 61 NO está implementada** — Unit 62 se construye sobre el estado actual del repo y es **independiente**; coexistirá con Unit 61 cuando esta última se implemente). Hoy los leaderboards (`/rankings`, `/pools/[id]` tab + `/leaderboard`) muestran solo puntos **confirmados** (`PredictionScore` de partidos FINISHED). Mientras hay partido(s) `LIVE`, esos matches aportan `0` al ranking (la `PredictionScore` se persiste sólo al finalizar, `scoreFinishedUnscoredMatches`); el usuario no ve cómo se reordenaría el ranking **si el marcador en vivo se mantuviera** al final. Esta Épica añade una **proyección en vivo** del leaderboard sobre el marcador actual, **sin tocar el motor de scoring ni persistencia**: la proyección es una transformación pura por render que reusa `computeScore` (Unit 2) con el marcador en vivo de `Match.homeScore/awayScore`.
+
+### FR-REFINE-62.1 — Proyección del puntaje con marcador en vivo
+Cuando existe al menos un partido con `matchStatus === "LIVE"` (escrito por el cron `LIVE_STATUS` de Unit 50 cada ~2 min y refrescado vía `useLiveResults` de Unit 58), el leaderboard (pool y global) calcula un **puntaje proyectado** por usuario: `puntajeConfirmado + Σ computeScore(predicciónOverride??Global, marcadorLIVE)` sobre los partidos LIVE del scope. La resolución override ?? global y el filtro `preJoin` (partido pre-ingreso del miembro, Unit 55/56) se respetan idénticos a `getPoolLeaderboardRows` / `getGlobalRankingRows`. La proyección **no persiste** nada: `PredictionScore` para LIVE sigue sin existir (BR-41.5/BR-61.5 intactas). `computeScore` se usa **tal cual** (BR-2.7 — no redefinir reglas). Para knockout con empate en el marcador en vivo y `penaltyWinnerTeamId` definido en la predicción, aplica el bonus de penales (Unit 14/36).
+
+### FR-REFINE-62.2 — Re-ordenación por proyectado + visualización
+La lista se **ordena por puntaje proyectado** (desc) con desempate por nickname (igual que el orden actual, `assignDensePositions`). Cada fila muestra **puntos actuales → puntos proyectados** (p.ej. "14 → 19") y marca el **cambio de posición** (`▲3` si subió 3 puestos, `▼2` si bajó, `=` si igual) y la posición proyectada. Un badge/etiqueta "proy." distingue el modo proyección. Cuando no hay LIVE, el leaderboard es **idéntico al actual** (sin columna proyectada, sin reordenado) — no hay cambio de comportamiento.
+
+### FR-REFINE-62.3 — Refresco en vivo en ambos leaderboards
+`/rankings`, `/pools/[id]` (tab Clasificación) y `/pools/[id]/leaderboard` montan `useLiveResults()` (Unit 58) — broadcast `results-updated` → `router.refresh()` (debounce 1s) → re-render server-side con marcador actualizado → nueva proyección. Degradación limpia si Realtime no está disponible (BR-58.6): el refresco manual sigue mostrando la última proyección.
+
+### FR-REFINE-62.4 — Alcance: pool + global
+Aplica a **ambos** leaderboards acotados por su scope:
+- **Pool** (`/pools/[id]` tab + `/pools/[id]/leaderboard`): respeta `joinedAt` (Unit 55), override ?? global (Unit 48) y `preJoin` (Unit 56).
+- **Global** (`/rankings`): sobre `PredictionScore` global (`prediction.poolId IS NULL`, Unit 6/49) + proyección de las predicciones globales de partidos LIVE.
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas, server actions ni nueva superficie de input.
+- **Sin** cambios en el motor de scoring (`compute-score.ts`, `scoring-rules.ts`), sync, admin, `/matches` ni auth.
+- **Sin** invalidación de caché `unstable_cache`: las queries cached (`getGlobalRankingRows` / `getPoolLeaderboardRows` con `RANKINGS_TAG`/`POOL_LEADERBOARD_TAG_PREFIX`, `revalidate: 300`) **se mantienen**; la proyección se calcula al vuelo por render sobre `leaderboard` ya cacheado + una query ligera de predicciones LIVE (no scoreadas). No se añade `PredictionScore` para LIVE.
+- **Sin** tocar la grilla de Predicciones del pool (`pool-predictions-view.tsx`) — sigue mostrando "—" en LIVE (BR-41.5/BR-61.5).
+- **Sin** sub-escenarios de marcador ("qué pasaría si +1"): solo el marcador actual.
+- **No reinicia** Units 1–61; Unit 61 queda como plan pendiente independiente (no se implementa aquí).
+
+## Épica 63: Estado «ya unido» en `/pools/discover` (Unit 63 — añadida vía refine, 2026-06-23)
+
+> Refine post-construcción sobre **Unit 3** (Pools and Membership — `listPublicPools`/`PoolPreviewItem`/`PoolPreviewCard`) y **Unit 13** (FR-REFINE-13.6 «ya miembro» como estado informativo post-clic). **No reinicia** etapas aprobadas (Units 1–62 intactas; Unit 62 es una épica planificada no implementada, independiente de Unit 63). Cambio de **presentación** server-side: anotar `isMember` por pool para el usuario actual para que el directorio público muestre «Ir a la liga» en vez de «Unirme» en los pools a los que ya pertenece. **Sin** nueva query de negocio (reusa `poolMembership.findMany` batched), **sin** schema, migraciones, rutas, server actions ni i18n (reusa la key existente `goToPool`).
+
+### FR-REFINE-63.1 — Estado «ya unido» proactivo en el directorio público
+El directorio público `/pools/discover` debe anotar cada pool listado con `isMember: boolean` (si el usuario actual tiene una `PoolMembership` para ese pool), calculado **server-side** con una **única** query batched (`poolMembership.findMany({ where: { userId, poolId: { in: [...] } } })`, no N+1). El card (`PoolPreviewCard`) muestra un **botón outline «Ir a la liga»** que navega a `/pools/[id]` en los pools con `isMember === true`, en vez del botón «Unirme». Esto **extiende FR-REFINE-13.6** (que trataba «ya miembro» como estado **reactivo** post-clic con un mensaje informativo) a un estado **proactivo pre-clic**: el usuario no necesita pulsar «Unirme» para descubrir que ya es miembro. Para usuarios anónimos (`getCurrentUserId()` null) todas las pools se anotan `isMember: false` y no se ejecuta la query de memberships; si el directorio está vacío, tampoco. La action `joinPublicPool` **no se modifica**: su contrato `{ success } | { alreadyMember } | { error }` (BR-13.6) se conserva como **red de seguridad reactiva** ante una race (p. ej. unirse en otra pestaña con `isMember` stale hasta el siguiente `router.refresh()`).
+
+### Restricciones / SKIP
+- **Sin** schema, migraciones, rutas, server actions ni nueva superficie de input. `isMember` es solo una **pista de presentación**; nunca autoriza ni deniega un join.
+- **Sin** nuevas keys i18n: se reusa `pools.goToPool` («Ir a la liga»/«Go to league»).
+- **Sin** cambios en `join-public-pool.ts`, `pool-directory-list.tsx`, `discover/page.tsx`, middleware, `/pools/[id]`, auth ni scoring.
+- **Sin** invalidación en tiempo real de `isMember` tras unirse en otra pestaña (se refresca en el siguiente `router.refresh()`/navegación; la rama reactiva `alreadyMember` cubre la race).
+- **No reinicia** Units 1–62.

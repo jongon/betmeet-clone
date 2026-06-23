@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { FormError } from "@/components/form-error";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDictionary } from "@/i18n/dictionary-provider";
 import { joinPublicPool } from "../actions/join-public-pool";
@@ -46,27 +47,41 @@ export function PoolPreviewCard({ pool }: { pool: PoolPreviewItem }) {
           <p className="text-sm text-muted-foreground">
             {pool.memberCount}/{pool.capacity} {t.participants}
           </p>
-          <FormError messages={error ? [error] : undefined} />
-          {info ? (
-            <p role="status" className="mt-1 text-sm text-muted-foreground">
-              {info}{" "}
-              <button
-                type="button"
-                className="underline underline-offset-4 hover:text-foreground"
-                onClick={() => router.push(`/pools/${pool.id}`)}
-              >
-                {t.goToPool}
-              </button>
-            </p>
+          {!pool.isMember ? (
+            <>
+              <FormError messages={error ? [error] : undefined} />
+              {info ? (
+                <p role="status" className="mt-1 text-sm text-muted-foreground">
+                  {info}{" "}
+                  <button
+                    type="button"
+                    className="underline underline-offset-4 hover:text-foreground"
+                    onClick={() => router.push(`/pools/${pool.id}`)}
+                  >
+                    {t.goToPool}
+                  </button>
+                </p>
+              ) : null}
+            </>
           ) : null}
         </div>
-        <Button
-          onClick={join}
-          disabled={!hasCapacity || pending}
-          data-testid={`join-public-pool-${pool.id}`}
-        >
-          {hasCapacity ? (pending ? t.joining : t.join) : t.full}
-        </Button>
+        {pool.isMember ? (
+          <Link
+            className={buttonVariants({ variant: "outline" })}
+            href={`/pools/${pool.id}`}
+            data-testid={`go-to-pool-${pool.id}`}
+          >
+            {t.goToPool}
+          </Link>
+        ) : (
+          <Button
+            onClick={join}
+            disabled={!hasCapacity || pending}
+            data-testid={`join-public-pool-${pool.id}`}
+          >
+            {hasCapacity ? (pending ? t.joining : t.join) : t.full}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
