@@ -48,6 +48,39 @@ describe("signUp", () => {
     expect(redirect).toHaveBeenCalledWith("/verify-email");
   });
 
+  it("carries the invite destination via encoded user_metadata", async () => {
+    mockSignUp.mockResolvedValue({ error: null });
+    await signUp(
+      makeFormData({
+        email: "a@b.com",
+        password: "password123",
+        confirmPassword: "password123",
+        next: "/pools/join/ABC123",
+      }),
+    );
+    expect(mockSignUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: { invite_next: encodeURIComponent("/pools/join/ABC123") },
+        }),
+      }),
+    );
+  });
+
+  it("defaults invite_next to /matches when no destination is given", async () => {
+    mockSignUp.mockResolvedValue({ error: null });
+    await signUp(
+      makeFormData({ email: "a@b.com", password: "password123", confirmPassword: "password123" }),
+    );
+    expect(mockSignUp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          data: { invite_next: encodeURIComponent("/matches") },
+        }),
+      }),
+    );
+  });
+
   it("returns _form error on supabase error", async () => {
     mockSignUp.mockResolvedValue({ error: { message: "Email already registered" } });
     const result = await signUp(
