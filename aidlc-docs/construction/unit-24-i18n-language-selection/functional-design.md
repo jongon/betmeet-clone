@@ -158,7 +158,7 @@ Reglas:
 |---|---|
 | Landing / Auth | Títulos, forms, botones OAuth/passkey, MFA y errores en idioma activo |
 | Onboarding | Pasos nickname/avatar/rules/passkey localizados |
-| App Shell | `LanguageToggle` en `UserMenu`; nav ya no importa `es` directo |
+| App Shell | `LanguageToggle` en `UserMenu`; nav ya no importa `es` directo · **(Unit 64, 2026-06-24: el selector se reubica al header como `LanguageMenu` —icono globo + popover— en `AppHeader`/`OnboardingHeader` y se retira del `UserMenu`; Ajustes/Perfil conserva el `LanguageToggle` inline)** |
 | Settings/Profile | Sección de idioma persistente + copy de perfil localizable |
 | Pools | Formularios, tarjetas, invitaciones, acciones y directorio localizados |
 | Predictions / Matches | Estados, elegibilidad, labels, `aria-label` y resultados localizados |

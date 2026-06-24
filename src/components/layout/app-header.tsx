@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LanguageMenu } from "@/components/language/language-menu";
 import { AdminContextBadge, PrimaryNav } from "@/components/layout/primary-nav";
 import { UserMenu } from "@/components/layout/user-menu";
 import { BrandToggle } from "@/components/theme/brand-toggle";
@@ -34,6 +35,7 @@ export async function AppHeader() {
         </div>
 
         <div className="ml-auto flex items-center gap-1">
+          <LanguageMenu />
           <BrandToggle />
           <ThemeToggle />
           {profile ? (

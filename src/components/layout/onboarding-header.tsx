@@ -1,4 +1,5 @@
 import { LogOut } from "lucide-react";
+import { LanguageMenu } from "@/components/language/language-menu";
 import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export async function OnboardingHeader() {
         </span>
 
         <div className="ml-auto flex items-center gap-1">
+          <LanguageMenu />
           <BrandToggle />
           <ThemeToggle />
           <form action={signOut}>

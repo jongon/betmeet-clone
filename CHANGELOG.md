@@ -17,6 +17,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Realtime** — Marcadores en vivo en `/matches` y en la grilla de Predicciones del pool vía Supabase Realtime (websockets): los resultados se actualizan solos sin recarga manual tras cada sync/override; degrada limpiamente a refresco manual si Realtime no está disponible. (Unit 58)
 - **Pools** — Banner «En vivo ahora» en el detalle de la liga, visible desde las pestañas Clasificación, Predicciones y Miembros: muestra el/los partido(s) en juego con marcador, badge LIVE y la predicción + puntos de cada miembro, con un CTA que lleva a la pestaña Predicciones en el día correcto. (Unit 61)
 - **Leaderboard** — Proyección en vivo del ranking (pool + global) durante partidos en juego: el leaderboard se reordena según el puntaje proyectado (`pts confirmados + Σ computeScore(predicción, marcador en vivo actual)`), cada fila muestra los puntos actuales → proyectados y el cambio de posición (`sube N`/`baja N`/`igual`/`nuevo`). Respeta override de pool vs global, `preJoin` (no puntúa partidos anteriores al ingreso) y anti-sesgo (solo partidos ya iniciados). El cache confirmado no se invalida; la proyección es pura por render. El bonus de penales **no** se concede durante LIVE (`winnerTeamId` es `null` hasta FINISHED). Se actualiza en vivo vía el mismo broadcast Realtime de Unit 58. (Unit 62)
+- **Pools** — El administrador (dueño) de una liga puede cambiarla de pública a privada y viceversa en cualquier momento, desde un switch «Liga pública» en la configuración de la liga: al hacerla privada deja de aparecer en el directorio público y solo se entra con el enlace de invitación; al hacerla pública aparece en el directorio (respetando la unicidad de nombre). Solo el dueño puede cambiarlo y los miembros, el token y la capacidad no se ven afectados. (Unit 65)
 
 ### Fixed
 
@@ -35,6 +36,8 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Matches** — Tras la medianoche, el último partido del día (todos los del último horario) sigue visible en `/matches` hasta 1 hora antes del siguiente partido, en lugar de ocultarse el bloque entero de golpe. Solo persiste ese horario, bajo su propia fecha y arriba de los próximos; si el siguiente partido aún no tiene fecha, permanece visible. Con la pestaña abierta, la transición al cruzar la medianoche ocurre sin recarga.
 - **Predicciones** — El formulario de predicción se bloquea en vivo al llegar el kickoff (en `/matches` y en la grilla/modal del pool) sin esperar a rebotar al guardar; la autoridad sigue 100% server-side. (Unit 57)
 - **Pools** — El directorio público (`/pools/discover`) muestra «Ir a la liga» en las ligas a las que ya perteneces, en vez del botón «Unirme»; antes descubrías que ya eras miembro solo al pulsar Unirme. (Unit 63)
+- **i18n** — El selector de idioma (es/en) se movió al header de la app como icono de globo + popover, junto a los controles de marca y tema, para hacerlo más descubrible; antes estaba escondido dentro del menú de usuario. Se conserva también el selector dentro de Ajustes/Perfil. (Unit 64)
+- **i18n** — El selector de idioma también está disponible en el header de la landing (portada), para visitantes anónimos y logueados; antes solo estaba en el header de la app y el del onboarding. (Unit 66)
 
 ---
 

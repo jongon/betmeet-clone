@@ -2905,3 +2905,98 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Sin commit/push**. **No reinicia etapas aprobadas (Units 1–61 intactas)**.
 
 ---
+
+## Refine — Unit 64: Selector de idioma en el header
+**Timestamp**: 2026-06-24T00:00:00Z
+**Comando**: `/aidlc:refine` — "Quiero que está aplicación soporte multilenguaje, el usuario pueda seleccionar entre inglés y español (qué ya es el idioma por defecto). Hazme preguntas si lo necesitas"
+
+**Hallazgo**: El intent solicitado **ya estaba implementado y verificado** como **Unit 24** (Internacionalización y selector de idioma, 2026-06-15): `es` default + `en` sin prefijo de URL, persistencia cookie `locale` + `profiles.locale`, diccionarios tipados `es.ts`/`en.ts`, `setLocale`, reglas MDX bilingües, 104 archivos consumiendo el sistema i18n. No había brecha de capacidad ni de datos.
+
+**Aclaración (AskUserQuestion)**: Ante el hallazgo se preguntó al usuario qué debía hacer el refine. Respondió: **«Lo quiero en el header, no dentro del menú. Ahí no lo veo.»** → la brecha real es de **descubribilidad**: el selector (`LanguageToggle`) vivía dentro del dropdown de `UserMenu`. Segunda pregunta (forma UI, con previews): el usuario eligió **icono de globo + popover** (consistente con `BrandToggle`), frente a segmentado `ES|EN` o botón alterna.
+
+**Decisión**: No reimplementar i18n. Registrar como **Unit 64** (convención del proyecto: cada refine post-construcción = unit nuevo), reubicando el selector al header. No reinicia Units 1–63.
+
+**Cambio (FR-REFINE-64.1 / US-23.1·23.2 refinadas en ubicación)**:
+- **NEW** `src/components/language/language-menu.tsx` — componente cliente que replica `BrandToggle`: `Button ghost size=icon` con icono `Languages` (aria-label `language.select`, title `language.label`) → `Popover` con una opción por `SUPPORTED_LOCALES` (Español/English) + `Check`/`aria-pressed`/`disabled` en el activo. Reusa `useDictionary`/`useLocale`, la Server Action `setLocale(locale, pathname)` y `useTransition` + `router.refresh()`. Sin nuevas actions ni claves i18n.
+- **NEW** `src/components/language/__tests__/language-menu.test.tsx` — 3 casos (trigger accesible / marca y deshabilita el locale activo / cambia de locale vía `setLocale`).
+- **MODIFIED** `src/components/layout/app-header.tsx` y `onboarding-header.tsx` — montan `<LanguageMenu />` junto a Marca/Tema.
+- **MODIFIED** `src/components/layout/user-menu.tsx` — se retira `LanguageToggle` + su separador (evita duplicación). `account-settings.tsx` conserva el `LanguageToggle` inline.
+- **MODIFIED** `src/components/layout/__tests__/user-menu.test.tsx` — se elimina el mock de `language-toggle`.
+
+**Seguridad**: COMPLIANT — sin nueva superficie de input; `locale` ya se valida server-side en `setLocale` (`parseLocale` contra `SUPPORTED_LOCALES`). Sin schema, migraciones, rutas ni nuevas Server Actions.
+
+**Verificación**: Biome limpio, ESLint 0, `tsc --noEmit` sin errores en archivos tocados, **Vitest 7/7** (3 `language-menu` + `user-menu` actualizado). `pnpm build` pendiente de smoke manual.
+
+**Artefactos AI-DLC**: NEW `construction/unit-64-language-selector-header/functional-design.md`; `aidlc-state.md` (Current Stage Unit 64 + registro en Units Generation + conteo en Project Information); este log en `audit.md`; `inception/application-design/unit-of-work.md` (Unit 64 ← Unit 24 + Unit 11); nota en `unit-24-…/functional-design.md` §5 (App Shell también expone el selector en el header).
+
+**Sin commit/push**. **No reinicia etapas aprobadas (Units 1–63 intactas)**.
+
+---
+
+## Refine — Unit 65: Cambiar la visibilidad de un pool (público↔privado)
+**Timestamp**: 2026-06-24T00:00:00Z
+**Comando**: `/aidlc:refine` — "Quiero que el administrador de un pool pueda cambiarlo de publico a privado y viceversa"
+
+**User Input**: cita verbatim arriba. **AskUserQuestion** (1 pregunta, UX de confirmación): el usuario eligió **«Switch instantáneo»** (optimista + toast, sin diálogo), frente a un diálogo de confirmación estilo Unit 54. **Plan presentado y aprobado antes de ejecutar** (ExitPlanMode).
+
+**Diagnóstico (causa raíz)**: `Pool.type` (enum `PUBLIC | PRIVATE`, BR-3.1) solo se fijaba al crear el pool (US-4.1, `createPool`) y **ninguna server action lo modificaba después**. El administrador (dueño, `Pool.ownerId`) ya podía renombrar (Unit 54, `renamePool`) y configurar `membersCanInvite` (Unit 45/47, `updatePoolMembersCanInvite`), pero no cambiar la visibilidad. Brecha de capacidad, no de datos ni de seguridad.
+
+**AI Response (fix) (BR-65.1…65.5 / BL-65.1)**: nueva server action `updatePoolVisibility({ poolId, type })` calcada de `updatePoolMembersCanInvite` y `renamePool`:
+- **BR-65.1** owner-only server-side (`pool.ownerId === userId`, SECURITY-08/anti-IDOR; no-dueño → "Solo el administrador puede cambiar esta configuración").
+- **BR-65.4** idempotente: si `type` destino == actual, no-op (`{ success, type }`, sin `update` ni log).
+- **BR-65.2** al pasar PRIVATE→PUBLIC, pre-check de unicidad de nombre público (`findFirst { type:PUBLIC, name, id≠pool.id }` → "Ya existe una liga pública con ese nombre") + `try/catch` del `update` como guardia final ante carreras del índice parcial `pools_public_name_unique` (reusa BR-3.2; PUBLIC→PRIVATE exento).
+- **BR-65.3** el cambio no altera membresías, `inviteToken`, capacidad ni `membersCanInvite`; PUBLIC→PRIVATE solo retira el pool del directorio (`listPublicPools` filtra `type:"PUBLIC"`) y hace que `joinPublicPool` lo rechace.
+- **BR-65.5** `logAuthEvent("pool.settings_changed", { userId, poolId, visibility })` + `revalidatePath('/pools/[id]','/pools','/pools/discover')` (no invalida `RANKINGS_TAG`).
+- UI: switch «Liga pública» instantáneo/optimista (rollback + `FormError`) en `pool-settings-card-client.tsx`, visible para todo dueño; `poolType` pasa a estado local para mostrar/ocultar el switch `membersCanInvite` (PRIVATE-only) sin recargar.
+
+**Code change**:
+- **NEW** `src/features/pools/actions/update-pool-visibility.ts` — la server action.
+- **NEW** `src/features/pools/actions/__tests__/update-pool-visibility.test.ts` — 9 casos (owner PRIVATE→PUBLIC / PUBLIC→PRIVATE sin chequeo de unicidad / clash de nombre rechazado / idempotente no-op / no-owner rechazado / liga inexistente / onboarding incompleto / type inválido / revalida detalle+lista+directorio y loguea).
+- **MODIFIED** `src/features/pools/schemas.ts` — `UpdatePoolVisibilitySchema` (`{ poolId: uuid, type: enum PUBLIC/PRIVATE }`).
+- **MODIFIED** `src/features/pools/components/pool-settings-card-client.tsx` — switch de visibilidad + estado local `visibility`; el bloque `membersCanInvite` se condiciona a `visibility === "PRIVATE"`.
+- **MODIFIED** `src/i18n/dictionaries/{es,en}.ts` — `pools.settings.visibility`, `visibilityDescription`, `visibilitySaved`.
+
+**Doc change**: NEW `construction/unit-65-pool-visibility-toggle/functional-design.md`; requirements (FR-REFINE-65.1 + Restricciones/SKIP); user-stories (Épica 65 / US-65.1); `unit-of-work.md` (sección Unit 65 + #48 en la secuencia); `aidlc-state.md` (Current Stage Unit 65, Unit 64 demovida a Prev Stage, conteo en Project Information); este log.
+
+**Build/Test Status**: ver Current Stage en `aidlc-state.md` — `pnpm exec tsc --noEmit`, Biome/ESLint en archivos tocados, Vitest (NEW suite 9/9), `pnpm build`.
+
+**Stages**: Requirements/User Stories EXECUTE, Application Design EXECUTE (delta), Functional Design EXECUTE, Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Security Baseline**: COMPLIANT — autorización por `ownerId` server-side (SECURITY-08), input Zod (SECURITY-01); sin nueva ruta, schema ni migración (`Pool.type` ya existe); el optimismo del cliente nunca autoriza.
+
+**Out of scope**: notificar a los miembros, regenerar `inviteToken`, auto-rename ante colisión de nombre, cambiar capacidad.
+
+**Archivos AI-DLC**: ver Doc change.
+
+**Sin commit/push**. **No reinicia etapas aprobadas (Units 1–64 intactas)**.
+
+---
+
+## Refine — Unit 66: Selector de idioma en el header del landing
+**Timestamp**: 2026-06-24T00:00:00Z
+**Comando**: `/aidlc:refine` — "con respecto al cambio del idioma también tiene que ser posible desde el header del landing"
+
+**User Input**: cita verbatim arriba. **Plan presentado y aprobado antes de ejecutar** (el usuario respondió "Sí").
+
+**Diagnóstico (causa raíz)**: Unit 64 montó `LanguageMenu` (icono globo + popover, descubribilidad del selector bilingüe de Unit 24) en `AppHeader` y `OnboardingHeader`, pero el **header del landing** (`/`, definido inline en `src/app/page.tsx`) quedó fuera: solo exponía `BrandToggle` y `ThemeToggle`. Un visitante (anónimo o logueado) en la portada no podía cambiar de idioma desde el header. Misma brecha de descubribilidad de Unit 64, en la única superficie de header omitida; no es brecha de capacidad ni de datos.
+
+**AI Response (fix) (BR-66.1/66.2)**: en `src/app/page.tsx` se importa y monta `<LanguageMenu />` en el header, junto a `BrandToggle`/`ThemeToggle`, para anónimos y logueados. Se reutiliza el componente existente **tal cual** (Client Component sin props, Unit 64), apoyado en el `DictionaryProvider` del root layout (`src/app/layout.tsx`) que ya envuelve el landing. La resolución/persistencia de locale (cookie `locale` + `profiles.locale`, `setLocale`) de Unit 24/64 queda intacta.
+
+**Code change**:
+- **MODIFIED** `src/app/page.tsx` — import `LanguageMenu` + `<LanguageMenu />` en el header del landing.
+
+**Doc change**: NEW `construction/unit-66-language-selector-landing-header/functional-design.md`; requirements (FR-REFINE-66.1 + Restricciones/SKIP); user-stories (Épica 66 / US-66.1); `unit-of-work.md` (sección Unit 66 + #49 en la secuencia); `aidlc-state.md` (Current Stage Unit 66, Unit 65 demovida a Prev Stage, conteo en Project Information); este log.
+
+**Build/Test Status**: ver Current Stage en `aidlc-state.md` — Biome y `pnpm exec tsc --noEmit` en archivos tocados, Vitest (`language-menu.test.tsx` 3/3 intacto), `pnpm build`.
+
+**Stages**: Requirements/User Stories EXECUTE, Application Design EXECUTE (delta), Functional Design EXECUTE, Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Security Baseline**: COMPLIANT — sin nueva superficie de input; `locale` ya validado server-side en `setLocale` (`parseLocale` contra `SUPPORTED_LOCALES`); sin schema, migraciones, rutas ni nuevas server actions.
+
+**Out of scope**: routing `[locale]`, hreflang/SEO, tests del Server Component del landing (no existen tests de `page.tsx` ni de los otros headers que extender; `LanguageMenu` ya cubierto).
+
+**Archivos AI-DLC**: ver Doc change.
+
+**Sin commit/push**. **No reinicia etapas aprobadas (Units 1–65 intactas)**.
+
+---

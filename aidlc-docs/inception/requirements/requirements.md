@@ -2046,3 +2046,18 @@ El directorio público `/pools/discover` debe anotar cada pool listado con `isMe
 - **Sin** cambios en `join-public-pool.ts`, `pool-directory-list.tsx`, `discover/page.tsx`, middleware, `/pools/[id]`, auth ni scoring.
 - **Sin** invalidación en tiempo real de `isMember` tras unirse en otra pestaña (se refresca en el siguiente `router.refresh()`/navegación; la rama reactiva `alreadyMember` cubre la race).
 - **No reinicia** Units 1–62.
+
+### FR-REFINE-65.1 — Cambiar la visibilidad de un pool (público↔privado)
+El administrador (dueño, `Pool.ownerId`) de una liga debe poder cambiar su visibilidad `Pool.type` entre `PUBLIC` y `PRIVATE` en cualquier momento, mediante una nueva server action `updatePoolVisibility({ poolId, type })` expuesta como un switch «Liga pública» en el panel «Configuración» de `/pools/[id]` (solo dueño, switch **instantáneo/optimista** con toast). La autorización es **server-side** (`pool.ownerId === userId`, BR-3.28/SECURITY-08; el no-dueño recibe "Solo el administrador puede cambiar esta configuración"). Al pasar PRIVATE→PUBLIC se respeta la unicidad de nombre entre pools públicos (BR-3.2, índice parcial `pools_public_name_unique`): pre-check + `try/catch` del `update` → "Ya existe una liga pública con ese nombre". Al pasar PUBLIC→PRIVATE no hay chequeo de nombre; la liga sale del directorio (`listPublicPools` filtra `type:"PUBLIC"`) y `joinPublicPool` la rechaza, conservándose membresías, `inviteToken`, capacidad y `membersCanInvite`. La operación es idempotente (destino == actual ⇒ no-op). Tras el cambio se invalidan `/pools/[id]`, `/pools` y `/pools/discover`.
+
+### Restricciones / SKIP (Unit 65)
+- **Sin** schema, migraciones ni rutas nuevas (`Pool.type` ya existe); reusa el patrón de `updatePoolMembersCanInvite`/`renamePool` y el índice de BR-3.2.
+- **Sin** notificación a los miembros, regeneración de `inviteToken` ni auto-rename ante colisión.
+- **No reinicia** Units 1–64.
+
+### FR-REFINE-66.1 — Selector de idioma también en el header del landing
+El selector de idioma de header (`LanguageMenu`, Unit 64) debe estar disponible **también en el header de la landing** (`/`, definido inline en `src/app/page.tsx`), junto a `BrandToggle`/`ThemeToggle`, para visitantes anónimos y logueados. Completa FR-REFINE-64.1, que montó el selector en `AppHeader` y `OnboardingHeader` pero omitió el header del landing. Se reutiliza el componente `LanguageMenu` existente sin cambios (sin props), apoyándose en el `DictionaryProvider` del root layout. Brecha de descubribilidad, no de capacidad: la i18n `es`/`en` (Unit 24) y `setLocale` quedan intactas.
+
+### Restricciones / SKIP (Unit 66)
+- **Sin** claves i18n nuevas, schema, migraciones, rutas ni nuevas server actions; reusa `LanguageMenu`, `useDictionary`/`useLocale` y `setLocale`.
+- **No reinicia** Units 1–65.

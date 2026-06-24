@@ -2,7 +2,6 @@
 
 import { LogOut, Shield, User } from "lucide-react";
 import Link from "next/link";
-import { LanguageToggle } from "@/components/language/language-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -78,10 +77,6 @@ export function UserMenu({ displayNickname, avatarUrl, isAdmin }: UserMenuProps)
             {t.admin}
           </DropdownMenuLinkItem>
         )}
-        <DropdownMenuSeparator />
-        <div className="px-2 py-1.5">
-          <LanguageToggle compact />
-        </div>
         <DropdownMenuSeparator />
         <form action={signOut}>
           <DropdownMenuItem

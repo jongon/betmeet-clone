@@ -413,6 +413,11 @@ export const en = {
       renameConfirm: "Confirm",
       renameCancel: "Cancel",
       renameSaved: "Name updated",
+      // Unit 65: US-65.1 — change visibility public↔private.
+      visibility: "Public league",
+      visibilityDescription:
+        "When on, it appears in the directory and anyone can join. When off, players can only join with the invite link.",
+      visibilitySaved: "Visibility updated",
     },
     kick: "Remove",
     kicking: "Removing…",

@@ -1081,3 +1081,31 @@
   - Las ligas públicas a las que ya pertenezco muestran un botón «Ir a la liga» (outline) en el directorio; al pulsarlo navego a `/pools/[id]`. **FR-REFINE-63.1**.
   - Las ligas a las que no pertenezco siguen mostrando «Unirme» (o «Lleno» deshabilitado si no hay cupo). **FR-REFINE-63.1**.
   - La acción de unirse (`joinPublicPool`) no cambia: si pulso «Unirme» en una liga con `isMember` desactualizado (p. ej. me uní en otra pestaña), sigo recibiendo el mensaje informativo «Ya eres miembro» + enlace «Ir a la liga» (FR-REFINE-13.6, red de seguridad). **FR-REFINE-63.1**.
+
+## Épica 65: Cambiar la visibilidad de un pool (público↔privado) (Unit 65 — añadida vía refine, 2026-06-24)
+
+### US-65.1: Cambiar mi liga de pública a privada y viceversa
+
+**Como** administrador (dueño) de una liga
+**Quiero** poder cambiar la visibilidad de mi liga entre pública y privada en cualquier momento
+**Para** corregirme si elegí mal al crearla, o ajustar la liga cuando cambian mis necesidades (sacarla del directorio público, o publicarla para que cualquiera se una).
+
+- **Criterios de Aceptación**:
+  - Desde la sección «Configuración» de `/pools/[id]` (visible solo para el dueño), un switch «Liga pública» cambia la visibilidad al instante (optimista, con toast de confirmación). **FR-REFINE-65.1**.
+  - Solo el administrador puede cambiarla; cualquier otro usuario recibe «Solo el administrador puede cambiar esta configuración» (verificado server-side). **FR-REFINE-65.1**.
+  - Al pasar de privada a pública, si ya existe otra liga pública con el mismo nombre, el cambio se rechaza con «Ya existe una liga pública con ese nombre» (BR-3.2). **FR-REFINE-65.1**.
+  - Al pasar de pública a privada, la liga desaparece del directorio (`/pools/discover`) y solo se entra con el enlace/código de invitación; los miembros, el token y la capacidad no cambian. **FR-REFINE-65.1**.
+  - Al pasar de privada a pública, la liga aparece en el directorio y cualquiera puede unirse hasta el cupo. **FR-REFINE-65.1**.
+
+## Épica 66: Selector de idioma en el header del landing (Unit 66 — añadida vía refine, 2026-06-24)
+
+### US-66.1: Cambiar el idioma desde el header de la portada
+
+**Como** visitante de la landing (anónimo o logueado)
+**Quiero** cambiar el idioma entre español e inglés desde el header de la portada (`/`)
+**Para** leer la portada en mi idioma sin tener que iniciar sesión ni abrir un menú interno.
+
+- **Criterios de Aceptación**:
+  - El header de la landing muestra el selector de idioma (icono de globo + popover Español/English) junto a los controles de Marca y Tema. **FR-REFINE-66.1**.
+  - Está disponible tanto para visitantes anónimos como para usuarios logueados. **FR-REFINE-66.1**.
+  - Al cambiar de idioma, la portada se recarga en el idioma elegido (misma persistencia de Unit 24: cookie `locale` y, si hay sesión, `profiles.locale`). **FR-REFINE-66.1**.

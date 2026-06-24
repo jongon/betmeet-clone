@@ -677,6 +677,41 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Al abrir `/pools/discover` logueado, las ligas públicas a las que ya pertenezco muestran «Ir a la liga» y al pulsar van a `/pools/[id]`; las que no muestran «Unirme»; una liga llena ajena muestra «Lleno» deshabilitado.
 
+## Unit 65 — Cambiar la visibilidad de un pool (público↔privado) (refine sobre Unit 3/54)
+
+**Goal**: Que el administrador (dueño) de una liga pueda cambiar su visibilidad entre pública y privada en cualquier momento, no solo al crearla.
+
+**Dependencias**: Unit 3 (entidad `Pool`, `type` PUBLIC/PRIVATE, directorio, autorización por `ownerId`, índice parcial `pools_public_name_unique` de BR-3.2), Unit 54 (panel «Configuración» del dueño y patrón `renamePool`), Unit 45/47 (`updatePoolMembersCanInvite`, gate PRIVATE-only del toggle de invitación). No reinicia Units 1–64.
+
+**Alcance**:
+- **Nueva server action `updatePoolVisibility({ poolId, type })`** calcada de `updatePoolMembersCanInvite`: `getOnboardedUserId` → `UpdatePoolVisibilitySchema.safeParse` → `findUnique { id, ownerId, name, type }` → guard `ownerId === userId` (BR-65.1) → no-op si `type` destino == actual (BR-65.4) → al pasar a PUBLIC, pre-check de unicidad de nombre (`findFirst`) + `try/catch` del `update` como guardia ante el índice parcial (BR-65.2, reusa BR-3.2) → `prisma.pool.update({ data:{ type } })` → `logAuthEvent("pool.settings_changed", { visibility })` → `revalidatePath('/pools/[id]','/pools','/pools/discover')` (BR-65.5).
+- **UI**: switch «Liga pública» (instantáneo/optimista con toast y rollback) en `pool-settings-card-client.tsx`, visible para todo dueño; `poolType` pasa a estado local para mostrar/ocultar el switch `membersCanInvite` (PRIVATE-only) sin recargar. i18n es/en (`pools.settings.visibility*`).
+- **Efectos** (BR-65.3): el cambio no altera membresías, `inviteToken`, capacidad ni `membersCanInvite`; PUBLIC→PRIVATE solo retira el pool del directorio y hace que `joinPublicPool` lo rechace.
+
+**Sin** schema, migraciones ni rutas nuevas (`Pool.type` ya existe); sin notificación a miembros, regeneración de token ni auto-rename ante colisión.
+
+**Files**: `src/features/pools/schemas.ts` (MODIFIED — `UpdatePoolVisibilitySchema`), `src/features/pools/actions/update-pool-visibility.ts` (NEW), `src/features/pools/components/pool-settings-card-client.tsx` (MODIFIED — switch + estado local de visibilidad), `src/i18n/dictionaries/{es,en}.ts` (MODIFIED — `visibility*`), `src/features/pools/actions/__tests__/update-pool-visibility.test.ts` (NEW).
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 65 / FR-REFINE-65.1, US-65.1), Application Design (delta `unit-of-work.md` Unit 65 + #48) EXECUTE, Functional Design EXECUTE (`construction/unit-65-pool-visibility-toggle/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: Como dueño en `/pools/[id]`, alternar «Liga pública» cambia la visibilidad al instante; el pool puesto privado sale de `/pools/discover` y `joinPublicPool` lo rechaza; puesto público aparece en el directorio respetando la unicidad de nombre; un no-dueño no ve el control y la action lo rechaza.
+
+## Unit 66 — Selector de idioma en el header del landing (refine sobre Unit 64)
+
+**Goal**: Que el selector de idioma de header (`LanguageMenu`) también esté disponible en el header de la landing (`/`), no solo en `AppHeader`/`OnboardingHeader`.
+
+**Dependencias**: Unit 64 (`LanguageMenu`, montaje en `AppHeader`/`OnboardingHeader`), Unit 24 (infra i18n `es`/`en`, `setLocale`, `DictionaryProvider`). No reinicia Units 1–65.
+
+**Alcance**: en `src/app/page.tsx` (Server Component del landing, bajo el root layout que ya provee `DictionaryProvider`) se importa y monta `<LanguageMenu />` en el header, junto a `BrandToggle`/`ThemeToggle`. Se reutiliza el componente existente tal cual (sin props). Disponible para anónimos y logueados.
+
+**Sin** claves i18n nuevas, schema, migraciones, rutas ni nuevas server actions. Sin tests nuevos (no hay tests de `page.tsx` ni de los otros headers que extender; `LanguageMenu` ya cubierto por `language-menu.test.tsx`).
+
+**Files**: `src/app/page.tsx` (MODIFIED — import + `<LanguageMenu />` en el header).
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 66 / FR-REFINE-66.1, US-66.1), Application Design (delta `unit-of-work.md` Unit 66 + #49) EXECUTE, Functional Design EXECUTE (`construction/unit-66-language-selector-landing-header/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: Al abrir `/`, el header muestra el icono de idioma junto a Marca/Tema; al pulsarlo, el popover Español/English cambia el idioma de la portada (anónimo o logueado).
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -725,6 +760,9 @@ Feature modules should own their server actions, schemas, services, and feature-
 44. Unit 61: Banner «En vivo ahora» en el pool (post-construction refine; sobre Units 41/48/58; banner cross-tab en `/pools/[id]` que superficia partido(s) `LIVE` con marcador + badge + predicción/puntos por miembro desde cualquier pestaña; CTA «Ver en Predicciones» con `?tab` URL-driven que **supersede BR-41.7**; `useLiveResults` se monta una vez en un nuevo `PoolDetailTabs` wrapper; reusa `getPoolMemberPredictions`/`buildDayGroups`/`MatchStatusBadge`/`useKickoffTick`; extrae `MemberPredictionRowView` para DRY; sin nueva query, schema, migraciones, rutas ni server actions; enmascarado anti-sesgo de Unit 53 intacto)
 45. **Unit 62: Proyección de leaderboard en vivo** (post-construction refine; sobre Units 6/55/56/58; servicio puro `projectLeaderboard` + queries no-cached `getGlobalRankingProjection`/`getPoolLeaderboardProjection` —cache confirmado intacto—; leaderboards reordenados por `projectedPoints` con badge `sube/baja/igual/nuevo` en vivo; coexiste con Unit 61; sin schema, migraciones, rutas ni server actions)
 46. Unit 63: Estado «ya unido» en `/pools/discover` (post-construction refine; sobre Units 3/13; `listPublicPools` anota `isMember` por pool para el usuario actual con una query batched `poolMembership.findMany` —no N+1, skip si anónimo o directorio vacío—; `PoolPreviewCard` muestra botón outline «Ir a la liga» en los pools con `isMember === true` en vez de «Unirme»; extiende FR-REFINE-13.6 a un estado **proactivo pre-clic**; la action `joinPublicPool` y su contrato `{ alreadyMember }` se conservan como red de seguridad reactiva ante race; reusa key i18n `goToPool`, sin nuevas keys; sin schema, migraciones, rutas, server actions ni nueva superficie de input; Unit 62 implementada, coexistencia verificada)
+47. Unit 64: Selector de idioma en el header (post-construction refine; sobre Units 24/11; reubica el selector bilingüe `es`/`en` desde el dropdown de `UserMenu` al header —brecha de **descubribilidad**, la capacidad de Unit 24 ya existía—; nuevo componente `LanguageMenu` con icono `Languages` + `Popover` replicando `BrandToggle`, montado en `AppHeader` y `OnboardingHeader`; reusa `useDictionary`/`useLocale` + Server Action `setLocale`; retirado del `UserMenu`, conservado el `LanguageToggle` inline en Ajustes/Perfil; sin claves i18n nuevas, schema, migraciones, rutas ni nuevas server actions)
+48. Unit 65: Cambiar la visibilidad de un pool (público↔privado) (post-construction refine; sobre Units 3/54; nueva server action `updatePoolVisibility` calcada de `updatePoolMembersCanInvite` —owner-only server-side, idempotente, pre-check + `try/catch` de unicidad de nombre público al pasar a PUBLIC reusando BR-3.2/`pools_public_name_unique`—; switch «Liga pública» instantáneo/optimista en `pool-settings-card-client.tsx` con `poolType` como estado local; PUBLIC→PRIVATE saca el pool del directorio y `joinPublicPool` lo rechaza sin tocar membresías/`inviteToken`/capacidad/`membersCanInvite`; revalida `/pools/[id]`,`/pools`,`/pools/discover`; i18n es/en `pools.settings.visibility*`; sin schema, migraciones ni rutas nuevas)
+49. Unit 66: Selector de idioma en el header del landing (post-construction refine; sobre Units 64/24; completa FR-REFINE-64.1 montando `LanguageMenu` también en el header del landing `src/app/page.tsx` —junto a `BrandToggle`/`ThemeToggle`, para anónimos y logueados— que se había omitido; reusa el componente existente sin props apoyado en el `DictionaryProvider` del root layout; sin claves i18n nuevas, schema, migraciones, rutas ni server actions)
 
 ## Security Notes
 

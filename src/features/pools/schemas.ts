@@ -67,3 +67,11 @@ export const RenamePoolSchema = z.object({
 });
 
 export type RenamePoolInput = z.infer<typeof RenamePoolSchema>;
+
+/** Change a pool's visibility public↔private (FR-REFINE-65.1, BR-65.1). */
+export const UpdatePoolVisibilitySchema = z.object({
+  poolId: z.string().uuid(),
+  type: z.enum(["PUBLIC", "PRIVATE"]),
+});
+
+export type UpdatePoolVisibilityInput = z.infer<typeof UpdatePoolVisibilitySchema>;

@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useDictionary } from "@/i18n/dictionary-provider";
 import { renamePool } from "../actions/rename-pool";
 import { updatePoolMembersCanInvite } from "../actions/update-pool-members-can-invite";
+import { updatePoolVisibility } from "../actions/update-pool-visibility";
 import type { PoolType } from "../types";
 
 interface PoolSettingsCardClientProps {
@@ -38,6 +39,13 @@ export function PoolSettingsCardClient({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Unit 65: visibilidad público↔privado (switch instantáneo). El tipo es estado
+  // local para que el toggle de "miembros pueden invitar" (solo PRIVATE) aparezca
+  // o desaparezca al instante sin recargar.
+  const [visibility, setVisibility] = useState<PoolType>(poolType);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+  const [visibilityPending, startVisibilityTransition] = useTransition();
+
   // Unit 54: renombrado con confirmación.
   const [name, setName] = useState(initialName);
   const [draftName, setDraftName] = useState(initialName);
@@ -57,6 +65,22 @@ export function PoolSettingsCardClient({
         return;
       }
       toast.success(t.settings.saved);
+    });
+  }
+
+  function handleVisibilityChange(nextPublic: boolean) {
+    setVisibilityError(null);
+    const previous = visibility;
+    const next: PoolType = nextPublic ? "PUBLIC" : "PRIVATE";
+    setVisibility(next); // optimistic
+    startVisibilityTransition(async () => {
+      const result = await updatePoolVisibility({ poolId, type: next });
+      if (result?.error) {
+        setVisibilityError(result.error);
+        setVisibility(previous); // rollback
+        return;
+      }
+      toast.success(t.settings.visibilitySaved);
     });
   }
 
@@ -123,7 +147,23 @@ export function PoolSettingsCardClient({
         </div>
       </div>
 
-      {poolType === "PRIVATE" && (
+      {/* Unit 65: visibilidad pública/privada (switch instantáneo, solo dueño). */}
+      <FormError messages={visibilityError ? [visibilityError] : undefined} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <p className="text-sm font-medium">{t.settings.visibility}</p>
+          <p className="text-xs text-muted-foreground">{t.settings.visibilityDescription}</p>
+        </div>
+        <Switch
+          checked={visibility === "PUBLIC"}
+          onCheckedChange={handleVisibilityChange}
+          disabled={visibilityPending}
+          data-testid="pool-settings-visibility-switch"
+          aria-label={t.settings.visibility}
+        />
+      </div>
+
+      {visibility === "PRIVATE" && (
         <>
           <FormError messages={error ? [error] : undefined} />
           <div className="flex items-start justify-between gap-3">

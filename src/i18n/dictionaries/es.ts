@@ -410,6 +410,11 @@ export const es = {
       renameConfirm: "Confirmar",
       renameCancel: "Cancelar",
       renameSaved: "Nombre actualizado",
+      // Unit 65: US-65.1 — cambiar la visibilidad público↔privado.
+      visibility: "Liga pública",
+      visibilityDescription:
+        "Si la activas, aparece en el directorio y cualquiera puede unirse. Si la desactivas, solo se entra con el enlace de invitación.",
+      visibilitySaved: "Visibilidad actualizada",
     },
     kick: "Expulsar",
     kicking: "Expulsando…",

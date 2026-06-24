@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LanguageMenu } from "@/components/language/language-menu";
 import { UserMenu } from "@/components/layout/user-menu";
 import { BrandToggle } from "@/components/theme/brand-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -38,6 +39,9 @@ export default async function Home() {
         </Link>
         {/* Toggles aligned to the right to match the authenticated app header (FR-REFINE-15.4). */}
         <div className="flex items-center gap-1">
+          {/* Unit 66: el selector de idioma también vive en el header del landing
+              (mismo patrón que AppHeader/OnboardingHeader de Unit 64). */}
+          <LanguageMenu />
           <BrandToggle />
           <ThemeToggle />
           {profile ? (
