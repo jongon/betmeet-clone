@@ -22,6 +22,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 ### Fixed
 
+- **Auth/Pools** — Al registrarse con correo desde un enlace de invitación, el usuario ahora llega al pool tras confirmar su cuenta. Antes, el flujo activo de confirmación (`token_hash` → `/auth/confirm`) usaba una plantilla con `next=/matches` **fijo**, ignorando el `emailRedirectTo` que preservaba el destino: la cuenta quedaba creada y confirmada pero caía en `/matches`, sin unirse nunca al pool. El destino ahora viaja en `user_metadata.invite_next` (renderizado por la plantilla como `{{ .Data.invite_next }}`), que sobrevive a abrir el enlace en otro dispositivo. (Google y el login con correo ya funcionaban). (Unit 68)
 - **Pools** — Búsqueda de invitación por nickname ahora coincide por subcadena (no solo prefijo) y admite afinar con `Nombre#1234`; antes solo aparecían usuarios cuyo apodo empezaba por lo escrito.
 - **Auth** — Avatar de Google se refresca en cada login para mantener la URL vigente.
 - **Sync** — Eliminada restricción `@unique` en `Team.providerTeamId` para resolver conflictos de upsert.
@@ -30,6 +31,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 ### Changed
 
+- **Leaderboard** — La clasificación en el detalle de la liga ahora muestra hasta las primeras 20 posiciones (antes 5); el enlace a «ranking completo» aparece solo cuando la liga supera los 20 miembros.
 - **Pools** — El ranking de cada liga ahora cuenta solo los puntos acumulados **dentro** de esa liga: suma únicamente los partidos jugados desde que cada miembro se unió (predicción global heredada u override del pool). Antes mostraba el puntaje global completo. El ranking global no cambia.
 - **Pools** — En la grilla de "Predicciones", las celdas de partidos previos al ingreso de un miembro se muestran vacías (ícono "Aún no estaba en la liga"), de modo que los puntos visibles cuadren con el ranking de la liga.
 - **Auth** — Al eliminar la cuenta se libera el nickname (`nicknameBase`/`nicknameDiscriminator` a `null`): el índice único no consideraba `deletedAt`, por lo que antes el apodo quedaba reservado de forma permanente.

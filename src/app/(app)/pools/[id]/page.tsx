@@ -92,7 +92,7 @@ export default async function PoolDetailPage({ params, searchParams }: PoolDetai
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">{dictionary.pools.ranking}</h2>
-                {leaderboard.length > 5 && (
+                {leaderboard.length > 20 && (
                   <Link
                     className={buttonVariants({ variant: "ghost", size: "sm" })}
                     href={`/pools/${id}/leaderboard`}
@@ -103,7 +103,7 @@ export default async function PoolDetailPage({ params, searchParams }: PoolDetai
               </div>
               <PoolLeaderboard
                 rows={leaderboard}
-                limit={5}
+                limit={20}
                 projectedRows={projectedRows}
                 hasLive={hasLive}
                 copy={dictionary.rankings.liveProjection}
