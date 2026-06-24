@@ -221,8 +221,139 @@ export const es = {
     heroEyebrow: "Mundial 2026",
     heroTitle: "Predice el Mundial 2026 con tus amigos",
     heroSubtitle: "Crea tu liga, haz tus predicciones y compite por el primer lugar del ranking.",
+    heroTagline:
+      "Gratis, en español e inglés. Sin apuestas: solo orgullo y un ranking que defender.",
     primaryCta: "Entra a Jugar",
+    heroSecondaryCta: "Ver cómo funciona",
     scoringTeaserTitle: "Cómo se puntúa",
+    nav: {
+      howItWorks: "Cómo funciona",
+      leagues: "Ligas",
+      scoring: "Puntos",
+      faq: "Preguntas",
+    },
+    howItWorks: {
+      title: "Cómo funciona",
+      subtitle: "De crear tu liga a levantar el trofeo en cuatro pasos.",
+      steps: [
+        {
+          title: "Crea o únete a una liga",
+          description:
+            "Arma tu liga privada e invita a tus amigos, o únete a una liga pública desde el directorio.",
+        },
+        {
+          title: "Haz tus predicciones",
+          description:
+            "Predice el marcador exacto de cada partido. Puedes editarlo hasta el momento del inicio.",
+        },
+        {
+          title: "Suma puntos",
+          description:
+            "Acertar el marcador, el resultado o los goles de un equipo suma puntos de forma acumulable.",
+        },
+        {
+          title: "Escala el ranking",
+          description:
+            "Compite por el primer lugar en tu liga y en el ranking global mientras avanza el Mundial.",
+        },
+      ],
+    },
+    leagues: {
+      title: "Ligas públicas y privadas",
+      subtitle: "Juega con desconocidos del mundo entero o solo con tu grupo de confianza.",
+      public: {
+        badge: "Pública",
+        title: "Ligas públicas",
+        description: "Abiertas a cualquiera desde el directorio público.",
+        features: [
+          "Aparecen en el directorio para que cualquiera se una",
+          "Únete con un clic, sin invitación",
+          "Nombre único para que se reconozca fácilmente",
+        ],
+      },
+      private: {
+        badge: "Privada",
+        title: "Ligas privadas",
+        description: "Solo entra quien tenga tu enlace de invitación.",
+        features: [
+          "Invita con un enlace o token privado",
+          "Hasta 100 miembros por liga",
+          "El administrador puede expulsar antes del partido",
+        ],
+      },
+    },
+    features: {
+      title: "Todo lo que necesitas para competir",
+      subtitle: "Pensado para que la única preocupación sea acertar el marcador.",
+      items: [
+        {
+          title: "Invitaciones simples",
+          description: "Comparte un enlace y tus amigos entran a tu liga en segundos.",
+        },
+        {
+          title: "Centro de reglas",
+          description: "Reglas claras de puntuación y penales, con ejemplos resueltos.",
+        },
+        {
+          title: "Ranking en vivo",
+          description:
+            "Mira cómo se mueven las posiciones en tiempo real mientras se juegan los partidos.",
+        },
+        {
+          title: "Puntuación justa",
+          description: "Puntos deterministas e iguales para todos: sin sorpresas ni favoritismos.",
+        },
+      ],
+    },
+    scoringExampleTitle: "Ejemplos de puntuación",
+    faq: {
+      title: "Preguntas frecuentes",
+      subtitle: "Lo esencial antes de empezar a jugar.",
+      items: [
+        {
+          question: "¿Cuánto cuesta jugar?",
+          answer:
+            "Nada. La aplicación es gratuita: creas tu cuenta, te unes a las ligas que quieras y compites sin pagar.",
+        },
+        {
+          question: "¿Cómo funcionan las invitaciones?",
+          answer:
+            "En una liga privada compartes un enlace o token de invitación. Quien lo abra puede unirse, hasta un máximo de 100 miembros por liga.",
+        },
+        {
+          question: "¿Cuál es la diferencia entre liga pública y privada?",
+          answer:
+            "Las ligas públicas aparecen en el directorio y cualquiera puede unirse. Las privadas solo admiten a quien tenga tu enlace de invitación.",
+        },
+        {
+          question: "¿Puedo estar en varias ligas a la vez?",
+          answer:
+            "Sí. Puedes unirte a tantas ligas como quieras y tus predicciones cuentan en cada una además del ranking global.",
+        },
+        {
+          question: "¿Hasta cuándo puedo cambiar una predicción?",
+          answer:
+            "Puedes editar tu predicción hasta el momento del inicio del partido. Cuando empieza, queda bloqueada para todos por igual.",
+        },
+        {
+          question: "¿Cómo se calculan los puntos?",
+          answer:
+            "Acertar el marcador exacto da 5 puntos; el resultado correcto, 2; y cada equipo cuyos goles aciertes, 1 punto. Se acumulan, y hay un bonus por acertar al ganador en penales.",
+        },
+      ],
+    },
+    finalCta: {
+      title: "¿Listo para jugar?",
+      subtitle: "Crea tu cuenta gratis y arma tu liga antes del primer pitido.",
+      cta: "Crear cuenta gratis",
+    },
+    footer: {
+      tagline: "Tu quiniela del Mundial 2026, con amigos y en tiempo real.",
+      scoring: "Cómo se puntúa",
+      faq: "Preguntas frecuentes",
+      signIn: "Iniciar sesión",
+      signUp: "Crear cuenta",
+    },
   },
   scoring: {
     exact: "Marcador exacto",

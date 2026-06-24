@@ -3000,3 +3000,36 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Sin commit/push**. **No reinicia etapas aprobadas (Units 1–65 intactas)**.
 
 ---
+
+## Refine — Unit 67: Landing de producto estilo startup
+**Timestamp**: 2026-06-24T00:00:00Z
+**Comando**: `/aidlc:refine` — "Me gustaría mejorar el landing. El landing tiene que ser atractivo y explicativo de lo que un usuario podría hacer en la aplicación. Explicación de pool publicos privados, invitaciones, reglas, ejemplos. Como una navegación de una landing de un producto de start up. Acepto preguntas pero confiaré en tus criterios para hacerlo atractivo"
+
+**User Input**: cita verbatim arriba. **Plan presentado y aprobado antes de ejecutar.** Decisiones vía AskUserQuestion: (1) **alcance** = landing completo de startup; (2) **nav** = navegación sticky de anclas solo para visitantes anónimos.
+
+**Diagnóstico (causa raíz)**: el landing (`src/app/page.tsx`) solo renderizaba `<LandingHero />` (píldora de marca + título + subtítulo + 1 CTA) y `<ScoringTeaser />` (tabla de puntuación). No explicaba **qué puede hacer un usuario**: nada sobre ligas públicas/privadas, invitaciones, reglas con ejemplos ni navegación de producto. Brecha de **experiencia/explicabilidad del producto**, no de capacidad: todas las features ya existen e implementadas en Units previas.
+
+**AI Response (fix) (BR-67.1…67.9)**: el landing pasa a una landing de producto estilo startup. Nuevas secciones como **Server Components** en `src/features/education/components/` (mismo patrón que `ScoringTeaser`: `getRequestLocale()` + `getDictionary()`), montadas en `src/app/page.tsx` (contenedor ampliado a `max-w-5xl`, `scroll-smooth`): `HowItWorks` (4 pasos), `LeagueTypes` (pública vs privada, con datos reales: directorio público/unión libre/nombre único vs invitación por enlace-token/hasta 100 miembros/expulsión pre-partido), `FeatureGrid` (invitaciones, centro de reglas, ranking en vivo, puntuación justa), `LandingFaq` (Accordion 6 preguntas), `FinalCta` (banda → `/sign-up`) y `LandingFooter` (appName + enlaces solo públicos). `LandingHero` gana CTA secundario "Ver cómo funciona" (`#how-it-works`) + `heroTagline`; `ScoringTeaser` añade ejemplos resueltos reutilizando `<ScoreBreakdownDemo />` (motor real `computeScore`, sin lógica nueva, BR-67.8). El header muestra una **nav de anclas** (`#how-it-works`,`#leagues`,`#scoring`,`#faq`) **solo para anónimos** (`!profile`), oculta en móvil (BR-67.1). El footer solo enlaza superficies públicas; **no** enlaza `/rules` ni rutas bajo `(app)` para no rebotar a anónimos a un gate de sesión (BR-67.7). Copy nuevo bajo `landing.*` en `es.ts` (fuente del tipo `Dictionary`) y `en.ts` con paridad es/en (BR-67.9).
+
+**Code change**:
+- **MODIFIED** `src/app/page.tsx` — `max-w-5xl scroll-smooth`, nav de anclas para `!profile`, montaje de las 6 secciones + `id="scoring"`.
+- **NEW** `src/features/education/components/how-it-works.tsx`, `league-types.tsx`, `feature-grid.tsx`, `landing-faq.tsx`, `final-cta.tsx`, `landing-footer.tsx` (Server Components).
+- **MODIFIED** `src/features/education/components/landing-hero.tsx` (CTA secundario + tagline), `scoring-teaser.tsx` (`<ScoreBreakdownDemo />` + `id` via wrapper en page).
+- **MODIFIED** `src/i18n/dictionaries/es.ts` y `en.ts` — `landing.{nav,heroTagline,heroSecondaryCta,howItWorks,leagues,features,scoringExampleTitle,faq,finalCta,footer}`.
+- **NEW** `src/features/education/components/__tests__/landing-sections.test.tsx` (7 casos).
+
+**Doc change**: NEW `construction/unit-67-landing-product-redesign/functional-design.md`; requirements (Épica 67 / FR-REFINE-67.1 + Restricciones/SKIP); user-stories (Épica 67 / US-67.1, US-67.2); `unit-of-work.md` (sección Unit 67 + #50 en la secuencia); `aidlc-state.md` (Current Stage Unit 67, Unit 66 demovida a Prev Stage, conteo en Project Information); este log.
+
+**Build/Test Status**: `pnpm exec tsc --noEmit` 0 errores en archivos tocados (persisten 2 errores preexistentes de `pool-live-now-banner.test.tsx`, Unit 61, no relacionados); Biome `--write` (6 archivos formateados); ESLint 0 en archivos tocados; **Vitest** suite education 15/15 (NEW `landing-sections.test.tsx` 7/7); `pnpm build` OK (ruta `/` compila).
+
+**Stages**: Requirements/User Stories EXECUTE, Application Design EXECUTE (delta), Functional Design EXECUTE, Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Security Baseline**: COMPLIANT — cambio solo de presentación; sin nueva superficie de input, datos ni PII; sin server actions, schema, migraciones ni rutas nuevas; CTAs/enlaces solo a rutas públicas existentes o anclas internas (BR-67.7); resolución de locale (Unit 24/64) intacta.
+
+**Out of scope**: imágenes/ilustraciones nuevas (solo iconos lucide + tokens); routing `[locale]`, hreflang/SEO avanzado, animaciones complejas; cambiar el MDX del Rules Center o el motor de puntuación; nuevas server actions/schema/migraciones/rutas.
+
+**Archivos AI-DLC**: ver Doc change.
+
+**Sin commit/push**. **No reinicia etapas aprobadas (Units 1–66 intactas)**.
+
+---

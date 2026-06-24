@@ -1109,3 +1109,29 @@
   - El header de la landing muestra el selector de idioma (icono de globo + popover Español/English) junto a los controles de Marca y Tema. **FR-REFINE-66.1**.
   - Está disponible tanto para visitantes anónimos como para usuarios logueados. **FR-REFINE-66.1**.
   - Al cambiar de idioma, la portada se recarga en el idioma elegido (misma persistencia de Unit 24: cookie `locale` y, si hay sesión, `profiles.locale`). **FR-REFINE-66.1**.
+
+## Épica 67: Landing de producto estilo startup (Unit 67 — añadida vía refine, 2026-06-24)
+
+### US-67.1: Entender qué ofrece la app desde la portada
+
+**Como** visitante anónimo que llega a la portada
+**Quiero** una landing de producto que explique de forma atractiva qué puedo hacer en la aplicación
+**Para** decidir si crearme una cuenta sin tener que registrarme primero para descubrirlo.
+
+- **Criterios de Aceptación**:
+  - La portada muestra una sección "Cómo funciona" con los pasos de crear/unirse a una liga, predecir, sumar puntos y escalar el ranking. **FR-REFINE-67.1**.
+  - Hay una sección que explica la diferencia entre **ligas públicas** (directorio público, unión libre, nombre único) y **privadas** (invitación por enlace/token, hasta 100 miembros, expulsión pre-partido). **FR-REFINE-67.1**.
+  - Se presentan las features clave (invitaciones, centro de reglas, ranking en vivo, puntuación justa) y la puntuación con ejemplos resueltos. **FR-REFINE-67.1**.
+  - Un FAQ responde dudas frecuentes (coste, invitaciones, pública vs privada, varias ligas, bloqueo al kickoff, cálculo de puntos). **FR-REFINE-67.1**.
+  - Una banda de cierre invita a crear la cuenta (`/sign-up`). **FR-REFINE-67.1**.
+  - Todo el contenido nuevo está disponible en español e inglés y es responsive. **FR-REFINE-67.1**.
+
+### US-67.2: Navegar la portada con anclas de producto
+
+**Como** visitante anónimo de la portada
+**Quiero** una navegación en el header con enlaces a las secciones (Cómo funciona · Ligas · Puntos · Preguntas)
+**Para** saltar directamente a la información que me interesa, como en la landing de cualquier producto.
+
+- **Criterios de Aceptación**:
+  - El header muestra enlaces ancla que hacen scroll suave a cada sección. **FR-REFINE-67.1**.
+  - La nav de anclas se muestra **solo a visitantes anónimos** y se oculta en pantallas pequeñas; el usuario logueado conserva el header actual. **FR-REFINE-67.1**.

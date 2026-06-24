@@ -712,6 +712,22 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Al abrir `/`, el header muestra el icono de idioma junto a Marca/Tema; al pulsarlo, el popover Español/English cambia el idioma de la portada (anónimo o logueado).
 
+## Unit 67 — Landing de producto estilo startup (refine sobre el landing y la feature Education)
+
+**Goal**: Convertir el landing (`/`) de hero + tabla de puntuación en una landing de producto estilo startup que explique qué puede hacer el usuario (cómo funciona, ligas públicas/privadas, invitaciones, reglas con ejemplos, FAQ), con navegación de anclas.
+
+**Dependencias**: landing `src/app/page.tsx` (Units 15/66), feature Education (`ScoringTeaser`/`ScoreBreakdownDemo`/`ScoringTable`), i18n Unit 24 (`getRequestLocale`/`getDictionary`, contrato `Dictionary`). No reinicia Units 1–66.
+
+**Alcance**: nuevos Server Components en `src/features/education/components/` (`HowItWorks`, `LeagueTypes`, `FeatureGrid`, `LandingFaq`, `FinalCta`, `LandingFooter`), montados en `src/app/page.tsx` (contenedor `max-w-5xl`, `scroll-smooth`). `LandingHero` gana CTA secundario "#how-it-works" + tagline; `ScoringTeaser` añade `<ScoreBreakdownDemo />` (motor real, sin lógica nueva). Header con nav de anclas (`#how-it-works`,`#leagues`,`#scoring`,`#faq`) solo para `!profile`, oculta en móvil. Copy nuevo bajo `landing.*` en `es.ts` (fuente del tipo) y `en.ts` con paridad.
+
+**Sin** server actions, schema, migraciones, rutas ni nueva superficie de input. Enlaces solo a rutas públicas (`/sign-up`, `/sign-in`) o anclas; no se enlaza `/rules` ni rutas bajo `(app)`. Tests: NEW `landing-sections.test.tsx` (render de las 6 secciones + copy es/en, `getRequestLocale` mockeado).
+
+**Files**: `src/app/page.tsx` (MODIFIED), `src/features/education/components/{how-it-works,league-types,feature-grid,landing-faq,final-cta,landing-footer}.tsx` (NEW), `landing-hero.tsx`/`scoring-teaser.tsx` (MODIFIED), `src/i18n/dictionaries/{es,en}.ts` (MODIFIED), `__tests__/landing-sections.test.tsx` (NEW).
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 67 / FR-REFINE-67.1, US-67.1·67.2), Application Design (delta `unit-of-work.md` Unit 67 + #50) EXECUTE, Functional Design EXECUTE (`construction/unit-67-landing-product-redesign/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: Un visitante anónimo entiende de un vistazo qué ofrece la app, la diferencia entre ligas públicas y privadas, cómo invitar y cómo se puntúa (con ejemplos), navega con anclas de producto y termina en un CTA para crear cuenta; todo bilingüe y responsive.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -763,6 +779,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 47. Unit 64: Selector de idioma en el header (post-construction refine; sobre Units 24/11; reubica el selector bilingüe `es`/`en` desde el dropdown de `UserMenu` al header —brecha de **descubribilidad**, la capacidad de Unit 24 ya existía—; nuevo componente `LanguageMenu` con icono `Languages` + `Popover` replicando `BrandToggle`, montado en `AppHeader` y `OnboardingHeader`; reusa `useDictionary`/`useLocale` + Server Action `setLocale`; retirado del `UserMenu`, conservado el `LanguageToggle` inline en Ajustes/Perfil; sin claves i18n nuevas, schema, migraciones, rutas ni nuevas server actions)
 48. Unit 65: Cambiar la visibilidad de un pool (público↔privado) (post-construction refine; sobre Units 3/54; nueva server action `updatePoolVisibility` calcada de `updatePoolMembersCanInvite` —owner-only server-side, idempotente, pre-check + `try/catch` de unicidad de nombre público al pasar a PUBLIC reusando BR-3.2/`pools_public_name_unique`—; switch «Liga pública» instantáneo/optimista en `pool-settings-card-client.tsx` con `poolType` como estado local; PUBLIC→PRIVATE saca el pool del directorio y `joinPublicPool` lo rechaza sin tocar membresías/`inviteToken`/capacidad/`membersCanInvite`; revalida `/pools/[id]`,`/pools`,`/pools/discover`; i18n es/en `pools.settings.visibility*`; sin schema, migraciones ni rutas nuevas)
 49. Unit 66: Selector de idioma en el header del landing (post-construction refine; sobre Units 64/24; completa FR-REFINE-64.1 montando `LanguageMenu` también en el header del landing `src/app/page.tsx` —junto a `BrandToggle`/`ThemeToggle`, para anónimos y logueados— que se había omitido; reusa el componente existente sin props apoyado en el `DictionaryProvider` del root layout; sin claves i18n nuevas, schema, migraciones, rutas ni server actions)
+50. Unit 67: Landing de producto estilo startup (post-construction refine; sobre el landing `src/app/page.tsx` y la feature Education; añade secciones Server Component `HowItWorks`/`LeagueTypes`/`FeatureGrid`/`LandingFaq`/`FinalCta`/`LandingFooter` + nav de anclas solo para anónimos; explica ligas públicas vs privadas, invitaciones, features, puntuación con ejemplos —reusa `ScoreBreakdownDemo`/`computeScore`— y FAQ; copy bilingüe bajo `landing.*` con paridad es/en; enlaces solo a rutas públicas; sin server actions, schema, migraciones, rutas ni nueva superficie de input)
 
 ## Security Notes
 

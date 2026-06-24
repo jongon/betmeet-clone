@@ -2061,3 +2061,20 @@ El selector de idioma de header (`LanguageMenu`, Unit 64) debe estar disponible 
 ### Restricciones / SKIP (Unit 66)
 - **Sin** claves i18n nuevas, schema, migraciones, rutas ni nuevas server actions; reusa `LanguageMenu`, `useDictionary`/`useLocale` y `setLocale`.
 - **No reinicia** Units 1–65.
+
+## Épica 67: Landing de producto estilo startup (Unit 67 — añadida vía refine, 2026-06-24)
+
+> Refine post-construcción sobre el **landing** (`src/app/page.tsx`) y la feature **Education** (`src/features/education/components/`). Brecha de **experiencia/explicabilidad del producto**, no de capacidad: todas las features ya existen (Units previas), pero la portada no las explicaba. **No reinicia** etapas aprobadas (Units 1–66 intactas). Cambio **solo de presentación**: el landing pasa de hero + tabla de puntuación a una landing de producto con navegación de anclas, secciones de "cómo funciona", ligas públicas vs privadas, invitaciones, features, puntuación con ejemplos y FAQ. **Sin** server actions, schema, migraciones ni rutas nuevas.
+
+### FR-REFINE-67.1 — Landing de producto atractivo y explicativo
+El landing (`/`, `src/app/page.tsx`) debe presentarse como una **landing de producto estilo startup** que explique qué puede hacer el usuario. Se montan, dentro del contenedor del landing (ampliado a `max-w-5xl`, `scroll-smooth`), nuevas secciones como **Server Components** en `src/features/education/components/` (mismo patrón que `ScoringTeaser`: `getRequestLocale()` + `getDictionary()`): `HowItWorks` (4 pasos: crear/unirse a liga → predecir → puntuar → escalar ranking), `LeagueTypes` (ligas **públicas** —directorio público, unión libre, nombre único— vs **privadas** —invitación por enlace/token, hasta 100 miembros, expulsión pre-partido—), `FeatureGrid` (invitaciones, centro de reglas, ranking en vivo, puntuación justa), `LandingFaq` (Accordion con coste, invitaciones, pública vs privada, varias ligas, bloqueo al kickoff, cálculo de puntos), `FinalCta` (banda → `/sign-up`) y `LandingFooter` (appName + enlaces solo públicos). El `LandingHero` gana un CTA secundario "Ver cómo funciona" (ancla `#how-it-works`) + línea de refuerzo (`heroTagline`); el `ScoringTeaser` añade ejemplos resueltos reutilizando `<ScoreBreakdownDemo />` (motor real `computeScore`, sin lógica nueva). El header muestra una **nav de anclas** (`#how-it-works`, `#leagues`, `#scoring`, `#faq`) **solo para visitantes anónimos** (`!profile`), oculta en móvil. Todo el copy nuevo vive bajo `landing.*` en `es.ts` (fuente de verdad del tipo `Dictionary`) y `en.ts` con paridad de claves (es/en).
+
+### US-67.2 — Navegación de anclas para visitantes anónimos
+Ver `inception/user-stories/stories.md` (Épica 67).
+
+### Restricciones / SKIP (Unit 67)
+- **Sin** server actions, schema, migraciones, rutas ni nueva superficie de input. CTAs/enlaces apuntan solo a rutas públicas existentes (`/sign-up`, `/sign-in`) o anclas internas; **no** se enlaza `/rules` ni rutas bajo `(app)` para no rebotar a anónimos a un gate de sesión.
+- **Sin** lógica de puntuación nueva: los ejemplos reutilizan `ScoreBreakdownDemo`/`computeScore`.
+- **Sin** imágenes/ilustraciones nuevas (solo iconos lucide + tokens existentes); sin routing `[locale]`, hreflang/SEO avanzado ni animaciones complejas.
+- Toda clave de copy nueva exige paridad es/en (el tipo `Dictionary` lo verifica en `tsc`).
+- **No reinicia** Units 1–66.

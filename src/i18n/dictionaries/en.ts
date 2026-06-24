@@ -219,8 +219,138 @@ export const en = {
     heroEyebrow: "World Cup 2026",
     heroTitle: "Predict the 2026 World Cup with your friends",
     heroSubtitle: "Create your league, make predictions and compete for the top ranking spot.",
+    heroTagline:
+      "Free, in English and Spanish. No betting — just bragging rights and a ranking to defend.",
     primaryCta: "Start Playing",
+    heroSecondaryCta: "See how it works",
     scoringTeaserTitle: "How scoring works",
+    nav: {
+      howItWorks: "How it works",
+      leagues: "Leagues",
+      scoring: "Scoring",
+      faq: "FAQ",
+    },
+    howItWorks: {
+      title: "How it works",
+      subtitle: "From creating your league to lifting the trophy in four steps.",
+      steps: [
+        {
+          title: "Create or join a league",
+          description:
+            "Build your own private league and invite your friends, or join a public one from the directory.",
+        },
+        {
+          title: "Make your predictions",
+          description:
+            "Predict the exact score of every match. You can edit it right up until kickoff.",
+        },
+        {
+          title: "Earn points",
+          description:
+            "Nailing the score, the result or a team's goals all add up — points stack together.",
+        },
+        {
+          title: "Climb the ranking",
+          description:
+            "Compete for the top spot in your league and the global ranking as the World Cup unfolds.",
+        },
+      ],
+    },
+    leagues: {
+      title: "Public and private leagues",
+      subtitle: "Play against strangers from around the world or just your trusted crew.",
+      public: {
+        badge: "Public",
+        title: "Public leagues",
+        description: "Open to anyone from the public directory.",
+        features: [
+          "Listed in the directory so anyone can join",
+          "Join with one click, no invite needed",
+          "Unique name so it's easy to recognize",
+        ],
+      },
+      private: {
+        badge: "Private",
+        title: "Private leagues",
+        description: "Only people with your invite link can get in.",
+        features: [
+          "Invite with a private link or token",
+          "Up to 100 members per league",
+          "The admin can remove members before kickoff",
+        ],
+      },
+    },
+    features: {
+      title: "Everything you need to compete",
+      subtitle: "Built so the only thing you worry about is calling the score.",
+      items: [
+        {
+          title: "Simple invites",
+          description: "Share a link and your friends join your league in seconds.",
+        },
+        {
+          title: "Rules center",
+          description: "Clear scoring and penalty rules, with worked examples.",
+        },
+        {
+          title: "Live ranking",
+          description: "Watch the standings move in real time while the matches are being played.",
+        },
+        {
+          title: "Fair scoring",
+          description: "Deterministic points, the same for everyone — no surprises, no favorites.",
+        },
+      ],
+    },
+    scoringExampleTitle: "Scoring examples",
+    faq: {
+      title: "Frequently asked questions",
+      subtitle: "The essentials before you start playing.",
+      items: [
+        {
+          question: "How much does it cost to play?",
+          answer:
+            "Nothing. The app is free: create your account, join as many leagues as you want and compete at no cost.",
+        },
+        {
+          question: "How do invitations work?",
+          answer:
+            "In a private league you share an invite link or token. Anyone who opens it can join, up to a maximum of 100 members per league.",
+        },
+        {
+          question: "What's the difference between a public and a private league?",
+          answer:
+            "Public leagues show up in the directory and anyone can join. Private ones only let in people with your invite link.",
+        },
+        {
+          question: "Can I be in several leagues at once?",
+          answer:
+            "Yes. You can join as many leagues as you like, and your predictions count in each one as well as in the global ranking.",
+        },
+        {
+          question: "Until when can I change a prediction?",
+          answer:
+            "You can edit your prediction right up until kickoff. Once the match starts it locks for everyone equally.",
+        },
+        {
+          question: "How are points calculated?",
+          answer:
+            "An exact score scores 5 points; the correct result, 2; and each team whose goals you nail, 1 point. They stack, plus there's a bonus for calling the penalty-shootout winner.",
+        },
+      ],
+    },
+    finalCta: {
+      title: "Ready to play?",
+      subtitle: "Create your free account and set up your league before the first whistle.",
+      cta: "Create free account",
+    },
+    footer: {
+      tagline: "Your 2026 World Cup pool, with friends and in real time.",
+      scoring: "How scoring works",
+      faq: "Frequently asked questions",
+      signIn: "Sign in",
+      signUp: "Create account",
+    },
   },
   scoring: {
     exact: "Exact score",

@@ -20,13 +20,22 @@ export function LandingHero() {
       <p className="max-w-xl text-balance text-muted-foreground sm:text-lg">
         {landing.heroSubtitle}
       </p>
-      <Link
-        href="/sign-up"
-        className={cn(buttonVariants({ size: "lg" }))}
-        data-testid="landing-primary-cta"
-      >
-        {landing.primaryCta}
-      </Link>
+      <div className="flex flex-wrap items-center justify-center gap-3">
+        <Link
+          href="/sign-up"
+          className={cn(buttonVariants({ size: "lg" }))}
+          data-testid="landing-primary-cta"
+        >
+          {landing.primaryCta}
+        </Link>
+        <Link
+          href="#how-it-works"
+          className={cn(buttonVariants({ variant: "outline", size: "lg" }))}
+        >
+          {landing.heroSecondaryCta}
+        </Link>
+      </div>
+      <p className="text-xs text-muted-foreground">{landing.heroTagline}</p>
     </section>
   );
 }
