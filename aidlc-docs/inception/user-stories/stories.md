@@ -1135,3 +1135,30 @@
 - **Criterios de Aceptación**:
   - El header muestra enlaces ancla que hacen scroll suave a cada sección. **FR-REFINE-67.1**.
   - La nav de anclas se muestra **solo a visitantes anónimos** y se oculta en pantallas pequeñas; el usuario logueado conserva el header actual. **FR-REFINE-67.1**.
+
+## Épica 69: Bandera de Uruguay no recurrente — alias de TLA del proveedor (Unit 69 — añadida vía refine, 2026-06-25)
+
+### US-69.1: Ver siempre la bandera de Uruguay, también después de sincronizar
+
+**Como** usuario que mira los partidos y las ligas
+**Quiero** ver la bandera de Uruguay correctamente **siempre**, sin que se rompa cada vez que el admin sincroniza los partidos
+**Para** no encontrarme con un enlace de imagen roto recurrente que Unit 60 supuestamente ya había arreglado.
+
+- **Criterios de Aceptación**:
+  - La bandera de Uruguay se muestra (`/flags/uy.svg`) en `/matches` y `/pools`. **FR-REFINE-69.1**.
+  - Tras un sync FIXTURES/FULL del admin, **no** reaparece una fila de equipo `URU` ni un `flagPath` apuntando a un asset inexistente; el equipo resuelve la fila canónica `URY`. **FR-REFINE-69.1**.
+  - El proveedor aliasa `URU → URY` en la normalización; un `tla` no aliaseado pasa intacto y uno inválido/ausente sigue dando `null`. **FR-REFINE-69.1**.
+  - El badge del equipo sigue mostrando el código canónico `URY`. **FR-REFINE-69.1**.
+
+### US-70.1: Vivir el leaderboard como una competencia
+
+**Como** participante que mira el ranking (global o de una liga)
+**Quiero** que el leaderboard se vea como una competencia —con podio, medallas y celebración del líder—
+**Para** sentir la emoción de competir y reconocer de un vistazo a quién va ganando.
+
+- **Criterios de Aceptación**:
+  - Las 5 primeras posiciones se distinguen visualmente entre sí; las 3 primeras llevan medalla 🥇🥈🥉 y resaltado oro/plata/bronce. **FR-REFINE-70.1**.
+  - La 1.ª posición lleva una animación de serpentinas (bucle sutil continuo), deshabilitada bajo `prefers-reduced-motion`. **FR-REFINE-70.1**.
+  - El estilado sigue la **posición mostrada**: durante la proyección en vivo de Unit 62, el podio (medallas y serpentinas) se reordena con el ranking proyectado. **FR-REFINE-70.1**.
+  - Aplica tanto al leaderboard global (`/rankings`) como al de un pool (`/pools/[id]`, `/pools/[id]/leaderboard`). **FR-REFINE-70.1**.
+  - El número de rango sigue presente para lectores de pantalla (los emojis son decorativos). **FR-REFINE-70.1**.

@@ -267,3 +267,45 @@
     letter-spacing: 0;
   }
 }
+
+/*
+ * Leaderboard champion serpentinas (Unit 70) — pure-CSS, continuous subtle loop
+ * over the 1st-place row. No client JS; pieces are deterministic (see
+ * `leaderboard-confetti.tsx`). Disabled under reduced-motion.
+ */
+.leaderboard-confetti__piece {
+  position: absolute;
+  top: 0;
+  border-radius: 2px;
+  opacity: 0;
+  transform-origin: center;
+  animation-name: leaderboard-streamer-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes leaderboard-streamer-fall {
+  0% {
+    transform: translateY(-140%) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translateY(60%) rotate(220deg);
+  }
+  88% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(260%) rotate(540deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .leaderboard-confetti {
+    display: none;
+  }
+}

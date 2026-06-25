@@ -2078,3 +2078,26 @@ Ver `inception/user-stories/stories.md` (Épica 67).
 - **Sin** imágenes/ilustraciones nuevas (solo iconos lucide + tokens existentes); sin routing `[locale]`, hreflang/SEO avanzado ni animaciones complejas.
 - Toda clave de copy nueva exige paridad es/en (el tipo `Dictionary` lo verifica en `tsc`).
 - **No reinicia** Units 1–66.
+
+## Épica 69: Bandera de Uruguay no recurrente — alias de TLA del proveedor (Unit 69 — añadida vía refine, 2026-06-25)
+
+### FR-REFINE-69.1 — La bandera de Uruguay se mantiene tras cada sync
+La bandera de Uruguay debe verse en `/matches` y `/pools` **y mantenerse tras cada sincronización** desde football-data.org. La causa estructural de la recurrencia (Unit 60 reparó el dato pero dejó el sync intacto) es que el pipeline de equipos se llavea por `fifaCode = tla` del proveedor: football-data.org devuelve `tla = "URU"` para Uruguay, pero el código canónico es `URY` (asset `uy.svg`; `uru.svg` no existe). Cada sync en vivo falla el enriquecimiento (→ `flagPath "/flags/uru.svg"` roto) y `upsertTeam` **recrea** la fila huérfana `URU` que Unit 60 eliminó. El proveedor define un mapa `TLA_ALIAS` (TLA → `fifaCode` canónico, hoy `{ URU: "URY" }`) aplicado en el límite de normalización a los códigos de equipo y de partido, de modo que el enriquecimiento, `sync-orchestrator` y `upsertTeam` resuelvan siempre la fila canónica `URY`/`/flags/uy.svg`. Adicionalmente se re-corre el script idempotente de reparación de Unit 60 para consolidar la huérfana ya recreada. Ver `inception/user-stories/stories.md` (Épica 69).
+
+### Restricciones / SKIP (Unit 69)
+- **Sin** schema, migraciones, rutas, server actions ni i18n. Cambio confinado al adaptador del proveedor (`football-data.ts`). El badge sigue mostrando el código canónico `URY`.
+- **Sin** tocar `sync-orchestrator.ts` ni `upsert-competition-data.ts`: el alias upstream hace que sus lookups por `fifaCode` resuelvan la fila canónica sin cambiar su lógica.
+- Fuera de alcance: backfillear `providerTeamId` para resolver por ID; auditar todos los `tla` contra los 48 assets; endurecer la dedup de **partidos** del sync (la corrida de reparación lo cubre).
+- **No reinicia** Units 1–68.
+
+## Épica 70: Leaderboard competitivo — podio + serpentinas (Unit 70 — añadida vía refine, 2026-06-25)
+
+### FR-REFINE-70.1 — El leaderboard "hace referencia a una competencia"
+El leaderboard (global en `/rankings` y de pool en `/pools/[id]` y `/pools/[id]/leaderboard`) debe verse como una competencia: las **5 primeras posiciones** se distinguen visualmente entre sí, las **3 primeras** llevan un emoji de medalla que referencia la posición (🥇🥈🥉), esas posiciones están **resaltadas** (degradados oro/plata/bronce + resaltado del avatar/fila), y la **1.ª posición** lleva una **animación de serpentinas** (bucle sutil continuo). El estilado se llavea por la **posición mostrada**, de modo que durante la proyección en vivo de Unit 62 el podio se reordena con el ranking proyectado. Aplica por igual al leaderboard global y al de un pool porque ambos comparten el componente `PoolLeaderboard`. Ver `inception/user-stories/stories.md` (Épica 70).
+
+### Restricciones / SKIP (Unit 70)
+- Refine **puramente presentacional**: **sin** schema, migraciones, rutas, server actions, queries ni i18n. Cambio confinado a `PoolLeaderboard` + un Server Component de serpentinas CSS + `globals.css`.
+- Serpentinas en **CSS puro** (sin dependencia nueva; sin JS de cliente); deshabilitadas bajo `prefers-reduced-motion`. Emojis decorativos (`aria-hidden`), el número de rango se conserva para lectores de pantalla (sin nuevas keys i18n).
+- Se preservan todos los contratos de test (`data-testid`/`data-projection`) y la semántica de Unit 62 (`→`, badge, delta) y del viewer.
+- Fuera de alcance: aria-labels i18n de podio; librería `canvas-confetti`; transición FLIP al reordenarse las filas en vivo.
+- **No reinicia** Units 1–69 (Unit 69 de Uruguay conservado sin tocar).

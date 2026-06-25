@@ -161,3 +161,51 @@ describe("PoolLeaderboard — projection mode (Unit 62)", () => {
     expect(screen.queryAllByText("→")).toHaveLength(0);
   });
 });
+
+describe("PoolLeaderboard — competition podium (Unit 70)", () => {
+  const podiumRows = [
+    row("u1", "Ana", 30, 1),
+    row("u2", "Bo", 24, 2),
+    row("u3", "Cy", 18, 3),
+    row("u4", "Di", 12, 4),
+    row("u5", "Ed", 8, 5),
+    row("u6", "Fe", 4, 6),
+  ];
+
+  it("shows medal emojis on the top 3 and keeps the numeric rank for a11y", () => {
+    render(<PoolLeaderboard rows={podiumRows} />);
+    expect(screen.getByText("🥇")).toBeDefined();
+    expect(screen.getByText("🥈")).toBeDefined();
+    expect(screen.getByText("🥉")).toBeDefined();
+    // The numeric position is preserved (medal is decorative).
+    expect(screen.getByTestId("leaderboard-position-u1").textContent).toBe("1");
+    expect(screen.getByTestId("leaderboard-position-u3").textContent).toBe("3");
+    // No medal beyond 3rd.
+    expect(screen.getByTestId("leaderboard-position-u4").textContent).toBe("4");
+  });
+
+  it("renders the serpentinas overlay only on the 1st-place row", () => {
+    render(<PoolLeaderboard rows={podiumRows} />);
+    const confetti = screen.getAllByTestId("leaderboard-confetti");
+    expect(confetti).toHaveLength(1);
+    // It lives inside the 1st-place row.
+    expect(screen.getByTestId("leaderboard-row-u1").contains(confetti[0])).toBe(true);
+    expect(screen.getByTestId("leaderboard-row-u2").contains(confetti[0])).toBe(false);
+  });
+
+  it("follows the projected position in live mode (champion = projected #1)", () => {
+    // Confirmed order has Cy at #3; projection lifts Cy to #1.
+    const rows = [row("u1", "Ana", 30, 1), row("u3", "Cy", 18, 3)];
+    const projectedRows = [
+      projected(rows[1], { projectedPoints: 35, projectedPosition: 1, previousPosition: 3 }),
+      projected(rows[0], { projectedPoints: 30, projectedPosition: 2, previousPosition: 1 }),
+    ];
+    render(<PoolLeaderboard rows={rows} projectedRows={projectedRows} hasLive copy={COPY} />);
+    // Serpentinas now on Cy's row (projected champion), not Ana's.
+    const confetti = screen.getByTestId("leaderboard-confetti");
+    expect(screen.getByTestId("leaderboard-row-u3").contains(confetti)).toBe(true);
+    expect(screen.getByTestId("leaderboard-row-u1").contains(confetti)).toBe(false);
+    // Gold medal sits on the projected #1.
+    expect(screen.getByText("🥇")).toBeDefined();
+  });
+});
