@@ -104,6 +104,50 @@ describe("FootballDataProvider", () => {
     expect(scheduledMatch.awayPlaceholder).toBeNull();
   });
 
+  it("aliases the provider TLA 'URU' to the canonical Uruguay code 'URY' (Unit 69)", async () => {
+    mockFetch(200, {
+      matches: [
+        {
+          id: 2001,
+          utcDate: "2026-06-27T18:00:00Z",
+          status: "SCHEDULED",
+          matchday: 3,
+          stage: "GROUP_STAGE",
+          group: "GROUP_E",
+          lastUpdated: "2026-06-20T12:00:00Z",
+          // football-data.org returns "URU" for Uruguay; our canonical code is "URY".
+          homeTeam: { id: 758, name: "Uruguay", shortName: "Uruguay", tla: "URU" },
+          awayTeam: { id: 700, name: "Mexico", shortName: "Mexico", tla: "MEX" },
+          score: {
+            winner: null,
+            duration: "REGULAR",
+            fullTime: { home: null, away: null },
+            halfTime: { home: null, away: null },
+          },
+        },
+      ],
+    });
+
+    const provider = new FootballDataProvider();
+    const result = await provider.fetch("FULL", { windowKey: "test" });
+
+    // The team is keyed and enriched under the canonical URY row, not the broken URU fallback.
+    expect(result.teams.map((t) => t.fifaCode).sort()).toEqual(["MEX", "URY"]);
+    const uruguay = result.teams.find((t) => t.fifaCode === "URY");
+    expect(uruguay).toBeDefined();
+    expect(uruguay?.name).toBe("Uruguay");
+    expect(uruguay?.flagPath).toBe("/flags/uy.svg");
+    expect(uruguay?.providerTeamId).toBe("758");
+    // No URU row leaks through to recreate the orphan.
+    expect(result.teams.some((t) => t.fifaCode === "URU")).toBe(false);
+
+    // Match team codes are aliased too, so the orchestrator resolves the canonical row.
+    const match = result.matches[0];
+    if (!match) throw new Error("expected match");
+    expect(match.homeFifaCode).toBe("URY");
+    expect(match.awayFifaCode).toBe("MEX");
+  });
+
   it("passes scope filter as status parameter", async () => {
     const fetchSpy = mockFetch(200, { matches: [] });
 

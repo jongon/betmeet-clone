@@ -728,6 +728,24 @@ Feature modules should own their server actions, schemas, services, and feature-
 
 **Primary Deliverable**: Un visitante anónimo entiende de un vistazo qué ofrece la app, la diferencia entre ligas públicas y privadas, cómo invitar y cómo se puntúa (con ejemplos), navega con anclas de producto y termina en un CTA para crear cuenta; todo bilingüe y responsive.
 
+## Unit 69 — Bandera de Uruguay no recurrente: alias de TLA del proveedor (refine sobre Unit 60/25/28)
+
+**Goal**: Eliminar la **causa estructural** de la bandera rota de Uruguay (Unit 60 reparó el dato, no el código): que el sync recree la fila huérfana `URU` en cada sincronización.
+
+**Dependencias**: adaptador del proveedor `football-data.ts` (Unit 25/28), entidad `teams` (Unit 4), lookups por `fifaCode` en `sync-orchestrator.ts`/`upsert-competition-data.ts` (Unit 28/39), reparación de datos previa (Unit 60). No reinicia Units 1–68.
+
+**Causa raíz**: el pipeline de equipos se llavea por `fifaCode = tla` del proveedor. football-data.org devuelve `tla = "URU"` para Uruguay, pero el canónico es `URY` (asset `uy.svg`; `uru.svg` no existe). Cada sync falla el enriquecimiento (→ `flagPath "/flags/uru.svg"` roto) y `upsertTeam({fifaCode:"URU"})` recrea la huérfana que Unit 60 borró; los partidos de Uruguay se enlazan a ella.
+
+**Alcance**: nuevo `TLA_ALIAS` (`{ URU: "URY" }`) + helper `canonicalFifaCode(tla)` en `football-data.ts`, aplicado a `homeFifaCode`/`awayFifaCode` y a la extracción de `teams`. Así el enriquecimiento (`canonicalTeamByFifaCode.get`), `sync-orchestrator` y `upsertTeam` resuelven la fila canónica `URY`/`/flags/uy.svg`. Re-corrida operativa del script idempotente de Unit 60 para consolidar la huérfana ya recreada.
+
+**Sin** schema, migraciones, rutas, server actions ni i18n; sin tocar `sync-orchestrator.ts`/`upsert-competition-data.ts`. El badge sigue mostrando `URY`. Tests: caso URU→URY en `football-data.test.ts`.
+
+**Files**: `src/features/competition/services/providers/football-data.ts` (MODIFIED), `src/features/competition/services/providers/__tests__/football-data.test.ts` (MODIFIED), `scripts/repair-unit-60-duplicates-uruguay.ts` (REUSO operativo, sin cambios).
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 69 / FR-REFINE-69.1, US-69.1), Application Design (delta `unit-of-work.md` Unit 69 + #51) EXECUTE, Functional Design EXECUTE (`construction/unit-69-sync-team-tla-alias/functional-design.md`), Code Generation EXECUTE, Build and Test EXECUTE; SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure.
+
+**Primary Deliverable**: La bandera de Uruguay se ve y **se mantiene** tras cada sync; ningún sync vuelve a crear la fila `URU` ni un `flagPath` a un asset inexistente.
+
 ## Recommended Implementation Sequence
 
 1. Unit 1: Foundation - Auth, Profile, Nickname, Avatar
@@ -780,6 +798,7 @@ Feature modules should own their server actions, schemas, services, and feature-
 48. Unit 65: Cambiar la visibilidad de un pool (público↔privado) (post-construction refine; sobre Units 3/54; nueva server action `updatePoolVisibility` calcada de `updatePoolMembersCanInvite` —owner-only server-side, idempotente, pre-check + `try/catch` de unicidad de nombre público al pasar a PUBLIC reusando BR-3.2/`pools_public_name_unique`—; switch «Liga pública» instantáneo/optimista en `pool-settings-card-client.tsx` con `poolType` como estado local; PUBLIC→PRIVATE saca el pool del directorio y `joinPublicPool` lo rechaza sin tocar membresías/`inviteToken`/capacidad/`membersCanInvite`; revalida `/pools/[id]`,`/pools`,`/pools/discover`; i18n es/en `pools.settings.visibility*`; sin schema, migraciones ni rutas nuevas)
 49. Unit 66: Selector de idioma en el header del landing (post-construction refine; sobre Units 64/24; completa FR-REFINE-64.1 montando `LanguageMenu` también en el header del landing `src/app/page.tsx` —junto a `BrandToggle`/`ThemeToggle`, para anónimos y logueados— que se había omitido; reusa el componente existente sin props apoyado en el `DictionaryProvider` del root layout; sin claves i18n nuevas, schema, migraciones, rutas ni server actions)
 50. Unit 67: Landing de producto estilo startup (post-construction refine; sobre el landing `src/app/page.tsx` y la feature Education; añade secciones Server Component `HowItWorks`/`LeagueTypes`/`FeatureGrid`/`LandingFaq`/`FinalCta`/`LandingFooter` + nav de anclas solo para anónimos; explica ligas públicas vs privadas, invitaciones, features, puntuación con ejemplos —reusa `ScoreBreakdownDemo`/`computeScore`— y FAQ; copy bilingüe bajo `landing.*` con paridad es/en; enlaces solo a rutas públicas; sin server actions, schema, migraciones, rutas ni nueva superficie de input)
+51. Unit 69: Bandera de Uruguay no recurrente — alias de TLA del proveedor (post-construction refine; **fix de código** de la causa estructural que Unit 60 dejó fuera de alcance; `football-data.ts` aliasa el `tla` del proveedor al `fifaCode` canónico vía `TLA_ALIAS`/`canonicalFifaCode` —`URU → URY`— aplicado a códigos de equipo y de partido, de modo que enriquecimiento, `sync-orchestrator` y `upsertTeam` resuelvan la fila canónica `URY`/`/flags/uy.svg` y ningún sync recree la huérfana `URU` con `flagPath "/flags/uru.svg"` roto; re-corrida operativa del script idempotente de Unit 60 para consolidar la huérfana ya recreada; sin schema, migraciones, rutas, server actions ni i18n; sin tocar `sync-orchestrator.ts`/`upsert-competition-data.ts`)
 
 ## Security Notes
 

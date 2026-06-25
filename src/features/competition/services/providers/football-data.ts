@@ -29,6 +29,27 @@ const canonicalTeamByFifaCode = new Map<string, (typeof WORLD_CUP_2026_TEAMS)[nu
   WORLD_CUP_2026_TEAMS.map((t) => [t.fifaCode, t]),
 );
 
+/**
+ * Provider TLA → canonical `fifaCode` aliases.
+ *
+ * The whole team pipeline (enrichment, `sync-orchestrator` lookups, `upsertTeam`) keys on
+ * `fifaCode`, which we take from the provider's three-letter `tla`. When the provider's TLA differs
+ * from our canonical code the enrichment misses, the team gets a fabricated `/flags/<tla>.svg` path
+ * (a non-existent asset → broken flag) and `upsertTeam` creates a duplicate row instead of updating
+ * the canonical one. Uruguay is the live case: football-data.org returns `tla = "URU"` but our
+ * canonical code is `URY` (asset `uy.svg`), which is what re-broke Uruguay's flag after the Unit 60
+ * data repair. Aliasing here, at the normalization boundary, is the single source of truth that
+ * keeps every downstream consumer landing on the canonical row. See Unit 69.
+ */
+const TLA_ALIAS: Record<string, string> = {
+  URU: "URY",
+};
+
+function canonicalFifaCode(tla: string | null | undefined): string | null {
+  if (tla?.length !== 3) return null;
+  return TLA_ALIAS[tla] ?? tla;
+}
+
 function resolveScopeStatus(scope: ProviderSyncScope): string | null {
   switch (scope) {
     case "FIXTURES":
@@ -94,8 +115,8 @@ export class FootballDataProvider implements CompetitionProvider {
       phaseName: stageToPhaseName(match.stage, match.group),
       kickoffAt: match.utcDate,
       status: mapFootballDataStatus(match.status),
-      homeFifaCode: match.homeTeam.tla?.length === 3 ? match.homeTeam.tla : null,
-      awayFifaCode: match.awayTeam.tla?.length === 3 ? match.awayTeam.tla : null,
+      homeFifaCode: canonicalFifaCode(match.homeTeam.tla),
+      awayFifaCode: canonicalFifaCode(match.awayTeam.tla),
       homePlaceholder: null,
       awayPlaceholder: null,
       homeScore: match.score.fullTime.home,
@@ -106,16 +127,18 @@ export class FootballDataProvider implements CompetitionProvider {
     // This ensures the sync path upserts teams, so the snapshot fallback also contains team data.
     const teamsMap = new Map<string, { fifaCode: string; name: string; providerTeamId: string }>();
     for (const match of data.matches) {
-      if (match.homeTeam.tla?.length === 3) {
-        teamsMap.set(match.homeTeam.tla, {
-          fifaCode: match.homeTeam.tla,
+      const homeCode = canonicalFifaCode(match.homeTeam.tla);
+      if (homeCode) {
+        teamsMap.set(homeCode, {
+          fifaCode: homeCode,
           name: match.homeTeam.name,
           providerTeamId: String(match.homeTeam.id),
         });
       }
-      if (match.awayTeam.tla?.length === 3) {
-        teamsMap.set(match.awayTeam.tla, {
-          fifaCode: match.awayTeam.tla,
+      const awayCode = canonicalFifaCode(match.awayTeam.tla);
+      if (awayCode) {
+        teamsMap.set(awayCode, {
+          fifaCode: awayCode,
           name: match.awayTeam.name,
           providerTeamId: String(match.awayTeam.id),
         });
