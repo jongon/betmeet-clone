@@ -3072,3 +3072,39 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `construction/unit-70-leaderboard-competitive-podium/functional-design.md` (NEW), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–69 intactas; Unit 69 de Uruguay conservado sin tocar).**
 
 ---
+
+## 2026-06-25 — Refine (`/aidlc:refine`): Unit 71 — Marcador en línea en mobile (`/matches`)
+
+**Intent del refine**: "el lugar donde aparece la lista de los partidos /matches. En mobile el marcador se ve en stack: `Scotland [Sco]` / `0-3` / `Brazil [Bra]`… y debería verse `Scotland [Sco] 0-3 Brazil [Bra]`."
+
+**Tipo**: Refine puramente presentacional post-construcción sobre el componente compartido `MatchCard` (`src/features/competition/components/match-card.tsx`). **No reinicia** etapas aprobadas (Units 1–70 intactas). **Plan presentado y aprobado antes de ejecutar.**
+
+**Causa**: el bloque del marcador usaba `grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center` — la rejilla de 3 columnas se activaba **solo en `sm:`**. Por debajo de ese breakpoint (mobile) el grid colapsaba a una sola columna y apilaba verticalmente equipo local · marcador · equipo visitante.
+
+**Business Rules**:
+- **BR-71.1** — La rejilla de 3 columnas se aplica en **todos los breakpoints**: `grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3`; el equipo visitante usa `justify-self-end` sin prefijo `sm:`. Local · marcador · visitante quedan en una fila en mobile y desktop.
+- **BR-71.2** — El marcador (`<p>`) pasa de `text-2xl` fijo a `text-base sm:text-2xl` con `px-1 sm:px-3`, para caber en línea en pantallas angostas y conservar el tamaño grande en desktop. Se mantiene `tabular-nums-display text-center font-bold`.
+- **BR-71.3** — Se preservan intactos `data-testid="match-card-{id}"`, `TeamBadge` (bandera + nombre + chip TLA), `MatchStatusBadge`, el bloque `PredictionForm` de partidos de predicción, la función `score()` (`"vs"` sin marcador) y el formato de fecha. Nombres largos pueden ajustar a 2 líneas dentro de su columna, conservando la fila en línea.
+
+**Code change**:
+- `src/features/competition/components/match-card.tsx` (MODIFIED) — rejilla `grid-cols-[1fr_auto_1fr]` en todos los breakpoints + marcador `text-base sm:text-2xl` (`px-1 sm:px-3`) + visitante `justify-self-end`. Sin cambios en lógica, datos, `data-testid`, queries, server actions, schema, migraciones, rutas ni i18n.
+
+**Doc change**:
+- `construction/unit-71-matches-score-inline-mobile/functional-design.md` (NEW).
+- `inception/requirements/requirements.md` (MODIFIED) — Épica 71 + FR-REFINE-71.1 + Restricciones/SKIP.
+- `inception/user-stories/stories.md` (MODIFIED) — US-71.1.
+- `CHANGELOG.md` (MODIFIED) — entrada en `[Unreleased] › Fixed` (Unit 71).
+- `aidlc-state.md` — Current Stage = Unit 71; Unit 70 (leaderboard competitivo) → Prev Stage; Project Type a "71 units".
+- `audit.md` — esta entrada.
+
+**Build/Test Status**: Pass. `tsc --noEmit` 0 errores en el archivo tocado (persisten 2 errores preexistentes de `pool-live-now-banner.test.tsx` Unit 61, no relacionados). Biome limpio. Sin tests nuevos: el cambio es de clases Tailwind responsivas sin lógica, y `MatchCard` no tenía suite previa. Sin commit/push.
+
+**Stages**: Requirements/User Stories EXECUTE (FR-REFINE-71.1); Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure, Application Design (presentacional, sin nuevo unit-of-work ni schema/migraciones/rutas/server actions/i18n).
+
+**Security Baseline**: COMPLIANT. Cambio puramente presentacional (clases Tailwind responsivas): sin nueva superficie de input, schema, migraciones, rutas, server actions ni secretos. Sin riesgo de XSS (sin `dangerouslySetInnerHTML`). Los datos de partidos y la autorización intactos.
+
+**Out of scope**: truncado/elipsis de nombres de equipo largos en mobile; cambios al `TeamBadge` (tamaño de bandera, chip TLA).
+
+**Archivos AI-DLC**: `construction/unit-71-matches-score-inline-mobile/functional-design.md` (NEW), `inception/requirements/requirements.md` (Épica 71/FR-REFINE-71.1), `inception/user-stories/stories.md` (US-71.1), `CHANGELOG.md` (Unreleased › Fixed), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. **No reinicia etapas aprobadas (Units 1–70 intactas).**
+
+---

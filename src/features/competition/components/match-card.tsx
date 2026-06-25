@@ -36,12 +36,12 @@ export function MatchCard({
         </p>
         <MatchStatusBadge status={match.status} />
       </div>
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
         <TeamBadge team={match.homeTeam} placeholder={match.homePlaceholder} />
-        <p className="tabular-nums-display text-center text-2xl font-bold sm:px-3">
+        <p className="tabular-nums-display px-1 text-center text-base font-bold sm:px-3 sm:text-2xl">
           {score(match)}
         </p>
-        <div className="sm:justify-self-end">
+        <div className="justify-self-end">
           <TeamBadge team={match.awayTeam} placeholder={match.awayPlaceholder} />
         </div>
       </div>

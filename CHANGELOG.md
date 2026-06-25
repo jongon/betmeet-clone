@@ -30,6 +30,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 - **Admin** — Contraste del selector de sync corregido en dark mode.
 - **Competition** — Eliminados partidos duplicados del 27/28 de junio (un fixture por partido, conservando el que sincroniza resultados en vivo) y consolidada la bandera de Uruguay en una sola fila (`URY`/`/flags/uy.svg`); la bandera rota ya se ve. (Unit 60)
 - **Sync** — La bandera de Uruguay ya no vuelve a romperse tras cada sincronización: el adaptador de football-data.org aliasa el TLA del proveedor al código FIFA canónico (`URU → URY`) en la normalización, de modo que el enriquecimiento y el upsert resuelven siempre la fila canónica `URY`/`/flags/uy.svg` y ningún sync recrea la fila huérfana `URU` con el enlace roto que Unit 60 había eliminado. (Unit 69)
+- **Fixture** — En mobile, el marcador de la lista de partidos (`/matches`) ahora se ve en una sola fila (`Scotland [Sco] 0-3 Brazil [Bra]`) en lugar de apilado verticalmente: la rejilla de 3 columnas del marcador se aplica en todos los tamaños de pantalla (antes solo a partir de `sm:`), con el marcador escalado para caber en línea en pantallas angostas. (Unit 71)
 
 ### Changed
 

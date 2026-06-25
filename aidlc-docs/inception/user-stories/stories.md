@@ -1162,3 +1162,15 @@
   - El estilado sigue la **posición mostrada**: durante la proyección en vivo de Unit 62, el podio (medallas y serpentinas) se reordena con el ranking proyectado. **FR-REFINE-70.1**.
   - Aplica tanto al leaderboard global (`/rankings`) como al de un pool (`/pools/[id]`, `/pools/[id]/leaderboard`). **FR-REFINE-70.1**.
   - El número de rango sigue presente para lectores de pantalla (los emojis son decorativos). **FR-REFINE-70.1**.
+
+### US-71.1: Ver el marcador en línea en mobile en la lista de partidos
+
+**Como** usuario que mira la lista de partidos (`/matches`) desde el teléfono
+**Quiero** ver el marcador en una sola fila —`Scotland [Sco] 0-3 Brazil [Bra]`—
+**Para** leer el partido de un vistazo sin que el equipo local, el marcador y el visitante queden apilados verticalmente.
+
+- **Criterios de Aceptación**:
+  - En mobile, equipo local · marcador · equipo visitante se muestran en una sola fila (no apilados). **FR-REFINE-71.1**.
+  - El marcador escala con el breakpoint (`text-base` en mobile, `text-2xl` en desktop) para caber en línea en pantallas angostas. **FR-REFINE-71.1**.
+  - El equipo visitante se alinea a la derecha; un nombre largo puede ajustar a 2 líneas dentro de su columna conservando la fila en línea. **FR-REFINE-71.1**.
+  - Aplica a todas las vistas que montan `MatchCard` (lista de `/matches` y demás fixtures/predicciones); se preservan estado, badge y formulario de predicción. **FR-REFINE-71.1**.

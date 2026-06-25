@@ -2101,3 +2101,14 @@ El leaderboard (global en `/rankings` y de pool en `/pools/[id]` y `/pools/[id]/
 - Se preservan todos los contratos de test (`data-testid`/`data-projection`) y la semántica de Unit 62 (`→`, badge, delta) y del viewer.
 - Fuera de alcance: aria-labels i18n de podio; librería `canvas-confetti`; transición FLIP al reordenarse las filas en vivo.
 - **No reinicia** Units 1–69 (Unit 69 de Uruguay conservado sin tocar).
+
+## Épica 71: Marcador en línea en mobile (`/matches`) (Unit 71 — añadida vía refine, 2026-06-25)
+
+### FR-REFINE-71.1 — El marcador de la lista de partidos se ve en línea en mobile
+En la lista de partidos (`/matches`), el marcador de cada partido debe verse **en una sola fila** en mobile —`Equipo local [TLA] M-N Equipo visitante [TLA]` (p. ej. `Scotland [Sco] 0-3 Brazil [Bra]`)— y no apilado verticalmente (equipo local / marcador / equipo visitante en líneas separadas). El componente compartido `MatchCard` usaba una rejilla de 3 columnas activada solo en el breakpoint `sm:`, por lo que por debajo de él colapsaba a una columna y apilaba los elementos. La rejilla `grid-cols-[1fr_auto_1fr]` se aplica en **todos los breakpoints** (con el marcador escalado `text-base sm:text-2xl` para caber en línea en pantallas angostas y el equipo visitante alineado a la derecha), de modo que local · marcador · visitante quedan en línea en mobile y desktop. Aplica a todas las vistas que montan `MatchCard` (la lista de `/matches` y demás fixtures/predicciones). Ver `inception/user-stories/stories.md` (Épica 71).
+
+### Restricciones / SKIP (Unit 71)
+- Refine **puramente presentacional** (clases Tailwind responsivas): **sin** lógica, datos, queries, server actions, schema, migraciones, rutas ni i18n. Cambio confinado a `MatchCard` (`src/features/competition/components/match-card.tsx`).
+- Se preservan todos los contratos (`data-testid="match-card-{id}"`, `TeamBadge`, `MatchStatusBadge`, `PredictionForm`, `score()` con `"vs"` sin marcador) y el formato de fecha.
+- Fuera de alcance: truncado/elipsis de nombres de equipo largos en mobile (se permite el ajuste a 2 líneas dentro de su columna); cambios al `TeamBadge`.
+- **No reinicia** Units 1–70.
