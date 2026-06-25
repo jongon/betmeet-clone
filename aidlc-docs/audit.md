@@ -3108,3 +3108,44 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `construction/unit-71-matches-score-inline-mobile/functional-design.md` (NEW), `inception/requirements/requirements.md` (Épica 71/FR-REFINE-71.1), `inception/user-stories/stories.md` (US-71.1), `CHANGELOG.md` (Unreleased › Fixed), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. **No reinicia etapas aprobadas (Units 1–70 intactas).**
 
 ---
+
+## 2026-06-25 — Plan + Build (`/aidlc:plan` → `/aidlc:build`): Unit 72 — Migración del envío de email de Supabase a Resend
+
+**User Input**: "Me gustaría que planifiqques como dejar de usar el envio de email con supabase para migrarlo a resend" → (tras el plan) "Lo apruebo".
+
+**AI Response**: Planificada y construida la Unit 72. Decisiones del usuario (AskUserQuestion): mecanismo = **Supabase Send Email Hook**; alcance = **3 correos de auth + andamiaje del Grupo B**; plantillas = **portar el HTML a TS**. Renumeración: Units 69/70 commiteadas y Unit 71 (matches-score-inline-mobile) en curso → esta migración es **Unit 72** (a petición del usuario).
+
+**Decisión de diseño**: evolución de Unit 9. Supabase deja de **enviar**; sigue generando `user`+`token_hash`+`email_action_type` y delega el envío al hook `POST /api/auth/email-hook`, que verifica firma (Standard Webhooks, `SEND_EMAIL_HOOK_SECRET`), mapea acción→plantilla TS y manda con el SDK de Resend. El flujo `token_hash`/`/auth/confirm` y las 3 server actions de auth **no se tocan** (robustez cross-device + `invite_next` de Unit 68 preservados). SMTP de Supabase desactivado.
+
+**Code change**:
+- `package.json` (MODIFIED) — deps `resend` 6.14.0, `standardwebhooks` 1.0.0.
+- `src/lib/email/client.ts` (NEW) — cliente Resend singleton (guard server-only) + `getEmailFrom()`.
+- `src/features/email/types.ts` (NEW) — tipos del payload del hook + `RenderedEmail`.
+- `src/features/email/templates/{shell,confirmation,recovery,email-change}.ts` (NEW) — plantillas portadas de `supabase/templates/*.html` (subject+html, `escapeHtml`).
+- `src/features/email/services/render-auth-email.ts` (NEW) — mapeo acción→plantilla+enlace+destino.
+- `src/features/email/services/verify-hook.ts` (NEW) — verificación de firma + `HookVerificationError`.
+- `src/features/email/catalog/business-emails.ts` (NEW) — Grupo B stub (welcome/pool-invite + `sendBusinessEmail`), sin disparadores.
+- `src/app/api/auth/email-hook/route.ts` (NEW) — endpoint POST (`runtime nodejs`): verifica → render → `resend.emails.send`; 401 firma inválida, 5xx fallo de envío, 2xx ack.
+- `src/features/email/services/__tests__/render-auth-email.test.ts` (NEW, 5), `verify-hook.test.ts` (NEW, 4), `src/app/api/auth/email-hook/__tests__/route.test.ts` (NEW, 4).
+- `supabase/config.toml` (MODIFIED) — `[auth.hook.send_email]` enabled + bloque SMTP comentado/desactivado.
+- `.env.example` (MODIFIED) — `RESEND_API_KEY`/`EMAIL_FROM`/`SEND_EMAIL_HOOK_SECRET` (reemplazan `RESEND_SMTP_PASSWORD`).
+- Sin cambios en las server actions de auth, `/auth/confirm`, schema, migraciones ni i18n.
+
+**Doc change**:
+- `construction/unit-72-email-resend-migration/functional-design.md` (NEW).
+- `aidlc-state.md` — Current Stage = Unit 72; Unit 71 → Prev Stage; Project Type a "72 units".
+- `audit.md` — esta entrada.
+
+**Build/Test Status**: Pass. `tsc --noEmit` 0 en archivos de la unit (persisten 2 errores preexistentes de `pool-live-now-banner.test.tsx` Unit 61, no relacionados). **Vitest 13/13** nuevos. Biome `--write` limpio (13 archivos), ESLint 0. `pnpm build` OK (ruta `/api/auth/email-hook` en el manifiesto). Sin commit/push.
+
+**Stages**: Requirements/User Stories EXECUTE (FR-REFINE-72.1, US-72.1); Application Design light (endpoint + componente `email`); Functional Design EXECUTE; NFR/Infrastructure light (firma webhook, dominio Resend, desactivar SMTP); Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation.
+
+**Security Baseline**: COMPLIANT. Verificación de firma obligatoria server-side (SECURITY-01/08); secreto solo en env; el endpoint no expone datos ni añade superficie de input de usuario; `token_hash` de un solo uso verificado por Supabase en `/auth/confirm` (sin regresión de auth); direcciones escapadas en HTML (sin `dangerouslySetInnerHTML`).
+
+**Operaciones (user-owned)**: API key + dominio verificado en Resend (SPF/DKIM/DMARC, salir del sandbox `resend.dev`); habilitar el Send Email Hook y **desactivar el Custom SMTP** en Supabase; `RESEND_API_KEY`/`EMAIL_FROM`/`SEND_EMAIL_HOOK_SECRET` en Vercel.
+
+**Out of scope**: activar envíos reales del Grupo B; React Email; cambiar el flujo `token_hash`/server actions de auth; preferencias de notificación por usuario; emails bilingües es/en.
+
+**Archivos AI-DLC**: `construction/unit-72-email-resend-migration/functional-design.md` (NEW), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–71 intactas).**
+
+---

@@ -1174,3 +1174,15 @@
   - El marcador escala con el breakpoint (`text-base` en mobile, `text-2xl` en desktop) para caber en línea en pantallas angostas. **FR-REFINE-71.1**.
   - El equipo visitante se alinea a la derecha; un nombre largo puede ajustar a 2 líneas dentro de su columna conservando la fila en línea. **FR-REFINE-71.1**.
   - Aplica a todas las vistas que montan `MatchCard` (lista de `/matches` y demás fixtures/predicciones); se preservan estado, badge y formulario de predicción. **FR-REFINE-71.1**.
+
+### US-72.1: Recibir los correos de auth enviados con Resend
+
+**Como** usuario que se registra, recupera su contraseña o cambia su email
+**Quiero** recibir el correo de confirmación/recuperación/cambio igual que siempre
+**Para** completar la acción, sin notar que el emisor cambió de Supabase a Resend.
+
+- **Criterios de Aceptación**:
+  - Los 3 correos de auth se envían con Resend vía el Send Email Hook (`POST /api/auth/email-hook`), no por el SMTP de Supabase. **FR-REFINE-72.1**.
+  - El endpoint verifica la firma del webhook y rechaza con 401 una solicitud sin firma válida. **FR-REFINE-72.1**.
+  - Los enlaces siguen resolviendo por `token_hash` → `/auth/confirm` (cross-device) y el destino de invitación (`invite_next`) se conserva en el registro. **FR-REFINE-72.1**.
+  - El correo de cambio de email llega a la dirección **nueva** y muestra «De <antigua> A <nueva>». **FR-REFINE-72.1**.

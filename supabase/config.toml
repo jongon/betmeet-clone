@@ -1,9 +1,13 @@
 # Supabase local config.
 #
-# Enfocado en el wiring de plantillas de email de auth (Unit 9 / FR-EMAIL-01):
-# las plantillas se versionan en `supabase/templates/*.html` y Supabase las carga
-# vía `content_path`. El emisor en prod/staging es Resend, configurado como Custom
-# SMTP (ver bloque [auth.email.smtp] más abajo y el dashboard de Supabase).
+# Unit 72 (migración a Resend): el ENVÍO de los correos de auth ya NO lo hace
+# Supabase. Supabase sigue generando el token/acción pero los delega al
+# Send Email Hook (`[auth.hook.send_email]` más abajo) → POST /api/auth/email-hook,
+# que renderiza la plantilla (en `src/features/email/templates/`) y envía con el
+# SDK de Resend. El Custom SMTP queda DESACTIVADO (bloque comentado abajo).
+#
+# Las plantillas HTML de `supabase/templates/*.html` se conservan como referencia
+# del diseño original portado a TS, pero ya no son la fuente de envío.
 #
 # Si necesitas el config.toml completo del proyecto, ejecuta `supabase init` y
 # fusiona estos bloques.
@@ -41,11 +45,19 @@ content_path = "./supabase/templates/recovery.html"
 subject = "Confirma el cambio de tu email — Quiniela Mundial 2026"
 content_path = "./supabase/templates/email_change.html"
 
-# --- SMTP (Resend) ---------------------------------------------------------
-# El emisor real. En dev puede omitirse (Supabase usa su emisor de pruebas) o
-# usar el sandbox de Resend. En prod requiere un dominio verificado en Resend
-# (DKIM/SPF/DMARC). Configura los secretos en el dashboard o como env() aquí;
-# NO hardcodear credenciales.
+# --- Send Email Hook (Unit 72) ---------------------------------------------
+# Supabase delega el ENVÍO a nuestro endpoint en vez de enviar él mismo. El
+# endpoint verifica la firma con `secret` (Standard Webhooks) y manda con Resend.
+# En prod el `uri` apunta al dominio público; en local a la app de Next.
+[auth.hook.send_email]
+enabled = true
+uri = "http://host.docker.internal:3000/api/auth/email-hook"
+secret = "env(SEND_EMAIL_HOOK_SECRET)"
+
+# --- SMTP (Resend) — DESACTIVADO (Unit 72) ---------------------------------
+# Ya no se usa: el envío pasó al Send Email Hook + SDK de Resend. Se deja
+# comentado como referencia histórica (antes Unit 9). NO reactivar junto con el
+# hook (se duplicarían los correos).
 #
 # [auth.email.smtp]
 # host = "smtp.resend.com"

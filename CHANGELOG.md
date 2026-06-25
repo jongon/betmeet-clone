@@ -8,6 +8,14 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 ## [Unreleased]
 
+### Changed
+
+- **Email** — Los correos de auth (confirmación de registro, recuperación de contraseña, cambio de email) ahora los **envía la app con Resend** en lugar de Supabase: Supabase sigue generando el token pero delega el envío a un endpoint propio (`/api/auth/email-hook`) que verifica la firma del webhook y manda con el SDK de Resend. El SMTP de Supabase queda desactivado y las plantillas se versionan y renderizan en el repo. Sin cambios visibles para el usuario; el flujo de confirmación (`token_hash` → `/auth/confirm`) y el destino de invitación se conservan. Queda andamiaje para futuros correos de negocio. (Unit 72)
+
+---
+
+## [0.4.0] — 2026-06-25
+
 ### Added
 
 - **Seguridad** — Tarjeta de gestión de passkeys en Profile → Security.

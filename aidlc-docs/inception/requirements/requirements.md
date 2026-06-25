@@ -2112,3 +2112,16 @@ En la lista de partidos (`/matches`), el marcador de cada partido debe verse **e
 - Se preservan todos los contratos (`data-testid="match-card-{id}"`, `TeamBadge`, `MatchStatusBadge`, `PredictionForm`, `score()` con `"vs"` sin marcador) y el formato de fecha.
 - Fuera de alcance: truncado/elipsis de nombres de equipo largos en mobile (se permite el ajuste a 2 líneas dentro de su columna); cambios al `TeamBadge`.
 - **No reinicia** Units 1–70.
+
+## Épica 72: Migración del envío de email de Supabase a Resend (Unit 72 — añadida vía refine, 2026-06-25)
+
+### FR-REFINE-72.1 — La app envía los correos de auth con Resend (no Supabase)
+Los 3 correos transaccionales de auth (confirmación de registro, recuperación de contraseña, cambio de email) deben **enviarse desde la app con Resend**, no por Supabase. Evolución de FR-EMAIL-01 (Unit 9), donde Supabase enviaba vía Custom SMTP. Mecanismo: el **Send Email Hook** de Supabase — Supabase sigue generando `user` + `token_hash` + `email_action_type` pero **delega el envío** al endpoint `POST /api/auth/email-hook`, que (1) verifica la firma del webhook (Standard Webhooks, secreto `SEND_EMAIL_HOOK_SECRET`; sin firma válida → 401), (2) mapea el tipo de acción a una plantilla TS + asunto + enlace `/auth/confirm?token_hash=…&type=…&next=…`, y (3) envía con el SDK de Resend. El SMTP de Supabase queda desactivado. Las plantillas se portan de `supabase/templates/*.html` a `src/features/email/templates/*.ts`. Se deja andamiaje del Grupo B (correos de negocio, Unit 9 §4) sin disparadores activos. Ver `inception/user-stories/stories.md` (Épica 72) y `construction/unit-72-email-resend-migration/functional-design.md`.
+
+### Restricciones / SKIP (Unit 72)
+- **No se tocan** las server actions de auth (`sign-up.ts`/`forgot-password.ts`/`change-email.ts`) ni el flujo `token_hash` → `/auth/confirm` (verifyOtp): los enlaces siguen siendo robustos cross-device y `invite_next` (Unit 68 / FR-REFINE-13.1) se preserva leyéndolo de `user.user_metadata`.
+- `email_change` con Secure email change desactivado (FR-REFINE-19.1 / CF-9): el único enlace va al **correo nuevo**.
+- Seguridad: verificación de firma obligatoria server-side; secreto solo en env; el endpoint no expone datos; `token_hash` de un solo uso verificado por Supabase (sin regresión de auth); direcciones escapadas en HTML.
+- Operaciones (user-owned): API key + dominio verificado en Resend (SPF/DKIM/DMARC); habilitar el hook y desactivar el Custom SMTP en Supabase; vars en Vercel.
+- Fuera de alcance: activar envíos reales del Grupo B; React Email; preferencias de notificación por usuario; emails bilingües es/en.
+- **No reinicia** Units 1–71.
