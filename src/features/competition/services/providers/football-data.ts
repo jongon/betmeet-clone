@@ -14,8 +14,19 @@ type FootballDataMatch = {
   stage: string;
   group: string | null;
   lastUpdated: string;
-  homeTeam: { id: number; name: string; shortName: string; tla: string };
-  awayTeam: { id: number; name: string; shortName: string; tla: string };
+  // Knockout fixtures whose teams are not decided yet come back with null fields.
+  homeTeam: {
+    id: number | null;
+    name: string | null;
+    shortName: string | null;
+    tla: string | null;
+  };
+  awayTeam: {
+    id: number | null;
+    name: string | null;
+    shortName: string | null;
+    tla: string | null;
+  };
   score: {
     winner: string | null;
     duration: string;
@@ -118,19 +129,29 @@ export class FootballDataProvider implements CompetitionProvider {
     const data = (await response.json()) as { matches: FootballDataMatch[] };
     const requestId = response.headers.get("x-request-id") ?? undefined;
 
-    const matches = data.matches.map((match) => ({
-      providerMatchId: String(match.id),
-      matchNumber: match.matchday,
-      phaseName: stageToPhaseName(match.stage, match.group),
-      kickoffAt: match.utcDate,
-      status: mapFootballDataStatus(match.status),
-      homeFifaCode: canonicalFifaCode(match.homeTeam.tla),
-      awayFifaCode: canonicalFifaCode(match.awayTeam.tla),
-      homePlaceholder: null,
-      awayPlaceholder: null,
-      homeScore: match.score.fullTime.home,
-      awayScore: match.score.fullTime.away,
-    }));
+    const matches = data.matches.map((match) => {
+      const homeFifaCode = canonicalFifaCode(match.homeTeam.tla);
+      const awayFifaCode = canonicalFifaCode(match.awayTeam.tla);
+      return {
+        providerMatchId: String(match.id),
+        matchNumber: match.matchday,
+        phaseName: stageToPhaseName(match.stage, match.group),
+        kickoffAt: match.utcDate,
+        status: mapFootballDataStatus(match.status),
+        homeFifaCode,
+        awayFifaCode,
+        // For knockout fixtures whose teams are not decided yet the provider has
+        // no resolvable TLA. Keep its descriptive label (e.g. "Winner Group C")
+        // as the placeholder so the real synced row still reads meaningfully
+        // until the team resolves — without resurrecting the legacy hardcoded
+        // placeholder rows (Unit 74). When the team resolves, fifaCode wins and
+        // the placeholder is cleared.
+        homePlaceholder: homeFifaCode ? null : (match.homeTeam.name ?? null),
+        awayPlaceholder: awayFifaCode ? null : (match.awayTeam.name ?? null),
+        homeScore: match.score.fullTime.home,
+        awayScore: match.score.fullTime.away,
+      };
+    });
 
     // Extract unique teams from matches and enrich with canonical data (isoAlpha2, flagKey, flagPath).
     // This ensures the sync path upserts teams, so the snapshot fallback also contains team data.
@@ -140,7 +161,7 @@ export class FootballDataProvider implements CompetitionProvider {
       if (homeCode) {
         teamsMap.set(homeCode, {
           fifaCode: homeCode,
-          name: match.homeTeam.name,
+          name: match.homeTeam.name ?? homeCode,
           providerTeamId: String(match.homeTeam.id),
         });
       }
@@ -148,7 +169,7 @@ export class FootballDataProvider implements CompetitionProvider {
       if (awayCode) {
         teamsMap.set(awayCode, {
           fifaCode: awayCode,
-          name: match.awayTeam.name,
+          name: match.awayTeam.name ?? awayCode,
           providerTeamId: String(match.awayTeam.id),
         });
       }

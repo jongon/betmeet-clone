@@ -148,6 +148,47 @@ describe("FootballDataProvider", () => {
     expect(match.awayFifaCode).toBe("MEX");
   });
 
+  it("keeps the provider label as placeholder for undecided knockout teams", async () => {
+    // football-data.org returns null team fields until the bracket resolves; the
+    // descriptive name (when present) is preserved as the placeholder.
+    mockFetch(200, {
+      matches: [
+        {
+          id: 537417,
+          utcDate: "2026-06-28T19:00:00Z",
+          status: "TIMED",
+          matchday: 1,
+          stage: "LAST_32",
+          group: null,
+          lastUpdated: "2026-06-20T12:00:00Z",
+          homeTeam: { id: null, name: "Winner Group C", shortName: null, tla: null },
+          awayTeam: { id: 700, name: "Mexico", shortName: "Mexico", tla: "MEX" },
+          score: {
+            winner: null,
+            duration: "REGULAR",
+            fullTime: { home: null, away: null },
+            halfTime: { home: null, away: null },
+          },
+        },
+      ],
+    });
+
+    const provider = new FootballDataProvider();
+    const result = await provider.fetch("FIXTURES", { windowKey: "test" });
+
+    const match = result.matches[0];
+    if (!match) throw new Error("expected match");
+    expect(match.phaseName).toBe("Round of 32");
+    // Undecided home team: no fifaCode, keep the provider label as placeholder.
+    expect(match.homeFifaCode).toBeNull();
+    expect(match.homePlaceholder).toBe("Winner Group C");
+    // Resolved away team: fifaCode wins, no placeholder.
+    expect(match.awayFifaCode).toBe("MEX");
+    expect(match.awayPlaceholder).toBeNull();
+    // Only the resolved team is extracted into the teams payload.
+    expect(result.teams.map((t) => t.fifaCode)).toEqual(["MEX"]);
+  });
+
   it("passes scope filter as status parameter", async () => {
     const fetchSpy = mockFetch(200, { matches: [] });
 
