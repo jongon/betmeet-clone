@@ -50,12 +50,21 @@ function canonicalFifaCode(tla: string | null | undefined): string | null {
   return TLA_ALIAS[tla] ?? tla;
 }
 
+/**
+ * Maps a sync scope to the football-data.org `status` filter (comma-separated, the API accepts a
+ * list). The provider's status vocabulary is the source of truth here, not our internal one:
+ * upcoming matches with a confirmed date are `TIMED` (only date-TBD ones stay `SCHEDULED`), so
+ * `FIXTURES` must request both or the cron silently misses every newly-dated knockout match (the
+ * Round of 32 fixtures never landing in the DB). For the same reason live matches are `IN_PLAY` /
+ * `PAUSED` — `LIVE` is our internal status, not a valid provider filter. `FULL` omits the filter
+ * (matches the seed path, see seed-matches.ts).
+ */
 function resolveScopeStatus(scope: ProviderSyncScope): string | null {
   switch (scope) {
     case "FIXTURES":
-      return "SCHEDULED";
+      return "SCHEDULED,TIMED";
     case "LIVE_STATUS":
-      return "LIVE";
+      return "IN_PLAY,PAUSED";
     case "RESULTS":
       return "FINISHED";
     default:

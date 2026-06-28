@@ -12,6 +12,10 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 - **Email** — Los correos de auth (confirmación de registro, recuperación de contraseña, cambio de email) ahora los **envía la app con Resend** en lugar de Supabase: Supabase sigue generando el token pero delega el envío a un endpoint propio (`/api/auth/email-hook`) que verifica la firma del webhook y manda con el SDK de Resend. El SMTP de Supabase queda desactivado y las plantillas se versionan y renderizan en el repo. Sin cambios visibles para el usuario; el flujo de confirmación (`token_hash` → `/auth/confirm`) y el destino de invitación se conservan. Queda andamiaje para futuros correos de negocio. (Unit 72)
 
+### Fixed
+
+- **Sync** — El cron de fixtures ya recoge todos los partidos de eliminatorias (dieciseisavos/Round of 32 en adelante) a medida que se confirman sus fechas. El adaptador de football-data.org pedía el scope `FIXTURES` con `status=SCHEDULED`, pero el proveedor marca los partidos próximos **con fecha confirmada como `TIMED`** (deja en `SCHEDULED` solo los de fecha por definir), así que esos partidos nunca llegaban en la respuesta ni se creaban en la DB. Ahora `FIXTURES` pide `SCHEDULED,TIMED`. De paso se corrige el poll en vivo: `LIVE_STATUS` enviaba `status=LIVE` (estado interno, no válido en el proveedor) y ahora pide `IN_PLAY,PAUSED`. (Unit 73)
+
 ---
 
 ## [0.4.0] — 2026-06-25

@@ -159,6 +159,38 @@ describe("FootballDataProvider", () => {
     expect(url).toContain("season=2026");
   });
 
+  it("FIXTURES scope requests SCHEDULED and TIMED matches", async () => {
+    // football-data.org marks newly-dated upcoming matches (e.g. the Round of 32) as TIMED,
+    // not SCHEDULED — both must be requested or the cron silently misses them.
+    const fetchSpy = mockFetch(200, { matches: [] });
+
+    const provider = new FootballDataProvider();
+    await provider.fetch("FIXTURES", { windowKey: "test" });
+
+    const url = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(decodeURIComponent(url)).toContain("status=SCHEDULED,TIMED");
+  });
+
+  it("LIVE_STATUS scope requests IN_PLAY and PAUSED matches", async () => {
+    const fetchSpy = mockFetch(200, { matches: [] });
+
+    const provider = new FootballDataProvider();
+    await provider.fetch("LIVE_STATUS", { windowKey: "test" });
+
+    const url = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(decodeURIComponent(url)).toContain("status=IN_PLAY,PAUSED");
+  });
+
+  it("FULL scope omits the status filter so the whole competition is returned", async () => {
+    const fetchSpy = mockFetch(200, { matches: [] });
+
+    const provider = new FootballDataProvider();
+    await provider.fetch("FULL", { windowKey: "test" });
+
+    const url = fetchSpy.mock.calls[0]?.[0] as string;
+    expect(url).not.toContain("status=");
+  });
+
   it("throws RATE_LIMIT on 429", async () => {
     mockFetch(429, { message: "Too many requests" });
 
