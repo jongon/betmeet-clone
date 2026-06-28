@@ -40,7 +40,7 @@ Aplicación full-stack Next.js 16 con Supabase como backend (auth, base de datos
               ┌───────────────────┼───────────────────┐
               │                   │                   │
     ┌─────────▼──────┐  ┌────────▼────────┐  ┌───────▼──────────┐
-    │  API-Football   │  │  Content         │  │  Edge Functions  │
+    │football-data.org│  │  Content         │  │  Edge Functions  │
     │  (datos de      │  │  Collections     │  │  (competition-   │
     │   partidos)     │  │  (MDX rules)     │  │   sync scaffold) │
     └─────────────────┘  └─────────────────┘  └──────────────────┘
@@ -141,6 +141,6 @@ Ver `.env.example` para la lista completa. Variables clave:
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Clave anónima de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Clave service_role (solo server/scripts) |
-| `API_FOOTBALL_KEY` | API key para sincronización de datos |
+| `FOOTBALL_DATA_KEY` | API key de football-data.org para sincronización de datos |
 | `NEXT_PUBLIC_SITE_URL` | URL base de la aplicación |
 | `WORLD_CUP_KICKOFF` | Fecha de inicio del torneo (ISO 8601) |

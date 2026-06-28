@@ -36,7 +36,7 @@ pnpm dlx shadcn@latest add button
 - **Generación**: @content-collections/cli + @content-collections/mdx + @content-collections/next
 
 ## Sincronización externa
-- **API-Football**: datos de equipos, fases y partidos (via API key)
+- **football-data.org**: datos de equipos, fases y partidos (via API key `FOOTBALL_DATA_KEY`)
 - **Edge Function**: supabase/functions/competition-sync (scaffold)
 
 ## Herramientas de desarrollo

@@ -70,6 +70,31 @@ npx tsx scripts/seed-admin.ts <user-id>
 npx tsx scripts/seed-avatars.ts
 ```
 
+> El seed de partidos hace **1 llamada** a football-data.org (scope `FULL`, toda la
+> competición) y cae a un snapshot commiteado (`src/features/competition/seed/snapshots/`)
+> si la API no está disponible. El sync incremental usa scopes acotados por estado del
+> proveedor: `FIXTURES` pide `SCHEDULED,TIMED` (los partidos próximos con fecha confirmada
+> llegan como `TIMED`), `LIVE_STATUS` pide `IN_PLAY,PAUSED` y `RESULTS` pide `FINISHED`.
+
+### Scripts de reparación puntuales
+
+Correcciones de datos one-off (sin cambio de schema) para arreglar estado heredado de seeds o
+syncs antiguos. Conviven en `scripts/repair-unit-*.ts`, son **dry-run por defecto** y escriben
+solo con `--apply`:
+
+```bash
+# Previsualizar (no escribe)
+npx tsx scripts/repair-unit-74-phantom-knockout-matches.ts
+# Aplicar
+npx tsx scripts/repair-unit-74-phantom-knockout-matches.ts --apply
+```
+
+- `repair-unit-60-duplicates-uruguay.ts` — consolida la bandera duplicada de Uruguay y
+  de-duplica los partidos del 27/28 jun.
+- `repair-unit-74-phantom-knockout-matches.ts` — borra los partidos fantasma de eliminatoria
+  (filas con `providerMatchId = null` heredadas del bracket hardcodeado del seed original, que el
+  sync por `providerMatchId` nunca limpiaba); aborta si alguna tuviera predicciones asociadas.
+
 ## Comandos del proyecto
 
 ```bash
@@ -148,7 +173,7 @@ DB_CONNECTION_LIMIT="5"                  # Conexiones por instancia serverless (
 NEXT_PUBLIC_SUPABASE_URL="https://..."   # Supabase project URL
 NEXT_PUBLIC_SUPABASE_ANON_KEY="..."      # Supabase anon key
 SUPABASE_SERVICE_ROLE_KEY="..."          # Supabase service role (solo server)
-API_FOOTBALL_KEY="..."                   # API-Football key (opcional)
+FOOTBALL_DATA_KEY="..."                  # football-data.org key (opcional)
 NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 WORLD_CUP_KICKOFF="2026-06-11T18:00:00Z"
 NODE_ENV="development"
