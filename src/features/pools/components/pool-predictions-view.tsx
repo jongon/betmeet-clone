@@ -51,6 +51,7 @@ function TeamFlag({ src }: { src: string | null }) {
  * false in the banner — only the grid wires up the edit handlers.
  */
 export function MemberPredictionRowView({
+  col,
   cell,
   member,
   canEdit,
@@ -65,6 +66,7 @@ export function MemberPredictionRowView({
   onStartDualSave,
   onReset,
 }: {
+  col: MatchColumn;
   cell: MemberPredictionRow["cells"][string] | undefined;
   member: MemberPredictionRow;
   canEdit: boolean;
@@ -127,12 +129,8 @@ export function MemberPredictionRowView({
             className="text-[10px] cursor-pointer hover:bg-muted transition-colors"
             onClick={() =>
               hasPrediction
-                ? onStartEdit(
-                    { matchId } as MatchColumn,
-                    cell?.predictedHome ?? null,
-                    cell?.predictedAway ?? null,
-                  )
-                : onStartDualSave({ matchId } as MatchColumn)
+                ? onStartEdit(col, cell?.predictedHome ?? null, cell?.predictedAway ?? null)
+                : onStartDualSave(col)
             }
           >
             {t.saveForThisPool}
@@ -226,6 +224,7 @@ function MatchCard({
           return (
             <MemberPredictionRowView
               key={member.userId}
+              col={col}
               cell={cell}
               member={member}
               canEdit={canEdit}

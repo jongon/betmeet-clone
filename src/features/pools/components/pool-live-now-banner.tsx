@@ -139,6 +139,7 @@ export function PoolLiveNowBanner({
                   return (
                     <MemberPredictionRowView
                       key={member.userId}
+                      col={col}
                       cell={cell}
                       member={member}
                       canEdit={false}
