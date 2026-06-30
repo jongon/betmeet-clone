@@ -32,8 +32,56 @@ type FootballDataMatch = {
     duration: string;
     fullTime: { home: number | null; away: number | null };
     halfTime: { home: number | null; away: number | null };
+    // Only present for knockout matches that ran past 90 minutes. `fullTime` for a
+    // shootout match bakes in the penalties, so these break it back down (see splitScore).
+    regularTime?: { home: number | null; away: number | null };
+    extraTime?: { home: number | null; away: number | null };
+    penalties?: { home: number | null; away: number | null };
   };
 };
+
+const nz = (n: number | null | undefined): number => n ?? 0;
+
+/**
+ * Splits football-data.org's score into the **run-of-play result** (the goals that count
+ * as the match score) and the **penalty shootout**, when there is one.
+ *
+ * For a penalty-decided knockout the provider bakes the shootout into `fullTime`: Germany
+ * 1–1 Paraguay with pens 5–4 comes back as `fullTime` 5–6 (`duration: PENALTY_SHOOTOUT`,
+ * with the breakdown in `regularTime`/`extraTime`/`penalties`). Mapping `fullTime` as the
+ * match score is what shows the penalties as the final result — which is wrong. Here the
+ * match score is the 120-minute play (`regularTime` + `extraTime`) and the shootout is
+ * surfaced separately. Non-shootout matches keep `fullTime` (already the real 90'/120'
+ * result, no shootout to strip). Ref match: Germany vs Paraguay (Unit 75).
+ */
+function splitScore(score: FootballDataMatch["score"]): {
+  homeScore: number | null;
+  awayScore: number | null;
+  homePenaltyScore: number | null;
+  awayPenaltyScore: number | null;
+} {
+  const pens = score.penalties;
+  const hasShootout =
+    score.duration === "PENALTY_SHOOTOUT" && pens != null && pens.home != null && pens.away != null;
+
+  if (hasShootout) {
+    const reg = score.regularTime ?? score.fullTime;
+    const et = score.extraTime ?? { home: 0, away: 0 };
+    return {
+      homeScore: nz(reg.home) + nz(et.home),
+      awayScore: nz(reg.away) + nz(et.away),
+      homePenaltyScore: pens.home,
+      awayPenaltyScore: pens.away,
+    };
+  }
+
+  return {
+    homeScore: score.fullTime.home,
+    awayScore: score.fullTime.away,
+    homePenaltyScore: null,
+    awayPenaltyScore: null,
+  };
+}
 
 // Build a lookup map from fifaCode to canonical team data for enrichment.
 const canonicalTeamByFifaCode = new Map<string, (typeof WORLD_CUP_2026_TEAMS)[number]>(
@@ -132,6 +180,7 @@ export class FootballDataProvider implements CompetitionProvider {
     const matches = data.matches.map((match) => {
       const homeFifaCode = canonicalFifaCode(match.homeTeam.tla);
       const awayFifaCode = canonicalFifaCode(match.awayTeam.tla);
+      const { homeScore, awayScore, homePenaltyScore, awayPenaltyScore } = splitScore(match.score);
       return {
         providerMatchId: String(match.id),
         matchNumber: match.matchday,
@@ -148,8 +197,10 @@ export class FootballDataProvider implements CompetitionProvider {
         // the placeholder is cleared.
         homePlaceholder: homeFifaCode ? null : (match.homeTeam.name ?? null),
         awayPlaceholder: awayFifaCode ? null : (match.awayTeam.name ?? null),
-        homeScore: match.score.fullTime.home,
-        awayScore: match.score.fullTime.away,
+        homeScore,
+        awayScore,
+        homePenaltyScore,
+        awayPenaltyScore,
       };
     });
 

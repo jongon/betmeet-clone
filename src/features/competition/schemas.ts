@@ -21,6 +21,8 @@ export const NormalizedMatchSchema = z.object({
   awayPlaceholder: z.string().nullable(),
   homeScore: z.number().int().nonnegative().nullable().optional(),
   awayScore: z.number().int().nonnegative().nullable().optional(),
+  homePenaltyScore: z.number().int().nonnegative().nullable().optional(),
+  awayPenaltyScore: z.number().int().nonnegative().nullable().optional(),
 });
 
 export type NormalizedTeam = z.infer<typeof NormalizedTeamSchema>;

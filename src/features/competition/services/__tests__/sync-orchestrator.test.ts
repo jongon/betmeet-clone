@@ -139,6 +139,53 @@ describe("sync orchestrator", () => {
     );
   });
 
+  it("persists the shootout score and derives the winner for a synced penalty match (Unit 75)", async () => {
+    setupBaseRun();
+    // Resolve home/away teams so the winner can be stamped from the penalty score.
+    vi.mocked(prisma.team.findUnique).mockImplementation((args) => {
+      const code = (args as { where: { fifaCode: string } }).where.fifaCode;
+      return Promise.resolve(
+        code === "MEX" ? { id: "team-home" } : code === "CAN" ? { id: "team-away" } : null,
+      ) as never;
+    });
+    const existingMatch = { id: "match-1", status: "LIVE", homeTeam: null, awayTeam: null };
+    vi.mocked(prisma.competition.findFirst).mockResolvedValue({ id: "comp-1" } as never);
+    vi.mocked(prisma.competitionPhase.findMany).mockResolvedValue([
+      { id: "phase-1", name: "Group A" },
+    ] as never);
+    vi.mocked(prisma.match.findFirst).mockResolvedValue(existingMatch as never);
+    vi.mocked(prisma.match.update).mockResolvedValue({ ...existingMatch } as never);
+
+    // 1–1 in play, decided 5–4 on penalties for the away team.
+    const penaltyMatch = {
+      ...scheduledMatch,
+      providerMatchId: "102",
+      status: "FINISHED" as const,
+      homeScore: 1,
+      awayScore: 1,
+      homePenaltyScore: 4,
+      awayPenaltyScore: 5,
+    };
+    const provider = {
+      fetch: vi.fn().mockResolvedValue({ teams: [], matches: [penaltyMatch] }),
+    };
+
+    await runCompetitionSync(provider, "RESULTS", { windowKey: "test" });
+
+    expect(prisma.match.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "FINISHED",
+          homeScore: 1,
+          awayScore: 1,
+          homePenaltyScore: 4,
+          awayPenaltyScore: 5,
+          winnerTeamId: "team-away",
+        }),
+      }),
+    );
+  });
+
   it("does not regress a FINISHED match back to LIVE on stale provider data", async () => {
     setupBaseRun();
     const existingMatch = {

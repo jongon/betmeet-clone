@@ -79,6 +79,8 @@ const futureMatch: MatchView = {
   awayPlaceholder: null,
   homeScore: null,
   awayScore: null,
+  homePenaltyScore: null,
+  awayPenaltyScore: null,
   phaseName: "Octavos",
   phaseType: "KNOCKOUT",
 };

@@ -38,9 +38,16 @@ export function MatchCard({
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
         <TeamBadge team={match.homeTeam} placeholder={match.homePlaceholder} />
-        <p className="tabular-nums-display px-1 text-center text-base font-bold sm:px-3 sm:text-2xl">
-          {score(match)}
-        </p>
+        <div className="flex flex-col items-center px-1 sm:px-3">
+          <p className="tabular-nums-display text-center text-base font-bold sm:text-2xl">
+            {score(match)}
+          </p>
+          {match.homePenaltyScore !== null && match.awayPenaltyScore !== null && (
+            <p className="tabular-nums-display text-center text-[10px] font-normal text-muted-foreground sm:text-xs">
+              ({match.homePenaltyScore} - {match.awayPenaltyScore} pen.)
+            </p>
+          )}
+        </div>
         <div className="justify-self-end">
           <TeamBadge team={match.awayTeam} placeholder={match.awayPlaceholder} />
         </div>

@@ -164,6 +164,29 @@ describe("buildDayGroups", () => {
     expect(col.sublabel).toBeNull(); // sublabel stays FINISHED-only
   });
 
+  it("carries the penalty shootout score onto the column for a finished penalty match (Unit 75)", () => {
+    const penalty = makePrediction({
+      matchStatus: "FINISHED",
+      homeScore: 1,
+      awayScore: 1,
+      homePenaltyScore: 4,
+      awayPenaltyScore: 5,
+    });
+    const groups = buildDayGroups([penalty], members, "es", "UTC");
+    const col = groups[0].matches[0];
+    // Match goals stay in the sublabel; the shootout rides on its own fields.
+    expect(col.sublabel).toBe("1 - 1");
+    expect(col.homePenaltyScore).toBe(4);
+    expect(col.awayPenaltyScore).toBe(5);
+  });
+
+  it("leaves penalty fields null for a regular finished match (Unit 75)", () => {
+    const regular = makePrediction({ matchStatus: "FINISHED", homeScore: 2, awayScore: 1 });
+    const col = buildDayGroups([regular], members, "es", "UTC")[0].matches[0];
+    expect(col.homePenaltyScore).toBeNull();
+    expect(col.awayPenaltyScore).toBeNull();
+  });
+
   it("uses allMatches as column source when provided (FR-REFINE-48.9)", () => {
     const matches = [
       {
@@ -177,6 +200,8 @@ describe("buildDayGroups", () => {
         awayPlaceholder: null,
         homeScore: null,
         awayScore: null,
+        homePenaltyScore: null,
+        awayPenaltyScore: null,
         phaseName: "Semi-final",
         phaseType: "KNOCKOUT",
       },

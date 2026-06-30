@@ -93,6 +93,8 @@ const liveMatch: MatchView = {
   awayPlaceholder: null,
   homeScore: 1,
   awayScore: 0,
+  homePenaltyScore: null,
+  awayPenaltyScore: null,
   phaseName: "Grupo A",
   phaseType: "GROUP",
 };

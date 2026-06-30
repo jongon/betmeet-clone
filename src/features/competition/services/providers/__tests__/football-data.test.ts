@@ -90,6 +90,9 @@ describe("FootballDataProvider", () => {
     expect(finishedMatch.awayFifaCode).toBe("RSA");
     expect(finishedMatch.homeScore).toBe(2);
     expect(finishedMatch.awayScore).toBe(0);
+    // A REGULAR result carries no shootout.
+    expect(finishedMatch.homePenaltyScore).toBeNull();
+    expect(finishedMatch.awayPenaltyScore).toBeNull();
     expect(finishedMatch.phaseName).toBe("Group A");
     expect(finishedMatch.matchNumber).toBe(1);
     expect(finishedMatch.kickoffAt).toBe("2026-06-11T18:00:00Z");
@@ -102,6 +105,48 @@ describe("FootballDataProvider", () => {
     expect(scheduledMatch.phaseName).toBe("Quarter-finals");
     expect(scheduledMatch.homePlaceholder).toBeNull();
     expect(scheduledMatch.awayPlaceholder).toBeNull();
+  });
+
+  it("splits a penalty-shootout result into match goals and shootout score (Unit 75)", async () => {
+    // Reference match Germany vs Paraguay: 1–1 after extra time, decided on penalties.
+    // football-data.org bakes the shootout into `fullTime` (5–6); we must surface the
+    // run-of-play result as the match score and the shootout separately.
+    mockFetch(200, {
+      matches: [
+        {
+          id: 3001,
+          utcDate: "2026-07-04T18:00:00Z",
+          status: "FINISHED",
+          matchday: 1,
+          stage: "LAST_32",
+          group: null,
+          lastUpdated: "2026-07-04T21:00:00Z",
+          homeTeam: { id: 759, name: "Germany", shortName: "Germany", tla: "GER" },
+          awayTeam: { id: 760, name: "Paraguay", shortName: "Paraguay", tla: "PAR" },
+          score: {
+            winner: null,
+            duration: "PENALTY_SHOOTOUT",
+            fullTime: { home: 5, away: 6 },
+            halfTime: { home: 0, away: 1 },
+            regularTime: { home: 1, away: 1 },
+            extraTime: { home: 0, away: 0 },
+            penalties: { home: 4, away: 5 },
+          },
+        },
+      ],
+    });
+
+    const provider = new FootballDataProvider();
+    const result = await provider.fetch("RESULTS", { windowKey: "test" });
+
+    const match = result.matches[0];
+    if (!match) throw new Error("expected match");
+    // The match score is the 120-minute run of play (regularTime + extraTime), NOT fullTime.
+    expect(match.homeScore).toBe(1);
+    expect(match.awayScore).toBe(1);
+    // The shootout is surfaced on its own, differentiated from the match goals.
+    expect(match.homePenaltyScore).toBe(4);
+    expect(match.awayPenaltyScore).toBe(5);
   });
 
   it("aliases the provider TLA 'URU' to the canonical Uruguay code 'URY' (Unit 69)", async () => {

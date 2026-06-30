@@ -1,4 +1,5 @@
 import { emitMatchNotificationEvents } from "@/features/notifications/services/match-events";
+import { derivePenaltyWinner } from "@/features/scoring/compute-score";
 import type { MatchStatus, ProviderSyncScope } from "@/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import type { NormalizedMatch } from "../schemas";
@@ -17,6 +18,31 @@ function isStatusRegression(
   incoming: MatchStatus,
 ): boolean {
   return !!current && TERMINAL_STATUSES.has(current) && REGRESSION_STATUSES.has(incoming);
+}
+
+/**
+ * Resolves the winning team from a synced result: by the match score, or — for a draw
+ * that went to a shootout — the penalty winner. A draw with no shootout (group stage) has
+ * no winner. Mirrors the admin override's `resolveWinner` so auto-synced knockout matches
+ * also award the penalty bonus in scoring (which reads `match.winnerTeamId`). Unit 75.
+ */
+function resolveSyncedWinnerTeamId(input: {
+  homeScore: number | null;
+  awayScore: number | null;
+  homePenaltyScore: number | null;
+  awayPenaltyScore: number | null;
+  homeTeamId: string | null;
+  awayTeamId: string | null;
+}): string | null {
+  const { homeScore, awayScore, homeTeamId, awayTeamId } = input;
+  if (homeScore == null || awayScore == null) return null;
+  if (homeScore > awayScore) return homeTeamId;
+  if (homeScore < awayScore) return awayTeamId;
+  if (input.homePenaltyScore != null && input.awayPenaltyScore != null) {
+    const side = derivePenaltyWinner(input.homePenaltyScore, input.awayPenaltyScore);
+    return side === "home" ? homeTeamId : side === "away" ? awayTeamId : null;
+  }
+  return null;
 }
 
 async function findActiveCompetition() {
@@ -68,6 +94,25 @@ async function syncMatchesToDB(
       const nextStatus = frozen ? existing.status : match.status;
       const nextHomeScore = frozen ? existing.homeScore : (match.homeScore ?? null);
       const nextAwayScore = frozen ? existing.awayScore : (match.awayScore ?? null);
+      const nextHomePenaltyScore = frozen
+        ? existing.homePenaltyScore
+        : (match.homePenaltyScore ?? null);
+      const nextAwayPenaltyScore = frozen
+        ? existing.awayPenaltyScore
+        : (match.awayPenaltyScore ?? null);
+      // Only stamp a winner once the match is final — a tie mid-play isn't a result yet.
+      const nextWinnerTeamId = frozen
+        ? existing.winnerTeamId
+        : nextStatus === "FINISHED"
+          ? resolveSyncedWinnerTeamId({
+              homeScore: nextHomeScore,
+              awayScore: nextAwayScore,
+              homePenaltyScore: nextHomePenaltyScore,
+              awayPenaltyScore: nextAwayPenaltyScore,
+              homeTeamId: homeTeam?.id ?? null,
+              awayTeamId: awayTeam?.id ?? null,
+            })
+          : null;
 
       const saved = await prisma.match.update({
         where: { id: existing.id },
@@ -75,6 +120,9 @@ async function syncMatchesToDB(
           status: nextStatus,
           homeScore: nextHomeScore,
           awayScore: nextAwayScore,
+          homePenaltyScore: nextHomePenaltyScore,
+          awayPenaltyScore: nextAwayPenaltyScore,
+          winnerTeamId: nextWinnerTeamId,
           ...(match.kickoffAt !== null ? { kickoffAt: new Date(match.kickoffAt) } : {}),
           homeTeamId: homeTeam?.id ?? null,
           awayTeamId: awayTeam?.id ?? null,
@@ -111,6 +159,8 @@ async function syncMatchesToDB(
           awayPlaceholder: match.awayPlaceholder ?? null,
           homeScore: match.homeScore ?? null,
           awayScore: match.awayScore ?? null,
+          homePenaltyScore: match.homePenaltyScore ?? null,
+          awayPenaltyScore: match.awayPenaltyScore ?? null,
         },
       });
       count++;

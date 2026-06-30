@@ -186,14 +186,21 @@ function MatchCard({
         <div className="flex items-center gap-1.5 min-w-0">
           <TeamFlag src={col.homeFlag} />
           <span className="text-sm font-semibold truncate">{col.homeLabel}</span>
-          <span
-            className={
-              liveScore
-                ? "text-xs font-semibold tabular-nums shrink-0"
-                : "text-xs text-muted-foreground shrink-0"
-            }
-          >
-            {centerLabel}
+          {/* Unit 75: result on top, shootout on a second line so a penalty match never
+              widens the column header (the grid stays in line on mobile). */}
+          <span className="flex shrink-0 flex-col items-center leading-tight">
+            <span
+              className={
+                liveScore ? "text-xs font-semibold tabular-nums" : "text-xs text-muted-foreground"
+              }
+            >
+              {centerLabel}
+            </span>
+            {col.homePenaltyScore !== null && col.awayPenaltyScore !== null && (
+              <span className="text-[10px] text-muted-foreground tabular-nums">
+                {col.homePenaltyScore}-{col.awayPenaltyScore} pen.
+              </span>
+            )}
           </span>
           <span className="text-sm font-semibold truncate">{col.awayLabel}</span>
           <TeamFlag src={col.awayFlag} />

@@ -195,6 +195,8 @@ export async function getPoolMemberPredictions(
     awayPlaceholder: m.awayPlaceholder,
     homeScore: m.homeScore,
     awayScore: m.awayScore,
+    homePenaltyScore: m.homePenaltyScore,
+    awayPenaltyScore: m.awayPenaltyScore,
     phaseName: m.phase.groupCode ? `Grupo ${m.phase.groupCode}` : m.phase.name,
     phaseType: m.phase.type,
   }));
@@ -227,6 +229,8 @@ export async function getPoolMemberPredictions(
       awayPlaceholder: row.match.awayPlaceholder,
       homeScore: row.match.homeScore,
       awayScore: row.match.awayScore,
+      homePenaltyScore: row.match.homePenaltyScore,
+      awayPenaltyScore: row.match.awayPenaltyScore,
       phaseName: row.match.phase.groupCode
         ? `Grupo ${row.match.phase.groupCode}`
         : row.match.phase.name,

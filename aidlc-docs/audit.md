@@ -3149,3 +3149,54 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `construction/unit-72-email-resend-migration/functional-design.md` (NEW), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–71 intactas).**
 
 ---
+
+## 2026-06-30 — Refine (`/aidlc:refine`): Unit 75 — Goles del partido vs goles de la tanda de penales
+
+**Comando**: `/aidlc:refine`
+**User Input**: "Ya ha empezado una nueva etapa en la competición, esa etapa que cuando empatan van a penales. En /matches necesito mostrar los goles anotados en el partido pero además los goles anotados en los penales (esto ocurre cuando en los 120 minutos han empatado), son resultados distintos en penales y se debe ver la diferenciación. También debe verse en los resultados que se muestran en el pool. Actualmente se está mostrando el resultado de los penales como resultado final del partido y no es así. Seguramente habrá algo que revisar en el football-data. Ten el partido Alemania vs Paraguay como referencia ya que ese partido fue a penales."
+
+**Tipo**: Refine post-construcción sobre Unit 25 (sync football-data), Unit 28 (persistencia de matches), Unit 41 (predicciones del pool), Unit 71 (marcador en línea) y la infraestructura de penales de Unit 36. **No reinicia** etapas aprobadas (Units 1–72 intactas). **Plan presentado y aprobado antes de ejecutar** (el usuario aprobó el formato inline para `/matches` y, vía nota en AskUserQuestion, pidió que el pool **no rompa la grilla en mobile** → la tanda se renderiza apilada en una segunda línea en ambas vistas, sin ensanchar la fila/columna).
+
+**Nota de numeración (proceso)**: la última unit con artefactos AI-DLC era la **72**. Los números **73** (`fix(sync)` partidos TIMED en FIXTURES — commit `6929336`) y **74** (`fix(competition)` partidos fantasma — commit `c594227`) se usaron en **commits de fix sin generar artefactos AI-DLC** (sin Épica/story/functional design/audit; `Project Type` seguía en "72 units"). Para no colisionar con esos números ya tomados en el código (y referenciados en comentarios de `football-data.ts`), este refine se documenta como **Unit 75** (faithful reporting). No se backfillean 73/74 (fuera de alcance).
+
+**Diagnóstico (causa raíz, verificada contra la API real)**: se consultó `GET /v4/competitions/WC/matches?season=2026` con la `FOOTBALL_DATA_KEY` del entorno. El partido de referencia **Alemania vs Paraguay** (LAST_32, FINISHED) devuelve `score.duration = "PENALTY_SHOOTOUT"` con `regularTime {1,1}`, `extraTime {0,0}`, `penalties {4,5}` y **`fullTime {5,6}` (la tanda incrustada en el agregado)**. `FootballDataProvider` mapeaba `homeScore/awayScore = score.fullTime`, por lo que `/matches` y el pool mostraban `5 - 6` (el resultado de la tanda) como marcador final, en vez de `1 - 1` + tanda. Las columnas `home_penalty_score`/`away_penalty_score`/`winner_team_id` ya existían (Unit 36) y `MatchView`/`queries`/`PredictionVsResult` ya exponían/mostraban la tanda, pero el **sync nunca las llenaba** (solo el override admin de Unit 36) y los dos headers de marcador (`MatchCard` y el `sublabel` del grid del pool) no la mostraban.
+
+**Business Rules** (BR-75.1…75.5):
+- **BR-75.1** — `football-data.ts`: tipo `score` ampliado con `regularTime`/`extraTime`/`penalties` (opcionales) + `splitScore(score)`: si `duration === "PENALTY_SHOOTOUT"` con `penalties` → `homeScore/awayScore = regularTime + extraTime` (juego corrido) y `homePenaltyScore/awayPenaltyScore = penalties`; si no → `fullTime` y penales `null`. Verificado: Alemania-Paraguay → 1–1 + (4–5).
+- **BR-75.2** — `sync-orchestrator`: persiste la tanda y deriva `winner_team_id` con `resolveSyncedWinnerTeamId` (por marcador, o por la tanda vía `derivePenaltyWinner` de Unit 36) **solo cuando el status entrante es `FINISHED`**; congelado de `manualOverride`/regresión terminal respetado para todos los campos nuevos. `NormalizedMatchSchema` añade `homePenaltyScore`/`awayPenaltyScore`. Con esto el bonus de penales (US-5.1, que lee `match.winnerTeamId`) también puntúa en partidos auto-sincronizados.
+- **BR-75.3** — `MatchCard` (`/matches`): la columna central de la rejilla `grid-cols-[1fr_auto_1fr]` (Unit 71) pasa a `flex flex-col items-center`; bajo el marcador, si hay penales, una línea pequeña `(H - A pen.)` (`text-[10px] sm:text-xs`). Apilada → no ensancha la fila ni rompe el marcador en línea de Unit 71 en mobile.
+- **BR-75.4** — Pool: penalty scores threadeados por `pools/types.ts` (`MatchView`/`PoolMemberPrediction`) → `pools/queries.ts` (ambas usan `include`, ya traían las columnas) → `MatchColumn` en `buildDayGroups` (`pool-predictions-view-helpers.ts`, `?? null`). El header de columna de `PoolPredictionsView` pasa a `flex flex-col`: marcador/live score arriba y, si hay penales, `H-A pen.` en una segunda línea pequeña. El `sublabel` sigue siendo solo `"H - A"` (penales no se incrustan) → no ensancha el header ni rompe la grilla en mobile. `PredictionVsResult` ya mostraba la tanda y ahora recibe el dato.
+- **BR-75.5** — Preservación: sin nueva migración (columnas ya existían); sin nuevas claves i18n (`pen.` hardcodeado igual que en `PredictionVsResult`, idéntico es/en); `data-testid`, `score()` (`"vs"` sin marcador), live score de Unit 58 y override admin (Unit 36) intactos; partidos sin tanda idénticos a antes.
+
+**Code change**:
+- `src/features/competition/services/providers/football-data.ts` (MODIFIED) — tipo `score` + `splitScore`.
+- `src/features/competition/schemas.ts` (MODIFIED) — `NormalizedMatchSchema` + penalty fields.
+- `src/features/competition/services/sync-orchestrator.ts` (MODIFIED) — persiste tanda + `resolveSyncedWinnerTeamId` (import `derivePenaltyWinner`).
+- `src/features/competition/components/match-card.tsx` (MODIFIED) — línea de tanda apilada.
+- `src/features/pools/types.ts` (MODIFIED) — penalty fields en `MatchView`/`PoolMemberPrediction`.
+- `src/features/pools/queries.ts` (MODIFIED) — mapeo de penalty fields (matches + predictions).
+- `src/features/pools/components/pool-predictions-view-helpers.ts` (MODIFIED) — `MatchColumn` + `buildDayGroups`.
+- `src/features/pools/components/pool-predictions-view.tsx` (MODIFIED) — header de columna apilado (width-safe).
+- Tests: `football-data.test.ts` (+1 caso PENALTY_SHOOTOUT + nulls en REGULAR), `sync-orchestrator.test.ts` (+1 persiste tanda + winner), `pool-predictions-view.test.tsx` (+2). 4 fixtures actualizados por el cambio de tipo (`pool-detail-tabs`, `pool-predictions-view-modal`, `pool-predictions-view`, `pool-live-now-banner`).
+
+**Doc change**:
+- `construction/unit-75-penalty-shootout-scores/functional-design.md` (NEW).
+- `inception/requirements/requirements.md` (MODIFIED) — Épica 75 + FR-REFINE-75.1…75.3 + nota de numeración 73/74.
+- `inception/user-stories/stories.md` (MODIFIED) — US-75.1 (Épica 75).
+- `CHANGELOG.md` (MODIFIED) — entrada en `[Unreleased] › Fixed` (Unit 75).
+- `aidlc-state.md` — Current Stage = Unit 75; Unit 72 → Prev Stage; Project Type a "75 units" (con nota 73/74).
+- `audit.md` — esta entrada.
+
+**Build/Test Status**: Pass. `tsc --noEmit` 0 en archivos tocados (persisten 2 errores preexistentes de `pool-live-now-banner.test.tsx` Unit 61, ajenos). **Vitest**: suites de competition/pools/predictions/scoring-rankings/admin **341/341** (las 2 suites que importan `prisma` —`pool-settings-card`, `run-scheduled-sync`— pasan con `DATABASE_URL` cargado; el fallo era ambiental del shell, no de código). Nuevos/ampliados: football-data **+1** (Alemania-Paraguay → 1–1 + tanda 4–5) + assert de nulls en REGULAR, sync-orchestrator **+1** (persiste `homePenaltyScore/awayPenaltyScore` + `winnerTeamId="team-away"`), pool-predictions-view **+2** (tanda en `MatchColumn`, nulls en regular). Biome `--write` limpio (14 archivos), ESLint 0 (solo warning preexistente de `<img>`). Sin commit/push.
+
+**Stages**: Requirements/User Stories EXECUTE (Épica 75 / FR-REFINE-75.1…75.3, US-75.1); Functional Design EXECUTE; Code Generation EXECUTE; Build and Test EXECUTE. SKIP Reverse Engineering, Units Generation, NFR Requirements/Design, Infrastructure, Application Design (refine sin nuevo unit-of-work ni schema/migraciones/rutas/server actions/i18n nuevos — reusa columnas y componentes existentes).
+
+**Security Baseline**: COMPLIANT. Transformación pura sobre datos del proveedor ya confiados por el sync; sin nueva superficie de input, schema, migraciones, rutas, server actions ni secretos; sin `dangerouslySetInnerHTML`. La autorización del pool (membresía/scope de Unit 41/55) y el scoring quedan intactos; la derivación de `winner_team_id` reusa la misma lógica del override admin (Unit 36) y respeta el congelado de overrides.
+
+**Out of scope**: snapshot de seed (`world-cup-2026-fixtures.json` solo registra partidos pendientes, sin scores); override admin de penales (Unit 36, ya correcto); backfill de artefactos AI-DLC de Units 73/74; mostrar la cantidad exacta de penales en el selector de predicción (sigue siendo solo ganador de la tanda, US-3.3).
+
+**Reparación de datos ejecutada (2026-06-30)**: la fila del partido de referencia **Alemania vs Paraguay** (`providerMatchId 537415`, LAST_32) tenía el marcador viejo de un sync previo al fix (`4 - 5`, con la tanda incrustada y `home/awayPenaltyScore` null). Se creó `scripts/repair-unit-75-penalty-scores.ts` (dry-run por defecto + `--apply`, igual que los `repair-unit-*` previos), que re-lee los partidos FINISHED por el `FootballDataProvider` ya corregido (`splitScore`), respeta `manualOverride` y reescribe solo las filas a penales (marcador del juego + tanda + ganador derivado). **Verificado en BD**: 537415 → `homeScore/awayScore = 1 - 1`, `home/awayPenaltyScore = 4 - 4`, `status FINISHED` (el `winner_team_id` queda `null` porque la tanda **sintética** del feed WC2026 es 4–4, empate imposible en una tanda real). **No recalcula puntos** (los `PredictionScore` siguen basados en el resultado viejo hasta un `scoreMatch`/recálculo). Pendiente solo invalidar la caché de `/matches` (`getStaticFixture`, `unstable_cache` `revalidate: 300` + `COMPETITION_FIXTURE_TAG`): se refresca sola en ≤5 min, o de inmediato con un sync/override de admin (que llama `revalidateResultViews`) o reiniciando el dev server.
+
+**Archivos AI-DLC**: `construction/unit-75-penalty-shootout-scores/functional-design.md` (NEW), `inception/requirements/requirements.md` (Épica 75/FR-REFINE-75.1…75.3 + nota 73/74), `inception/user-stories/stories.md` (US-75.1), `CHANGELOG.md` (Unreleased › Fixed), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–72 intactas).**
+
+---

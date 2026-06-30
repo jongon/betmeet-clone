@@ -75,6 +75,8 @@ export interface PoolMemberPrediction {
   awayPlaceholder: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  homePenaltyScore: number | null;
+  awayPenaltyScore: number | null;
   phaseName: string;
   phaseType: string;
   userId: string;
@@ -114,6 +116,8 @@ export interface MatchView {
   awayPlaceholder: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  homePenaltyScore: number | null;
+  awayPenaltyScore: number | null;
   phaseName: string;
   phaseType: string;
 }

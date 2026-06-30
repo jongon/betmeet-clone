@@ -2125,3 +2125,24 @@ Los 3 correos transaccionales de auth (confirmación de registro, recuperación 
 - Operaciones (user-owned): API key + dominio verificado en Resend (SPF/DKIM/DMARC); habilitar el hook y desactivar el Custom SMTP en Supabase; vars en Vercel.
 - Fuera de alcance: activar envíos reales del Grupo B; React Email; preferencias de notificación por usuario; emails bilingües es/en.
 - **No reinicia** Units 1–71.
+
+> **Nota de numeración (proceso).** Los números **73** (`fix(sync)`: recoger partidos TIMED en FIXTURES y live IN_PLAY/PAUSED — commit `6929336`) y **74** (`fix(competition)`: eliminar partidos fantasma de eliminatoria — commit `c594227`) se usaron en **commits de fix** que **no generaron artefactos AI-DLC** (sin Épica, sin story, sin functional design, sin entrada de audit; `Project Type` seguía en "72 units"). Para no colisionar con esos números ya tomados en el código, este refine de penales se documenta como **Unit 75**. No se backfillean 73/74 (fuera de alcance).
+
+## Épica 75: Diferenciar goles del partido y goles de la tanda de penales (Unit 75 — añadida vía refine, 2026-06-30)
+
+### FR-REFINE-75.1 — El sync separa el resultado del partido de la tanda de penales (causa raíz en football-data)
+En la nueva fase eliminatoria, cuando un partido empata en los 120 minutos se define por **tanda de penales**. football-data.org devuelve, para esos partidos, `score.duration = "PENALTY_SHOOTOUT"` con el resultado **del juego** en `regularTime` (+ `extraTime`) y la tanda en `penalties`, pero **incrusta la tanda en `score.fullTime`** (p. ej. Alemania 1–1 Paraguay, tanda 4–5, llega como `fullTime` 5–6). El provider `FootballDataProvider` mapeaba `homeScore/awayScore = fullTime`, por lo que el **resultado de la tanda se mostraba como marcador final del partido** (incorrecto). El provider ahora separa: `homeScore/awayScore` = goles del partido (juego corrido, `regularTime` + `extraTime`; `fullTime` cuando no hay tanda) y `homePenaltyScore/awayPenaltyScore` = la tanda. El sync persiste ambos en las columnas existentes `home_penalty_score`/`away_penalty_score` y **deriva `winner_team_id`** (por marcador, o por la tanda si se empató en el juego) respetando el congelado de overrides/regresión terminal — con lo que el bonus de penales en el scoring también funciona en partidos auto-sincronizados. Partido de referencia: **Alemania vs Paraguay**.
+
+### FR-REFINE-75.2 — `/matches` muestra goles del partido y goles de la tanda diferenciados
+En la lista de partidos (`/matches`), un partido definido por penales muestra el **marcador del juego** (p. ej. `1 - 1`) y, en una línea pequeña debajo, la **tanda diferenciada** (p. ej. `(4 - 5 pen.)`). La tanda va **apilada bajo el marcador** dentro de la columna central de la rejilla `grid-cols-[1fr_auto_1fr]`, de modo que no ensancha la fila ni rompe el marcador en línea de Unit 71 en mobile. Los partidos sin tanda se ven igual que antes. Aplica al header de `MatchCard`; el desglose «tu predicción vs resultado» (`PredictionVsResult`) ya mostraba la tanda y ahora recibe el dato del sync.
+
+### FR-REFINE-75.3 — Los resultados del pool muestran la tanda diferenciada (width-safe en mobile)
+En la vista de predicciones del pool (`/pools/[id]`, grid de Predicciones), el header de columna de un partido finalizado por penales muestra el **marcador del juego** y, **en una segunda línea pequeña**, la **tanda** (`4-5 pen.`). Se renderiza apilado (no inline) para **no ensanchar el header ni romper la grilla en mobile**. Los penalty scores se threadean por `pools/types.ts` (`MatchView`/`PoolMemberPrediction`) → `pools/queries.ts` → `MatchColumn` (`buildDayGroups`) → header.
+
+### Restricciones / SKIP (Unit 75)
+- Reusa la infraestructura de penales ya existente: columnas `home_penalty_score`/`away_penalty_score`/`winner_team_id` (schema), `MatchView`/`queries` de competition (ya exponían la tanda), `PredictionVsResult` (ya la mostraba), `derivePenaltyWinner` (Unit 36) y la semántica del override admin (Unit 36/`resolveWinner`). **Sin nueva migración de schema** (las columnas ya existían).
+- Etiqueta `pen.` hardcodeada igual que en `PredictionVsResult` (idéntica es/en) → **sin nuevas claves i18n**.
+- Derivación de `winner_team_id` en el sync **solo** al estar `FINISHED` (un empate en juego no es resultado aún); congelado de `manualOverride`/regresión terminal preservado para todos los campos nuevos.
+- Seguridad: transformación pura sobre datos del proveedor ya confiados; sin nueva superficie de input/schema/migraciones/rutas/server actions/secretos; sin `dangerouslySetInnerHTML`.
+- Fuera de alcance: snapshot de seed (solo partidos pendientes, sin scores); editar el override admin (ya correcto); backfillear artefactos AI-DLC de Units 73/74.
+- **No reinicia** Units 1–72.

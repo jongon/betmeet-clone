@@ -1186,3 +1186,27 @@
   - El endpoint verifica la firma del webhook y rechaza con 401 una solicitud sin firma válida. **FR-REFINE-72.1**.
   - Los enlaces siguen resolviendo por `token_hash` → `/auth/confirm` (cross-device) y el destino de invitación (`invite_next`) se conserva en el registro. **FR-REFINE-72.1**.
   - El correo de cambio de email llega a la dirección **nueva** y muestra «De <antigua> A <nueva>». **FR-REFINE-72.1**.
+
+---
+
+## Épica 75: Goles del partido vs goles de la tanda de penales (Unit 75 — añadida vía refine)
+
+> Refine sobre Unit 25 (sync football-data), Unit 28 (persistencia de matches), Unit 41
+> (predicciones del pool), Unit 71 (marcador en línea) y la infraestructura de penales de
+> Unit 36. Bug en vivo de la fase eliminatoria: el resultado de la **tanda de penales** se
+> mostraba como marcador final del partido. No reinicia etapas aprobadas. Refina US-3.4 y
+> US-2.2/US-5.1 sin cambiar la regla de scoring. Partido de referencia: **Alemania vs Paraguay**.
+
+### US-75.1: Ver diferenciados los goles del partido y los de la tanda de penales
+
+**Como** jugador siguiendo la fase eliminatoria
+**Quiero** ver, en `/matches` y en los resultados del pool, el marcador del partido y —cuando se definió por penales— la tanda de penales por separado
+**Para** entender el resultado real (p. ej. Alemania 1–1 Paraguay, 4–5 en penales) y no confundir el marcador de la tanda con el resultado del partido.
+
+- **Criterios de Aceptación**:
+  - El sync de football-data deja de mapear el agregado con penales (`score.fullTime`) como marcador del partido: usa el juego corrido (`regularTime` + `extraTime`) para el marcador y `score.penalties` para la tanda, persistiendo `home_penalty_score`/`away_penalty_score`. **FR-REFINE-75.1**.
+  - El sync deriva `winner_team_id` (por marcador, o por la tanda si se empató el juego), respetando el congelado de override/regresión terminal, de modo que el bonus de penales (US-5.1) también puntúa en partidos auto-sincronizados. **FR-REFINE-75.1**.
+  - En `/matches`, un partido definido por penales muestra el marcador del juego (`1 - 1`) y, en una línea pequeña debajo, la tanda diferenciada (`(4 - 5 pen.)`), apilada para no romper el marcador en línea de Unit 71 en mobile. **FR-REFINE-75.2**.
+  - En los resultados del pool (`/pools/[id]`, grid de Predicciones), el header de columna de un partido por penales muestra el marcador del juego y, en una segunda línea pequeña, la tanda (`4-5 pen.`), sin ensanchar el header ni romper la grilla en mobile. **FR-REFINE-75.3**.
+  - Los partidos sin tanda se ven exactamente igual que antes; el desglose «tu predicción vs resultado» (`PredictionVsResult`), que ya mostraba la tanda, ahora recibe el dato. **FR-REFINE-75.2**.
+  - Sin nueva migración de schema (las columnas de penales/ganador ya existían), sin nuevas claves i18n (`pen.` igual que en `PredictionVsResult`). **FR-REFINE-75.1–75.3**.

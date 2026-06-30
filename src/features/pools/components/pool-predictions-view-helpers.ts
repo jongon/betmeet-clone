@@ -18,6 +18,10 @@ export interface MatchColumn {
   /** Unit 58: live match score for the column header (shown while LIVE). */
   homeScore: number | null;
   awayScore: number | null;
+  /** Unit 75: penalty shootout score, shown on its own line under the result so the
+   *  grid header never widens on mobile. Null unless the match went to penalties. */
+  homePenaltyScore: number | null;
+  awayPenaltyScore: number | null;
 }
 
 export interface DayGroup {
@@ -116,6 +120,8 @@ export function buildDayGroups(
       awayLabel: match.awayTeam?.fifaCode ?? match.awayPlaceholder ?? "?",
       homeScore: match.homeScore,
       awayScore: match.awayScore,
+      homePenaltyScore: match.homePenaltyScore ?? null,
+      awayPenaltyScore: match.awayPenaltyScore ?? null,
     });
   }
 
