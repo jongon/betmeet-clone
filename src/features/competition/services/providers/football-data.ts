@@ -46,16 +46,19 @@ const nz = (n: number | null | undefined): number => n ?? 0;
  * Splits football-data.org's score into the **run-of-play result** (the goals that count
  * as the match score) and the **penalty shootout**, when there is one.
  *
- * For a penalty-decided knockout the provider bakes the shootout into `fullTime`: it equals
- * `run of play + shootout` (Germany 1–1 Paraguay, pens 3–4 → `fullTime` 4–5). So the match
- * score is the 120-minute play (`regularTime` + `extraTime`) and the shootout is
- * `fullTime − run of play`.
+ * Per football-data.org's documented encoding (overtime.html), for a knockout decided after
+ * 90' the score breaks down as `fullTime = regularTime + extraTime + penalties` — e.g. their
+ * EC1996 sample: `fullTime` 7–6 = `regularTime` 1–1 + `extraTime` 0–0 + `penalties` 6–5. So the
+ * match score is the 120-minute play (`regularTime` + `extraTime`) and the shootout equals both
+ * the `penalties` field and `fullTime − run of play` (equal by that invariant).
  *
- * We deliberately do NOT trust `score.penalties`: this feed has returned it as an
- * **impossible tie** (e.g. 4–4 / 5–5) with `winner: null`, while `fullTime` carries the real
- * decisive score. So we derive the shootout from `fullTime` and only fall back to the
- * `penalties` field when `fullTime` doesn't carry a decided shootout. Ref match: Germany vs
- * Paraguay (Unit 75 — `penalties` came back 4–4, `fullTime` 4–5 ⇒ real shootout 3–4).
+ * We derive the shootout from `fullTime − run of play` rather than the `penalties` breakdown,
+ * because `fullTime` is the always-maintained primary score field whereas the breakdown can be
+ * individually corrupt: this feed returned `penalties` as an **impossible tie** (4–4) with
+ * `winner: null` for Germany vs Paraguay, violating the invariant (`1–1 + 4–4 = 5–5 ≠ fullTime
+ * 4–5`), while `fullTime` 4–5 correctly decoded to the real shootout 3–4. We reject an
+ * impossible (level) `fullTime`-derived shootout and fall back to the `penalties` field only
+ * when `fullTime` doesn't carry a decided shootout. Ref match: Germany vs Paraguay (Unit 75).
  *
  * Non-shootout matches keep `fullTime` (already the real 90'/120' result, no shootout to strip).
  */

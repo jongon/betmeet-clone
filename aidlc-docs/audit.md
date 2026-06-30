@@ -3214,3 +3214,19 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos**: `src/features/competition/services/providers/football-data.ts` (MODIFIED — `splitScore` deriva de `fullTime`), `…/__tests__/football-data.test.ts` (MODIFIED), `scripts/override-penalty-match-537415.ts` (NEW), `CHANGELOG.md` (Unit 75 Fixed actualizado), `audit.md` (esta entrada). **Pendiente**: invalidar caché de prod (`/matches`/pools/leaderboard) — el próximo cron RESULTS llama `revalidateResultViews`, o "Sincronizar ahora" en `/admin`. **No reinicia etapas aprobadas.**
 
 ---
+
+## 2026-06-30 — Confirmación con doc oficial de football-data + barrido de documentación AI-DLC
+
+**Confirmación del esquema (doc oficial)**: a raíz de la pregunta del usuario ("¿estás seguro de cómo mapeas la tanda si el dato viene de otro lado?"), se verificó contra la **documentación oficial** de football-data.org (`overtime.html`), que define la invariante: para un knockout que pasa de 90', `fullTime = regularTime + extraTime + penalties`. Ejemplo oficial (EC1996, Alemania-Inglaterra): `fullTime` 7–6 = `regularTime` 1–1 + `extraTime` 0–0 + `penalties` 6–5. Conclusión: (1) el mapeo del **marcador del partido** = `regularTime + extraTime` queda **confirmado por la doc**; (2) la tanda equivale por invariante tanto al campo `penalties` como a `fullTime − (regularTime+extraTime)`, así que derivarla de `fullTime` no contradice la doc — solo es más robusto ante la corrupción puntual del desglose. El framing previo de "campo `penalties` poco fiable" se precisa a: **el campo `penalties` es el canónico documentado, pero para Alemania vs Paraguay vino corrupto** (`4-4` + `winner: null`) **violando la invariante** (`1-1 + 4-4 = 5-5 ≠ fullTime 4-5`); `fullTime` (el campo de marcador siempre mantenido) traía el dato correcto. **Límite honesto**: la lógica de mapeo queda confirmada contra el esquema oficial, pero la **calidad del dato** del proveedor no está garantizada (a veces manda valores inconsistentes recién terminado el partido); la red de seguridad operativa es la verificación + override de admin por partido a penales (raros y de alto impacto), como se hizo con el de referencia.
+
+**Barrido de documentación AI-DLC** (toda la doc actualizada para reflejar la derivación desde `fullTime` y la invariante documentada; sin cambio de comportamiento):
+- `construction/unit-75-penalty-shootout-scores/functional-design.md` — BR-75.1 reescrita (tanda de `fullTime − run-of-play`, invariante, fallback) + **nueva §1bis** (hallazgo del dato corrupto, doc oficial, override, rescore) + scripts en tabla de Archivos + nota en el encabezado.
+- `inception/requirements/requirements.md` — FR-REFINE-75.1 refinada (invariante documentada + corrupción del desglose + override).
+- `inception/user-stories/stories.md` — US-75.1: criterios de aceptación corregidos (tanda de `fullTime`, ejemplo de referencia `1-1` / tanda `3-4`).
+- `aidlc-state.md` — Project Type + Current Stage: descripción de `splitScore`, verificación (tests) y estado de commits actualizados (`4a3b843` + `e982bd2` + commit de docs; desplegado a Vercel).
+- `CHANGELOG.md` — `[Unreleased] › Fixed` (Unit 75): framing de la invariante + corrupción puntual + override.
+- Código (comentario, no comportamiento): `src/features/competition/services/providers/football-data.ts` — docstring de `splitScore` cita la invariante documentada (`overtime.html`, ejemplo EC1996).
+
+**No reinicia etapas aprobadas (Units 1–72 intactas).**
+
+---

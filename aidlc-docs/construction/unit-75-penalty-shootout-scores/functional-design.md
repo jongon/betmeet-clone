@@ -1,6 +1,6 @@
 # Functional Design — Unit 75: Goles del partido vs goles de la tanda de penales
 
-> Refine post-construcción (2026-06-30) sobre Unit 25 (sync football-data), Unit 28 (persistencia de matches), Unit 41 (predicciones del pool), Unit 71 (marcador en línea) y la infraestructura de penales de Unit 36. **No reinicia** etapas aprobadas (Units 1–72 intactas). Bug en vivo de la fase eliminatoria: cuando un partido empata en los 120 minutos y se define por **tanda de penales**, el resultado de la tanda se mostraba **como marcador final del partido**. Partido de referencia: **Alemania vs Paraguay**.
+> Refine post-construcción (2026-06-30) sobre Unit 25 (sync football-data), Unit 28 (persistencia de matches), Unit 41 (predicciones del pool), Unit 71 (marcador en línea) y la infraestructura de penales de Unit 36. **No reinicia** etapas aprobadas (Units 1–72 intactas). Bug en vivo de la fase eliminatoria: cuando un partido empata en los 120 minutos y se define por **tanda de penales**, el resultado de la tanda se mostraba **como marcador final del partido**. Partido de referencia: **Alemania vs Paraguay**. **Refinamiento 2026-06-30 (ver §1bis):** el campo `score.penalties` del proveedor puede venir corrupto (empate imposible + `winner: null`); la tanda se deriva de `fullTime` (invariante documentada de football-data) y el partido de referencia se fijó con override congelado.
 
 ## Traceability
 
@@ -39,17 +39,60 @@ marcador (`MatchCard` de `/matches` y el `sublabel` del grid del pool) tampoco l
 provider + persistir la tanda y el ganador en el sync, y mostrar la diferenciación **apilada**
 (segunda línea pequeña) en ambos headers para que no ensanche la fila/columna en mobile.
 
+## 1bis. Refinamiento (2026-06-30): el campo `penalties` puede venir corrupto → derivar la tanda de `fullTime`
+
+Tras desplegar la corrección anterior, **la tanda de Alemania vs Paraguay se mostraba `4 - 4`**, que no es
+el resultado real. Diagnóstico contra la API y contra la **documentación oficial** de football-data.org
+(`overtime.html`), que define la invariante `fullTime = regularTime + extraTime + penalties` (ejemplo EC1996:
+`fullTime` 7–6 = 1–1 + 0–0 + 6–5):
+
+```json
+"score": {
+  "winner": null,                       // ← imposible: un partido a penales SIEMPRE tiene ganador
+  "duration": "PENALTY_SHOOTOUT",
+  "regularTime": { "home": 1, "away": 1 },   // partido = 1-1 (sólido)
+  "extraTime":   { "home": 0, "away": 0 },
+  "penalties":   { "home": 4, "away": 4 },   // ← EMPATE imposible en una tanda (campo corrupto)
+  "fullTime":    { "home": 4, "away": 5 }    // ← correcto: 1-1 + tanda 3-4
+}
+```
+
+El dato **viola la invariante documentada**: `regularTime + penalties = 1–1 + 4–4 = 5–5 ≠ fullTime 4–5`. O
+sea, el desglose `penalties` (`4-4`, + `winner: null`) vino **corrupto/incompleto** (el proveedor seguía
+cargando el resultado; entre syncs cambió de `penalties 5-5 / fullTime 5-6` a `penalties 4-4 / fullTime 4-5`),
+mientras que `fullTime` (4–5) sí traía el marcador decisivo y decodifica a la tanda real **`3 - 4`** (Paraguay
+4–3, confirmado por el admin).
+
+**Decisión:** `splitScore` deriva la tanda de **`fullTime − (regularTime + extraTime)`** (campo de marcador
+siempre mantenido) en vez del desglose `penalties`; los dos coinciden cuando el dato es consistente, pero
+`fullTime` resiste la corrupción puntual del desglose. Se rechaza una tanda derivada empatada/negativa (imposible)
+y se cae al campo `penalties` solo si `fullTime` no trae una tanda decidida. El ganador del sync se deriva de esa
+tanda (`derivePenaltyWinner`).
+
+**Reparación de datos del partido de referencia (con OK del usuario; la DB de `.env` apunta a producción):** como
+la API de ese partido fue inconsistente, se fijó con un **override de admin congelado**
+(`scripts/override-penalty-match-537415.ts --apply`): `homeScore/awayScore = 1`, `homePenaltyScore/awayPenaltyScore
+= 3/4`, `winnerTeamId = Paraguay`, `manualOverride = true` (el sync ya no lo pisa). Puntos re-calculados con
+`scripts/rescore-penalty-match.ts --apply` (1/0/1, total 2 — sin cambio por la tanda, ya que ninguna predicción era
+empate con ganador). Tests del provider: caso real GER-PAR (`penalties 4-4` ignorado, `fullTime 4-5` ⇒ tanda `3-4`)
++ caso de fallback al campo `penalties` cuando `fullTime` no incluye la tanda. Commit `e982bd2`.
+
 ## 2. Business Rules
 
 ### BR-75.1 — El provider separa juego corrido y tanda (`splitScore`)
 `football-data.ts` amplía el tipo `score` con `regularTime`/`extraTime`/`penalties` (opcionales, solo
-presentes en knockout que pasa de 90'). `splitScore(score)`:
-- Si `duration === "PENALTY_SHOOTOUT"` y hay `penalties`: `homeScore/awayScore = regularTime + extraTime`
-  (el juego corrido, 120'); `homePenaltyScore/awayPenaltyScore = penalties`.
+presentes en knockout que pasa de 90'). Según la **codificación documentada** de football-data.org
+(`overtime.html`): `fullTime = regularTime + extraTime + penalties` (ejemplo oficial EC1996: `fullTime`
+7–6 = `regularTime` 1–1 + `extraTime` 0–0 + `penalties` 6–5). `splitScore(score)`:
+- Si `duration === "PENALTY_SHOOTOUT"` (y hay `regularTime`): `homeScore/awayScore = regularTime + extraTime`
+  (el juego corrido, 120'); la **tanda se deriva de `fullTime − (regularTime + extraTime)`** —no del campo
+  `penalties` directo— porque `fullTime` es el campo de marcador siempre mantenido y el desglose `penalties`
+  puede venir corrupto (ver §1bis). Se **rechaza una tanda empatada** (imposible) y `< 0`; se cae al campo
+  `penalties` solo si `fullTime` no trae una tanda decidida; si tampoco, `null`.
 - Si no: `homeScore/awayScore = fullTime` (ya es el resultado real de 90'/120', sin tanda que separar);
   penales `null`.
-- Verificación con la referencia: `1 - 1` (partido) + `4 - 5` (penales). El `fullTime` 5–6 ya no se usa
-  como marcador.
+- Verificación con la referencia (dato corrupto real): `fullTime` 4–5, `penalties` 4–4 → partido `1 - 1`,
+  tanda derivada **`3 - 4`** (Paraguay 4–3); el `4 - 4` del campo `penalties` se ignora.
 
 ### BR-75.2 — El sync persiste la tanda y deriva el ganador
 `NormalizedMatchSchema` añade `homePenaltyScore`/`awayPenaltyScore` (int ≥ 0, nullable, opcionales).
@@ -86,7 +129,7 @@ partidos sin tanda se ven idénticos a antes. Sin nueva superficie de input/ruta
 
 | Archivo | Cambio |
 |---------|--------|
-| `src/features/competition/services/providers/football-data.ts` | MODIFIED — tipo `score` + `splitScore` (juego corrido vs tanda) |
+| `src/features/competition/services/providers/football-data.ts` | MODIFIED — tipo `score` + `splitScore` (juego corrido vs tanda; tanda derivada de `fullTime`, §1bis) |
 | `src/features/competition/schemas.ts` | MODIFIED — `NormalizedMatchSchema` + `homePenaltyScore`/`awayPenaltyScore` |
 | `src/features/competition/services/sync-orchestrator.ts` | MODIFIED — persiste tanda + `resolveSyncedWinnerTeamId` (FINISHED, congelado respetado) |
 | `src/features/competition/components/match-card.tsx` | MODIFIED — línea de tanda apilada bajo el marcador |
@@ -94,7 +137,10 @@ partidos sin tanda se ven idénticos a antes. Sin nueva superficie de input/ruta
 | `src/features/pools/queries.ts` | MODIFIED — mapeo de penalty fields (matches + predictions) |
 | `src/features/pools/components/pool-predictions-view-helpers.ts` | MODIFIED — `MatchColumn` + `buildDayGroups` |
 | `src/features/pools/components/pool-predictions-view.tsx` | MODIFIED — header de columna apilado (width-safe) |
-| `*/__tests__/football-data.test.ts`, `sync-orchestrator.test.ts`, `pool-predictions-view.test.tsx` | MODIFIED — cobertura de penales (+ fixtures de 4 tests por el cambio de tipo) |
+| `*/__tests__/football-data.test.ts`, `sync-orchestrator.test.ts`, `pool-predictions-view.test.tsx` | MODIFIED — cobertura de penales: tanda derivada de `fullTime` + fallback a `penalties` (§1bis), + fixtures de 4 tests por el cambio de tipo |
+| `scripts/repair-unit-75-penalty-scores.ts` | NEW — re-lee RESULTS por el provider corregido y reescribe la tanda/ganador de los partidos a penales (dry-run por defecto) |
+| `scripts/rescore-penalty-match.ts` | NEW — recalcula `PredictionScore` de un partido tras corregir su resultado (reusa `computeScore`, dry-run por defecto) |
+| `scripts/override-penalty-match-537415.ts` | NEW — override de admin congelado para el dato corrupto de Alemania vs Paraguay (§1bis; dry-run por defecto) |
 
 ## 4. Stages
 
