@@ -46,13 +46,18 @@ const nz = (n: number | null | undefined): number => n ?? 0;
  * Splits football-data.org's score into the **run-of-play result** (the goals that count
  * as the match score) and the **penalty shootout**, when there is one.
  *
- * For a penalty-decided knockout the provider bakes the shootout into `fullTime`: Germany
- * 1–1 Paraguay with pens 5–4 comes back as `fullTime` 5–6 (`duration: PENALTY_SHOOTOUT`,
- * with the breakdown in `regularTime`/`extraTime`/`penalties`). Mapping `fullTime` as the
- * match score is what shows the penalties as the final result — which is wrong. Here the
- * match score is the 120-minute play (`regularTime` + `extraTime`) and the shootout is
- * surfaced separately. Non-shootout matches keep `fullTime` (already the real 90'/120'
- * result, no shootout to strip). Ref match: Germany vs Paraguay (Unit 75).
+ * For a penalty-decided knockout the provider bakes the shootout into `fullTime`: it equals
+ * `run of play + shootout` (Germany 1–1 Paraguay, pens 3–4 → `fullTime` 4–5). So the match
+ * score is the 120-minute play (`regularTime` + `extraTime`) and the shootout is
+ * `fullTime − run of play`.
+ *
+ * We deliberately do NOT trust `score.penalties`: this feed has returned it as an
+ * **impossible tie** (e.g. 4–4 / 5–5) with `winner: null`, while `fullTime` carries the real
+ * decisive score. So we derive the shootout from `fullTime` and only fall back to the
+ * `penalties` field when `fullTime` doesn't carry a decided shootout. Ref match: Germany vs
+ * Paraguay (Unit 75 — `penalties` came back 4–4, `fullTime` 4–5 ⇒ real shootout 3–4).
+ *
+ * Non-shootout matches keep `fullTime` (already the real 90'/120' result, no shootout to strip).
  */
 function splitScore(score: FootballDataMatch["score"]): {
   homeScore: number | null;
@@ -60,19 +65,25 @@ function splitScore(score: FootballDataMatch["score"]): {
   homePenaltyScore: number | null;
   awayPenaltyScore: number | null;
 } {
-  const pens = score.penalties;
-  const hasShootout =
-    score.duration === "PENALTY_SHOOTOUT" && pens != null && pens.home != null && pens.away != null;
-
-  if (hasShootout) {
-    const reg = score.regularTime ?? score.fullTime;
+  if (score.duration === "PENALTY_SHOOTOUT" && score.regularTime) {
     const et = score.extraTime ?? { home: 0, away: 0 };
-    return {
-      homeScore: nz(reg.home) + nz(et.home),
-      awayScore: nz(reg.away) + nz(et.away),
-      homePenaltyScore: pens.home,
-      awayPenaltyScore: pens.away,
-    };
+    const homeScore = nz(score.regularTime.home) + nz(et.home);
+    const awayScore = nz(score.regularTime.away) + nz(et.away);
+
+    // Primary: the shootout sits in `fullTime` (= run of play + shootout). Only trust it when
+    // it carries a non-negative, *decided* shootout (a real shootout can never end level).
+    const homePen = nz(score.fullTime.home) - homeScore;
+    const awayPen = nz(score.fullTime.away) - awayScore;
+    if (homePen >= 0 && awayPen >= 0 && homePen !== awayPen) {
+      return { homeScore, awayScore, homePenaltyScore: homePen, awayPenaltyScore: awayPen };
+    }
+
+    // Fallback: `fullTime` didn't carry the shootout — use the `penalties` field if present.
+    const pens = score.penalties;
+    if (pens?.home != null && pens?.away != null) {
+      return { homeScore, awayScore, homePenaltyScore: pens.home, awayPenaltyScore: pens.away };
+    }
+    return { homeScore, awayScore, homePenaltyScore: null, awayPenaltyScore: null };
   }
 
   return {

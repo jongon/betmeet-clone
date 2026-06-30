@@ -107,10 +107,11 @@ describe("FootballDataProvider", () => {
     expect(scheduledMatch.awayPlaceholder).toBeNull();
   });
 
-  it("splits a penalty-shootout result into match goals and shootout score (Unit 75)", async () => {
-    // Reference match Germany vs Paraguay: 1–1 after extra time, decided on penalties.
-    // football-data.org bakes the shootout into `fullTime` (5–6); we must surface the
-    // run-of-play result as the match score and the shootout separately.
+  it("derives the shootout from fullTime, ignoring the broken `penalties` tie (Unit 75)", async () => {
+    // Real Germany vs Paraguay data: 1–1 after extra time, decided on penalties. The provider
+    // returns `penalties` as an impossible 4–4 tie with `winner: null`, while `fullTime` (4–5)
+    // carries the real decisive score = run of play (1–1) + shootout (3–4). We must surface the
+    // run-of-play result as the match score and the *fullTime-derived* shootout (3–4), NOT 4–4.
     mockFetch(200, {
       matches: [
         {
@@ -126,11 +127,11 @@ describe("FootballDataProvider", () => {
           score: {
             winner: null,
             duration: "PENALTY_SHOOTOUT",
-            fullTime: { home: 5, away: 6 },
+            fullTime: { home: 4, away: 5 },
             halfTime: { home: 0, away: 1 },
             regularTime: { home: 1, away: 1 },
             extraTime: { home: 0, away: 0 },
-            penalties: { home: 4, away: 5 },
+            penalties: { home: 4, away: 4 },
           },
         },
       ],
@@ -144,9 +145,48 @@ describe("FootballDataProvider", () => {
     // The match score is the 120-minute run of play (regularTime + extraTime), NOT fullTime.
     expect(match.homeScore).toBe(1);
     expect(match.awayScore).toBe(1);
-    // The shootout is surfaced on its own, differentiated from the match goals.
-    expect(match.homePenaltyScore).toBe(4);
-    expect(match.awayPenaltyScore).toBe(5);
+    // Shootout derived from fullTime − run of play (4−1, 5−1) = 3–4, ignoring the 4–4 tie.
+    expect(match.homePenaltyScore).toBe(3);
+    expect(match.awayPenaltyScore).toBe(4);
+  });
+
+  it("falls back to the `penalties` field when fullTime doesn't carry the shootout (Unit 75)", async () => {
+    // Other convention: `fullTime` is the 120-minute score and the shootout lives only in
+    // `penalties`. Then fullTime − run of play = 0, so we use the `penalties` field.
+    mockFetch(200, {
+      matches: [
+        {
+          id: 3002,
+          utcDate: "2026-07-05T18:00:00Z",
+          status: "FINISHED",
+          matchday: 1,
+          stage: "LAST_32",
+          group: null,
+          lastUpdated: "2026-07-05T21:00:00Z",
+          homeTeam: { id: 761, name: "Mexico", shortName: "Mexico", tla: "MEX" },
+          awayTeam: { id: 762, name: "Argentina", shortName: "Argentina", tla: "ARG" },
+          score: {
+            winner: "AWAY_TEAM",
+            duration: "PENALTY_SHOOTOUT",
+            fullTime: { home: 2, away: 2 },
+            halfTime: { home: 1, away: 0 },
+            regularTime: { home: 2, away: 2 },
+            extraTime: { home: 0, away: 0 },
+            penalties: { home: 3, away: 4 },
+          },
+        },
+      ],
+    });
+
+    const provider = new FootballDataProvider();
+    const result = await provider.fetch("RESULTS", { windowKey: "test" });
+
+    const match = result.matches[0];
+    if (!match) throw new Error("expected match");
+    expect(match.homeScore).toBe(2);
+    expect(match.awayScore).toBe(2);
+    expect(match.homePenaltyScore).toBe(3);
+    expect(match.awayPenaltyScore).toBe(4);
   });
 
   it("aliases the provider TLA 'URU' to the canonical Uruguay code 'URY' (Unit 69)", async () => {

@@ -3200,3 +3200,17 @@ Verificación: tsc 0, Biome limpio (un nit de orden de imports en `trigger-sync.
 **Archivos AI-DLC**: `construction/unit-75-penalty-shootout-scores/functional-design.md` (NEW), `inception/requirements/requirements.md` (Épica 75/FR-REFINE-75.1…75.3 + nota 73/74), `inception/user-stories/stories.md` (US-75.1), `CHANGELOG.md` (Unreleased › Fixed), `aidlc-state.md` (Current Stage + Project Type), `audit.md` (esta entrada). **Archivos de código**: ver "Code change" arriba. Sin commit/push. **No reinicia etapas aprobadas (Units 1–72 intactas).**
 
 ---
+
+## 2026-06-30 — Seguimiento Unit 75: `score.penalties` de football-data es poco fiable → derivar la tanda de `fullTime`
+
+**Contexto**: tras desplegar Unit 75, la tanda de Alemania vs Paraguay (`537415`) se mostraba **4-4**, que no es el resultado real. Diagnóstico contra la API: `score.penalties` viene **roto** para ese partido —`{home:4, away:4}` (empate imposible en una tanda) con `winner: null`—, mientras que `fullTime {4,5}` sí trae el marcador decisivo. Como `fullTime` = juego corrido + tanda, la tanda real = `fullTime − (regularTime+extraTime)` = `{4-1, 5-1}` = **3-4** (gana Paraguay 4-3). El feed además había cambiado `penalties` de `5-5` a `4-4` entre syncs (datos a medio cargar). Confirmado el resultado real con el usuario (admin): **1-1, tanda 3-4 a favor de Paraguay**.
+
+**Cambio de código (`splitScore` en `football-data.ts`)**: deja de confiar en `score.penalties`. Para `PENALTY_SHOOTOUT`: marcador del partido = `regularTime + extraTime`; tanda = `fullTime − marcador` **si** es no-negativa y **no empatada** (una tanda nunca termina en empate); si `fullTime` no la trae (== marcador), cae a `score.penalties`; si tampoco, `null`. El ganador en el sync se deriva de esa tanda (`derivePenaltyWinner`). Tests del provider actualizados: caso real GER-PAR (penalties `4-4` ignorado, `fullTime 4-5` ⇒ tanda `3-4`) + caso de fallback al campo `penalties` cuando `fullTime` no incluye la tanda.
+
+**Reparación de datos en prod (con OK del usuario; la DB de `.env` es producción)**: como la API de ese partido es inconsistente, se fijó con **override de admin congelado** (`scripts/override-penalty-match-537415.ts --apply`): `homeScore/awayScore = 1`, `homePenaltyScore/awayPenaltyScore = 3/4`, `winnerTeamId = Paraguay`, `manualOverride = true` (el sync ya no lo pisa). Re-puntuado con `rescore-penalty-match.ts --apply`: Capdjnm 1 (PARTIAL), JGA 0 (MISS), Luis_Mena 1 (PARTIAL), total 2 — sin cambio (ninguna predicción era empate con ganador de penales). **Verificado en BD**: 1-1, tanda 3-4, winner Paraguay, manualOverride true.
+
+**Build/Test**: `football-data.test.ts` 14/14 (2 casos nuevos de tanda), `tsc --noEmit` 0 en archivos tocados (persisten 2 errores preexistentes de `pool-live-now-banner.test.tsx` Unit 61), Biome limpio.
+
+**Archivos**: `src/features/competition/services/providers/football-data.ts` (MODIFIED — `splitScore` deriva de `fullTime`), `…/__tests__/football-data.test.ts` (MODIFIED), `scripts/override-penalty-match-537415.ts` (NEW), `CHANGELOG.md` (Unit 75 Fixed actualizado), `audit.md` (esta entrada). **Pendiente**: invalidar caché de prod (`/matches`/pools/leaderboard) — el próximo cron RESULTS llama `revalidateResultViews`, o "Sincronizar ahora" en `/admin`. **No reinicia etapas aprobadas.**
+
+---
