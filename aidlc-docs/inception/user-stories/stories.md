@@ -1210,3 +1210,23 @@
   - En los resultados del pool (`/pools/[id]`, grid de Predicciones), el header de columna de un partido por penales muestra el marcador del juego y, en una segunda línea pequeña, la tanda (`3-4 pen.`), sin ensanchar el header ni romper la grilla en mobile. **FR-REFINE-75.3**.
   - Los partidos sin tanda se ven exactamente igual que antes; el desglose «tu predicción vs resultado» (`PredictionVsResult`), que ya mostraba la tanda, ahora recibe el dato. **FR-REFINE-75.2**.
   - Sin nueva migración de schema (las columnas de penales/ganador ya existían), sin nuevas claves i18n (`pen.` igual que en `PredictionVsResult`). **FR-REFINE-75.1–75.3**.
+
+## Épica 76: El error de validación de la predicción ya no bloquea el formulario en `/matches` (Unit 76 — añadida vía refine)
+
+> Refine sobre la capa de UI de Unit 5 (Predictions & Match Locking) y el contrato de
+> `savePrediction`, en continuación de Unit 57 (bloqueo en vivo al llegar el kickoff). Bug de
+> **UX de recuperación**: un error de validación correcto dejaba el formulario inutilizable y
+> obligaba a recargar. No reinicia etapas aprobadas. Refina US-3.3/US-5.1 sin cambiar reglas.
+
+### US-76.1: Corregir inline una predicción inválida sin recargar la pantalla
+
+**Como** jugador que predice en `/matches`
+**Quiero** que, cuando mi predicción es inválida (p. ej. un empate en fase de eliminación sin elegir quién avanza por penales), vea el error y pueda **corregirla ahí mismo**
+**Para** elegir el ganador por penales y volver a guardar sin tener que reiniciar la pantalla.
+
+- **Criterios de Aceptación**:
+  - Al guardar una predicción inválida en `/matches`, se muestra el mensaje de error y el formulario **permanece editable**: siguen visibles los controles de marcador, el `PenaltyWinnerSelector` y el botón Guardar. **FR-REFINE-76.1**.
+  - Para un empate en fase de eliminación, el `PenaltyWinnerSelector` sigue visible tras el error (porque el marcador es empate y el partido sigue editable); al elegir un equipo y volver a guardar, la predicción se guarda **sin recargar**. **FR-REFINE-76.1**.
+  - **Prevención proactiva**: mientras el `PenaltyWinnerSelector` esté visible y no se haya elegido ganador, el botón «Guardar» está **deshabilitado**; se habilita al elegir un equipo. Así ese error no llega a producirse (la validación server-side queda como red de seguridad). **FR-REFINE-76.1 (BR-76.7)**.
+  - `savePrediction` marca `locked: true` **solo** en el conflicto de elegibilidad real (kickoff alcanzado); el cliente pasa a solo-lectura **solo** ante `locked`. Un partido ya iniciado sigue bloqueándose (lock por kickoff de Unit 57). **FR-REFINE-76.1**.
+  - Cambio puramente presentacional/UX: la autoridad sigue 100% server-side (BR-5.5/5.7 intactas); alcance solo `/matches` (el modal de `/pools` ya dejaba corregir con `toast`). **FR-REFINE-76.1**.

@@ -57,6 +57,11 @@ export function PredictionForm({ match }: PredictionFormProps) {
     match.homeTeam &&
     match.awayTeam;
 
+  // A knockout draw requires picking who advances on penalties. Block the save
+  // until a winner is chosen so the prediction is never rejected for it — the
+  // server-side validation (savePrediction) stays as the backstop.
+  const needsPenaltyWinner = Boolean(showPenaltySelector) && penaltyWinner === null;
+
   async function handleSave() {
     setPending(true);
     setError(null);
@@ -83,10 +88,16 @@ export function PredictionForm({ match }: PredictionFormProps) {
       return;
     }
 
-    // Lock conflict: the server rejected the save
-    setLockedConflict(true);
-    setError("error" in result ? result.error : null);
-    setCanEdit(false);
+    // The server rejected the save. Only a genuine lock/eligibility conflict
+    // (kickoff reached, `locked: true`) flips the form to read-only. Any other
+    // error (validation — e.g. a knockout draw with no penalty winner picked —,
+    // membership, transient) keeps the form editable so it can be corrected
+    // inline and saved again, without reloading the screen.
+    setError(result.error);
+    if (result.locked) {
+      setLockedConflict(true);
+      setCanEdit(false);
+    }
   }
 
   const isReadOnly = !liveCanEdit || lockedConflict;
@@ -141,7 +152,7 @@ export function PredictionForm({ match }: PredictionFormProps) {
         <div className="flex items-center justify-between gap-2">
           <Button
             data-testid="prediction-save-button"
-            disabled={pending}
+            disabled={pending || needsPenaltyWinner}
             onClick={handleSave}
             size="sm"
           >

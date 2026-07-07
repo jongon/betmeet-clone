@@ -124,6 +124,9 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
+    // A genuine eligibility conflict is flagged `locked: true` so the UI can
+    // switch the form to read-only.
+    expect(result).toMatchObject({ locked: true });
     expect(prisma.prediction.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { userId: USER_ID, matchId: MATCH_ID, poolId: null, lockedAt: null },
@@ -146,6 +149,7 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
+    expect(result).toMatchObject({ locked: true });
     expect(prisma.prediction.create).not.toHaveBeenCalled();
   });
 
@@ -190,6 +194,30 @@ describe("savePrediction", () => {
     });
 
     expect("error" in result).toBe(true);
+    // A recoverable validation error must NOT be flagged as a lock, so the UI
+    // keeps the form editable for inline correction.
+    expect("locked" in result).toBe(false);
+    expect(prisma.prediction.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects a knockout draw with no penalty winner without locking the form", async () => {
+    stubAuth(USER_ID);
+    vi.mocked(prisma.match.findUnique).mockResolvedValue(
+      mockMatch({ phase: { type: "KNOCKOUT" } }) as never,
+    );
+
+    const result = await savePrediction({
+      matchId: MATCH_ID,
+      homeScore: 1,
+      awayScore: 1,
+      penaltyWinnerTeamId: null,
+    });
+
+    expect(result).toEqual({
+      error: "En fase de eliminación con empate, debes elegir quién avanza por penales.",
+    });
+    // No `locked` flag: the user can pick the winner and save again inline.
+    expect("locked" in result).toBe(false);
     expect(prisma.prediction.create).not.toHaveBeenCalled();
   });
 

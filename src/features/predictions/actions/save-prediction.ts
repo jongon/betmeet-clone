@@ -56,7 +56,7 @@ export async function savePrediction(input: {
   penaltyWinnerTeamId: string | null;
   poolId?: string;
   alsoSaveAsGlobal?: boolean;
-}): Promise<{ success: true } | { error: string }> {
+}): Promise<{ success: true } | { error: string; locked?: true }> {
   const userId = await getOnboardedUserId();
   if (!userId) return { error: "Completa tu perfil para predecir." };
 
@@ -111,12 +111,20 @@ export async function savePrediction(input: {
       if (existing && !existing.lockedAt) {
         await lockExistingPrediction(userId, matchId, eligibility.reason, poolId);
       }
+      // `locked: true` marca un conflicto de elegibilidad real (kickoff
+      // alcanzado): la UI puede pasar el formulario a solo-lectura. Los demás
+      // errores (validación, membresía, transitorios) NO lo llevan, para que el
+      // cliente los muestre y deje corregir la predicción inline.
       if (existing) {
         return {
           error: "El partido ya no acepta cambios. Se mantiene tu última predicción guardada.",
+          locked: true,
         };
       }
-      return { error: "El partido ya no acepta predicciones. No suma puntos en este partido." };
+      return {
+        error: "El partido ya no acepta predicciones. No suma puntos en este partido.",
+        locked: true,
+      };
     }
 
     const validation = validatePredictionInput(
