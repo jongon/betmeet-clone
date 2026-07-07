@@ -2158,3 +2158,38 @@ En la lista de partidos (`/matches`), al guardar una predicción inválida —ca
 - Seguridad: mantiene/refuerza BR-5.7; sin nueva superficie de input, schema, migraciones, rutas ni server actions (campo de retorno opcional). `locked` solo indica a la UI cómo presentar el error; **no** autoriza escrituras.
 - Fuera de alcance: validación en vivo en el cliente del resto de reglas antes del round-trip (el marcador fuera de rango no ocurre por los controles +/−; el servidor sigue siendo la autoridad).
 - **No reinicia** Units 1–75.
+
+## Épica 77: El usuario con sesión que entra a `/` es redirigido a `/matches` (Unit 77 — añadida vía refine, 2026-07-07)
+
+> Refine post-construcción (2026-07-07) vía `/aidlc:refine`. Cambio de **gating de rutas** en el
+> middleware (`src/proxy.ts`); no toca `page.tsx`, schema, migraciones, rutas ni i18n. **No reinicia**
+> etapas aprobadas (Units 1–76). **Plan presentado y aprobado antes de ejecutar.**
+
+### FR-REFINE-77.1 — El usuario con sesión no ve el landing en `/`, va directo a `/matches`
+Un visitante con la **sesión iniciada** (autenticado y con email confirmado) que entra a la página
+principal `/` es **redirigido a `/matches`** en lugar de ver el landing de marketing. El middleware
+(`src/proxy.ts`) ya redirigía a `/matches` las páginas **auth-only** (`/sign-in`, `/sign-up`,
+`/forgot-password`, `/verify-email`) para el usuario logueado; esta épica **amplía la condición de
+ese mismo bloque** a `isAuthOnly(pathname) || pathname === "/"`, reutilizando el guard de
+**MFA-pending** (una sesión aal1 a mitad del reto TOTP **no** se redirige) y el único
+`redirect("/matches")` ya existentes. `/` **permanece pública** (`PUBLIC_ROUTES`), por lo que el
+**visitante anónimo sigue viendo el landing** sin cambios. El redirect se ubica **después** del gate
+de email-confirmado y **antes** del gate de onboarding, de modo que: una sesión no confirmada en `/`
+sigue su curso público (se la gatea a `/verify-email` al intentar la app) y un usuario confirmado sin
+onboarding encadena `/` → `/matches` → `/onboarding/profile` (idéntico al comportamiento de
+`/sign-in`). Esto **supersede la ruta primaria** de FR-REFINE-15.3 (landing consciente de sesión con
+`UserMenu`): el usuario logueado ya no llega al landing; el render session-aware de `page.tsx` se
+**conserva** como degradación elegante / defensa en profundidad (caso residual aal1-pending o bypass
+del middleware). En la práctica, el landing de producto de FR-REFINE-67 pasa a ser **solo para
+anónimos**, sin cambios en `page.tsx`.
+
+### Restricciones / SKIP (Unit 77)
+- Autoridad del redirect en `src/proxy.ts` (convención del proyecto: el gating de sesión/email/admin
+  vive en el middleware). **Sin** cambios en `src/app/page.tsx`.
+- `/` **no** se añade a `AUTH_ONLY_ROUTES` (para no distorsionar su semántica de "solo flujo de
+  auth"); permanece en `PUBLIC_ROUTES` y se cubre con `|| pathname === "/"` en el redirect.
+- Seguridad: COMPLIANT — sin nueva superficie de input, schema, migraciones, rutas ni server actions.
+  El cambio no abre acceso nuevo (el middleware ya permitía a una sesión aal1 alcanzar `/matches`).
+- Fuera de alcance: cambiar el destino (`/matches`) o retirar/refactorizar el render session-aware de
+  `page.tsx` (se conserva a propósito).
+- **No reinicia** Units 1–76.

@@ -137,13 +137,22 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Redirect confirmed users away from auth-only pages — UNLESS they still owe a
-  // second factor. After password login an MFA user holds an aal1 session (so
-  // `getUser` returns a user) but must complete the TOTP challenge, which runs on
-  // /sign-in via server actions (getMfaFactors / verifyMfa). Bouncing them to
-  // /matches here turns those action POSTs into redirects, surfacing as an
-  // "unexpected response" error and blocking sign-in. Let aal1-pending users stay.
-  if (isAuthenticated && isAuthOnly(pathname)) {
+  // Redirect confirmed users away from auth-only pages AND from the marketing
+  // landing at "/" — a logged-in visitor has no use for either; send them into
+  // the app (FR-REFINE-77.1). "/" stays in PUBLIC_ROUTES so anonymous visitors
+  // still get the landing; this branch only adds the redirect for a live session.
+  // Placed after the email-confirmed gate (an unconfirmed session still lands on
+  // /verify-email, since "/" is public) and before the onboarding gate (an
+  // un-onboarded user chains "/" → /matches → /onboarding/profile, exactly like
+  // /sign-in does today).
+  //
+  // UNLESS the session still owes a second factor: after password login an MFA
+  // user holds an aal1 session (so `getUser` returns a user) but must complete
+  // the TOTP challenge, which runs on /sign-in via server actions (getMfaFactors
+  // / verifyMfa). Bouncing them to /matches here turns those action POSTs into
+  // redirects, surfacing as an "unexpected response" error and blocking sign-in.
+  // Let aal1-pending users stay (on "/" this simply keeps the current behavior).
+  if (isAuthenticated && (isAuthOnly(pathname) || pathname === "/")) {
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const mfaPending = aal?.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel;
     if (!mfaPending) {

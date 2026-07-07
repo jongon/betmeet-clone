@@ -1230,3 +1230,25 @@
   - **Prevención proactiva**: mientras el `PenaltyWinnerSelector` esté visible y no se haya elegido ganador, el botón «Guardar» está **deshabilitado**; se habilita al elegir un equipo. Así ese error no llega a producirse (la validación server-side queda como red de seguridad). **FR-REFINE-76.1 (BR-76.7)**.
   - `savePrediction` marca `locked: true` **solo** en el conflicto de elegibilidad real (kickoff alcanzado); el cliente pasa a solo-lectura **solo** ante `locked`. Un partido ya iniciado sigue bloqueándose (lock por kickoff de Unit 57). **FR-REFINE-76.1**.
   - Cambio puramente presentacional/UX: la autoridad sigue 100% server-side (BR-5.5/5.7 intactas); alcance solo `/matches` (el modal de `/pools` ya dejaba corregir con `toast`). **FR-REFINE-76.1**.
+
+---
+
+## Épica 77: El usuario con sesión que entra a `/` es redirigido a `/matches` (Unit 77 — añadida vía refine)
+
+> Refine sobre la capa de gating de rutas (`src/proxy.ts`), en continuación de FR-REFINE-15.3
+> (landing consciente de sesión) y del redirect auth-only → `/matches` ya existente. No reinicia
+> etapas aprobadas. Supersede la ruta primaria de US-14.3 (ver el `UserMenu` en el landing con
+> sesión), que se conserva solo como fallback.
+
+### US-77.1: Entrar a la app directamente al abrir la portada con sesión iniciada
+
+**Como** usuario con la sesión iniciada
+**Quiero** que, al entrar a la página principal `/`, se me lleve directamente a `/matches`
+**Para** ir a la app y no al landing de marketing, que ya no me aporta nada.
+
+- **Criterios de Aceptación**:
+  - Con la sesión iniciada (email confirmado), al entrar a `/` la app **redirige a `/matches`** en lugar de mostrar el landing. **FR-REFINE-77.1**.
+  - El **visitante anónimo** sigue viendo el landing en `/` sin cambios (`/` permanece pública). **FR-REFINE-77.1**.
+  - Un usuario logueado **sin onboarding** que entra a `/` acaba en `/onboarding/profile` (`/` → `/matches` → onboarding), igual que al entrar a `/sign-in`. **FR-REFINE-77.1**.
+  - Una sesión a mitad del reto MFA (aal1 pendiente) **no** se redirige desde `/` (excepción MFA-pending heredada del redirect auth-only). **FR-REFINE-77.1 (BR-77.3)**.
+  - La redirección vive en el middleware (`src/proxy.ts`), no en `page.tsx`; el render consciente de sesión del landing se conserva como degradación elegante. Sin schema, migraciones, rutas ni i18n nuevos. **FR-REFINE-77.1**.

@@ -10,6 +10,7 @@ El formato sigue [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) y este
 
 ### Changed
 
+- **Landing** — Un usuario **con la sesión iniciada** que entra a la página principal (`/`) ahora es llevado directamente a sus partidos (`/matches`) en lugar de ver el landing de marketing; el **visitante anónimo** sigue viendo el landing sin cambios. La redirección se resuelve en el middleware (`src/proxy.ts`), ampliando el redirect que ya existía para las páginas de solo-auth (`/sign-in`, `/sign-up`, …) para cubrir también `/`, y reutilizando su excepción para sesiones con MFA pendiente. Sin cambios en `page.tsx` (su render consciente de sesión se conserva como fallback). (Unit 77)
 - **Email** — Los correos de auth (confirmación de registro, recuperación de contraseña, cambio de email) ahora los **envía la app con Resend** en lugar de Supabase: Supabase sigue generando el token pero delega el envío a un endpoint propio (`/api/auth/email-hook`) que verifica la firma del webhook y manda con el SDK de Resend. El SMTP de Supabase queda desactivado y las plantillas se versionan y renderizan en el repo. Sin cambios visibles para el usuario; el flujo de confirmación (`token_hash` → `/auth/confirm`) y el destino de invitación se conservan. Queda andamiaje para futuros correos de negocio. (Unit 72)
 
 ### Fixed
