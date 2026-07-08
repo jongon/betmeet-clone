@@ -75,6 +75,15 @@ npx tsx scripts/seed-avatars.ts
 > si la API no está disponible. El sync incremental usa scopes acotados por estado del
 > proveedor: `FIXTURES` pide `SCHEDULED,TIMED` (los partidos próximos con fecha confirmada
 > llegan como `TIMED`), `LIVE_STATUS` pide `IN_PLAY,PAUSED` y `RESULTS` pide `FINISHED`.
+>
+> **Catch-up de eliminatorias:** solo `FIXTURES` resuelve los equipos de la siguiente ronda,
+> y su cron corre 1×/día (`0 6 * * *`). Como el proveedor puede tardar horas en poblar un
+> cruce tras terminar los partidos que lo alimentan (una tanda de penales conflictiva llegó a
+> demorar >10h), el cron de `RESULTS` (cada 5 min) encadena una pasada de `FIXTURES` mientras
+> `isKnockoutResolutionWindow()` sea verdadero (hay un partido de knockout terminado en las
+> últimas 24h y otro posterior aún sin equipos). Así el emparejamiento recién resuelto aparece
+> en minutos. Fuera del knockout no se activa (cero llamadas extra), es best-effort (no tumba
+> la corrida de `RESULTS`) y no entra en bucle (`FIXTURES` nunca marca partidos `FINISHED`).
 
 ### Scripts de reparación puntuales
 

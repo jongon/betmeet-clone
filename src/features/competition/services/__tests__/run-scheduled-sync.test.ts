@@ -23,7 +23,11 @@ import {
 import { dispatchPendingNotifications as dispatch } from "@/features/notifications/services/dispatcher";
 import { scoreFinishedUnscoredMatches } from "@/features/scoring-rankings/services/score-sweeper";
 import { prisma } from "@/lib/prisma";
-import { hasActiveMatchWindow, runScheduledSync } from "../run-scheduled-sync";
+import {
+  hasActiveMatchWindow,
+  isKnockoutResolutionWindow,
+  runScheduledSync,
+} from "../run-scheduled-sync";
 
 describe("runScheduledSync (Unit 50)", () => {
   beforeEach(() => {
@@ -112,5 +116,31 @@ describe("hasActiveMatchWindow (Unit 50)", () => {
   it("is false when nothing is live or imminent", async () => {
     vi.mocked(prisma.match.count).mockResolvedValue(0 as never);
     expect(await hasActiveMatchWindow()).toBe(false);
+  });
+});
+
+describe("isKnockoutResolutionWindow", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  // Counts resolve in query order: [finishedRecently, unresolvedAhead].
+  it("is true when a knockout finished recently and a later slot is unresolved", async () => {
+    vi.mocked(prisma.match.count)
+      .mockResolvedValueOnce(1 as never)
+      .mockResolvedValueOnce(1 as never);
+    expect(await isKnockoutResolutionWindow()).toBe(true);
+  });
+
+  it("is false in the group stage (no recently finished knockout match)", async () => {
+    vi.mocked(prisma.match.count)
+      .mockResolvedValueOnce(0 as never)
+      .mockResolvedValueOnce(3 as never);
+    expect(await isKnockoutResolutionWindow()).toBe(false);
+  });
+
+  it("is false once every downstream knockout slot is resolved", async () => {
+    vi.mocked(prisma.match.count)
+      .mockResolvedValueOnce(2 as never)
+      .mockResolvedValueOnce(0 as never);
+    expect(await isKnockoutResolutionWindow()).toBe(false);
   });
 });

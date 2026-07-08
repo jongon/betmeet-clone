@@ -3,6 +3,7 @@ import { revalidateResultViews } from "@/features/admin/services/revalidate-resu
 import { broadcastResultsUpdated } from "@/features/competition/services/broadcast-results-updated";
 import {
   hasActiveMatchWindow,
+  isKnockoutResolutionWindow,
   runScheduledSync,
 } from "@/features/competition/services/run-scheduled-sync";
 import type { ProviderSyncScope } from "@/generated/prisma/enums";
@@ -49,6 +50,21 @@ export async function POST(request: Request) {
     const result = await runScheduledSync(scope, { source: "cron" });
     if (!result.ok) {
       return NextResponse.json({ ok: false, scope, error: result.error }, { status: 502 });
+    }
+
+    // Knockout catch-up: a just-finished knockout match resolves the next round's
+    // teams at the provider, but only the FIXTURES scope pulls SCHEDULED matches
+    // (and it runs once a day). Piggyback a FIXTURES pass on the frequent RESULTS
+    // cron while a bracket is waiting to be filled, so newly-decided matchups —
+    // and the cache invalidation below — land within one RESULTS tick. Best-effort:
+    // RESULTS already persisted, so a chained failure must not fail the run.
+    if (scope === "RESULTS" && (await isKnockoutResolutionWindow())) {
+      const chained = await runScheduledSync("FIXTURES", { source: "cron" });
+      if (!chained.ok) {
+        console.error("[cron/sync] chained FIXTURES after RESULTS failed", {
+          error: chained.error,
+        });
+      }
     }
 
     // Best-effort: sync/scoring already persisted. Cache revalidation must not

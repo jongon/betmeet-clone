@@ -76,7 +76,7 @@ const members: PoolMemberSummary[] = [
   {
     userId: "user-2",
     nickname: "Bob#5678",
-    avatarUrl: null,
+    avatarUrl: "",
     isOwner: false,
     joinedAt: "2026-06-01T00:00:00Z",
   },
@@ -191,7 +191,7 @@ describe("PoolLiveNowBanner (Unit 61)", () => {
     const lateMember: PoolMemberSummary = {
       userId: "user-late",
       nickname: "Late#9999",
-      avatarUrl: null,
+      avatarUrl: "",
       isOwner: false,
       joinedAt: "2026-06-24T00:00:00Z", // after kickoff 2026-06-23T18:00
     };

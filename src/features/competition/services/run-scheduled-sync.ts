@@ -90,3 +90,40 @@ export async function hasActiveMatchWindow(now = new Date()): Promise<boolean> {
   });
   return count > 0;
 }
+
+// How far back a finished knockout match still counts as "recently decided".
+// A knockout kicks off, runs ~2h, then the provider resolves the next round's
+// teams — sometimes hours later (a contested penalty shootout can lag >10h, as
+// happened with the R16 SUI–COL → QF ARG–SUI resolution). A generous lookback
+// keeps the follow-up FIXTURES pass firing on each RESULTS tick until the
+// provider catches up, then goes quiet.
+const KNOCKOUT_RESOLVE_LOOKBACK_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Whether a downstream knockout matchup is likely waiting on the provider to
+ * fill in its teams: a knockout match kicked off within the last 24h AND some
+ * later knockout match is still pending with an unresolved side. When true, the
+ * RESULTS cron piggybacks a FIXTURES pass so newly-decided brackets surface in
+ * minutes instead of waiting for the once-daily FIXTURES job. Stays false in the
+ * group stage (no finished knockout matches) and once every slot is resolved, so
+ * it adds no provider calls outside the knockout window. Extends Unit 50.
+ */
+export async function isKnockoutResolutionWindow(now = new Date()): Promise<boolean> {
+  const [finishedRecently, unresolvedAhead] = await Promise.all([
+    prisma.match.count({
+      where: {
+        status: "FINISHED",
+        phase: { type: "KNOCKOUT" },
+        kickoffAt: { gte: new Date(now.getTime() - KNOCKOUT_RESOLVE_LOOKBACK_MS) },
+      },
+    }),
+    prisma.match.count({
+      where: {
+        status: { in: ["SCHEDULED", "LOCKED"] },
+        phase: { type: "KNOCKOUT" },
+        OR: [{ homeTeamId: null }, { awayTeamId: null }],
+      },
+    }),
+  ]);
+  return finishedRecently > 0 && unresolvedAhead > 0;
+}

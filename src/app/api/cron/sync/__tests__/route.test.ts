@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runScheduledSync, hasActiveMatchWindow } = vi.hoisted(() => ({
+const { runScheduledSync, hasActiveMatchWindow, isKnockoutResolutionWindow } = vi.hoisted(() => ({
   runScheduledSync: vi.fn(),
   hasActiveMatchWindow: vi.fn(),
+  isKnockoutResolutionWindow: vi.fn(),
 }));
 vi.mock("@/features/competition/services/run-scheduled-sync", () => ({
   runScheduledSync,
   hasActiveMatchWindow,
+  isKnockoutResolutionWindow,
 }));
 vi.mock("@/features/admin/services/revalidate-result-views", () => ({
   revalidateResultViews: vi.fn(),
@@ -33,6 +35,7 @@ describe("POST /api/cron/sync (Unit 50)", () => {
     process.env.SYNC_TRIGGER_SECRET = SECRET;
     runScheduledSync.mockResolvedValue({ ok: true });
     hasActiveMatchWindow.mockResolvedValue(true);
+    isKnockoutResolutionWindow.mockResolvedValue(false);
   });
 
   afterEach(() => {
@@ -88,5 +91,46 @@ describe("POST /api/cron/sync (Unit 50)", () => {
 
     expect(res.status).toBe(502);
     await expect(res.json()).resolves.toEqual({ ok: false, scope: "FIXTURES", error: "boom" });
+  });
+
+  it("chains a FIXTURES pass after RESULTS while a knockout bracket is unresolved", async () => {
+    isKnockoutResolutionWindow.mockResolvedValue(true);
+
+    const res = await POST(req("RESULTS", SECRET));
+
+    expect(res.status).toBe(200);
+    expect(runScheduledSync).toHaveBeenCalledWith("RESULTS", { source: "cron" });
+    expect(runScheduledSync).toHaveBeenCalledWith("FIXTURES", { source: "cron" });
+    expect(revalidateResultViews).toHaveBeenCalled();
+  });
+
+  it("does not chain FIXTURES when no knockout bracket is waiting", async () => {
+    isKnockoutResolutionWindow.mockResolvedValue(false);
+
+    await POST(req("RESULTS", SECRET));
+
+    expect(runScheduledSync).toHaveBeenCalledTimes(1);
+    expect(runScheduledSync).not.toHaveBeenCalledWith("FIXTURES", { source: "cron" });
+  });
+
+  it("only chains off RESULTS, not other scopes", async () => {
+    isKnockoutResolutionWindow.mockResolvedValue(true);
+
+    await POST(req("LIVE_STATUS", SECRET));
+
+    expect(isKnockoutResolutionWindow).not.toHaveBeenCalled();
+    expect(runScheduledSync).toHaveBeenCalledTimes(1);
+  });
+
+  it("still succeeds when the chained FIXTURES pass fails", async () => {
+    isKnockoutResolutionWindow.mockResolvedValue(true);
+    runScheduledSync
+      .mockResolvedValueOnce({ ok: true }) // RESULTS
+      .mockResolvedValueOnce({ ok: false, error: "rate limit" }); // chained FIXTURES
+
+    const res = await POST(req("RESULTS", SECRET));
+
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ ok: true, scope: "RESULTS" });
   });
 });
